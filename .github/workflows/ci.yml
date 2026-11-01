@@ -3,7 +3,7 @@ name: Validation Gate
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, testes, revisao]
   workflow_dispatch:
 
 permissions:

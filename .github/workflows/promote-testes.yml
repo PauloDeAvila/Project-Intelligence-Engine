@@ -1,0 +1,54 @@
+name: Promote Tests to Review
+
+on:
+  workflow_run:
+    workflows: ["Validation Gate"]
+    types: [completed]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  promote:
+    if: >-
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'testes' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ensure successful run belongs to current testes HEAD
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          HEAD_SHA="$(gh api "repos/$REPO/branches/testes" --jq .commit.sha)"
+          if [ "$HEAD_SHA" != "$TESTED_SHA" ]; then
+            echo "Superseded CI run: tested $TESTED_SHA, current $HEAD_SHA"
+            exit 0
+          fi
+          echo "HEAD_SHA=$HEAD_SHA" >> "$GITHUB_ENV"
+      - name: Open or update promotion pull request
+        if: env.HEAD_SHA != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          PR_NUMBER="$(gh pr list --repo "$REPO" --head testes --base revisao --state open --json number --jq '.[0].number // empty')"
+          if [ -z "$PR_NUMBER" ]; then
+            gh pr create --repo "$REPO" --head testes --base revisao \
+              --title "Promote testes to revisao" \
+              --body "CI passed on the current testes HEAD. Review the PR checks and merge only when all review-branch protections permit it."
+          else
+            echo "Promotion PR #$PR_NUMBER already open and tracks current testes HEAD."
+          fi
+          # Auto-merge requires repository auto-merge to be enabled and all branch rules satisfied.
+          PR_NUMBER="$(gh pr list --repo "$REPO" --head testes --base revisao --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr merge "$PR_NUMBER" --repo "$REPO" --auto --merge || \
+              echo "::warning::Auto-merge unavailable; review PR must be merged after required checks."
+          fi
