@@ -98,7 +98,7 @@ class IndexPersistenceTests(unittest.TestCase):
 
     def test_transient_read_failure_preserves_existing_index_until_actual_deletion(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = pathlib.Path(directory)
+            root = pathlib.Path(directory).resolve()
             source = root / "app.py"
             source.write_text("def stable():\n    pass\n", encoding="utf-8")
             index_project(root)
@@ -128,7 +128,7 @@ class IndexPersistenceTests(unittest.TestCase):
 
     def test_new_unreadable_file_is_reported_as_partial(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = pathlib.Path(directory)
+            root = pathlib.Path(directory).resolve()
             source = root / "new.py"
             source.write_text("def not_indexed():\n    pass\n", encoding="utf-8")
             original = discovery.read_snapshot
@@ -153,7 +153,7 @@ class IndexPersistenceTests(unittest.TestCase):
 
     def test_directory_walk_failure_preserves_prior_rows_under_that_directory(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = pathlib.Path(directory)
+            root = pathlib.Path(directory).resolve()
             nested = root / "package"
             nested.mkdir()
             (nested / "module.py").write_text("def retained():\n    pass\n", encoding="utf-8")
@@ -201,7 +201,7 @@ class IndexPersistenceTests(unittest.TestCase):
 
     def test_oversized_file_does_not_silently_delete_prior_index(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = pathlib.Path(directory)
+            root = pathlib.Path(directory).resolve()
             source = root / "app.py"
             source.write_text("def stable():\n    pass\n", encoding="utf-8")
             index_project(root)
