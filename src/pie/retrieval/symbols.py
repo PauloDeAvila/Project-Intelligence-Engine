@@ -90,7 +90,7 @@ def _verification(
         "SELECT value FROM metadata WHERE key = 'index_state'"
     ).fetchone()
     rules_current = analysis_version_matches(connection)
-    state = CURRENT if rules_current and not drift and not incomplete else STALE
+    state = CURRENT if rules_current and not drift and not incomplete and index_state is not None and index_state[0] == CURRENT else STALE
     payload: dict[str, object] = {
         "state": state,
         "index_state": index_state[0] if index_state else "UNINDEXED",
@@ -109,6 +109,8 @@ def _verification(
         payload["warning"] = (
             "some Python files were never analysed; run pie index to cover the whole project"
         )
+    if state != CURRENT and "warning" not in payload:
+        payload["warning"] = "project index is not CURRENT; results may be incomplete; run pie index"
     return payload
 
 
