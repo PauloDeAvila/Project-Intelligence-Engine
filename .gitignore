@@ -5,3 +5,8 @@ build/
 *.egg-info/
 verification-results.json
 .coverage
+# Local validation artifacts (V0.2 preview validation)
+.venv/
+sandbox-exemplo/
+validar_v02.py
+validar_stale.py
