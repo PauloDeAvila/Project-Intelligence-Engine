@@ -20,7 +20,62 @@ CREATE TABLE IF NOT EXISTS imports (
 );
 CREATE INDEX IF NOT EXISTS idx_symbols_name ON symbols(name);
 CREATE INDEX IF NOT EXISTS idx_symbols_qualified_name ON symbols(qualified_name);
+CREATE TABLE IF NOT EXISTS definitions (
+    id INTEGER PRIMARY KEY,
+    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+    binding_key TEXT NOT NULL,
+    name TEXT NOT NULL,
+    qualified_name TEXT NOT NULL,
+    scope_key TEXT NOT NULL,
+    scope_kind TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    declared_by TEXT NOT NULL,
+    start_line INTEGER NOT NULL, start_col INTEGER NOT NULL,
+    end_line INTEGER NOT NULL, end_col INTEGER NOT NULL,
+    inferred_type TEXT, source_module TEXT, source_name TEXT, alias TEXT,
+    body_scope_key TEXT,
+    UNIQUE(file_id, binding_key, start_line, start_col)
+);
+CREATE TABLE IF NOT EXISTS usages (
+    id INTEGER PRIMARY KEY,
+    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    qualified_name TEXT NOT NULL,
+    scope_key TEXT NOT NULL,
+    context TEXT NOT NULL,
+    line INTEGER NOT NULL, col INTEGER NOT NULL,
+    origin_symbol TEXT,
+    resolution TEXT NOT NULL,
+    evidence TEXT NOT NULL,
+    target_binding_key TEXT,
+    target_path TEXT, target_name TEXT, target_line INTEGER,
+    via_binding_key TEXT,
+    UNIQUE(file_id, scope_key, name, context, line, col, qualified_name)
+);
+CREATE TABLE IF NOT EXISTS star_imports (
+    id INTEGER PRIMARY KEY,
+    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+    module TEXT NOT NULL,
+    UNIQUE(file_id, module)
+);
+CREATE TABLE IF NOT EXISTS analysis_state (
+    file_id INTEGER PRIMARY KEY REFERENCES files(id) ON DELETE CASCADE,
+    sha256 TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_definitions_name ON definitions(name);
+CREATE INDEX IF NOT EXISTS idx_definitions_binding ON definitions(binding_key);
+CREATE INDEX IF NOT EXISTS idx_definitions_qualified ON definitions(qualified_name);
+CREATE INDEX IF NOT EXISTS idx_definitions_scope ON definitions(file_id, scope_key, name);
+CREATE INDEX IF NOT EXISTS idx_usages_target ON usages(target_binding_key);
+CREATE INDEX IF NOT EXISTS idx_usages_target_path ON usages(target_path);
+CREATE INDEX IF NOT EXISTS idx_usages_origin ON usages(origin_symbol);
+CREATE INDEX IF NOT EXISTS idx_usages_name ON usages(name);
+CREATE INDEX IF NOT EXISTS idx_usages_via ON usages(via_binding_key);
+CREATE INDEX IF NOT EXISTS idx_star_imports_module ON star_imports(module);
 """
+
+#: Bumped when the analysis layer must be rebuilt from source.
+ANALYSIS_VERSION = 2
 
 
 def _has_legacy_symbol_constraint(connection: sqlite3.Connection) -> bool:

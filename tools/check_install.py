@@ -27,7 +27,10 @@ def main() -> int:
                 print(install.stderr, file=sys.stderr, end="")
             return install.returncode
         project_root.mkdir()
-        (project_root / "app.py").write_text("class App:\n    def run(self):\n        return True\n", encoding="utf-8")
+        (project_root / "app.py").write_text(
+            "APP_NAME = \"app\"\n\nclass App:\n    def run(self):\n        return APP_NAME\n",
+            encoding="utf-8",
+        )
         commands = [
             ([str(executable), "--version"], "0.1.0"),
             ([str(executable), "init", "--root", str(project_root)], "initialized"),
@@ -35,6 +38,9 @@ def main() -> int:
             ([str(executable), "status", "--root", str(project_root)], "status"),
             ([str(executable), "search", "App", "--root", str(project_root)], "search"),
             ([str(executable), "symbol", "App.run", "--root", str(project_root)], "symbol"),
+            ([str(executable), "definitions", "App", "--root", str(project_root)], "definitions"),
+            ([str(executable), "references", "APP_NAME", "--root", str(project_root)], "references"),
+            ([str(executable), "analysis", "--root", str(project_root)], "analysis"),
         ]
         environment = dict(os.environ)
         environment.pop("PYTHONPATH", None)
@@ -60,6 +66,11 @@ def main() -> int:
                 "status": lambda value: value.get("files") == 1 and value.get("symbols") == 2,
                 "search": lambda value: any(item.get("qualified_name") == "App" for item in value),
                 "symbol": lambda value: any(item.get("qualified_name") == "App.run" for item in value),
+                "definitions": lambda value: value.get("query") == "App"
+                and any(item.get("qualified_name") == "App" for item in value.get("definitions", [])),
+                "references": lambda value: value.get("query") == "APP_NAME"
+                and any(item.get("consumer_symbol") == "App.run" for item in value.get("references", [])),
+                "analysis": lambda value: value.get("definitions", 0) > 0 and value.get("dangling_targets") == 0,
             }[kind](payload)
             if not valid:
                 print(f"Unexpected output for installed PIE {kind}: {result.stdout}", file=sys.stderr)

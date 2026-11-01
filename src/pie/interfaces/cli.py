@@ -5,6 +5,7 @@ from pathlib import Path
 from pie import __version__
 from pie.core.errors import ProjectNotInitializedError
 from pie.indexing.indexer import index_project
+from pie.retrieval.symbols import analysis_summary, find_definitions, find_references
 from pie.storage.database import connect
 
 
@@ -67,6 +68,18 @@ def command_symbol(root: Path, name: str) -> list[dict[str, object]]:
         connection.close()
 
 
+def command_definitions(root: Path, name: str) -> dict[str, object]:
+    require_initialized(root)
+    return find_definitions(root, name)
+
+def command_references(root: Path, name: str) -> dict[str, object]:
+    require_initialized(root)
+    return find_references(root, name)
+
+def command_analysis(root: Path) -> dict[str, object]:
+    require_initialized(root)
+    return analysis_summary(root)
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="pie", description="Local Project Intelligence Engine")
     parser.add_argument("--version", action="version", version=__version__)
@@ -78,6 +91,11 @@ def main(argv: list[str] | None = None) -> int:
         command = subparsers.add_parser(name)
         command.add_argument("query" if name == "search" else "name")
         command.add_argument("--root", default=".")
+    for name in ("definitions", "references"):
+        command = subparsers.add_parser(name)
+        command.add_argument("name")
+        command.add_argument("--root", default=".")
+    subparsers.add_parser("analysis").add_argument("--root", default=".")
     args = parser.parse_args(argv)
     root = project_root(args.root)
     try:
@@ -85,6 +103,9 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "index": result = index_project(root) if (root / ".pie" / "index.sqlite3").exists() else command_init(root) | index_project(root)
         elif args.command == "status": result = command_status(root)
         elif args.command == "search": result = command_search(root, args.query)
+        elif args.command == "definitions": result = command_definitions(root, args.name)
+        elif args.command == "references": result = command_references(root, args.name)
+        elif args.command == "analysis": result = command_analysis(root)
         else: result = command_symbol(root, args.name)
     except ProjectNotInitializedError as exc:
         parser.error(str(exc))
