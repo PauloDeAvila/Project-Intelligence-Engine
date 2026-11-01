@@ -88,7 +88,7 @@ class ScannerAndParserTests(unittest.TestCase):
             original = pathlib.Path.read_bytes
 
             def read_bytes(current):
-                if current == path:
+                if current.suffix == ".py":
                     raise OSError("simulated read failure")
                 return original(current)
 
