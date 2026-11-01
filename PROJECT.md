@@ -7,7 +7,7 @@ Supported journey: `pie init` → `pie index` → `pie status` / `pie search` / 
 
 ## In scope
 - Python 3.12+ on Windows and Linux.
-- Safe discovery below an explicit project root, excluding generated/dependency directories and oversized/non-Python files.
+- Safe, incremental discovery below an explicit project root, excluding generated/dependency directories and oversized/non-Python files; preserve prior index rows for paths that could not be read on a scan.
 - SHA-256 change detection and removal of deleted files from the index.
 - AST-based Python symbols and imports with source line/column evidence.
 - Reopenable SQLite persistence and JSON CLI output.
@@ -19,12 +19,16 @@ Supported journey: `pie init` → `pie index` → `pie status` / `pie search` / 
 
 ## Stack and environments
 - Python 3.12+, standard library only at runtime, SQLite, `unittest`, argparse and `ast`.
-- CI runs on Ubuntu with Python 3.12. The code uses `pathlib` and avoids OS-specific path assumptions.
+- CI runs the required verification check on Ubuntu and a compatibility job on Windows, both with Python 3.12. The code uses `pathlib` and avoids OS-specific path assumptions.
 
 ## Architecture and critical invariants
 - CLI calls indexing and storage; the indexer owns discovery/parsing orchestration; SQLite is the durable derived index; source files are never modified.
 - Every stored symbol belongs to one indexed file and carries a relative path plus source range.
-- Indexing is atomic per invocation, deletes stale file rows, and never invents semantic relationships.
+- Repeated definitions with the same qualified name and kind are retained by distinct source locations; existing V0.1 databases migrate transactionally on open.
+- Indexing is atomic per invocation, deletes confirmed stale file rows, preserves rows for unreadable paths, and never invents semantic relationships.
+- Every completed scan records `index_state` and structured diagnostics in SQLite metadata. `pie status` and `pie index` expose `CURRENT`, `STALE`, `PARTIAL`, `ERROR` or `UNINDEXED`; preserved old rows are never represented as current after a detected gap.
+- File content is hashed and parsed from one per-file snapshot; the indexer does not retain all file contents in memory together.
+- `.gitignore` supports nested files, ordered negations, slash-scoped patterns, directory rules and `**`, `*`, `?`, and bracket wildcards. Git's escaped comment/negation markers and escaped trailing spaces are not supported by this standard-library subset.
 - Relative paths are stored with `/` separators; only files below the requested root are considered.
 
 ## Acceptance criteria
@@ -44,7 +48,7 @@ Record actual commands and test coverage for every applicable tier. The agent mu
 | Integration and contracts | `python -m unittest discover -s tests -p test_pie_integration.py -v` | Python 3.12+ | Pass/fail and counts |
 | Full user-flow / E2E | `python -m unittest discover -s tests -p test_pie_e2e.py -v` | Python 3.12+ | Pass/fail and counts |
 | Full repository regression | `python -m unittest discover -s tests -v` | Python 3.12+ | All existing tests run |
-| Build, lint, types, other applicable checks | `python -m compileall -q src tools tests` | Python 3.12+ | Exit status |
+| Build, lint, types, other applicable checks | `python tools/check_install.py` and `python -m compileall -q src tools tests` | Python 3.12+ | Install/import and compilation exit status |
 
 ## Verification policy
 An implementation is NOT VERIFIED until the complete applicable matrix passes and objective results are recorded. Missing test infrastructure requires creation or explicit BLOCKED status; do not claim completion when verification cannot run. Do not assert absolute 100% correctness.
@@ -52,14 +56,15 @@ An implementation is NOT VERIFIED until the complete applicable matrix passes an
 ## Known risks and unresolved questions
 - AST parsing is intentionally less language-general than the planned Tree-sitter adapter.
 - Dynamic imports and semantic references remain unresolved by design.
-- GitHub branch protection is not confirmed by this local implementation.
+- GitHub branch protection is a remote governance control; the active `Protect main` ruleset currently requires pull requests and the `Project Verification` check.
+- The benchmark accepts `--source` for a copied real project or `--files` for a synthetic tree, reports Python traced peak memory, process peak RSS, repeated search time, and does not impose universal performance targets. Filesystem/path enumeration and SQLite's seen-path set still scale with project size.
 
 ## Bootstrap gate (mandatory before feature work)
 - [x] Stack-specific dependencies and real test commands established
 - [x] CI runs actual automated checks across all applicable levels
 - [x] Missing automated coverage identified and addressed or explicitly blocked
-- [ ] GitHub PR/branch protection configured and independently confirmed
-- [ ] Required CI checks enforced (not merely present as optional actions)
+- [x] GitHub PR/branch protection configured and independently confirmed
+- [x] Required CI check named `Project Verification` configured for enforcement
 - [ ] Independent review process configured using PONTO.md
 
 Note: The starter workflow deliberately fails pending project-specific test configuration. This is NOT a runnable product test suite.

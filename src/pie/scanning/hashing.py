@@ -9,3 +9,7 @@ def sha256_file(path: Path, chunk_size: int = 1024 * 1024) -> str:
             digest.update(chunk)
     return digest.hexdigest()
 
+
+def sha256_bytes(content: bytes) -> str:
+    return hashlib.sha256(content).hexdigest()
+

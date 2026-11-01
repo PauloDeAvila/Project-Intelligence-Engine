@@ -17,6 +17,8 @@ python -m pie status --root path/to/project
 python -m pie search cache --root path/to/project
 ```
 
+`pie status` reports index freshness as `CURRENT`, `STALE`, `PARTIAL`, `ERROR`, or `UNINDEXED`, plus diagnostics from the latest indexing attempt. Review the state before relying on search results; an inaccessible file can leave previously indexed symbols available but marked `STALE`.
+
 ## Repository layout
 
 - `src/pie/` — scanner, AST indexer, SQLite storage and CLI.
@@ -40,3 +42,12 @@ Skills are instructions, not executable tooling. MCP connections, compilers, tes
 - `.agents/skills/independent-review/` requires a detailed independent review report.
 - `.github/workflows/ci.yml` runs the V0.1 regression and verification matrix.
 - GitHub branch protection/rulesets are server-side repository settings and must be configured and verified separately for each cloned/template repository.
+
+## Verification helpers
+
+```text
+python tools/check_install.py
+python tools/benchmark_index.py
+python tools/benchmark_index.py --files 5000 --queries 100
+python tools/benchmark_index.py --source path/to/real/project --queries 100
+```

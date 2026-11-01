@@ -29,11 +29,19 @@ def command_init(root: Path) -> dict[str, str]:
     return {"project": str(root), "database": str(path), "status": "initialized"}
 
 
-def command_status(root: Path) -> dict[str, int | str]:
+def command_status(root: Path) -> dict[str, object]:
     path = require_initialized(root)
     connection = connect(path)
     try:
-        return {"project": str(root), "files": connection.execute("SELECT COUNT(*) FROM files").fetchone()[0], "symbols": connection.execute("SELECT COUNT(*) FROM symbols").fetchone()[0], "imports": connection.execute("SELECT COUNT(*) FROM imports").fetchone()[0]}
+        metadata = {row["key"]: row["value"] for row in connection.execute("SELECT key, value FROM metadata")}
+        return {
+            "project": str(root),
+            "files": connection.execute("SELECT COUNT(*) FROM files").fetchone()[0],
+            "symbols": connection.execute("SELECT COUNT(*) FROM symbols").fetchone()[0],
+            "imports": connection.execute("SELECT COUNT(*) FROM imports").fetchone()[0],
+            "index_state": metadata.get("index_state", "UNINDEXED"),
+            "diagnostics": json.loads(metadata.get("index_diagnostics", "[]")),
+        }
     finally:
         connection.close()
 
@@ -42,7 +50,8 @@ def command_search(root: Path, query: str) -> list[dict[str, object]]:
     path = require_initialized(root)
     connection = connect(path)
     try:
-        rows = connection.execute("SELECT symbols.qualified_name, symbols.name, symbols.kind, files.path, symbols.start_line, symbols.end_line FROM symbols JOIN files ON files.id = symbols.file_id WHERE symbols.name LIKE ? OR symbols.qualified_name LIKE ? ORDER BY symbols.qualified_name", (f"%{query}%", f"%{query}%")).fetchall()
+        escaped = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        rows = connection.execute("SELECT symbols.qualified_name, symbols.name, symbols.kind, files.path, symbols.start_line, symbols.end_line FROM symbols JOIN files ON files.id = symbols.file_id WHERE symbols.name LIKE ? ESCAPE '\\' OR symbols.qualified_name LIKE ? ESCAPE '\\' ORDER BY symbols.qualified_name", (f"%{escaped}%", f"%{escaped}%")).fetchall()
         return [dict(row) for row in rows]
     finally:
         connection.close()

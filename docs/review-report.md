@@ -1,25 +1,25 @@
 # Independent code review — evidence report
 
 ## Identificação
-- Repository / branch / base SHA / head SHA: `Start-Project` / `main` / working tree baseline / uncommitted V0.1 changes
+- Repository / branch / base SHA / head SHA: `Project-Intelligence-Engine` / `stabilize-v0-1` / `ccf53c9` / working tree stabilization changes
 - Autor da implementação / revisor: Codex / separate read-only review pass
 - Objetivo e critérios de aceite: deliver PIE V0.1 local Python indexing, SQLite persistence and CLI workflow defined in `PROJECT.md`
-- **Decisão**: BLOCKED — NOT VERIFIED FOR PRODUCTION
-- **Limites da inspeção**: static local review, complete diff, local tests and compile check; GitHub branch protection and remote CI enforcement were not reverified in this turn.
+- **Decisão**: REQUEST CHANGES — V0.1 STABILIZATION IMPLEMENTED, FINAL PR ENFORCEMENT TEST PENDING
+- **Limites da inspeção**: static local review, complete diff, local tests and compile check; remote CI passed on the stabilization PR, while deliberate failing-PR enforcement remains pending.
 
 ## Sumário executivo
 
-The change adds a cohesive V0.1 slice: discovery and SHA-256 hashing, Python AST extraction, SQLite persistence, CLI commands and tiered tests. The review found no reproducible functional failure in the exercised scope. Production delivery remains blocked because branch protection/ruleset enforcement is not verified, and the repository has no remote CI result for this uncommitted change.
+The change hardens the V0.1 slice with `.gitignore` rules, same-snapshot hashing/parsing, SQLite integrity checks, literal search escaping, isolated installation validation and a 100-file benchmark. Local verification passed. GitHub now has an active `Protect main` ruleset requiring PRs and `Project Verification`; a deliberately failing PR enforcement test remains pending.
 
 ## Arquivos e símbolos alterados
 
 | Arquivo:linha | Símbolo / contrato | Mudança | Justificativa | Evidência |
 | --- | --- | --- | --- | --- |
-| `src/pie/scanning/discovery.py:10` | `discover_files` | Stable Python inventory with exclusions and symlink rejection | Scanner acceptance criteria | `tests/test_pie_unit.py` |
+| `src/pie/scanning/discovery.py:10` | `discover_files` | Stable Python inventory with `.gitignore` exclusions and symlink rejection | Scanner acceptance criteria | `tests/test_pie_unit.py` |
 | `src/pie/scanning/hashing.py:5` | `sha256_file` | Chunked content hashing | Incremental change detection | `tests/test_pie_unit.py` |
-| `src/pie/indexing/python_ast.py:7` | `parse_python` / `Visitor` | Classes, functions, methods, nested scopes and imports | V0.1 symbol extraction | `tests/test_pie_unit.py` |
+| `src/pie/indexing/python_ast.py:7` | `parse_python` / `parse_python_content` | Classes, functions, methods, nested scopes and imports from one snapshot | V0.1 symbol extraction | `tests/test_pie_unit.py` |
 | `src/pie/indexing/indexer.py:8` | `index_project` | Atomic reconciliation into SQLite | Persistence and deletion behavior | `tests/test_pie_integration.py` |
-| `src/pie/interfaces/cli.py:22,41,51,61` | init/status/search/symbol/main | JSON CLI workflow | User-facing V0.1 contract | `tests/test_pie_e2e.py` |
+| `src/pie/interfaces/cli.py:22,41,51,61` | init/status/search/symbol/main | JSON CLI workflow with literal wildcard escaping | User-facing V0.1 contract | `tests/test_pie_e2e.py` |
 | `src/pie/storage/database.py:6` | SQLite schema / `connect` | Files, symbols and imports with foreign keys | Durable evidence model | Integration tests |
 
 ## Matriz de impacto e rastreabilidade
@@ -37,19 +37,20 @@ Dynamic/reflection-based consumers were not found in the repository; text search
 
 No blocking functional finding reproduced in the reviewed scope.
 
-Known limitations are intentional and documented: Python-only AST parsing, no semantic reference resolution, no FTS ranking, no MCP and no remote branch-protection evidence.
+Known limitations are intentional and documented: Python-only AST parsing, no semantic reference resolution, no FTS ranking and no MCP. A deliberately failing PR enforcement test is still outstanding.
 
 ## Matriz de execução
 
 | Camada | Comando, ambiente e versão | Passou | Falhou | Pulou | Logs / artefatos / bloqueios |
 | --- | --- | ---: | ---: | ---: | --- |
-| Unitário | Bundled Python 3.12; `python -m unittest discover -s tests -p test_pie_unit.py -v` | 4 | 0 | 0 | Passed |
+| Unitário | Bundled Python 3.12; `python -m unittest discover -s tests -p test_pie_unit.py -v` | 10 | 0 | 0 | Passed |
 | Componente | `ci/checks.json` | — | — | 1 tier | Explicitly not applicable for V0.1 |
-| Integração/contratos | `python -m unittest discover -s tests -p test_pie_integration.py -v` | 2 | 0 | 0 | Passed |
+| Integração/contratos | `python -m unittest discover -s tests -p test_pie_integration.py -v` | 3 | 0 | 0 | Passed |
 | E2E | `python -m unittest discover -s tests -p test_pie_e2e.py -v` | 1 | 0 | 0 | Passed |
-| Regressão global | `python -m unittest discover -s tests -v` | 16 | 0 | 0 | Passed |
-| Build/lint/tipos/segurança aplicável | `python -m compileall -q src tools tests` | 1 command | 0 | 0 | Passed; no lint/type checker configured |
-| Project verification | `python tools/verify_project.py` | unit, integration, E2E, regression, build | 0 | component | `verification-results.json` generated and ignored |
+| Regressão global | `python -m unittest discover -s tests -v` | 23 | 0 | 0 | Passed |
+| Build/lint/tipos/segurança aplicável | `python tools/check_install.py`; `python -m compileall -q src tools tests` | 2 commands | 0 | 0 | Passed; no lint/type checker configured |
+| Project verification | `python tools/verify_project.py` | unit, integration, E2E, regression, package-install build | 0 | component | `verification-results.json` generated and ignored |
+| Remote PR CI | GitHub Actions run `41266348745` | Project Verification, Windows Compatibility, Starter Unit Tests | 0 | 0 | All three jobs passed |
 
 ## Impacto por subsistema
 
@@ -57,20 +58,20 @@ Known limitations are intentional and documented: Python-only AST parsing, no se
 - Parser: local, medium risk; unresolved dynamic semantics remain out of scope.
 - Storage: shared durable state, high risk; foreign-key cascade and transactional indexing are covered by integration tests.
 - CLI: public local contract, medium risk; end-to-end JSON workflow is covered.
-- CI/governance: real commands are configured, but server-side branch protection remains unverified.
+- CI/governance: real commands are configured; active ruleset `Protect main` requires PR and `Project Verification`.
 
 ## Proteção da branch
 
-- PR obrigatória: não confirmada neste turno.
-- Checks exigidos: workflow defines `Project Verification`; enforcement not confirmed.
-- Aprovações e restrições: não confirmadas.
-- Regras confirmadas na API/UI: repository audit records HTTP 403 for branch-protection inspection.
-- Bloqueios pendentes: configure and verify active ruleset on `main`, then test failing and passing PR enforcement.
+- PR obrigatória: confirmada no GitHub UI via active `Protect main` ruleset targeting default `main`.
+- Checks exigidos: `Project Verification` from GitHub Actions.
+- Aprovações: ruleset ativa define `required_approving_review_count: 0`; exige PR, mas não exige aprovação humana.
+- Regras confirmadas na API: `Protect main` ativa em `~DEFAULT_BRANCH`, exige pull request e status `Project Verification`, bloqueia exclusão e non-fast-forward; bypass actors vazio.
+- Bloqueios pendentes: run a deliberately failing PR and confirm merge is blocked; then verify a passing PR path.
 
 ## Veredito
 
 - Critérios cumpridos: V0.1 functional acceptance and local automated checks.
-- Critérios não cumpridos: production governance gate and remote CI evidence for this change.
+- Critérios não cumpridos: deliberately failing PR enforcement evidence.
 - Evidências: test matrix above, `ci/checks.json`, `PROJECT.md`, `docs/architecture.md`.
 - Risco residual: semantic resolution, non-Python languages, large repositories and remote enforcement are unvalidated.
-- Próximo passo: run CI on the remote branch, configure/verify branch protection, then reassess production status.
+- Próximo passo: perform the deliberately failing-PR enforcement test; PR #1 and its Ubuntu/Windows checks are already published and passing.

@@ -6,7 +6,14 @@ from pie.core.models import ImportRecord, SymbolRecord
 
 def parse_python(path: Path, relative_path: str) -> tuple[list[SymbolRecord], list[ImportRecord], str | None]:
     try:
-        tree = ast.parse(path.read_text(encoding="utf-8"), filename=relative_path)
+        return parse_python_content(path.read_bytes(), relative_path)
+    except (OSError, UnicodeDecodeError) as exc:
+        return [], [], type(exc).__name__
+
+
+def parse_python_content(content: bytes, relative_path: str) -> tuple[list[SymbolRecord], list[ImportRecord], str | None]:
+    try:
+        tree = ast.parse(content.decode("utf-8"), filename=relative_path)
     except (OSError, UnicodeDecodeError, SyntaxError) as exc:
         return [], [], type(exc).__name__
 
