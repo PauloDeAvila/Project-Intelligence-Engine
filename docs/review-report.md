@@ -5,7 +5,7 @@
 - Autor da implementação / revisor: Codex / separate read-only review pass
 - Objetivo e critérios de aceite: deliver PIE V0.1 local Python indexing, SQLite persistence and CLI workflow defined in `PROJECT.md`
 - **Decisão**: REQUEST CHANGES — V0.1 STABILIZATION IMPLEMENTED, FINAL PR ENFORCEMENT TEST PENDING
-- **Limites da inspeção**: static local review, complete diff, local tests and compile check; remote CI for the stabilization branch and deliberate failing-PR enforcement remain pending until the pull request exists.
+- **Limites da inspeção**: static local review, complete diff, local tests and compile check; remote CI passed on the stabilization PR, while deliberate failing-PR enforcement remains pending.
 
 ## Sumário executivo
 
@@ -50,6 +50,7 @@ Known limitations are intentional and documented: Python-only AST parsing, no se
 | Regressão global | `python -m unittest discover -s tests -v` | 23 | 0 | 0 | Passed |
 | Build/lint/tipos/segurança aplicável | `python tools/check_install.py`; `python -m compileall -q src tools tests` | 2 commands | 0 | 0 | Passed; no lint/type checker configured |
 | Project verification | `python tools/verify_project.py` | unit, integration, E2E, regression, package-install build | 0 | component | `verification-results.json` generated and ignored |
+| Remote PR CI | GitHub Actions run `41266348745` | Project Verification, Windows Compatibility, Starter Unit Tests | 0 | 0 | All three jobs passed |
 
 ## Impacto por subsistema
 
@@ -70,7 +71,7 @@ Known limitations are intentional and documented: Python-only AST parsing, no se
 ## Veredito
 
 - Critérios cumpridos: V0.1 functional acceptance and local automated checks.
-- Critérios não cumpridos: deliberately failing PR enforcement evidence and remote CI result for the stabilization branch.
+- Critérios não cumpridos: deliberately failing PR enforcement evidence.
 - Evidências: test matrix above, `ci/checks.json`, `PROJECT.md`, `docs/architecture.md`.
 - Risco residual: semantic resolution, non-Python languages, large repositories and remote enforcement are unvalidated.
-- Próximo passo: publish this stabilization through a PR, observe both CI jobs on Ubuntu and Windows, then perform the failing-PR enforcement test.
+- Próximo passo: perform the deliberately failing-PR enforcement test; PR #1 and its Ubuntu/Windows checks are already published and passing.

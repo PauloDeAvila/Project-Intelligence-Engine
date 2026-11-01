@@ -9,6 +9,7 @@ This is an evidence-based record, not an unconditional certification.
 - The local verification matrix now executes unit, integration, E2E, regression and build checks; the component tier is explicitly not applicable for V0.1.
 - A subsequent commit 0fca3892c99022991a4cfe178f79c93a961ab352 added tests for command success, failure, missing executable, result evidence, and fail-closed configuration. Refer to Actions for the outcome of this newer run; do not assume it passed.
 - GitHub UI now shows active ruleset `Protect main`, targeting the default `main` branch and requiring pull requests plus `Project Verification`.
+- Pull Request #1 run 41266348745 passed `Project Verification`, `Windows Compatibility` and `Starter Unit Tests`.
 
 ## Implemented controls
 - Agent engineering contract (AGENTS.md), scope guard, dependency impact analysis and full regression rules.
@@ -22,7 +23,7 @@ This is an evidence-based record, not an unconditional certification.
 1. V0.1 intentionally supports Python only; additional languages require new adapters and tests.
 2. The verification runner cannot prove full functional coverage just by running commands. A project's test design, coverage and independent review remain essential.
 3. Branch rulesets must be configured in GitHub and enforcement validated via a failing PR and a passing PR.
-4. A failing-PR enforcement test remains a follow-up; the active ruleset configuration is verified in the GitHub UI.
+4. A deliberately failing-PR enforcement test remains a follow-up; the active ruleset configuration is verified in the GitHub UI and the stabilization PR checks passed.
 5. A separate autonomous review agent is not running as a service. The skill defines the process for an independent read-only reviewer when supported.
 
 ## Required acceptance evidence for a new project
@@ -41,4 +42,4 @@ This is an evidence-based record, not an unconditional certification.
 - `.gitignore` patterns, snapshot parsing, literal `LIKE` escaping, Unicode paths, unreadable-file handling, concurrent-read behavior and SQLite integrity are covered by the expanded 23-test suite.
 
 ## Conclusion
-The V0.1 functional slice is locally verified under the recorded commands. The active branch ruleset and CI matrix now address the principal governance gaps; a deliberately failing PR should still be used as the final enforcement proof.
+The V0.1 functional slice is locally and remotely verified under the recorded commands. The active branch ruleset and CI matrix now address the principal governance gaps; a deliberately failing PR should still be used as the final enforcement proof.
