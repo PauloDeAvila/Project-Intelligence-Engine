@@ -46,4 +46,5 @@ Skills are instructions, not executable tooling. MCP connections, compilers, tes
 ```text
 python tools/check_install.py
 python tools/benchmark_index.py
+python tools/benchmark_index.py --files 5000 --queries 100
 ```
