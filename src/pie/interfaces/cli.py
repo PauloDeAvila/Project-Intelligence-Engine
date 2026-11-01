@@ -29,11 +29,19 @@ def command_init(root: Path) -> dict[str, str]:
     return {"project": str(root), "database": str(path), "status": "initialized"}
 
 
-def command_status(root: Path) -> dict[str, int | str]:
+def command_status(root: Path) -> dict[str, object]:
     path = require_initialized(root)
     connection = connect(path)
     try:
-        return {"project": str(root), "files": connection.execute("SELECT COUNT(*) FROM files").fetchone()[0], "symbols": connection.execute("SELECT COUNT(*) FROM symbols").fetchone()[0], "imports": connection.execute("SELECT COUNT(*) FROM imports").fetchone()[0]}
+        metadata = {row["key"]: row["value"] for row in connection.execute("SELECT key, value FROM metadata")}
+        return {
+            "project": str(root),
+            "files": connection.execute("SELECT COUNT(*) FROM files").fetchone()[0],
+            "symbols": connection.execute("SELECT COUNT(*) FROM symbols").fetchone()[0],
+            "imports": connection.execute("SELECT COUNT(*) FROM imports").fetchone()[0],
+            "index_state": metadata.get("index_state", "UNINDEXED"),
+            "diagnostics": json.loads(metadata.get("index_diagnostics", "[]")),
+        }
     finally:
         connection.close()
 

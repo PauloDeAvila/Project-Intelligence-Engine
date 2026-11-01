@@ -23,6 +23,8 @@ class CliWorkflowTests(unittest.TestCase):
             self.assertEqual(json.loads(indexed.stdout)["symbols"], 2)
             status = self.run_cli(root, "status")
             self.assertEqual(json.loads(status.stdout)["files"], 1)
+            self.assertEqual(json.loads(status.stdout)["index_state"], "CURRENT")
+            self.assertEqual(json.loads(status.stdout)["diagnostics"], [])
             search = self.run_cli(root, "search", "App")
             self.assertEqual([item["qualified_name"] for item in json.loads(search.stdout)], ["App", "App.run"])
 

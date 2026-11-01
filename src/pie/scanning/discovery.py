@@ -22,6 +22,7 @@ def iter_files(
     max_bytes: int = 5_000_000,
     unreadable_paths: set[Path] | None = None,
     unreadable_directories: set[Path] | None = None,
+    oversized_paths: set[Path] | None = None,
 ) -> Iterator[FileRecord]:
     """Yield eligible files one at a time, keeping only one content snapshot in memory."""
     if max_bytes < 0:
@@ -66,6 +67,8 @@ def iter_files(
                 unreadable_paths.add(relative)
             continue
         if content is None:
+            if oversized_paths is not None:
+                oversized_paths.add(relative)
             continue
         yield FileRecord(relative, sha256_bytes(content), len(content), language, content)
 

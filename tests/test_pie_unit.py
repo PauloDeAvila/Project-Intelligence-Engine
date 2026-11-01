@@ -1,6 +1,8 @@
 import hashlib
 import pathlib
+import shutil
 import sys
+import subprocess
 import tempfile
 import unittest
 from unittest import mock
@@ -13,6 +15,7 @@ from pie.indexing.python_ast import parse_python_content
 from pie.scanning import discovery
 from pie.scanning.discovery import discover_files, iter_files
 from pie.scanning.hashing import sha256_bytes, sha256_file
+from pie.scanning.ignore import IgnoreRules
 
 
 class ScannerAndParserTests(unittest.TestCase):
@@ -61,6 +64,54 @@ class ScannerAndParserTests(unittest.TestCase):
             (root / "cache").mkdir()
             (root / "cache" / "module.py").write_text("x = 1", encoding="utf-8")
             self.assertEqual([item.path.as_posix() for item in discover_files(root)], ["cache.py", "pkg/deep/keep.py", "pkg/deep/private/visible.py"])
+
+    @unittest.skipUnless(shutil.which("git"), "git is required for differential ignore validation")
+    def test_supported_gitignore_subset_matches_git_check_ignore(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            (root / ".gitignore").write_text(
+                "/root_only.py\n*.tmp\ncache/\n**/generated?.py\n"
+                "pkg/*.log\n[ab]eta.py\n!keep.tmp\n",
+                encoding="utf-8",
+            )
+            (root / "pkg").mkdir()
+            (root / "pkg" / ".gitignore").write_text("/private/\n!keep.py\n", encoding="utf-8")
+            candidates = [
+                ("root_only.py", False),
+                ("nested/root_only.py", False),
+                ("build.tmp", False),
+                ("keep.tmp", False),
+                ("cache", True),
+                ("cache/module.py", False),
+                ("pkg/generated1.py", False),
+                ("pkg/deep/generated2.py", False),
+                ("pkg/app.log", False),
+                ("other/app.log", False),
+                ("beta.py", False),
+                ("zeta.py", False),
+                ("pkg/private", True),
+                ("pkg/private/hidden.py", False),
+                ("pkg/keep.py", False),
+            ]
+            subprocess.run(["git", "init", "--quiet", str(root)], check=True)
+            rules = IgnoreRules(root)
+            for relative, is_directory in candidates:
+                candidate = root / relative
+                candidate.parent.mkdir(parents=True, exist_ok=True)
+                if is_directory:
+                    candidate.mkdir(exist_ok=True)
+                else:
+                    candidate.touch()
+                reference = subprocess.run(
+                    ["git", "-C", str(root), "check-ignore", "--no-index", "-q", "--", relative],
+                    check=False,
+                )
+                self.assertIn(reference.returncode, (0, 1), relative)
+                self.assertEqual(
+                    rules.ignored(pathlib.Path(relative), is_directory=is_directory),
+                    reference.returncode == 0,
+                    relative,
+                )
 
     def test_discovery_yields_one_file_snapshot_at_a_time(self):
         with tempfile.TemporaryDirectory() as directory:

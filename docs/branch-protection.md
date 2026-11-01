@@ -12,4 +12,6 @@ GitHub Actions workflows alone do not block direct pushes or merges. Branch rule
 
 If the account, GitHub plan, app permissions or API does not support enforcement, mark bootstrap BLOCKED. Do not claim protection is enabled.
 
+Current repository evidence (2026-11-01): the active `Protect main` ruleset requires a PR and `Project Verification`, blocks deletion and non-fast-forward updates, has no bypass actors, and requires **zero human approvals**. A deliberately failing PR has not been used to prove merge enforcement; do not infer that result from the configuration alone.
+
 Security: never run secrets on untrusted pull requests. Prefer least privilege read-only workflow tokens.

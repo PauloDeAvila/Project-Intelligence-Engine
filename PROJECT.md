@@ -24,7 +24,9 @@ Supported journey: `pie init` → `pie index` → `pie status` / `pie search` / 
 ## Architecture and critical invariants
 - CLI calls indexing and storage; the indexer owns discovery/parsing orchestration; SQLite is the durable derived index; source files are never modified.
 - Every stored symbol belongs to one indexed file and carries a relative path plus source range.
+- Repeated definitions with the same qualified name and kind are retained by distinct source locations; existing V0.1 databases migrate transactionally on open.
 - Indexing is atomic per invocation, deletes confirmed stale file rows, preserves rows for unreadable paths, and never invents semantic relationships.
+- Every completed scan records `index_state` and structured diagnostics in SQLite metadata. `pie status` and `pie index` expose `CURRENT`, `STALE`, `PARTIAL`, `ERROR` or `UNINDEXED`; preserved old rows are never represented as current after a detected gap.
 - File content is hashed and parsed from one per-file snapshot; the indexer does not retain all file contents in memory together.
 - `.gitignore` supports nested files, ordered negations, slash-scoped patterns, directory rules and `**`, `*`, `?`, and bracket wildcards. Git's escaped comment/negation markers and escaped trailing spaces are not supported by this standard-library subset.
 - Relative paths are stored with `/` separators; only files below the requested root are considered.
@@ -55,7 +57,7 @@ An implementation is NOT VERIFIED until the complete applicable matrix passes an
 - AST parsing is intentionally less language-general than the planned Tree-sitter adapter.
 - Dynamic imports and semantic references remain unresolved by design.
 - GitHub branch protection is a remote governance control; the active `Protect main` ruleset currently requires pull requests and the `Project Verification` check.
-- The benchmark accepts `--files` and `--queries`, reports Python traced peak memory and repeated search time, and does not impose universal performance targets. Filesystem/path enumeration and SQLite's seen-path set still scale with project size.
+- The benchmark accepts `--source` for a copied real project or `--files` for a synthetic tree, reports Python traced peak memory, process peak RSS, repeated search time, and does not impose universal performance targets. Filesystem/path enumeration and SQLite's seen-path set still scale with project size.
 
 ## Bootstrap gate (mandatory before feature work)
 - [x] Stack-specific dependencies and real test commands established
