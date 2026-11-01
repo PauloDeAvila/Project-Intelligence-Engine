@@ -699,6 +699,18 @@ class StaleQueryTests(unittest.TestCase):
         result = find_definitions(self.root, "MAX_RETRIES")
         self.assertEqual(result["checked_sources"], 2)
 
+    def test_partial_index_does_not_claim_current_query(self):
+        connection = connect(self.root / ".pie" / "index.sqlite3")
+        try:
+            connection.execute("UPDATE metadata SET value = 'PARTIAL' WHERE key = 'index_state'")
+            connection.commit()
+        finally:
+            connection.close()
+        result = find_definitions(self.root, "MAX_RETRIES")
+        self.assertEqual(result["state"], "STALE")
+        self.assertEqual(result["index_state"], "PARTIAL")
+        self.assertIn("warning", result)
+
     def test_analysis_summary_reports_rule_mismatch(self):
         connection = connect(self.root / ".pie" / "index.sqlite3")
         try:
@@ -784,7 +796,7 @@ class AttributeResolutionTests(unittest.TestCase):
         )
         references = Resolver([]).resolve_all([analyze_source(source, "app.py")])
         read = next(item for item in references if item.name == "count" and item.attribute_base == "self")
-        self.assertEqual(read.resolution, "verified")
+        self.assertEqual(read.resolution, "probable")
         self.assertEqual(read.target_binding_key, "app.py::class:Box::count")
         self.assertEqual(read.target_line, 3)
 
@@ -802,7 +814,7 @@ class AttributeResolutionTests(unittest.TestCase):
         self.assertEqual(read.resolution, "probable")
         self.assertIn("both", read.evidence)
 
-    def test_self_read_of_a_pure_class_attribute_stays_verified(self):
+    def test_self_read_of_a_pure_class_attribute_stays_probable(self):
         source = (
             "class Box:\n"
             "    size = 3\n"
@@ -811,7 +823,7 @@ class AttributeResolutionTests(unittest.TestCase):
         )
         references = Resolver([]).resolve_all([analyze_source(source, "app.py")])
         read = next(item for item in references if item.name == "size" and item.attribute_base == "self")
-        self.assertEqual(read.resolution, "verified")
+        self.assertEqual(read.resolution, "probable")
         self.assertEqual(read.target_line, 2)
 
     def test_cls_never_reaches_an_instance_attribute(self):
