@@ -74,13 +74,23 @@ def _drifted_sources(connection, root: Path, paths: set[str]) -> dict[str, str]:
     return drift
 
 
-def _verification(connection, checked: int, drift: dict[str, str]) -> dict[str, object]:
-    """How far this answer can be trusted *right now*, independent of its content."""
+def _verification(
+    connection,
+    checked: int,
+    drift: dict[str, str],
+    incomplete: bool = False,
+) -> dict[str, object]:
+    """How far this answer can be trusted *right now*, independent of its content.
+
+    ``incomplete`` covers the case where no single file is drifted but some Python
+    files were never analysed at all: the answer is a subset of the project, so it
+    is not ``CURRENT`` even though every returned row is hash-valid.
+    """
     index_state = connection.execute(
         "SELECT value FROM metadata WHERE key = 'index_state'"
     ).fetchone()
     rules_current = analysis_version_matches(connection)
-    state = CURRENT if rules_current and not drift else STALE
+    state = CURRENT if rules_current and not drift and not incomplete else STALE
     payload: dict[str, object] = {
         "state": state,
         "index_state": index_state[0] if index_state else "UNINDEXED",
@@ -94,6 +104,10 @@ def _verification(connection, checked: int, drift: dict[str, str]) -> dict[str, 
     elif drift:
         payload["warning"] = (
             "sources changed after indexing; their rows were excluded from this answer, run pie index"
+        )
+    elif incomplete:
+        payload["warning"] = (
+            "some Python files were never analysed; run pie index to cover the whole project"
         )
     return payload
 
@@ -168,7 +182,7 @@ def find_definitions(root: Path, name: str, limit: int = 100) -> dict[str, objec
         }
         if drift:
             result["excluded_stale"] = _excluded(drift)
-        result.update(_verification(connection, len(rows), drift))
+        result.update(_verification(connection, len({row["path"] for row in rows}), drift))
         return result
     finally:
         connection.close()
@@ -242,7 +256,13 @@ def find_references(root: Path, name: str, limit: int = 100) -> dict[str, object
         }
         if drift:
             result["excluded_stale"] = _excluded(drift)
-        result.update(_verification(connection, len(targets) + len(rows), drift))
+        result.update(
+            _verification(
+                connection,
+                len({row["path"] for row in targets} | {row["path"] for row in rows}),
+                drift,
+            )
+        )
         return result
     finally:
         connection.close()
@@ -284,7 +304,13 @@ def describe_binding(root: Path, binding_key: str, limit: int = 100) -> dict[str
         }
         if drift:
             result["excluded_stale"] = _excluded(drift)
-        result.update(_verification(connection, len(definitions) + len(rows), drift))
+        result.update(
+            _verification(
+                connection,
+                len({row["path"] for row in definitions} | {row["path"] for row in rows}),
+                drift,
+            )
+        )
         return result
     finally:
         connection.close()
@@ -337,7 +363,7 @@ def analysis_summary(root: Path) -> dict[str, object]:
             "dangling_targets": orphans,
             "files_without_analysis": unanalysed,
         }
-        result.update(_verification(connection, 0, {} if unanalysed == 0 else {"<analysis-incomplete>": "unanalysed_files"}))
+        result.update(_verification(connection, 0, {}, incomplete=unanalysed > 0))
         return result
     finally:
         connection.close()

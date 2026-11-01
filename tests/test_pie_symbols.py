@@ -678,6 +678,27 @@ class StaleQueryTests(unittest.TestCase):
         self.assertEqual(healed["state"], "CURRENT")
         self.assertEqual(healed["drifted_sources"], [])
 
+    def test_summary_is_stale_when_files_were_never_analysed(self):
+        # A database whose analysis marker is removed describes only part of the
+        # project, so aggregate counts must not be presented as current.
+        connection = connect(self.root / ".pie" / "index.sqlite3")
+        try:
+            connection.execute("DELETE FROM analysis_state WHERE file_id = ("
+                               "SELECT id FROM files WHERE path = 'client.py')")
+            connection.commit()
+        finally:
+            connection.close()
+        summary = analysis_summary(self.root)
+        self.assertEqual(summary["state"], "STALE")
+        self.assertEqual(summary["files_without_analysis"], 1)
+        self.assertEqual(summary["drifted_sources"], [])
+        self.assertIn("never analysed", summary["warning"])
+
+    def test_checked_sources_counts_distinct_files_not_rows(self):
+        # config.py holds two rows (module binding + MAX_RETRIES) but is one file.
+        result = find_definitions(self.root, "MAX_RETRIES")
+        self.assertEqual(result["checked_sources"], 2)
+
     def test_analysis_summary_reports_rule_mismatch(self):
         connection = connect(self.root / ".pie" / "index.sqlite3")
         try:
