@@ -26,7 +26,7 @@ TOOLS = [
 def dispatch(request: dict, root: Path) -> dict | None:
     rid = request.get('id')
     method = request.get('method')
-    if rid is None and method == 'notifications/initialized':
+    if rid is None and isinstance(method, str) and method.startswith('notifications/'):
         return None
     try:
         if method == 'initialize':
@@ -42,10 +42,19 @@ def dispatch(request: dict, root: Path) -> dict | None:
             allowed = next((t for t in TOOLS if t['name']==name), None)
             if allowed is None:
                 raise ValueError('Unknown tool')
+            if not isinstance(args, dict):
+                raise ValueError('arguments must be an object')
             if set(args) - set(allowed['inputSchema']['properties']):
                 raise ValueError('Unknown arguments')
             if any(k not in args for k in allowed['inputSchema'].get('required', [])):
                 raise ValueError('Missing required argument')
+            for key, spec in allowed['inputSchema']['properties'].items():
+                if key in args:
+                    value = args[key]
+                    if spec.get('type') == 'string' and not isinstance(value, str):
+                        raise ValueError(f'{key} must be a string')
+                    if spec.get('type') == 'integer' and (type(value) is not int or not spec.get('minimum', -10**30) <= value <= spec.get('maximum', 10**30)):
+                        raise ValueError(f'{key} must be an integer within range')
             functions = {
                 'pie_project_status':lambda:command_status(root),
                 'pie_search_symbols':lambda:command_search(root,args['query']),

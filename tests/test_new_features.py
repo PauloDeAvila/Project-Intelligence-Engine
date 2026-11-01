@@ -41,6 +41,24 @@ class FeatureTests(unittest.TestCase):
         self.assertEqual(ctx['index_state'],'CURRENT')
         self.assertIn('print',ctx['source_ranges'][0]['content'])
 
+    def test_mcp_rejects_wrong_argument_types(self):
+        response = dispatch({'id': 9, 'method': 'tools/call',
+            'params': {'name': 'pie_build_context', 'arguments': {'query': 42}}}, self.root)
+        self.assertTrue(response['result']['isError'])
+
+    def test_graph_detects_new_file_after_build(self):
+        build_relationships(self.root)
+        (self.root / 'new.py').write_text('def extra(): pass')
+        result = get_relationships(self.root, 'greet')
+        self.assertEqual(result['relations_state'], 'STALE')
+        self.assertIn('new.py', result['drifted_sources'])
+
+    def test_context_exposes_stale_state_without_code(self):
+        (self.root / 'app.py').write_text('def modified(): pass')
+        result = build_context(self.root, 'greet')
+        self.assertEqual(result['context_state'], 'STALE')
+        self.assertFalse(result['source_ranges'])
+
     def test_mcp_dispatch(self):
         hello=dispatch({'jsonrpc':'2.0','id':1,'method':'initialize','params':{}},self.root)
         self.assertEqual(hello['result']['serverInfo']['name'],'pie')

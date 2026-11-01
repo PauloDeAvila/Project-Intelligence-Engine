@@ -10,6 +10,7 @@ from hashlib import sha256
 from pathlib import Path
 
 from pie.storage.database import connect
+from pie.scanning.discovery import iter_files
 
 RELATION_SCHEMA = """
 CREATE TABLE IF NOT EXISTS relations (
@@ -101,29 +102,29 @@ def build_relationships(root: Path) -> dict[str, object]:
         conn.close()
 
 
-def _drifted_sources(conn, root: Path, paths: set[str]) -> list[str]:
-    """Return source paths whose content on disk no longer matches the index.
+def _drifted_sources(conn, root: Path, paths: set[str] | None = None) -> list[str]:
+    """Verify all indexed files and discover additions, deletions and unreadable paths.
 
-    `_index_fingerprint` only reflects the stored rows, so it cannot notice a
-    file edited after indexing. Relationships carry line numbers and enclosing
-    symbols taken from that file, so reporting them as CURRENT while the source
-    has drifted would present stale structure as if it were current.
+    Checking just returned edges cannot prove completeness of a graph.
     """
-    if not paths:
-        return []
-    placeholders = ",".join("?" * len(paths))
-    drifted = []
-    for row in conn.execute(
-        f"SELECT path, sha256 FROM files WHERE path IN ({placeholders})", tuple(paths)
+    indexed = {row["path"]: row["sha256"] for row in conn.execute(
+        "SELECT path,sha256 FROM files"
+    )}
+    unreadable_files: set[Path] = set()
+    unreadable_dirs: set[Path] = set()
+    oversized: set[Path] = set()
+    observed: dict[str, str] = {}
+    for record in iter_files(
+        root, unreadable_paths=unreadable_files,
+        unreadable_directories=unreadable_dirs, oversized_paths=oversized
     ):
-        try:
-            content = (root / row["path"]).read_bytes()
-        except OSError:
-            drifted.append(row["path"])
-            continue
-        if sha256(content).hexdigest() != row["sha256"]:
-            drifted.append(row["path"])
-    return sorted(drifted)
+        observed[record.path.as_posix()] = record.sha256
+    drift = {path for path in indexed.keys() | observed.keys()
+             if indexed.get(path) != observed.get(path)}
+    drift.update(p.as_posix() for p in unreadable_files | oversized)
+    if unreadable_dirs:
+        drift.add("<unreadable-directory>")
+    return sorted(drift)
 
 
 def get_relationships(root: Path, name: str, limit: int = 100) -> dict[str, object]:
@@ -146,7 +147,7 @@ def get_relationships(root: Path, name: str, limit: int = 100) -> dict[str, obje
         saved = conn.execute("SELECT value FROM metadata WHERE key='relations_fingerprint'").fetchone()
         involved = {row['path'] for row in rows if row['path']}
         involved |= {row['target_path'] for row in rows if row['target_path']}
-        drifted = _drifted_sources(conn, root, involved)
+        drifted = _drifted_sources(conn, root)
         fresh = bool(state and state[0]=='CURRENT' and saved and saved[0]==_index_fingerprint(conn) and not drifted)
         return {'index_state': state[0] if state else 'UNINDEXED',
                 'relations_state': 'CURRENT' if fresh and rel_state and rel_state[0]=='CURRENT' else 'STALE',
