@@ -1,8 +1,10 @@
+import ast
 import json
 from pathlib import Path
 
 from pie.indexing.python_ast import parse_python_content
 from pie.scanning.discovery import iter_files
+from pie.storage import analysis as symbol_store
 from pie.storage.database import connect
 
 
@@ -36,6 +38,8 @@ def index_project(root: Path) -> dict[str, object]:
                 row["path"] for row in connection.execute("SELECT path FROM files").fetchall()
             }
             seen: set[str] = set()
+            changed: set[str] = set()
+            removed: set[str] = set()
             for record in records:
                 relative = str(record.path).replace("\\", "/")
                 seen.add(relative)
@@ -43,7 +47,10 @@ def index_project(root: Path) -> dict[str, object]:
                 if row and row["sha256"] == record.sha256:
                     continue
                 if row:
+                    # Deleting the file row cascades to definitions, usages, star
+                    # imports and analysis state; nothing stale can survive it.
                     connection.execute("DELETE FROM files WHERE id = ?", (row["id"],))
+                changed.add(relative)
                 symbols, imports, parse_error = parse_python_content(record.content, relative)
                 cursor = connection.execute("INSERT INTO files(path, sha256, size, language, parse_status) VALUES (?, ?, ?, ?, ?)", (relative, record.sha256, record.size, record.language, "error:" + parse_error if parse_error else "parsed"))
                 for symbol in symbols:
@@ -71,6 +78,8 @@ def index_project(root: Path) -> dict[str, object]:
                 ) or old_path in failed_path_strings:
                     continue
                 connection.execute("DELETE FROM files WHERE path = ?", (old_path,))
+                if old_path.endswith(".py"):
+                    removed.add(old_path)
             parse_errors = [
                 (row["path"], row["parse_status"].removeprefix("error:"))
                 for row in connection.execute(
@@ -103,6 +112,7 @@ def index_project(root: Path) -> dict[str, object]:
             )
             if stale_paths:
                 diagnostics.append({"code": "preserved_stale_files", "count": len(stale_paths)})
+            symbol_store.refresh(connection, changed, removed, root)
             _store_scan_result(connection, state, diagnostics)
             connection.execute("INSERT INTO metadata(key, value) VALUES('root', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (str(root.resolve()),))
     except Exception as exc:
@@ -125,10 +135,11 @@ def index_project(root: Path) -> dict[str, object]:
             "files": connection.execute("SELECT COUNT(*) FROM files").fetchone()[0],
             "symbols": connection.execute("SELECT COUNT(*) FROM symbols").fetchone()[0],
             "imports": connection.execute("SELECT COUNT(*) FROM imports").fetchone()[0],
+            "definitions": connection.execute("SELECT COUNT(*) FROM definitions").fetchone()[0],
+            "references": connection.execute("SELECT COUNT(*) FROM usages").fetchone()[0],
             "database": str(db_path),
             "index_state": metadata.get("index_state", "UNINDEXED"),
             "diagnostics": json.loads(metadata.get("index_diagnostics", "[]")),
         }
     finally:
         connection.close()
-

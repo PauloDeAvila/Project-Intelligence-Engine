@@ -1,11 +1,80 @@
 {
-  "description": "PIE V0.1 verification matrix.",
+  "description": "PIE verification matrix (V0.1/V0.2 regression + V0.3 symbol intelligence).",
   "checks": {
-    "unit": {"status": "required", "command": ["python", "-m", "unittest", "discover", "-s", "tests", "-p", "test_pie_unit.py", "-v"]},
-    "component": {"status": "not-applicable", "reason": "V0.1 has no separate stateful component boundary; integration tests cover the indexer and database together."},
-    "integration": {"status": "required", "command": ["python", "-m", "unittest", "discover", "-s", "tests", "-p", "test_pie_integration.py", "-v"]},
-    "e2e": {"status": "required", "command": ["python", "-m", "unittest", "discover", "-s", "tests", "-p", "test_pie_e2e.py", "-v"]},
-    "regression": {"status": "required", "command": ["python", "-m", "unittest", "discover", "-s", "tests", "-v"]},
-    "build": {"status": "required", "command": ["python", "tools/check_install.py"]}
+    "unit": {
+      "status": "required",
+      "command": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_pie_unit.py",
+        "-v"
+      ]
+    },
+    "component": {
+      "status": "required",
+      "command": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_pie_symbols.py",
+        "-v"
+      ]
+    },
+    "integration": {
+      "status": "required",
+      "command": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_pie_integration.py",
+        "-v"
+      ]
+    },
+    "e2e": {
+      "status": "required",
+      "command": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_pie_e2e.py",
+        "-v"
+      ]
+    },
+    "regression": {
+      "status": "required",
+      "command": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ]
+    },
+    "build": {
+      "status": "required",
+      "command": [
+        "python",
+        "tools/check_install.py"
+      ]
+    }
   }
 }

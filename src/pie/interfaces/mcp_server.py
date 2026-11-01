@@ -12,6 +12,7 @@ from pathlib import Path
 from pie.graph.relationships import build_relationships, get_relationships
 from pie.retrieval.context import build_context
 from pie.interfaces.cli import command_status, command_search, command_symbol
+from pie.retrieval.symbols import analysis_summary, find_definitions, find_references
 
 TOOLS = [
     {'name':'pie_project_status', 'description':'Read index freshness and inventory.', 'inputSchema':{'type':'object','properties':{},'additionalProperties':False}},
@@ -20,6 +21,9 @@ TOOLS = [
     {'name':'pie_build_graph', 'description':'Rebuild static Python call/import edges from CURRENT indexed files.', 'inputSchema':{'type':'object','properties':{},'additionalProperties':False}},
     {'name':'pie_relationships', 'description':'Read evidence-based relationships for a symbol or file.', 'inputSchema':{'type':'object','properties':{'name':{'type':'string'}},'required':['name'],'additionalProperties':False}},
     {'name':'pie_build_context', 'description':'Retrieve hash-verified source ranges for a task/symbol.', 'inputSchema':{'type':'object','properties':{'query':{'type':'string'},'max_chars':{'type':'integer','minimum':500,'maximum':200000}},'required':['query'],'additionalProperties':False}},
+    {'name':'pie_find_definitions', 'description':'Locate every definition site of a variable, parameter, class or function, with scope and inferred type.', 'inputSchema':{'type':'object','properties':{'name':{'type':'string'},'limit':{'type':'integer','minimum':1,'maximum':500}},'required':['name'],'additionalProperties':False}},
+    {'name':'pie_find_references', 'description':'Reverse lookup: who reads, writes or imports a symbol. Returns consumers with evidence.', 'inputSchema':{'type':'object','properties':{'name':{'type':'string'},'limit':{'type':'integer','minimum':1,'maximum':500}},'required':['name'],'additionalProperties':False}},
+    {'name':'pie_analysis_summary', 'description':'Counts of definitions and references by kind, context and resolution verdict.', 'inputSchema':{'type':'object','properties':{},'additionalProperties':False}},
 ]
 
 
@@ -62,6 +66,9 @@ def dispatch(request: dict, root: Path) -> dict | None:
                 'pie_build_graph':lambda:build_relationships(root),
                 'pie_relationships':lambda:get_relationships(root,args['name']),
                 'pie_build_context':lambda:build_context(root,args['query'],args.get('max_chars',12000)),
+                'pie_find_definitions':lambda:find_definitions(root,args['name'],args.get('limit',100)),
+                'pie_find_references':lambda:find_references(root,args['name'],args.get('limit',100)),
+                'pie_analysis_summary':lambda:analysis_summary(root),
             }
             result = {'content':[{'type':'text','text':json.dumps(functions[name](),ensure_ascii=False)}]}
         else:
