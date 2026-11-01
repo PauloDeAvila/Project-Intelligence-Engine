@@ -10,7 +10,8 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from pie.indexing.python_ast import parse_python
 from pie.indexing.python_ast import parse_python_content
-from pie.scanning.discovery import discover_files
+from pie.scanning import discovery
+from pie.scanning.discovery import discover_files, iter_files
 from pie.scanning.hashing import sha256_bytes, sha256_file
 
 
@@ -42,6 +43,52 @@ class ScannerAndParserTests(unittest.TestCase):
             (root / "logs" / "nested" / "debug.py").write_text("x = 1", encoding="utf-8")
             (root / "keep.py").write_text("x = 1", encoding="utf-8")
             self.assertEqual([str(item.path) for item in discover_files(root)], ["important.py"])
+
+    def test_gitignore_supports_nested_files_directory_only_and_globstar(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            (root / ".gitignore").write_text("cache/\n*.tmp\n", encoding="utf-8")
+            (root / "pkg").mkdir()
+            (root / "pkg" / ".gitignore").write_text("/private/\n**/generated?.py\n!keep.py\n", encoding="utf-8")
+            (root / "pkg" / "private").mkdir()
+            (root / "pkg" / "private" / "hidden.py").write_text("x = 1", encoding="utf-8")
+            (root / "pkg" / "deep").mkdir()
+            (root / "pkg" / "deep" / "private").mkdir()
+            (root / "pkg" / "deep" / "private" / "visible.py").write_text("x = 1", encoding="utf-8")
+            (root / "pkg" / "deep" / "generated1.py").write_text("x = 1", encoding="utf-8")
+            (root / "pkg" / "deep" / "keep.py").write_text("x = 1", encoding="utf-8")
+            (root / "cache.py").write_text("x = 1", encoding="utf-8")
+            (root / "cache").mkdir()
+            (root / "cache" / "module.py").write_text("x = 1", encoding="utf-8")
+            self.assertEqual([item.path.as_posix() for item in discover_files(root)], ["cache.py", "pkg/deep/keep.py", "pkg/deep/private/visible.py"])
+
+    def test_discovery_yields_one_file_snapshot_at_a_time(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            (root / "a.py").write_text("a = 1", encoding="utf-8")
+            (root / "b.py").write_text("b = 1", encoding="utf-8")
+            original = discovery.read_snapshot
+            reads = []
+
+            def read_snapshot(current, max_bytes):
+                if current.suffix == ".py":
+                    reads.append(current.name)
+                return original(current, max_bytes)
+
+            with mock.patch.object(discovery, "read_snapshot", read_snapshot):
+                records = iter_files(root)
+                first = next(records)
+                self.assertEqual(reads, ["a.py"])
+                self.assertEqual(first.content, b"a = 1")
+                second = next(records)
+                self.assertEqual(reads, ["a.py", "b.py"])
+                self.assertEqual(second.content, b"b = 1")
+
+    def test_oversized_file_is_rejected_at_the_configured_limit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            (root / "large.py").write_bytes(b"x" * 64)
+            self.assertEqual(discover_files(root, max_bytes=8), [])
 
     def test_parser_extracts_nested_symbols_and_imports(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -85,14 +132,14 @@ class ScannerAndParserTests(unittest.TestCase):
             root = pathlib.Path(directory)
             path = root / "unavailable.py"
             path.write_text("x = 1", encoding="utf-8")
-            original = pathlib.Path.read_bytes
+            original = discovery.read_snapshot
 
-            def read_bytes(current):
+            def read_snapshot(current, max_bytes):
                 if current.suffix == ".py":
                     raise OSError("simulated read failure")
-                return original(current)
+                return original(current, max_bytes)
 
-            with mock.patch.object(pathlib.Path, "read_bytes", read_bytes):
+            with mock.patch.object(discovery, "read_snapshot", read_snapshot):
                 self.assertEqual(discover_files(root), [])
 
     def test_discovery_parses_the_snapshot_even_if_file_changes_after_read(self):
@@ -101,15 +148,15 @@ class ScannerAndParserTests(unittest.TestCase):
             path = root / "concurrent.py"
             original_content = b"def before():\n    pass\n"
             path.write_bytes(original_content)
-            original = pathlib.Path.read_bytes
+            original = discovery.read_snapshot
 
-            def read_bytes(current):
-                content = original(current)
+            def read_snapshot(current, max_bytes):
+                content = original(current, max_bytes)
                 if current == path:
                     path.write_bytes(b"def after():\n    pass\n")
                 return content
 
-            with mock.patch.object(pathlib.Path, "read_bytes", read_bytes):
+            with mock.patch.object(discovery, "read_snapshot", read_snapshot):
                 record = discover_files(root)[0]
             self.assertEqual(record.content, original_content)
             self.assertEqual(record.sha256, sha256_bytes(original_content))
