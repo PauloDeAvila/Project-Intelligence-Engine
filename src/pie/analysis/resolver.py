@@ -480,12 +480,14 @@ class Resolver:
         body_scope = class_site.body_scope_key
         if body_scope is None:
             return None, UNRESOLVED, f"'{base}' is a class without a recorded body scope", None
-        candidates = [
-            item
-            for item in self._sites_in_scope(class_site.path, body_scope, usage.name)
-            if item.kind == KIND_ATTRIBUTE
-        ]
+        sites = self._sites_in_scope(class_site.path, body_scope, usage.name)
+        candidates = [item for item in sites if item.kind == KIND_ATTRIBUTE]
         if not candidates:
+            if any(item.kind == KIND_INSTANCE_ATTRIBUTE for item in sites):
+                return None, UNRESOLVED, (
+                    f"'{base}.{tail}': '{usage.name}' is only an instance attribute of "
+                    f"{class_site.qualified_name}; the class object does not expose it"
+                ), None
             return None, UNRESOLVED, (
                 f"'{base}.{tail}' is not a class-level attribute of {class_site.qualified_name}"
             ), None

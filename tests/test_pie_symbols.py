@@ -617,5 +617,196 @@ class InterfaceTests(unittest.TestCase):
         self.assertTrue(payload["references"])
 
 
+class StaleQueryTests(unittest.TestCase):
+    """A stored verdict must never outlive the bytes it was computed from."""
+
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = pathlib.Path(self.temporary.name).resolve()
+        (self.root / "config.py").write_text("MAX_RETRIES = 3\n", encoding="utf-8")
+        (self.root / "client.py").write_text(
+            "from config import MAX_RETRIES\n\ndef request():\n    return MAX_RETRIES\n",
+            encoding="utf-8",
+        )
+        index_project(self.root)
+
+    def test_definition_query_reports_drifted_source_instead_of_stale_rows(self):
+        fresh = find_definitions(self.root, "MAX_RETRIES")
+        self.assertEqual(fresh["state"], "CURRENT")
+        self.assertEqual(fresh["drifted_sources"], [])
+
+        # The file changes but nothing is re-indexed: the stored rows describe
+        # bytes that no longer exist, so they may not be returned as fact.
+        (self.root / "config.py").write_text("MAX_RETRIES = 3\nEXTRA = 1\n", encoding="utf-8")
+        stale = find_definitions(self.root, "MAX_RETRIES")
+        self.assertEqual(stale["state"], "STALE")
+        self.assertEqual([item["path"] for item in stale["drifted_sources"]], ["config.py"])
+        self.assertIn("warning", stale)
+        self.assertFalse([item for item in stale["definitions"] if item["path"] == "config.py"])
+        # The untouched consumer is still provable, so it stays visible.
+        self.assertTrue([item for item in stale["definitions"] if item["path"] == "client.py"])
+
+    def test_reference_query_drops_evidence_whose_source_changed(self):
+        self.assertTrue(find_references(self.root, "MAX_RETRIES")["references"])
+
+        (self.root / "client.py").write_text(
+            "from config import MAX_RETRIES\n\ndef request():\n    return MAX_RETRIES * 2\n",
+            encoding="utf-8",
+        )
+        stale = find_references(self.root, "MAX_RETRIES")
+        self.assertEqual(stale["state"], "STALE")
+        self.assertEqual([item["path"] for item in stale["drifted_sources"]], ["client.py"])
+        # Only the drifted consumer lost its evidence; config.py's own rows still
+        # match its bytes, so they remain and the count reflects what is kept.
+        self.assertEqual({item["path"] for item in stale["references"]}, {"config.py"})
+        self.assertEqual(stale["count"], len(stale["references"]))
+
+    def test_deleted_source_is_reported_as_missing_not_as_evidence(self):
+        (self.root / "config.py").unlink()
+        result = find_references(self.root, "MAX_RETRIES")
+        reasons = {item["path"]: item["reason"] for item in result["drifted_sources"]}
+        self.assertEqual(reasons.get("config.py"), "file_unreadable")
+        self.assertEqual(result["state"], "STALE")
+        self.assertEqual(result["references"], [])
+
+    def test_reindex_restores_current_state(self):
+        (self.root / "config.py").write_text("MAX_RETRIES = 7\n", encoding="utf-8")
+        self.assertEqual(find_definitions(self.root, "MAX_RETRIES")["state"], "STALE")
+        index_project(self.root)
+        healed = find_definitions(self.root, "MAX_RETRIES")
+        self.assertEqual(healed["state"], "CURRENT")
+        self.assertEqual(healed["drifted_sources"], [])
+
+    def test_analysis_summary_reports_rule_mismatch(self):
+        connection = connect(self.root / ".pie" / "index.sqlite3")
+        try:
+            connection.execute("UPDATE metadata SET value = '0' WHERE key = 'analysis_version'")
+            connection.commit()
+        finally:
+            connection.close()
+        summary = analysis_summary(self.root)
+        self.assertEqual(summary["state"], "STALE")
+        self.assertIn("warning", summary)
+
+
+class UnreadableSourceDuringRefreshTests(unittest.TestCase):
+    """A read failure during refresh must not leave derived rows claiming success."""
+
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = pathlib.Path(self.temporary.name).resolve()
+        (self.root / "config.py").write_text("MAX_RETRIES = 3\n", encoding="utf-8")
+        (self.root / "client.py").write_text(
+            "from config import MAX_RETRIES\n\ndef request():\n    return MAX_RETRIES\n",
+            encoding="utf-8",
+        )
+        index_project(self.root)
+
+    def test_unreadable_file_drops_its_rows_and_downgrades_index_state(self):
+        from unittest import mock
+
+        original = pathlib.Path.read_bytes
+
+        def deny(path):
+            if path.name == "client.py":
+                raise PermissionError(13, "denied")
+            return original(path)
+
+        (self.root / "client.py").write_text(
+            "from config import MAX_RETRIES\n\ndef request():\n    return MAX_RETRIES + 1\n",
+            encoding="utf-8",
+        )
+        with mock.patch.object(pathlib.Path, "read_bytes", deny):
+            result = index_project(self.root)
+
+        self.assertNotEqual(result["index_state"], "CURRENT")
+        codes = {(item["code"], item.get("path")) for item in result["diagnostics"]}
+        self.assertIn(("analysis_source_unreadable", "client.py"), codes)
+        connection = connect(self.root / ".pie" / "index.sqlite3")
+        try:
+            rows = connection.execute(
+                "SELECT COUNT(*) FROM usages WHERE file_id = (SELECT id FROM files WHERE path='client.py')"
+            ).fetchone()[0]
+        finally:
+            connection.close()
+        # The stale consumer rows were removed instead of being kept as evidence.
+        self.assertEqual(rows, 0)
+
+
+class AttributeResolutionTests(unittest.TestCase):
+    """``self.x``/``cls.x`` must not claim more than static analysis can prove."""
+
+    def test_instance_only_attribute_is_not_a_class_attribute(self):
+        source = (
+            "class Box:\n"
+            "    def __init__(self):\n"
+            "        self.count = 0\n"
+            "def probe():\n"
+            "    return Box.count\n"
+        )
+        references = Resolver([]).resolve_all([analyze_source(source, "app.py")])
+        read = next(item for item in references if item.name == "count" and item.attribute_base == "Box")
+        # ``Box.count`` raises AttributeError: the attribute lives on instances only.
+        self.assertEqual(read.resolution, "unresolved")
+        self.assertIsNone(read.target_binding_key)
+        self.assertIn("instance attribute", read.evidence)
+
+    def test_self_read_of_an_instance_attribute_resolves_to_it(self):
+        source = (
+            "class Box:\n"
+            "    def __init__(self):\n"
+            "        self.count = 0\n"
+            "    def read(self):\n"
+            "        return self.count\n"
+        )
+        references = Resolver([]).resolve_all([analyze_source(source, "app.py")])
+        read = next(item for item in references if item.name == "count" and item.attribute_base == "self")
+        self.assertEqual(read.resolution, "verified")
+        self.assertEqual(read.target_binding_key, "app.py::class:Box::count")
+        self.assertEqual(read.target_line, 3)
+
+    def test_class_attribute_shadowed_by_instance_attribute_is_only_probable(self):
+        source = (
+            "class Box:\n"
+            "    size = 3\n"
+            "    def __init__(self):\n"
+            "        self.size = 4\n"
+            "    def read(self):\n"
+            "        return self.size\n"
+        )
+        references = Resolver([]).resolve_all([analyze_source(source, "app.py")])
+        read = next(item for item in references if item.name == "size" and item.attribute_base == "self")
+        self.assertEqual(read.resolution, "probable")
+        self.assertIn("both", read.evidence)
+
+    def test_self_read_of_a_pure_class_attribute_stays_verified(self):
+        source = (
+            "class Box:\n"
+            "    size = 3\n"
+            "    def read(self):\n"
+            "        return self.size\n"
+        )
+        references = Resolver([]).resolve_all([analyze_source(source, "app.py")])
+        read = next(item for item in references if item.name == "size" and item.attribute_base == "self")
+        self.assertEqual(read.resolution, "verified")
+        self.assertEqual(read.target_line, 2)
+
+    def test_cls_never_reaches_an_instance_attribute(self):
+        source = (
+            "class Box:\n"
+            "    def __init__(self):\n"
+            "        self.count = 0\n"
+            "    @classmethod\n"
+            "    def build(cls):\n"
+            "        return cls.count\n"
+        )
+        references = Resolver([]).resolve_all([analyze_source(source, "app.py")])
+        read = next(item for item in references if item.name == "count" and item.attribute_base == "cls")
+        self.assertEqual(read.resolution, "unresolved")
+        self.assertIsNone(read.target_binding_key)
+
+
 if __name__ == "__main__":
     unittest.main()
