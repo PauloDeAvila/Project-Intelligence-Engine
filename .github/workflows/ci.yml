@@ -1,0 +1,42 @@
+name: Validation Gate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  starter-tests:
+    name: Starter Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run complete regression suite
+        run: python -m unittest discover -s tests -v
+
+  project-verification:
+    name: Project Verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile source and tests
+        run: python -m compileall -q src tools tests
+      - name: Run project-specific full verification matrix (fail closed)
+        run: python tools/verify_project.py
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-evidence
+          path: verification-results.json
+          if-no-files-found: warn
