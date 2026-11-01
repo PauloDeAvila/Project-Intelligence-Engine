@@ -235,3 +235,20 @@ class IndexPersistenceTests(unittest.TestCase):
             finally:
                 connection.close()
 
+    def test_index_project_resolves_a_non_normalized_root(self):
+        # Regression guard for 9e0cdda: index_project must canonicalize the
+        # root before deriving the database path, so the index of a project
+        # reached through a non-normalized path (Windows 8.3 short name, or a
+        # path containing "..") lands in the same canonical location as the
+        # index built from the canonical path. Without this, two spellings of
+        # the same project produce two divergent SQLite databases.
+        with tempfile.TemporaryDirectory() as directory:
+            canonical = pathlib.Path(directory).resolve()
+            alias = canonical.parent / ".." / canonical.parent.name / canonical.name
+            self.assertNotEqual(alias, canonical)
+            self.assertEqual(alias.resolve(), canonical)
+            (canonical / "app.py").write_text("def run():\n    pass\n", encoding="utf-8")
+            result = index_project(alias)
+            expected = canonical / ".pie" / "index.sqlite3"
+            self.assertEqual(pathlib.Path(result["database"]), expected)
+            self.assertTrue(expected.exists())

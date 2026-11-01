@@ -195,20 +195,23 @@ class ScannerAndParserTests(unittest.TestCase):
 
     def test_discovery_parses_the_snapshot_even_if_file_changes_after_read(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = pathlib.Path(directory)
+            root = pathlib.Path(directory).resolve()
             path = root / "concurrent.py"
             original_content = b"def before():\n    pass\n"
             path.write_bytes(original_content)
             original = discovery.read_snapshot
+            triggered = []
 
             def read_snapshot(current, max_bytes):
                 content = original(current, max_bytes)
                 if current == path:
+                    triggered.append(current)
                     path.write_bytes(b"def after():\n    pass\n")
                 return content
 
             with mock.patch.object(discovery, "read_snapshot", read_snapshot):
                 record = discover_files(root)[0]
+            self.assertEqual(triggered, [path])
             self.assertEqual(record.content, original_content)
             self.assertEqual(record.sha256, sha256_bytes(original_content))
 
@@ -218,3 +221,27 @@ class ScannerAndParserTests(unittest.TestCase):
         escaped = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         self.assertEqual(escaped, "100\\%\\_ready")
 
+    def test_discovery_canonicalizes_a_non_normalized_root(self):
+        # Regression guard for the defect class fixed in 9e0cdda: the scanner
+        # must hand read_snapshot the canonical form of the root it received,
+        # so path comparisons made by callers always match. The ".." alias
+        # reproduces the Windows 8.3 short-name mismatch on any platform
+        # instead of depending on one machine's temp directory layout.
+        with tempfile.TemporaryDirectory() as directory:
+            canonical = pathlib.Path(directory).resolve()
+            alias = canonical.parent / ".." / canonical.parent.name / canonical.name
+            self.assertNotEqual(alias, canonical)
+            self.assertEqual(alias.resolve(), canonical)
+            target = canonical / "sample.py"
+            target.write_text("value = 1\n", encoding="utf-8")
+            original = discovery.read_snapshot
+            seen = []
+
+            def read_snapshot(current, max_bytes):
+                seen.append(current)
+                return original(current, max_bytes)
+
+            with mock.patch.object(discovery, "read_snapshot", read_snapshot):
+                records = list(discover_files(alias))
+            self.assertEqual([str(item.path) for item in records], ["sample.py"])
+            self.assertEqual(seen, [target])

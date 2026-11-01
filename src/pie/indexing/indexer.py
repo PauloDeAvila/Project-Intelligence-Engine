@@ -19,6 +19,11 @@ def _store_scan_result(connection, state: str, diagnostics: list[dict[str, str |
 
 
 def index_project(root: Path) -> dict[str, object]:
+    # Canonicalize once at the API boundary. iter_files resolves the root on
+    # its own, so a caller passing a non-normalized path (Windows 8.3 short
+    # names, or any path containing "..") would otherwise observe two different
+    # representations of the same project.
+    root = root.resolve()
     db_path = root / ".pie" / "index.sqlite3"
     unreadable_paths: set[Path] = set()
     unreadable_directories: set[Path] = set()
