@@ -42,3 +42,14 @@ Read PROJECT.md, docs/context-map.md, docs/architecture.md, docs/decisions.md. S
 Before feature implementation in each new project, run .agents/skills/ci-bootstrap. Set up a real CI pipeline for its actual stack, then confirm GitHub branch protection/rulesets require PRs and passing checks. The starter CI intentionally fails until real tests are configured: never replace it with a success-only placeholder. If CI or protection cannot be verified, report BLOCKED and do not label the project ready.
 
 For every code change, run .agents/skills/independent-review after implementation. The reviewer MUST follow PONTO.md, trace changed symbols to direct and transitive consumers, inspect tests and the complete diff, and generate the detailed report in docs/review-report-template.md. A separate read-only subagent is preferred if the runtime supports it; otherwise run a clearly separated review phase. Review cannot approve without required test evidence.
+
+
+## Git publishing and credential safety
+When a `git push`, fetch or credential lookup fails or takes excessively long:
+
+1. Do not repeat the same operation indefinitely. Two failed attempts are enough to stop.
+2. Do not run `git credential fill` (or any equivalent) to extract tokens, and never capture, print, transmit or handle credentials directly.
+3. Do not assemble HTTP `Authorization` headers, credential URLs or other manual authentication transports. Secrets must never enter shell variables, command lines or child-process environments.
+4. Use only the official Git credential helper or GitHub CLI (`gh auth setup-git`) authentication paths. Interactive sign-in belongs to the human; the agent must not proxy it.
+5. After two failures, stop, preserve local commits and worktrees, and report a technical diagnosis as BLOCKED.
+6. Never state that a push, branch or pull request was created without independently confirming the result against GitHub. Verify remote refs (for example the repository branches API) before claiming publication.
