@@ -443,8 +443,8 @@ class Resolver:
                     "in this module"
                 ), None
             site = _effective_site(class_sites, 10**9)
-            return site, VERIFIED, (
-                f"cls.{tail} is the class-level attribute '{site.name}' of {owner.name} "
+            return site, PROBABLE, (
+                f"cls.{tail} is the statically declared class-level attribute '{site.name}' of {owner.name} "
                 f"(line {site.line})"
             ), None
 
@@ -457,14 +457,14 @@ class Resolver:
             ), None
         if class_sites:
             site = _effective_site(class_sites, 10**9)
-            return site, VERIFIED, (
-                f"self.{tail} is the class-level attribute '{site.name}' of {owner.name} "
+            return site, PROBABLE, (
+                f"self.{tail} is the statically declared class-level attribute '{site.name}' of {owner.name} "
                 f"(line {site.line}); no instance attribute shadows it"
             ), None
         if instance_sites:
             site = _effective_site(instance_sites, usage.line) or instance_sites[0]
-            return site, VERIFIED, (
-                f"self.{tail} is the instance attribute '{site.name}' of {owner.name} "
+            return site, PROBABLE, (
+                f"self.{tail} is the statically identified instance attribute '{site.name}' of {owner.name} "
                 f"(assigned at line {site.line})"
             ), None
         return None, UNRESOLVED, (
@@ -492,8 +492,8 @@ class Resolver:
                 f"'{base}.{tail}' is not a class-level attribute of {class_site.qualified_name}"
             ), None
         site = _effective_site(candidates, 10**9)
-        return site, VERIFIED, (
-            f"{base}.{tail} is a class-level attribute of {class_site.qualified_name} "
+        return site, PROBABLE, (
+            f"{base}.{tail} is the statically declared class-level attribute of {class_site.qualified_name} "
             f"(line {site.line})"
         ), None
 
