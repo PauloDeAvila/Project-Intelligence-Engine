@@ -8,6 +8,7 @@ class FileRecord:
     sha256: str
     size: int
     language: str | None
+    content: bytes
 
 
 @dataclass(frozen=True)

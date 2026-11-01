@@ -33,10 +33,34 @@ jobs:
         run: python -m compileall -q src tools tests
       - name: Run project-specific full verification matrix (fail closed)
         run: python tools/verify_project.py
+      - name: Run reproducible performance baseline
+        run: python tools/benchmark_index.py
       - name: Upload verification evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: verification-evidence
+          name: verification-evidence-linux
+          path: verification-results.json
+          if-no-files-found: warn
+
+  windows-compatibility:
+    name: Windows Compatibility
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile source and tests
+        run: python -m compileall -q src tools tests
+      - name: Run project-specific full verification matrix (fail closed)
+        run: python tools/verify_project.py
+      - name: Run reproducible performance baseline
+        run: python tools/benchmark_index.py
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-evidence-windows
           path: verification-results.json
           if-no-files-found: warn

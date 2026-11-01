@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pie.indexing.python_ast import parse_python
+from pie.indexing.python_ast import parse_python_content
 from pie.scanning.discovery import discover_files
 from pie.storage.database import connect
 
@@ -24,7 +24,7 @@ def index_project(root: Path) -> dict[str, int | str]:
                     continue
                 if row:
                     connection.execute("DELETE FROM files WHERE id = ?", (row["id"],))
-                symbols, imports, parse_error = parse_python(root / record.path, relative)
+                symbols, imports, parse_error = parse_python_content(record.content, relative)
                 cursor = connection.execute("INSERT INTO files(path, sha256, size, language, parse_status) VALUES (?, ?, ?, ?, ?)", (relative, record.sha256, record.size, record.language, "error:" + parse_error if parse_error else "parsed"))
                 for symbol in symbols:
                     connection.execute("INSERT INTO symbols(file_id, qualified_name, name, kind, start_line, end_line, start_col, end_col) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (cursor.lastrowid, symbol.qualified_name, symbol.name, symbol.kind, symbol.start_line, symbol.end_line, symbol.start_col, symbol.end_col))

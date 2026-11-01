@@ -6,6 +6,6 @@
     "integration": {"status": "required", "command": ["python", "-m", "unittest", "discover", "-s", "tests", "-p", "test_pie_integration.py", "-v"]},
     "e2e": {"status": "required", "command": ["python", "-m", "unittest", "discover", "-s", "tests", "-p", "test_pie_e2e.py", "-v"]},
     "regression": {"status": "required", "command": ["python", "-m", "unittest", "discover", "-s", "tests", "-v"]},
-    "build": {"status": "required", "command": ["python", "-m", "compileall", "-q", "src", "tools", "tests"]}
+    "build": {"status": "required", "command": ["python", "tools/check_install.py"]}
   }
 }

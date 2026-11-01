@@ -1,4 +1,7 @@
 __pycache__/
 *.py[cod]
-verification-results.json
 .pie/
+build/
+*.egg-info/
+verification-results.json
+.coverage

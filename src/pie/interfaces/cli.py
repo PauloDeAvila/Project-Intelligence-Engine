@@ -42,7 +42,8 @@ def command_search(root: Path, query: str) -> list[dict[str, object]]:
     path = require_initialized(root)
     connection = connect(path)
     try:
-        rows = connection.execute("SELECT symbols.qualified_name, symbols.name, symbols.kind, files.path, symbols.start_line, symbols.end_line FROM symbols JOIN files ON files.id = symbols.file_id WHERE symbols.name LIKE ? OR symbols.qualified_name LIKE ? ORDER BY symbols.qualified_name", (f"%{query}%", f"%{query}%")).fetchall()
+        escaped = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        rows = connection.execute("SELECT symbols.qualified_name, symbols.name, symbols.kind, files.path, symbols.start_line, symbols.end_line FROM symbols JOIN files ON files.id = symbols.file_id WHERE symbols.name LIKE ? ESCAPE '\\' OR symbols.qualified_name LIKE ? ESCAPE '\\' ORDER BY symbols.qualified_name", (f"%{escaped}%", f"%{escaped}%")).fetchall()
         return [dict(row) for row in rows]
     finally:
         connection.close()

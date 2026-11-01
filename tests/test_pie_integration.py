@@ -38,3 +38,18 @@ class IndexPersistenceTests(unittest.TestCase):
             result = index_project(root)
             self.assertEqual((result["files"], result["symbols"]), (0, 0))
 
+    def test_invalid_file_is_retained_with_parse_error_and_database_is_integrity_checked(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            (root / "broken.py").write_text("def broken(:\n", encoding="utf-8")
+            index_project(root)
+            connection = connect(root / ".pie" / "index.sqlite3")
+            try:
+                status = connection.execute("SELECT parse_status FROM files WHERE path = 'broken.py'").fetchone()[0]
+                integrity = connection.execute("PRAGMA integrity_check").fetchone()[0]
+                self.assertEqual(status, "error:SyntaxError")
+                self.assertEqual(integrity, "ok")
+                self.assertEqual(connection.execute("PRAGMA foreign_keys").fetchone()[0], 1)
+            finally:
+                connection.close()
+

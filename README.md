@@ -40,3 +40,10 @@ Skills are instructions, not executable tooling. MCP connections, compilers, tes
 - `.agents/skills/independent-review/` requires a detailed independent review report.
 - `.github/workflows/ci.yml` runs the V0.1 regression and verification matrix.
 - GitHub branch protection/rulesets are server-side repository settings and must be configured and verified separately for each cloned/template repository.
+
+## Verification helpers
+
+```text
+python tools/check_install.py
+python tools/benchmark_index.py
+```
