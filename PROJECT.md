@@ -7,7 +7,7 @@ Supported journey: `pie init` → `pie index` → `pie status` / `pie search` / 
 
 ## In scope
 - Python 3.12+ on Windows and Linux.
-- Safe discovery below an explicit project root, excluding generated/dependency directories and oversized/non-Python files.
+- Safe, incremental discovery below an explicit project root, excluding generated/dependency directories and oversized/non-Python files; preserve prior index rows for paths that could not be read on a scan.
 - SHA-256 change detection and removal of deleted files from the index.
 - AST-based Python symbols and imports with source line/column evidence.
 - Reopenable SQLite persistence and JSON CLI output.
@@ -24,7 +24,9 @@ Supported journey: `pie init` → `pie index` → `pie status` / `pie search` / 
 ## Architecture and critical invariants
 - CLI calls indexing and storage; the indexer owns discovery/parsing orchestration; SQLite is the durable derived index; source files are never modified.
 - Every stored symbol belongs to one indexed file and carries a relative path plus source range.
-- Indexing is atomic per invocation, deletes stale file rows, and never invents semantic relationships.
+- Indexing is atomic per invocation, deletes confirmed stale file rows, preserves rows for unreadable paths, and never invents semantic relationships.
+- File content is hashed and parsed from one per-file snapshot; the indexer does not retain all file contents in memory together.
+- `.gitignore` supports nested files, ordered negations, slash-scoped patterns, directory rules and `**`, `*`, `?`, and bracket wildcards. Git's escaped comment/negation markers and escaped trailing spaces are not supported by this standard-library subset.
 - Relative paths are stored with `/` separators; only files below the requested root are considered.
 
 ## Acceptance criteria
@@ -53,7 +55,7 @@ An implementation is NOT VERIFIED until the complete applicable matrix passes an
 - AST parsing is intentionally less language-general than the planned Tree-sitter adapter.
 - Dynamic imports and semantic references remain unresolved by design.
 - GitHub branch protection is a remote governance control; the active `Protect main` ruleset currently requires pull requests and the `Project Verification` check.
-- The benchmark currently records a baseline and does not impose a universal latency target.
+- The benchmark accepts `--files` and `--queries`, reports Python traced peak memory and repeated search time, and does not impose universal performance targets. Filesystem/path enumeration and SQLite's seen-path set still scale with project size.
 
 ## Bootstrap gate (mandatory before feature work)
 - [x] Stack-specific dependencies and real test commands established
