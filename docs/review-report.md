@@ -64,8 +64,8 @@ Known limitations are intentional and documented: Python-only AST parsing, no se
 
 - PR obrigatória: confirmada no GitHub UI via active `Protect main` ruleset targeting default `main`.
 - Checks exigidos: `Project Verification` from GitHub Actions.
-- Aprovações e restrições: não confirmadas.
-- Regras confirmadas na API/UI: ruleset page shows Active, target main, 4 branch rules, PR requirement and Project Verification.
+- Aprovações: ruleset ativa define `required_approving_review_count: 0`; exige PR, mas não exige aprovação humana.
+- Regras confirmadas na API: `Protect main` ativa em `~DEFAULT_BRANCH`, exige pull request e status `Project Verification`, bloqueia exclusão e non-fast-forward; bypass actors vazio.
 - Bloqueios pendentes: run a deliberately failing PR and confirm merge is blocked; then verify a passing PR path.
 
 ## Veredito
