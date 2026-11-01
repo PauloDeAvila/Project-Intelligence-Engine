@@ -1,0 +1,112 @@
+name: Continuous Change Audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      severity: ${{ steps.audit.outputs.severity }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Audit changed files
+        id: audit
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          python - <<'PY'
+          import json, os, pathlib, re, subprocess
+          def git(*args):
+              return subprocess.run(["git", *args], capture_output=True, text=True, check=True).stdout
+          base, head = os.environ["BASE_SHA"], os.environ["HEAD_SHA"]
+          if not base or set(base) == {"0"}:
+              base = git("rev-parse", f"{head}^").strip()
+          changed = git("diff", "--name-only", "--diff-filter=ACMR", base, head).splitlines()
+          results = []
+          for name in changed:
+              file = pathlib.Path(name)
+              if not file.is_file() or file.is_symlink():
+                  continue
+              data = file.read_bytes()
+              if file.suffix.lower() in {".py", ".toml", ".yaml", ".yml", ".json", ".md", ".sh"}:
+                  if b"\r\n" in data:
+                      results.append({"severity":"warning","file":name,"reason":"CRLF detected; review line-ending policy"})
+              if len(data) > 2_000_000:
+                  results.append({"severity":"warning","file":name,"reason":"Large changed file"})
+          stat = git("diff", "--numstat", base, head)
+          for entry in stat.splitlines():
+              cols = entry.split("\t",2)
+              if len(cols)==3 and cols[0].isdigit() and cols[1].isdigit():
+                  if int(cols[0])+int(cols[1])>1500:
+                      results.append({"severity":"warning","file":cols[2],"reason":"Large diff; inspect for accidental rewriting"})
+          payload = {"repository":os.environ["GITHUB_REPOSITORY"],"sha":head,"base":base,"event":os.environ["GITHUB_EVENT_NAME"],"changed_files":len(changed),"findings":results}
+          pathlib.Path("audit-report.json").write_text(json.dumps(payload,indent=2),encoding="utf-8")
+          summary = ["## Continuous Change Audit",f"Changed files: {len(changed)}",f"Findings: {len(results)}"]
+          summary += [f"- **{r['severity']}** `{r['file']}`: {r['reason']}" for r in results]
+          pathlib.Path("audit-summary.md").write_text("\n".join(summary)+"\n",encoding="utf-8")
+          with open(os.environ["GITHUB_STEP_SUMMARY"],"a",encoding="utf-8") as f: f.write("\n".join(summary)+"\n")
+          with open(os.environ["GITHUB_OUTPUT"],"a",encoding="utf-8") as f: f.write("severity="+("warning" if results else "clear")+"\n")
+          PY
+      - name: Upload audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: change-audit-${{ github.run_id }}
+          path: |
+            audit-report.json
+            audit-summary.md
+          if-no-files-found: warn
+      - name: Notify webhook (optional, push only)
+        if: github.event_name == 'push'
+        env:
+          AUDIT_WEBHOOK_URL: ${{ secrets.AUDIT_WEBHOOK_URL }}
+          AUDIT_WEBHOOK_TOKEN: ${{ secrets.AUDIT_WEBHOOK_TOKEN }}
+        run: |
+          if [ -z "$AUDIT_WEBHOOK_URL" ] || [ -z "$AUDIT_WEBHOOK_TOKEN" ]; then
+            echo "Webhook not configured; skipping."
+            exit 0
+          fi
+          python - <<'PY'
+          import os, pathlib, urllib.request, urllib.parse
+          url=os.environ["AUDIT_WEBHOOK_URL"]
+          parsed=urllib.parse.urlsplit(url)
+          if parsed.scheme!="https" or not parsed.hostname:
+              raise SystemExit("Webhook must be an HTTPS URL")
+          body=pathlib.Path("audit-report.json").read_bytes()
+          request=urllib.request.Request(url,data=body,headers={"Content-Type":"application/json","Authorization":"Bearer "+os.environ["AUDIT_WEBHOOK_TOKEN"]},method="POST")
+          with urllib.request.urlopen(request,timeout=15) as response:
+              print("Webhook HTTP status:",response.status)
+          PY
+
+  pr-comment:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    needs: audit
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      pull-requests: write
+    steps:
+      - name: Post audit summary on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- pie-continuous-audit -->';
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = `${marker}\n### Continuous Change Audit\nStatus: **${{ needs.audit.outputs.severity }}**\n[View report and artifact](${runUrl})\n\nStatic checks are advisory; existing CI remains the test gate.`;
+            const {data: comments} = await github.rest.issues.listComments({owner:context.repo.owner,repo:context.repo.repo,issue_number:context.issue.number,per_page:100});
+            const old = comments.find(c=>c.user.type==='Bot' && c.body.includes(marker));
+            if (old) await github.rest.issues.updateComment({owner:context.repo.owner,repo:context.repo.repo,comment_id:old.id,body});
+            else await github.rest.issues.createComment({owner:context.repo.owner,repo:context.repo.repo,issue_number:context.issue.number,body});
