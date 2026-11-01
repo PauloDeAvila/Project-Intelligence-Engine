@@ -4,15 +4,29 @@ Both directions are first-class because they answer different questions:
 ``definition of X`` is a forward lookup on ``definitions``, ``who uses X`` is a
 reverse lookup on ``usages.target_binding_key``.  Neither walks the AST, so a
 query costs one indexed SQL statement regardless of project size.
+
+Analysis rows are *derived* data.  Once a source file changes, the stored line
+numbers and resolution verdicts describe bytes that no longer exist.  Every row is
+therefore hash-verified against the file on disk before it is returned, and rows
+whose source drifted are excluded and reported.  A caller can never read a stale
+``verified`` as fact: it either gets evidence that still matches the source, or an
+explicit ``STALE`` state telling it to re-index.
 """
 from __future__ import annotations
 
 import json
+from hashlib import sha256
 from pathlib import Path
 
+from pie.storage.analysis import analysis_version_matches
 from pie.storage.database import connect
 
 MAX_RESULTS = 500
+
+#: The answer still matches the bytes on disk.
+CURRENT = "CURRENT"
+#: At least one source behind the answer changed, or the stored rules are older.
+STALE = "STALE"
 
 
 def _require_analysis(connection) -> str | None:
@@ -26,6 +40,66 @@ def _require_analysis(connection) -> str | None:
     if not count:
         return "The analysis layer is empty; run pie index"
     return None
+
+
+def _drifted_sources(connection, root: Path, paths: set[str]) -> dict[str, str]:
+    """Map each path whose current bytes differ from the index to the reason why.
+
+    Only files that actually back the answer are read, so verification stays
+    proportional to the result size instead of the repository size.
+    """
+    if not paths:
+        return {}
+    ordered = sorted(paths)
+    placeholders = ", ".join("?" * len(ordered))
+    expected = {
+        row["path"]: row["sha256"]
+        for row in connection.execute(
+            f"SELECT path, sha256 FROM files WHERE path IN ({placeholders})", tuple(ordered)
+        )
+    }
+    drift: dict[str, str] = {}
+    for path in ordered:
+        digest = expected.get(path)
+        if digest is None:
+            drift[path] = "missing_from_index"
+            continue
+        try:
+            content = (root / path).read_bytes()
+        except OSError:
+            drift[path] = "file_unreadable"
+            continue
+        if sha256(content).hexdigest() != digest:
+            drift[path] = "source_hash_mismatch"
+    return drift
+
+
+def _verification(connection, checked: int, drift: dict[str, str]) -> dict[str, object]:
+    """How far this answer can be trusted *right now*, independent of its content."""
+    index_state = connection.execute(
+        "SELECT value FROM metadata WHERE key = 'index_state'"
+    ).fetchone()
+    rules_current = analysis_version_matches(connection)
+    state = CURRENT if rules_current and not drift else STALE
+    payload: dict[str, object] = {
+        "state": state,
+        "index_state": index_state[0] if index_state else "UNINDEXED",
+        "checked_sources": checked,
+        "drifted_sources": [{"path": path, "reason": reason} for path, reason in sorted(drift.items())],
+    }
+    if not rules_current:
+        payload["warning"] = (
+            "the stored analysis was built by different rules; run pie index to rebuild it"
+        )
+    elif drift:
+        payload["warning"] = (
+            "sources changed after indexing; their rows were excluded from this answer, run pie index"
+        )
+    return payload
+
+
+def _excluded(drift: dict[str, str]) -> list[dict[str, str]]:
+    return [{"path": path, "reason": reason} for path, reason in sorted(drift.items())]
 
 
 def _definition_row(row) -> dict[str, object]:
@@ -55,6 +129,13 @@ SELECT d.binding_key, d.name, d.qualified_name, d.kind, d.declared_by, d.scope_k
 FROM definitions d JOIN files f ON f.id = d.file_id
 """
 
+USAGE_SELECT = """
+SELECT u.name, u.qualified_name, u.scope_key, u.context, u.line, u.col, u.origin_symbol,
+       u.resolution, u.evidence, u.target_binding_key, u.target_path, u.target_line, u.via_binding_key,
+       f.path
+FROM usages u JOIN files f ON f.id = u.file_id
+"""
+
 
 def find_definitions(root: Path, name: str, limit: int = 100) -> dict[str, object]:
     """Every definition site of ``name`` (exact name, exact qualified name or suffix)."""
@@ -62,7 +143,8 @@ def find_definitions(root: Path, name: str, limit: int = 100) -> dict[str, objec
         raise ValueError("name cannot be empty")
     if not 1 <= limit <= MAX_RESULTS:
         raise ValueError(f"limit must be between 1 and {MAX_RESULTS}")
-    connection = connect(Path(root).resolve() / ".pie" / "index.sqlite3")
+    root = Path(root).resolve()
+    connection = connect(root / ".pie" / "index.sqlite3")
     try:
         warning = _require_analysis(connection)
         if warning:
@@ -78,7 +160,16 @@ def find_definitions(root: Path, name: str, limit: int = 100) -> dict[str, objec
                   LIMIT ?""",
             (name, name, f"%.{escaped}", name, name, limit),
         ).fetchall()
-        return {"query": name, "definitions": [_definition_row(row) for row in rows]}
+        drift = _drifted_sources(connection, root, {row["path"] for row in rows})
+        kept = [row for row in rows if row["path"] not in drift]
+        result: dict[str, object] = {
+            "query": name,
+            "definitions": [_definition_row(row) for row in kept],
+        }
+        if drift:
+            result["excluded_stale"] = _excluded(drift)
+        result.update(_verification(connection, len(rows), drift))
+        return result
     finally:
         connection.close()
 
@@ -87,13 +178,16 @@ def find_references(root: Path, name: str, limit: int = 100) -> dict[str, object
     """Consumers of ``name``: every usage whose target is one of its definitions.
 
     This is the reverse query.  It answers "if I change this, what reads it",
-    which is impossible from an outgoing-only graph.
+    which is impossible from an outgoing-only graph.  A reference is kept only while
+    *both* sides still match the index: a consumer whose file changed, or a target
+    whose definition file changed, has its evidence dropped rather than re-labelled.
     """
     if not name.strip():
         raise ValueError("name cannot be empty")
     if not 1 <= limit <= MAX_RESULTS:
         raise ValueError(f"limit must be between 1 and {MAX_RESULTS}")
-    connection = connect(Path(root).resolve() / ".pie" / "index.sqlite3")
+    root = Path(root).resolve()
+    connection = connect(root / ".pie" / "index.sqlite3")
     try:
         warning = _require_analysis(connection)
         if warning:
@@ -109,17 +203,25 @@ def find_references(root: Path, name: str, limit: int = 100) -> dict[str, object
             return {"query": name, "references": [], "definitions": []}
         placeholders = ", ".join("?" * len(keys))
         rows = connection.execute(
-            "SELECT u.name, u.qualified_name, u.scope_key, u.context, u.line, u.col, u.origin_symbol, "
-            "u.resolution, u.evidence, u.target_binding_key, u.target_path, u.target_line, u.via_binding_key, "
-            "f.path "
-            "FROM usages u JOIN files f ON f.id = u.file_id "
-            f"WHERE u.target_binding_key IN ({placeholders}) "
+            USAGE_SELECT + f" WHERE u.target_binding_key IN ({placeholders}) "
             "ORDER BY f.path, u.line, u.col LIMIT ?",
             (*keys, limit),
         ).fetchall()
-        return {
+        drift = _drifted_sources(
+            connection,
+            root,
+            {row["path"] for row in targets} | {row["path"] for row in rows},
+        )
+        live_keys = {row["binding_key"] for row in targets if row["path"] not in drift}
+        kept_targets = [row for row in targets if row["path"] not in drift]
+        kept_rows = [
+            row
+            for row in rows
+            if row["path"] not in drift and row["target_binding_key"] in live_keys
+        ]
+        result: dict[str, object] = {
             "query": name,
-            "definitions": [_definition_row(row) for row in targets],
+            "definitions": [_definition_row(row) for row in kept_targets],
             "references": [
                 {
                     "path": row["path"],
@@ -134,17 +236,22 @@ def find_references(root: Path, name: str, limit: int = 100) -> dict[str, object
                     "target": row["target_binding_key"],
                     "via_import": row["via_binding_key"],
                 }
-                for row in rows
+                for row in kept_rows
             ],
-            "count": len(rows),
+            "count": len(kept_rows),
         }
+        if drift:
+            result["excluded_stale"] = _excluded(drift)
+        result.update(_verification(connection, len(targets) + len(rows), drift))
+        return result
     finally:
         connection.close()
 
 
 def describe_binding(root: Path, binding_key: str, limit: int = 100) -> dict[str, object]:
     """Full report for one binding: sites, readers and writers, grouped by file."""
-    connection = connect(Path(root).resolve() / ".pie" / "index.sqlite3")
+    root = Path(root).resolve()
+    connection = connect(root / ".pie" / "index.sqlite3")
     try:
         warning = _require_analysis(connection)
         if warning:
@@ -156,27 +263,40 @@ def describe_binding(root: Path, binding_key: str, limit: int = 100) -> dict[str
         if not definitions:
             return {"binding": binding_key, "definitions": [], "references": []}
         rows = connection.execute(
-            "SELECT u.name, u.qualified_name, u.context, u.scope_key, u.line, u.col, u.origin_symbol, "
-            "u.resolution, u.evidence, u.via_binding_key, f.path "
-            "FROM usages u JOIN files f ON f.id = u.file_id "
-            "WHERE u.target_binding_key = ? ORDER BY f.path, u.line, u.col LIMIT ?",
+            USAGE_SELECT + " WHERE u.target_binding_key = ? ORDER BY f.path, u.line, u.col LIMIT ?",
             (binding_key, limit),
         ).fetchall()
-        consumers = sorted({row["path"] for row in rows})
-        symbols = sorted({row["origin_symbol"] for row in rows if row["origin_symbol"]})
-        return {
+        drift = _drifted_sources(
+            connection,
+            root,
+            {row["path"] for row in definitions} | {row["path"] for row in rows},
+        )
+        kept_definitions = [row for row in definitions if row["path"] not in drift]
+        kept_rows = [row for row in rows if row["path"] not in drift]
+        consumers = sorted({row["path"] for row in kept_rows})
+        symbols = sorted({row["origin_symbol"] for row in kept_rows if row["origin_symbol"]})
+        result: dict[str, object] = {
             "binding": binding_key,
-            "definitions": [_definition_row(row) for row in definitions],
-            "references": [dict(row) for row in rows],
+            "definitions": [_definition_row(row) for row in kept_definitions],
+            "references": [dict(row) for row in kept_rows],
             "consumers": {"files": consumers, "symbols": symbols},
-            "unresolved_references": sum(1 for row in rows if row["resolution"] == "unresolved"),
+            "unresolved_references": sum(1 for row in kept_rows if row["resolution"] == "unresolved"),
         }
+        if drift:
+            result["excluded_stale"] = _excluded(drift)
+        result.update(_verification(connection, len(definitions) + len(rows), drift))
+        return result
     finally:
         connection.close()
 
 
 def analysis_summary(root: Path) -> dict[str, object]:
-    """Counts by kind and resolution, for a quick integrity check."""
+    """Counts by kind and resolution, for a quick integrity check.
+
+    The counts are aggregate, so they are not hash-verified file by file.  The
+    stored rules and the index state are checked instead: both say whether the
+    numbers describe the current analysis at all.
+    """
     connection = connect(Path(root).resolve() / ".pie" / "index.sqlite3")
     try:
         warning = _require_analysis(connection)
@@ -204,14 +324,21 @@ def analysis_summary(root: Path) -> dict[str, object]:
             "SELECT COUNT(*) FROM usages WHERE target_binding_key IS NOT NULL "
             "AND NOT EXISTS (SELECT 1 FROM definitions d WHERE d.binding_key = usages.target_binding_key)"
         ).fetchone()[0]
-        return {
+        unanalysed = connection.execute(
+            "SELECT COUNT(*) FROM files f LEFT JOIN analysis_state a ON a.file_id = f.id "
+            "WHERE a.file_id IS NULL AND f.language = 'python'"
+        ).fetchone()[0]
+        result: dict[str, object] = {
             "definitions": sum(kinds.values()),
             "references": sum(resolutions.values()),
             "definitions_by_kind": kinds,
             "references_by_resolution": resolutions,
             "references_by_context": contexts,
             "dangling_targets": orphans,
+            "files_without_analysis": unanalysed,
         }
+        result.update(_verification(connection, 0, {} if unanalysed == 0 else {"<analysis-incomplete>": "unanalysed_files"}))
+        return result
     finally:
         connection.close()
 

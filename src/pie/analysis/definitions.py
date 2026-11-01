@@ -33,6 +33,8 @@ KIND_PARAMETER = "parameter"
 KIND_VARIABLE = "variable"
 KIND_CONSTANT = "constant"
 KIND_ATTRIBUTE = "attribute"
+#: ``self.x = ...`` inside a method: exists on instances only, never on the class.
+KIND_INSTANCE_ATTRIBUTE = "instance_attribute"
 KIND_IMPORT = "import"
 KIND_EXCEPTION = "exception"
 
@@ -402,7 +404,7 @@ class DefinitionCollector(ScopedVisitor):
                     self._emit(
                         owner,
                         target.attr,
-                        KIND_ATTRIBUTE,
+                        KIND_INSTANCE_ATTRIBUTE,
                         f"instance_{declared_by}",
                         target,
                         inferred_type=inferred,

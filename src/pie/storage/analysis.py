@@ -12,6 +12,7 @@ half the graph rewritten.
 from __future__ import annotations
 
 import ast
+import json
 import sqlite3
 from pathlib import Path
 
@@ -67,6 +68,45 @@ def row_to_definition(row: sqlite3.Row) -> Definition:
         alias=row["alias"],
         body_scope_key=row["body_scope_key"],
     )
+
+
+#: Metadata key holding diagnostics produced while building the analysis layer.
+DIAGNOSTICS_KEY = "analysis_diagnostics"
+
+
+def _record_diagnostic(connection: sqlite3.Connection, diagnostic: dict[str, str]) -> None:
+    """Append one analysis diagnostic without losing earlier entries.
+
+    The indexer owns ``index_diagnostics``; keeping the analysis failures in their
+    own key means a later scan can report them even when the file list changes.
+    """
+    row = connection.execute("SELECT value FROM metadata WHERE key = ?", (DIAGNOSTICS_KEY,)).fetchone()
+    try:
+        existing = json.loads(row[0]) if row else []
+    except (ValueError, TypeError):
+        existing = []
+    if not isinstance(existing, list):
+        existing = []
+    if diagnostic not in existing:
+        existing.append(diagnostic)
+    existing.sort(key=lambda item: (item.get("path", ""), item.get("code", "")))
+    connection.execute(
+        "INSERT INTO metadata(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        (DIAGNOSTICS_KEY, json.dumps(existing, ensure_ascii=False, sort_keys=True)),
+    )
+
+
+def take_diagnostics(connection: sqlite3.Connection) -> list[dict[str, str]]:
+    """Read and clear the pending analysis diagnostics."""
+    row = connection.execute("SELECT value FROM metadata WHERE key = ?", (DIAGNOSTICS_KEY,)).fetchone()
+    if row is None:
+        return []
+    connection.execute("DELETE FROM metadata WHERE key = ?", (DIAGNOSTICS_KEY,))
+    try:
+        parsed = json.loads(row[0])
+    except (ValueError, TypeError):
+        return []
+    return parsed if isinstance(parsed, list) else []
 
 
 def clear_file(connection: sqlite3.Connection, file_id: int) -> None:
@@ -197,8 +237,14 @@ def refresh(
     changed: set[str],
     removed: set[str],
     root: Path,
-) -> dict[str, int]:
-    """Re-analyse changed files plus everything that imports them."""
+) -> dict[str, int | list[str]]:
+    """Re-analyse changed files plus everything that imports them.
+
+    ``unreadable`` lists sources the analysis could not re-read.  Their derived rows
+    are dropped and the caller must report the failure: an incomplete analysis layer
+    can never be presented as a clean index.
+    """
+    unreadable: list[str] = []
     seeds = set(changed) | set(removed)
     targets = set(seeds)
     targets |= dependents_of(connection, seeds)
@@ -209,7 +255,7 @@ def refresh(
         targets |= all_python_paths(connection)
     targets = {path for path in targets if path.endswith(".py")}
     if not targets:
-        return {"analysed": 0, "resolved": 0, "demoted": 0}
+        return {"analysed": 0, "resolved": 0, "demoted": 0, "unreadable": unreadable}
 
     analyses: dict[str, ModuleAnalysis] = {}
     for relative in sorted(targets):
@@ -219,7 +265,17 @@ def refresh(
             continue
         try:
             content = (root / relative).read_bytes()
-        except OSError:
+        except OSError as exc:
+            # Derived rows must not survive a source we could not re-read: they would
+            # keep claiming a verdict the current bytes no longer support.  Dropping
+            # them makes the next query report "no evidence" instead of stale evidence,
+            # and the failure is surfaced to the caller as a diagnostic.
+            unreadable.append(relative)
+            clear_file(connection, row["id"])
+            _record_diagnostic(
+                connection,
+                {"code": "analysis_source_unreadable", "path": relative, "error": f"{type(exc).__name__}: {exc}"},
+            )
             continue
         try:
             tree = ast.parse(content.decode("utf-8"), filename=relative)
@@ -234,7 +290,12 @@ def refresh(
         analyses[relative] = module
 
     if not analyses:
-        return {"analysed": 0, "resolved": 0, "demoted": demote_stale_targets(connection)}
+        return {
+            "analysed": 0,
+            "resolved": 0,
+            "demoted": demote_stale_targets(connection),
+            "unreadable": unreadable,
+        }
 
     resolver = Resolver(load_facts(connection))
     for relative, module in analyses.items():
@@ -251,4 +312,5 @@ def refresh(
         "analysed": len(analyses),
         "resolved": connection.execute("SELECT COUNT(*) FROM usages").fetchone()[0],
         "demoted": demote_stale_targets(connection),
+        "unreadable": unreadable,
     }

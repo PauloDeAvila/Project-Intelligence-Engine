@@ -22,7 +22,12 @@ from __future__ import annotations
 import ast
 from dataclasses import dataclass, field
 
-from pie.analysis.definitions import Definition, collect_definitions
+from pie.analysis.definitions import (
+    KIND_ATTRIBUTE,
+    KIND_INSTANCE_ATTRIBUTE,
+    Definition,
+    collect_definitions,
+)
 from pie.analysis.references import Usage, collect_usages
 from pie.analysis.scopes import (
     CLASS_SCOPE,
@@ -382,15 +387,7 @@ class Resolver:
             owner = enclosing_class(scope)
             if owner is None:
                 return None, UNRESOLVED, f"{base}.{tail} used outside any class", None
-            site = _effective_site(
-                [item for item in facts.sites(owner.key, usage.name) if item.kind != "instance_attribute"],
-                usage.line,
-            )
-            if site is None:
-                return None, UNRESOLVED, (
-                    f"{base}.{tail}: class {owner.name} declares no attribute '{usage.name}' in this module"
-                ), None
-            return site, VERIFIED, f"{base}.{tail} is attribute '{site.name}' of class {owner.name}", None
+            return self._resolve_self_attribute(usage, owner, base, tail, facts)
 
         base_owner, why = self._lookup(base, scope)
         if base_owner is None:
@@ -414,6 +411,66 @@ class Resolver:
             ), None
         return self._resolve_imported_attribute(site, usage, base, tail)
 
+    def _resolve_self_attribute(
+        self,
+        usage: Usage,
+        owner: Scope,
+        base: str,
+        tail: str,
+        facts: ModuleFacts,
+    ) -> tuple[Definition | None, str, str, str | None]:
+        """``self.x`` / ``cls.x`` against the enclosing class body.
+
+        ``self.x`` reads the instance namespace first and falls back to the class
+        body; ``cls.x`` never reaches an instance attribute.  When both a class
+        attribute and an instance attribute share the name, static analysis cannot
+        prove which one a ``self.x`` read observes, so the verdict is ``probable``
+        instead of ``verified``.
+        """
+        sites = facts.sites(owner.key, usage.name)
+        class_sites = [item for item in sites if item.kind == KIND_ATTRIBUTE]
+        instance_sites = [item for item in sites if item.kind == KIND_INSTANCE_ATTRIBUTE]
+
+        if base == "cls":
+            if not class_sites:
+                if instance_sites:
+                    return None, UNRESOLVED, (
+                        f"cls.{tail}: '{usage.name}' is only an instance attribute of {owner.name}; "
+                        "the class object does not expose it"
+                    ), None
+                return None, UNRESOLVED, (
+                    f"cls.{tail}: class {owner.name} declares no class-level attribute '{usage.name}' "
+                    "in this module"
+                ), None
+            site = _effective_site(class_sites, 10**9)
+            return site, VERIFIED, (
+                f"cls.{tail} is the class-level attribute '{site.name}' of {owner.name} "
+                f"(line {site.line})"
+            ), None
+
+        if class_sites and instance_sites:
+            site = _effective_site(instance_sites, usage.line) or instance_sites[0]
+            return site, PROBABLE, (
+                f"self.{tail}: {owner.name} declares both a class attribute and an instance "
+                f"attribute '{usage.name}'; the read resolves to the instance namespace at runtime "
+                f"(instance site line {site.line})"
+            ), None
+        if class_sites:
+            site = _effective_site(class_sites, 10**9)
+            return site, VERIFIED, (
+                f"self.{tail} is the class-level attribute '{site.name}' of {owner.name} "
+                f"(line {site.line}); no instance attribute shadows it"
+            ), None
+        if instance_sites:
+            site = _effective_site(instance_sites, usage.line) or instance_sites[0]
+            return site, VERIFIED, (
+                f"self.{tail} is the instance attribute '{site.name}' of {owner.name} "
+                f"(assigned at line {site.line})"
+            ), None
+        return None, UNRESOLVED, (
+            f"{base}.{tail}: class {owner.name} declares no attribute '{usage.name}' in this module"
+        ), None
+
     def _resolve_class_attribute(
         self, class_site: Definition, usage: Usage, base: str, tail: str
     ) -> tuple[Definition | None, str, str, str | None]:
@@ -426,7 +483,7 @@ class Resolver:
         candidates = [
             item
             for item in self._sites_in_scope(class_site.path, body_scope, usage.name)
-            if item.kind != "instance_attribute"
+            if item.kind == KIND_ATTRIBUTE
         ]
         if not candidates:
             return None, UNRESOLVED, (

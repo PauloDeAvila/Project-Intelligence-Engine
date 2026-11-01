@@ -262,10 +262,8 @@ class AttributeAndImportTests(unittest.TestCase):
     def test_from_package_import_module_resolves_to_the_submodule(self):
         sources = {
             "pkg/__init__.py": "",
-            "pkg/limits.py": "LIMIT = 10
-",
-            "user.py": "from pkg import limits
-\ndef f():\n    return limits.LIMIT\n",
+            "pkg/limits.py": "LIMIT = 10\n",
+            "user.py": "from pkg import limits\n\ndef f():\n    return limits.LIMIT\n",
         }
         references = resolve_all(sources)
         attribute = next(r for r in references if r.path == "user.py" and r.name == "LIMIT")
@@ -276,8 +274,7 @@ class AttributeAndImportTests(unittest.TestCase):
     def test_submodule_used_as_a_plain_name_resolves_to_the_module(self):
         sources = {
             "pkg/__init__.py": "",
-            "pkg/limits.py": "LIMIT = 10
-",
+            "pkg/limits.py": "LIMIT = 10\n",
             "user.py": "from pkg import limits\n\ndef f():\n    return limits\n",
         }
         references = resolve_all(sources)
@@ -288,8 +285,7 @@ class AttributeAndImportTests(unittest.TestCase):
     def test_attribute_of_a_renamed_submodule_still_resolves(self):
         sources = {
             "pkg/__init__.py": "",
-            "pkg/limits.py": "LIMIT = 10
-",
+            "pkg/limits.py": "LIMIT = 10\n",
             "user.py": "from pkg import limits as lim\n\ndef f():\n    return lim.LIMIT\n",
         }
         references = resolve_all(sources)
@@ -404,7 +400,7 @@ class DefinitionInventoryTests(unittest.TestCase):
         kinds = {(item.name, item.kind, item.scope_key) for item in definitions}
         self.assertIn(("retries", "attribute", "class:Service"), kinds)
         self.assertIn(("name", "parameter", "class:Service.function:__init__"), kinds)
-        self.assertIn(("name", "attribute", "class:Service"), kinds)
+        self.assertIn(("name", "instance_attribute", "class:Service"), kinds)
         parameter = next(item for item in definitions if item.kind == "parameter" and item.name == "name")
         self.assertEqual(parameter.inferred_type, "str")
 

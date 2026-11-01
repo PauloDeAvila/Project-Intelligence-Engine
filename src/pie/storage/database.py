@@ -75,7 +75,7 @@ CREATE INDEX IF NOT EXISTS idx_star_imports_module ON star_imports(module);
 """
 
 #: Bumped when the analysis layer must be rebuilt from source.
-ANALYSIS_VERSION = 1
+ANALYSIS_VERSION = 2
 
 
 def _has_legacy_symbol_constraint(connection: sqlite3.Connection) -> bool:

@@ -112,7 +112,17 @@ def index_project(root: Path) -> dict[str, object]:
             )
             if stale_paths:
                 diagnostics.append({"code": "preserved_stale_files", "count": len(stale_paths)})
-            symbol_store.refresh(connection, changed, removed, root)
+            analysis_report = symbol_store.refresh(connection, changed, removed, root)
+            analysis_failures = analysis_report.get("unreadable") or []
+            if analysis_failures:
+                diagnostics.extend(
+                    {"code": "analysis_source_unreadable", "path": path}
+                    for path in sorted(analysis_failures)
+                )
+                # The symbol layer is incomplete even when every file was scanned:
+                # its rows were dropped, so a query must not read as a clean index.
+                if state == "CURRENT":
+                    state = "PARTIAL"
             _store_scan_result(connection, state, diagnostics)
             connection.execute("INSERT INTO metadata(key, value) VALUES('root', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (str(root.resolve()),))
     except Exception as exc:
