@@ -138,7 +138,9 @@ def perform(root,task,model,mode,base,key,service):
                 candidates.append((len(q & terms(s)),p,s))
         candidates.sort(key=lambda item:(-item[0],str(item[1])))
         body="\n\n".join(f"FILE {p.relative_to(root).as_posix()}\n{s}" for _,p,s in candidates[:2])
-        messages.append({"role":"user","content":body[:55000]})
+        # Bound baseline context to avoid gateway HTTP 400 on oversized candidate bodies.
+        # Keep this independent of PIE retrieval; failed attempts remain failures.
+        messages.append({"role":"user","content":body[:16000]})
     used=0; output_used=0; calls=0; searches=0; search_ms=[]; model_ms=[]; answer={}; response_diagnostics=[]
     prompt_usage_calls=0; completion_usage_calls=0
     for step in range(5):
