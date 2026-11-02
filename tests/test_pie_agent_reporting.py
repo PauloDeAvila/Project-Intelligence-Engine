@@ -60,5 +60,65 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(summary["retrieval_p95_ms"], 76)
         self.assertTrue(summary["retrieval_mean_below_100ms"])
 
+
+class GatewayResponseTests(unittest.TestCase):
+    def test_reasoning_only_response_is_not_a_valid_answer(self):
+        from unittest import mock
+        from tools.pie_agent_9router_lab import chat
+
+        class FakeResponse:
+            status = 200
+            def __enter__(self):
+                return self
+            def __exit__(self, *_):
+                return False
+            def read(self, *_):
+                return json.dumps({
+                    "choices": [{
+                        "message": {"role": "assistant", "content": "",
+                                    "reasoning_content": "internal reasoning"},
+                        "finish_reason": "length"
+                    }],
+                    "usage": {"prompt_tokens": 90, "completion_tokens": 1200}
+                }).encode("utf8")
+
+        with mock.patch("urllib.request.urlopen", return_value=FakeResponse()):
+            answer, usage, _, diagnostics = chat(
+                [{"role": "user", "content": "test"}], "qd/qfmodel",
+                "https://gateway.example", "dummy")
+        self.assertEqual(answer["action"], "invalid")
+        self.assertEqual(usage["prompt_tokens"], 90)
+        self.assertEqual(diagnostics["content_chars"], 0)
+        self.assertEqual(diagnostics["reasoning_chars"], len("internal reasoning"))
+        self.assertEqual(diagnostics["finish_reason"], "length")
+
+    def test_json_answer_remains_parseable(self):
+        from unittest import mock
+        from tools.pie_agent_9router_lab import chat
+
+        class FakeResponse:
+            status = 200
+            def __enter__(self):
+                return self
+            def __exit__(self, *_):
+                return False
+            def read(self, *_):
+                return json.dumps({
+                    "choices": [{
+                        "message": {"role": "assistant",
+                                    "content": '{"action":"answer","path":"rich/text.py","symbol":"Text.copy"}'},
+                        "finish_reason": "stop"
+                    }],
+                    "usage": {"prompt_tokens": 100, "completion_tokens": 30}
+                }).encode("utf8")
+
+        with mock.patch("urllib.request.urlopen", return_value=FakeResponse()):
+            answer, _, _, diagnostics = chat(
+                [{"role": "user", "content": "test"}], "qd/qfmodel",
+                "https://gateway.example", "dummy")
+        self.assertEqual(answer["action"], "answer")
+        self.assertEqual(answer["symbol"], "Text.copy")
+        self.assertEqual(diagnostics["parsed_action"], "answer")
+
 if __name__ == "__main__":
     unittest.main()
