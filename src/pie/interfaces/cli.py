@@ -113,6 +113,7 @@ def main(argv: list[str] | None = None) -> int:
     impacts = subparsers.add_parser("impact")
     impacts.add_argument("name")
     impacts.add_argument("--root", default=".")
+    impacts.add_argument("--depth", type=int, default=2)
     memory = subparsers.add_parser("remember")
     memory.add_argument("key")
     memory.add_argument("description")
@@ -148,7 +149,7 @@ def main(argv: list[str] | None = None) -> int:
             except KeyboardInterrupt:
                 pass
             return 0
-        elif args.command == "impact": result = impact(root, args.name)
+        elif args.command == "impact": result = impact(root, args.name, depth=args.depth)
         elif args.command == "remember": result = remember(root, args.key, args.description, args.source)
         elif args.command == "recall": result = recall(root, args.query)
         else: result = command_symbol(root, args.name)
