@@ -100,14 +100,11 @@ class WarmContextService:
         return True
 
     def query(self, question: str, *, limit: int = 8, max_chars: int = 12000,
-              include_body: bool = False, consistency: str = "strict") -> dict:
+              include_body: bool = False) -> dict:
         if not isinstance(question, str) or not question.strip():
             raise ValueError("Nonempty query required")
-        if consistency not in ("strict", "eventual"):
-            raise ValueError("Unknown consistency mode")
         with self._lock:
-            if consistency == "strict":
-                self.refresh()
+            self.refresh()
             if self._refresh_error:
                 raise RuntimeError("Background indexer failed: " + self._refresh_error)
             key = (question, limit, max_chars, include_body)
@@ -115,8 +112,7 @@ class WarmContextService:
                 value = self._cache[key]
                 if self._source_valid(value):
                     self._cache.move_to_end(key)
-                    return {"cache_hit": True, "result": value,
-                            "consistency": consistency}
+                    return {"cache_hit": True, "result": value}
                 self._cache.clear()
                 self.refresh()
             value = smart_context(self.root, question, limit=limit,
@@ -125,9 +121,7 @@ class WarmContextService:
                 self._cache[key] = value
                 if len(self._cache) > self.cache_size:
                     self._cache.popitem(last=False)
-            return {"cache_hit": False, "result": value,
-                    "consistency": consistency,
-                    "index_freshness": "possibly_lagging" if consistency == "eventual" else "checked"}
+            return {"cache_hit": False, "result": value}
 
     def search_candidates(self, question: str, limit: int = 50) -> dict:
         self.refresh()
@@ -152,7 +146,7 @@ class WarmContextService:
 
 
 def serve(root: Path, stdin: TextIO = sys.stdin, stdout: TextIO = sys.stdout):
-    with WarmContextService(root, background_interval=1.0) as service:
+    with WarmContextService(root) as service:
         for line in stdin:
             try:
                 request = json.loads(line)
@@ -164,7 +158,7 @@ def serve(root: Path, stdin: TextIO = sys.stdin, stdout: TextIO = sys.stdout):
                                             limit=request.get("limit", 8),
                                             max_chars=request.get("max_chars", 12000),
                                             include_body=request.get("include_body", False),
-                                            consistency=request.get("consistency", "strict"))
+)
                 elif method == "refresh":
                     payload = service.refresh()
                 elif method == "candidates":
