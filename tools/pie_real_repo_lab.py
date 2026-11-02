@@ -21,7 +21,7 @@ import urllib.request
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"src"))
 from pie.indexing.indexer import index_project
 from pie.graph.relationships import build_relationships
-from pie.retrieval.intelligence import smart_context
+from pie.retrieval.context import build_context
 
 STOP=set("the a an and of to with for in on is are from this that it which by as into at can be use using given when where how what returns return function method data value values object objects code class this will you not".split())
 
@@ -153,7 +153,7 @@ def run():
         start=time.perf_counter()
         baseline,pie,files,selected=search(task["question"],modules,rows,a.max_baseline_chars)
         if a.pie_production:
-            resolved=smart_context(root,task["question"],max_chars=12000,limit=4)
+            resolved=build_context(root,task["question"],max_chars=12000,limit=4,strategy="smart")
             pie=json.dumps(resolved,ensure_ascii=False)
             selected=[{"path":e["path"],"symbol":e["symbol"]} for e in resolved["evidence"]]
         retrieval=time.perf_counter()-start
