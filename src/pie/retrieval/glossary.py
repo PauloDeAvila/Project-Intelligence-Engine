@@ -53,7 +53,7 @@ def recall(root: Path, query: str = "", limit: int = 25) -> dict[str, object]:
         rows = conn.execute("""SELECT key,description,source_path,source_sha256,updated_utc
                   FROM project_glossary WHERE key LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\'
                   ORDER BY key LIMIT ?""",
-                  ("%"+query.replace("%","\\%").replace("_","\\_")+"%",)*2+(limit,)).fetchall()
+                  ("%"+query.replace("\\","\\\\").replace("%","\\%").replace("_","\\_")+"%",)*2+(limit,)).fetchall()
         items=[]
         for row in rows:
             p=(root / row["source_path"]).resolve()
