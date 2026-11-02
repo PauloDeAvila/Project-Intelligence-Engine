@@ -6,7 +6,7 @@ import unittest
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"tools"))
 sys.path.insert(0,str(ROOT/"src"))
-from cloud_pie_benchmark import LAB, QUESTIONS, compact_evidence, curated_context, source_slice
+from cloud_pie_benchmark import LAB, QUESTIONS, ANSWER_KEYS, compact_evidence, curated_context, semantic_grade, evaluation_prompt, source_slice
 
 
 class CloudBenchmarkTests(unittest.TestCase):
@@ -30,6 +30,17 @@ class CloudBenchmarkTests(unittest.TestCase):
         import ast
         for path,code in LAB.items():
             with self.subTest(path=path): ast.parse(code)
+    def test_semantic_grading_is_deterministic(self):
+        import json
+        for scenario, expected in ANSWER_KEYS.items():
+            with self.subTest(scenario=scenario):
+                self.assertEqual(semantic_grade(scenario,json.dumps(expected))["passed"],4)
+                self.assertEqual(semantic_grade(scenario,"not json")["passed"],0)
+                wrong=dict(expected)
+                key=next(iter(wrong))
+                wrong[key]=None
+                self.assertEqual(semantic_grade(scenario,json.dumps(wrong))["passed"],3)
+                self.assertIn("JSON",evaluation_prompt(scenario))
     def test_three_scenarios_remain_distinct(self):
         self.assertEqual(len(QUESTIONS),3)
         self.assertEqual(len(set(QUESTIONS.values())),3)
