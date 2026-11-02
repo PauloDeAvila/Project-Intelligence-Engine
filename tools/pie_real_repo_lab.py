@@ -91,6 +91,16 @@ def search(question,modules,rows,budget):
         raise RuntimeError(f"File context too big: {len(baseline)}")
     return baseline,pie,candidate_paths,chosen
 
+def normalize_navigation_answer(answer):
+    """Accept a legitimate path:line citation without changing the symbol."""
+    if not isinstance(answer,dict):return {}
+    path=answer.get("path")
+    symbol=answer.get("symbol")
+    if not isinstance(path,str) or not isinstance(symbol,str):return {}
+    path=re.sub(r"^#+\\s*","",path.strip())
+    path=re.sub(r":\\d+(?:-\\d+)?$","",path)
+    return {"path":path,"symbol":symbol.strip()}
+
 def infer(base,key,model,query,context,output_tokens):
     request_data={"model":model,"messages":[
         {"role":"system","content":"You are reading a real Python codebase. Return only valid JSON with keys path and symbol, both strings. The symbol must be the implementing function or Class.method. Cite exactly the supplied source paths. If evidence is insufficient, use empty strings."},
@@ -164,9 +174,9 @@ def run():
         for task,mode in jobs:
             reply=infer(base,key,model,task["question"],evidence[task["id"]][mode],
                          900 if "nemotron" in model.lower() else 160)
-            correct=reply.get("answer")==task["oracle"]
+            correct=normalize_navigation_answer(reply.get("answer"))==task["oracle"]
             row={"model":model,"task":task["id"],"mode":mode,"correct":correct,
-                 "evidence_hit":next(x[mode+"_hit"] for x in audit if x["id"]==task["id"]),**reply}
+                 "normalized_answer":normalize_navigation_answer(reply.get("answer")),"evidence_hit":next(x[mode+"_hit"] for x in audit if x["id"]==task["id"]),**reply}
             results.append(row)
             (output/"results.json").write_text(json.dumps({"results":results},indent=2),encoding="utf8")
             print("RUN",model,task["id"],mode,"correct="+str(correct),"ok="+str(reply["ok"]),
