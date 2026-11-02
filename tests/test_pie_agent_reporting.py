@@ -5,14 +5,15 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
 class ReportTests(unittest.TestCase):
-    def generate(self, rows):
+    def generate(self, rows, preflight=None):
         folder = tempfile.TemporaryDirectory()
         base = Path(folder.name)
         source = base / "results.json"
-        source.write_text(json.dumps({"results": rows}), encoding="utf8")
+        source.write_text(json.dumps({"results": rows, "gateway_preflight": preflight}), encoding="utf8")
         process = subprocess.run([sys.executable, "tools/pie_agent_report.py",
             "--input", str(source), "--out", str(base / "output")],
             capture_output=True, text=True)
@@ -20,6 +21,9 @@ class ReportTests(unittest.TestCase):
         summary = json.loads((base / "output" / "summary.json").read_text())
         with (base / "output" / "attempts.csv").open(newline="") as stream:
             details = list(csv.DictReader(stream))
+        with zipfile.ZipFile(base / "output" / "pie-agent-report.xlsx") as archive:
+            self.assertIn("xl/workbook.xml", archive.namelist())
+            self.assertIn("xl/worksheets/sheet2.xml", archive.namelist())
         folder.cleanup()
         return summary, details
 
@@ -41,7 +45,8 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(details[1]["http_status"], "429")
 
     def test_preflight_failure_keeps_missing_metrics_null(self):
-        summary, details = self.generate([])
+        summary, details = self.generate([], preflight=[{"ok": False, "model": "qd/qfmodel", "category": "dns_resolution_failed", "http_status": None}])
+        self.assertEqual(summary["gateway_preflight"][0]["category"], "dns_resolution_failed")
         self.assertEqual(summary["attempts"], 0)
         self.assertEqual(summary["completed_pairs"], 0)
         self.assertEqual(summary["pie_no_search_attempts"], 0)
