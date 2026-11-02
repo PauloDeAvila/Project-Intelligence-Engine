@@ -139,13 +139,60 @@ def smart_context(root: Path, query: str, *, max_chars: int = 12000, limit: int 
     finally:
         conn.close()
 
-def impact(root: Path, name: str, *, limit: int = 100) -> dict[str, object]:
-    """Reverse consumer evidence, never guessing unresolved edges."""
-    from pie.retrieval.symbols import find_references
-    result = find_references(Path(root), name, limit=limit)
-    refs = result.get("references", [])
-    result["affected_files"] = sorted({item["path"] for item in refs})
-    result["verified_references"] = sum(item.get("resolution") == "verified" for item in refs)
-    result["unresolved_references"] = len(refs) - result["verified_references"]
-    result["note"] = "Potential impact, not proof of runtime effect; dynamic calls may be absent"
+
+def impact(root: Path, name: str, *, limit: int = 100, depth: int = 2) -> dict[str, object]:
+    """Bounded reverse-impact traversal through *verified* binding references.
+
+    Direct matches and transitive *potential* consumers are deliberately separate.
+    Ambiguous definitions are not traversed. Dynamic dispatch is not inferred.
+    """
+    from collections import deque
+    from pie.retrieval.symbols import find_references, find_definitions
+    if not 1 <= limit <= 500 or not 0 <= depth <= 5:
+        raise ValueError("Invalid impact limit/depth")
+    root=Path(root).resolve()
+    result=find_references(root,name,limit=limit)
+    direct=result.get("references",[])
+    result["verified_references"]=sum(r.get("resolution")=="verified" for r in direct)
+    result["unresolved_references"]=len(direct)-result["verified_references"]
+    result["direct_affected_files"]=sorted({r["path"] for r in direct})
+    expanded=[]
+    ambiguous=[]
+    visited=set()
+    frontier=deque((r.get("consumer_symbol"),r["path"],1)
+                   for r in direct if r.get("resolution")=="verified" and r.get("consumer_symbol"))
+    while frontier and depth and len(expanded)<limit:
+        symbol,path,level=frontier.popleft()
+        if level>depth or (symbol,path) in visited:
+            continue
+        visited.add((symbol,path))
+        lookup=find_definitions(root,symbol,limit=20)
+        definitions=[d for d in lookup.get("definitions",[])
+                     if d.get("qualified_name")==symbol and d.get("path")==path]
+        if lookup.get("state")!="CURRENT" or len(definitions)!=1:
+            ambiguous.append({"path":path,"symbol":symbol,"reason":"ambiguous_or_stale_definition"})
+            continue
+        consumers=find_references(root,symbol,limit=limit)
+        if consumers.get("state")!="CURRENT":
+            ambiguous.append({"path":path,"symbol":symbol,"reason":"stale_references"})
+            continue
+        for ref in consumers.get("references",[]):
+            if ref.get("resolution")!="verified":
+                continue
+            item={"path":ref["path"],"line":ref["line"],
+                  "consumer_symbol":ref.get("consumer_symbol"),
+                  "via_symbol":symbol,"depth":level,
+                  "resolution":"verified","impact_confidence":"potential"}
+            if item not in expanded:
+                expanded.append(item)
+            if len(expanded)>=limit:
+                break
+            if level<depth and ref.get("consumer_symbol"):
+                frontier.append((ref["consumer_symbol"],ref["path"],level+1))
+    result["transitive_consumers"]=expanded
+    result["ambiguous_traversal"]=ambiguous
+    result["traversal_truncated"]=bool(frontier)
+    result["affected_files"]=sorted(set(result["direct_affected_files"]) |
+                                    {x["path"] for x in expanded})
+    result["note"]="Impact is potential, not proof of runtime effect. Only uniquely bound verified references propagate; dynamic dispatch is not inferred."
     return result
