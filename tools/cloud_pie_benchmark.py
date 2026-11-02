@@ -97,7 +97,7 @@ ANSWER_KEYS={
 }
 def evaluation_prompt(case):
     fields=list(ANSWER_KEYS[case])
-    return (QUESTIONS[case]+"\\nResponda EXCLUSIVAMENTE com um objeto JSON válido, sem markdown. "
+    return (QUESTIONS[case]+"\nResponda EXCLUSIVAMENTE com um objeto JSON válido, sem markdown. "
             "Preencha exatamente estas chaves: "+", ".join(fields)+". "
             "Use inteiros para contagens, booleanos para verdadeiro/falso e strings para nomes de exceções. "
             "Não omita chaves.")
@@ -105,7 +105,7 @@ def semantic_grade(case,answer):
     try:
         answer=answer.strip()
         if answer.startswith("```"):
-            answer=answer.split("\\n",1)[1].rsplit("```",1)[0].strip()
+            answer=answer.split("\n",1)[1].rsplit("```",1)[0].strip()
         parsed=json.loads(answer)
         if not isinstance(parsed,dict):raise ValueError("not object")
     except (ValueError,IndexError,TypeError):
