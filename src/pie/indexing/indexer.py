@@ -20,6 +20,33 @@ def _store_scan_result(connection, state: str, diagnostics: list[dict[str, str |
     )
 
 
+
+def _refresh_symbol_documents(connection, file_id: int, content: bytes) -> None:
+    """Persist bounded AST descriptions for symbols of one file.
+
+    Called for changed sources and for old databases lacking the summary index.
+    Everything is derived from the same source snapshot as the symbol index.
+    """
+    try:
+        source = content.decode("utf-8-sig")
+        tree = ast.parse(source)
+    except (SyntaxError, UnicodeDecodeError):
+        return
+    lines = source.splitlines()
+    descriptions = {}
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            descriptions[node.lineno] = (ast.get_docstring(node) or "").split("\n", 1)[0][:400]
+    symbols = connection.execute(
+        "SELECT id,start_line FROM symbols WHERE file_id = ?", (file_id,)
+    ).fetchall()
+    connection.executemany(
+        "INSERT OR REPLACE INTO symbol_docs(symbol_id, summary, signature) VALUES (?,?,?)",
+        ((row["id"], descriptions.get(row["start_line"], ""),
+          lines[row["start_line"]-1].strip()[:250] if 1 <= row["start_line"] <= len(lines) else "")
+         for row in symbols)
+    )
+
 def index_project(root: Path) -> dict[str, object]:
     db_path = root / ".pie" / "index.sqlite3"
     unreadable_paths: set[Path] = set()
@@ -45,6 +72,12 @@ def index_project(root: Path) -> dict[str, object]:
                 seen.add(relative)
                 row = connection.execute("SELECT id, sha256 FROM files WHERE path = ?", (relative,)).fetchone()
                 if row and row["sha256"] == record.sha256:
+                    missing = connection.execute(
+                        "SELECT 1 FROM symbols s LEFT JOIN symbol_docs d ON d.symbol_id=s.id "
+                        "WHERE s.file_id=? AND d.symbol_id IS NULL LIMIT 1", (row["id"],)
+                    ).fetchone()
+                    if missing:
+                        _refresh_symbol_documents(connection, row["id"], record.content)
                     continue
                 if row:
                     # Deleting the file row cascades to definitions, usages, star
@@ -55,6 +88,7 @@ def index_project(root: Path) -> dict[str, object]:
                 cursor = connection.execute("INSERT INTO files(path, sha256, size, language, parse_status) VALUES (?, ?, ?, ?, ?)", (relative, record.sha256, record.size, record.language, "error:" + parse_error if parse_error else "parsed"))
                 for symbol in symbols:
                     connection.execute("INSERT INTO symbols(file_id, qualified_name, name, kind, start_line, end_line, start_col, end_col) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (cursor.lastrowid, symbol.qualified_name, symbol.name, symbol.kind, symbol.start_line, symbol.end_line, symbol.start_col, symbol.end_col))
+                _refresh_symbol_documents(connection, cursor.lastrowid, record.content)
                 for item in imports:
                     connection.execute("INSERT INTO imports(file_id, module, imported_name, alias, line) VALUES (?, ?, ?, ?, ?)", (cursor.lastrowid, item.module, item.imported_name, item.alias, item.line))
             failed_paths = unreadable_paths | oversized_paths
