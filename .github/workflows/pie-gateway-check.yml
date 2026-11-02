@@ -2,7 +2,7 @@ name: PIE - 9Router cloud gateway check
 
 on:
   push:
-    branches: [main]
+    branches: [main, feat/cloud-9router-benchmark-gateway]
     paths:
       - '.github/workflows/pie-gateway-check.yml'
       - 'tools/cloud_gateway_probe.py'
