@@ -7,6 +7,8 @@ from pie.core.errors import ProjectNotInitializedError
 from pie.indexing.indexer import index_project
 from pie.retrieval.symbols import analysis_summary, find_definitions, find_references
 from pie.storage.database import connect
+from pie.retrieval.intelligence import smart_context, impact
+from pie.retrieval.glossary import remember, recall
 
 
 def project_root(value: str | None) -> Path:
@@ -96,6 +98,23 @@ def main(argv: list[str] | None = None) -> int:
         command.add_argument("name")
         command.add_argument("--root", default=".")
     subparsers.add_parser("analysis").add_argument("--root", default=".")
+    smart = subparsers.add_parser("context")
+    smart.add_argument("query")
+    smart.add_argument("--root", default=".")
+    smart.add_argument("--max-chars", type=int, default=12000)
+    smart.add_argument("--limit", type=int, default=8)
+    smart.add_argument("--include-body", action="store_true")
+    impacts = subparsers.add_parser("impact")
+    impacts.add_argument("name")
+    impacts.add_argument("--root", default=".")
+    memory = subparsers.add_parser("remember")
+    memory.add_argument("key")
+    memory.add_argument("description")
+    memory.add_argument("--source", required=True)
+    memory.add_argument("--root", default=".")
+    recall_cmd = subparsers.add_parser("recall")
+    recall_cmd.add_argument("query", nargs="?", default="")
+    recall_cmd.add_argument("--root", default=".")
     args = parser.parse_args(argv)
     root = project_root(args.root)
     try:
@@ -106,6 +125,10 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "definitions": result = command_definitions(root, args.name)
         elif args.command == "references": result = command_references(root, args.name)
         elif args.command == "analysis": result = command_analysis(root)
+        elif args.command == "context": result = smart_context(root, args.query, max_chars=args.max_chars, limit=args.limit, include_body=args.include_body)
+        elif args.command == "impact": result = impact(root, args.name)
+        elif args.command == "remember": result = remember(root, args.key, args.description, args.source)
+        elif args.command == "recall": result = recall(root, args.query)
         else: result = command_symbol(root, args.name)
     except ProjectNotInitializedError as exc:
         parser.error(str(exc))
