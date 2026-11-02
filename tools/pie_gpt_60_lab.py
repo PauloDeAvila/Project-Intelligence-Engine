@@ -91,6 +91,7 @@ def retrieve(task,files,items,policy="top2"):
     rank_files=sorted(((len(q & words(source)),path) for path,source in files.items()),
                       key=lambda x:(-x[0],x[1]))
     base_files=[p for score,p in rank_files if score>0][:2]
+    if sum(len(files[p]) for p in base_files)>38000:base_files=base_files[:1]
     baseline="\n\n".join("### "+p+"\n"+files[p] for p in base_files)
     # PIE-inspired structural retrieval: AST documents + symbol identifiers.
     scores=[]
@@ -100,7 +101,7 @@ def retrieve(task,files,items,policy="top2"):
     scores.sort(key=lambda pair:(-pair[0],pair[1]["path"],pair[1]["line"]))
     limit=2 if policy=="top2" else 3
     chosen=[row for _,row in scores[:limit]]
-    pie="\n\n".join(f"{row['path']}:{row['line']} | {row['symbol']}\n{row['code']}" for row in chosen)
+    pie="\n\n".join(f"{row['path']}:{row['line']} | {row['symbol']}\nResponsibility: {row['doc']}\nSignature: {next((line.strip() for line in row['code'].splitlines() if line.lstrip().startswith(('def ','async def '))), '')}" for row in chosen)
     hit=any(row["path"]==task["oracle"]["path"] and row["symbol"]==task["oracle"]["symbol"]
             for row in chosen)
     base_hit=task["oracle"]["path"] in base_files
@@ -125,7 +126,13 @@ def call(base,key,model,question,context):
             headers={"Authorization":"Bearer "+key,"Content-Type":"application/json"})
     start=time.perf_counter()
     try:
-        with urllib.request.urlopen(req,timeout=95) as response:obj=json.load(response)
+        for attempt in range(4):
+            try:
+                with urllib.request.urlopen(req,timeout=95) as response:obj=json.load(response)
+                break
+            except urllib.error.HTTPError as err:
+                if err.code not in (502,503,504,529,530) or attempt==3:raise
+                time.sleep((1.5,3,6)[attempt])
         choice=obj["choices"][0]
         body=(choice.get("message",{}).get("content") or "").strip()
         fence=chr(96)*3
@@ -180,7 +187,7 @@ def main():
     parser.add_argument("--tasks-per-repo",type=int,default=20)
     parser.add_argument("--policy",choices=("top2","top3"),default="top2")
     parser.add_argument("--model",default="gh/gpt-4o-mini")
-    parser.add_argument("--seed",type=int,default=91731)
+    parser.add_argument("--seed",type=int,default=681997)
     parser.add_argument("--out",default="gpt-multirepo-results")
     parser.add_argument("--dry-run",action="store_true")
     a=parser.parse_args()
@@ -239,7 +246,7 @@ def main():
         byrepo[repo]={"summary":summarise(rows,r_a)[0],"paired":summarise(rows,r_a)[1]}
     (out/"summary.json").write_text(json.dumps({"overall":overall,"paired":paired,
         "by_repo":byrepo,"pair_rows":pairs,"corpora":corpus,
-        "qualification":"Real source, AST-derived questions, file-level search versus symbol-level indexed scan. Not an autonomous coding agent; selection algorithm independent of source oracle but prompts quote source docstrings.",
+        "qualification":"New seeded holdout tasks on real Python source. Baseline reads top-two source files (top-one when input budget overflows); PIE supplies AST signature and docstring navigation cards. Location lookup only, not autonomous editing. Source oracle not supplied.",
         "indexing_excluded_from_inference_latency":True},ensure_ascii=False,indent=2),encoding="utf-8")
     print("FINAL",json.dumps({"overall":overall,"paired":paired,"byrepo":byrepo}),flush=True)
 if __name__=="__main__":main()
