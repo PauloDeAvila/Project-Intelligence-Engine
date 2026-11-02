@@ -116,6 +116,40 @@ def chat(messages,model,base,key):
     diagnostics["parsed_action"]=answer.get("action")
     return answer,payload.get("usage") or {},time.perf_counter()-start,diagnostics
 
+def gateway_failure(exc):
+    """Safe transport diagnosis without printing endpoint URLs or API keys."""
+    if isinstance(exc, urllib.error.HTTPError):
+        return {"category": "http_error", "http_status": exc.code,
+                "reason_type": "HTTPError"}
+    reason = getattr(exc, "reason", exc)
+    name = type(reason).__name__
+    message = str(reason).lower()
+    if "gaierror" in name or "name resolution" in message or "name or service not known" in message:
+        category = "dns_resolution_failed"
+    elif isinstance(reason, (TimeoutError,)) or "timed out" in message:
+        category = "timeout"
+    elif "connectionrefused" in name.lower() or "connection refused" in message:
+        category = "connection_refused"
+    elif "ssl" in name.lower() or "certificate" in message:
+        category = "tls_error"
+    elif "network is unreachable" in message:
+        category = "network_unreachable"
+    else:
+        category = "transport_error"
+    return {"category": category, "http_status": None, "reason_type": name}
+
+
+def probe_gateway(base, key, model):
+    """One real inference request before the expensive paired benchmark."""
+    try:
+        _, _, _, diagnostics = chat(
+            [{"role": "user", "content": 'Return {"action":"answer","path":"","symbol":""} as JSON.'}],
+            model, base, key)
+        return {"ok": True, "model": model, "http_status": diagnostics["http_status"]}
+    except (urllib.error.URLError, TimeoutError, ValueError, KeyError) as exc:
+        return {"ok": False, "model": model, **gateway_failure(exc)}
+
+
 def perform(root,task,model,mode,base,key,service):
     system=("You navigate a real Python codebase. Return ONLY JSON, never markdown. "
             "For mode PIE, request indexed evidence first using "
@@ -228,6 +262,13 @@ def main():
     rows=[]
     with WarmContextService(root) as service:
         models=[m.strip() for m in args.models.split(";") if m.strip()]
+        preflight=[probe_gateway(base,key,m) for m in models]
+        print("GATEWAY_PREFLIGHT",json.dumps(preflight),flush=True)
+        if not all(item["ok"] for item in preflight):
+            Path(args.output).write_text(json.dumps({
+                "scope":"Preflight only; no benchmark attempts executed",
+                "gateway_preflight":preflight,"results":[]},indent=2),encoding="utf8")
+            raise RuntimeError("Gateway preflight failed: inspect transport category and GitHub Actions connectivity")
         jobs=[(m,i,mode) for m in models for i in range(len(tasks)) for mode in ("pie","baseline")]
         random.Random(19).shuffle(jobs)
         for position,(model,i,mode) in enumerate(jobs):
@@ -249,7 +290,8 @@ def main():
             print("AGENT",model,i,mode,result.get("correct"),result.get("error"),
                   "response_diagnostics",json.dumps(result.get("response_diagnostics",[])),flush=True)
     report=summarize_model_results(rows,models,len(tasks))
-    output={"scope":"Model-directed PIE tool loop on public Rich; docstring-derived oracles, no edits",
+    output={"gateway_preflight":preflight,
+            "scope":"Model-directed PIE tool loop on public Rich; docstring-derived oracles, no edits",
             "note":"Token usage accumulates all model calls. A/B includes different tools and prompts; errors are not counted as successful.",
             "models":report,"results":rows}
     Path(args.output).write_text(json.dumps(output,indent=2),encoding="utf8")
