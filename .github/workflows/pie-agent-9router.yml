@@ -34,9 +34,6 @@ jobs:
         env:
           PIE_API_BASE_URL: ${{ secrets.PIE_API_BASE_URL }}
           PIE_API_KEY: ${{ secrets.PIE_API_KEY }}
-      - name: Install report exporter
-        if: always()
-        run: python -m pip install artifact-tool
       - name: Generate auditable CSV JSON and Excel
         if: always()
         run: python tools/pie_agent_report.py --input pie-agent-9router-results.json --out pie-agent-report
