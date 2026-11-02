@@ -11,12 +11,16 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import sys
 import random
 import re
 import statistics
 import time
 import urllib.error
 import urllib.request
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"src"))
+from pie.indexing.indexer import index_project
+from pie.graph.relationships import build_relationships
 
 STOP=set("the a an and of to with for in on is are from this that it which by as into at can be use using given when where how what returns return function method data value values object objects code class this will you not".split())
 
@@ -124,6 +128,12 @@ def run():
     a=p.parse_args()
     root=Path(a.corpus).resolve()
     output=Path(a.output);output.mkdir(parents=True,exist_ok=True)
+    index_start=time.perf_counter()
+    indexed=index_project(root)
+    if indexed.get("index_state")!="CURRENT":
+        raise RuntimeError("PIE source index is not CURRENT")
+    relationships=build_relationships(root)
+    index_seconds=round(time.perf_counter()-index_start,5)
     modules,rows=source_inventory(root)
     tasks=benchmark_tasks(rows,a.count,a.seed)
     evidence={};audit=[]
@@ -142,7 +152,7 @@ def run():
           "baseline_hits":sum(x["baseline_hit"] for x in audit),
           "pie_hits":sum(x["pie_hit"] for x in audit),
           "median_baseline_chars":statistics.median(x["baseline_chars"] for x in audit),
-          "median_pie_chars":statistics.median(x["pie_chars"] for x in audit)}),flush=True)
+          "median_pie_chars":statistics.median(x["pie_chars"] for x in audit),"index_seconds":index_seconds,"relationships_stored":relationships.get("stored")}),flush=True)
     if a.dry_run:return
     base=os.getenv("PIE_API_BASE_URL","")
     key=os.getenv("PIE_API_KEY","")
@@ -173,7 +183,7 @@ def run():
                 "prompt_tokens":sum(r.get("usage",{}).get("prompt_tokens",0) for r in successes),
                 "median_latency_s":round(statistics.median(r["seconds"] for r in successes),4) if successes else None})
     (output/"summary.json").write_text(json.dumps({"results":summary,
-         "qualification":"Real open-source Rich codebase, generated docstring queries. File-level vs function-level retrieval; no full repository baseline and no edit tasks."},indent=2),encoding="utf8")
+         "index_seconds":index_seconds,"qualification":"Real open-source Rich codebase, generated docstring queries. File-level vs function-level retrieval; no full repository baseline and no edit tasks."},indent=2),encoding="utf8")
     print("REAL_CORPUS_SUMMARY",json.dumps(summary),flush=True)
 
 if __name__=="__main__":run()
