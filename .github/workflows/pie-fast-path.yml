@@ -1,0 +1,32 @@
+name: PIE - FTS5 Candidate Fast Path Gate
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/pie/retrieval/intelligence.py'
+      - 'src/pie/retrieval/fts.py'
+      - 'tests/test_pie_fast_path.py'
+      - '.github/workflows/pie-fast-path.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fast-path:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e .
+      - name: Verify fast-path targeted regression
+        run: python -m unittest discover -s tests -p "test_pie_fast_path.py" -v
+      - name: Verify legacy retrieval regression
+        run: python -m unittest discover -s tests -p "test_pie_context_intelligence.py" -v
+      - name: Verify retrieval relevance
+        run: python tools/pie_retrieval_quality_lab.py
