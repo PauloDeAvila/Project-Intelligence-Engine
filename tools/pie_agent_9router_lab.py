@@ -57,7 +57,10 @@ def corpus_tasks(root, count, seed):
     return selected
 
 def chat(messages,model,base,key):
-    data=json.dumps({"model":model,"messages":messages,"max_tokens":500,"stream":False}).encode()
+    max_tokens = int(os.getenv("PIE_MODEL_MAX_TOKENS", "2048"))
+    if not 128 <= max_tokens <= 8192:
+        raise ValueError("PIE_MODEL_MAX_TOKENS must be between 128 and 8192")
+    data=json.dumps({"model":model,"messages":messages,"max_tokens":max_tokens,"stream":False}).encode()
     req=urllib.request.Request(base.rstrip("/")+"/v1/chat/completions",data=data,
         headers={"Authorization":"Bearer "+key,"Content-Type":"application/json"})
     start=time.perf_counter()
@@ -206,7 +209,7 @@ def summarize_model_results(rows, models, expected_questions):
 def main():
     p=argparse.ArgumentParser()
     p.add_argument("--corpus",default="rich-corpus")
-    p.add_argument("--models",default="gh/gpt-4o-mini")
+    p.add_argument("--models",default="qd/qfmodel")
     p.add_argument("--count",type=int,default=30)
     p.add_argument("--cooldown-seconds",type=float,default=15.0)
     p.add_argument("--output",default="pie-agent-9router.json")
