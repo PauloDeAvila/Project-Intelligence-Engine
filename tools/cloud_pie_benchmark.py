@@ -96,8 +96,8 @@ def compact_flow_evidence(report):
 
 
 def baseline_context(root):
-    return "\\n\\n".join(
-        f"### {p.relative_to(root).as_posix()}\\n{p.read_text(encoding='utf-8')}"
+    return "\n\n".join(
+        f"### {p.relative_to(root).as_posix()}\n{p.read_text(encoding='utf-8')}"
         for p in sorted(root.rglob("*.py")) if ".pie" not in p.parts
     )
 
@@ -117,7 +117,7 @@ def synthetic_modules(n):
             lines += [f'def transform_{i:03d}_{j:02d}(number):',
                       f'    scaled = number * {j+2} + {i%13}',
                       '    return (scaled // 2) if scaled > 100 else scaled']
-        yield f"unrelated_metrics/module_{i:03d}.py", "\\n".join(lines)+"\\n"
+        yield f"unrelated_metrics/module_{i:03d}.py", "\n".join(lines)+"\n"
 
 
 
