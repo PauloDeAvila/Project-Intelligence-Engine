@@ -58,7 +58,9 @@ jobs:
           import json
           from pathlib import Path
           p=Path("benchmark-results/summary.json")
-          if not p.is_file(): raise SystemExit(0)
+          if not p.is_file():
+              Path("benchmark-summary.md").write_text("### Automatic PIE cloud benchmark\n\nThe experiment stopped before a complete summary was produced. Review the Actions step logs and available evidence artifact. No speedup is claimed.\n",encoding="utf-8")
+              raise SystemExit(0)
           data=json.loads(p.read_text(encoding="utf-8"))
           rows=[]
           for name,rec in data.get("summary",{}).items():
