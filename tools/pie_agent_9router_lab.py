@@ -94,10 +94,14 @@ def perform(root,task,model,mode,base,key,service):
         body="\n\n".join(f"FILE {p.relative_to(root).as_posix()}\n{s}" for _,p,s in candidates[:2])
         messages.append({"role":"user","content":body[:55000]})
     used=0; output_used=0; calls=0; searches=0; search_ms=[]; model_ms=[]; answer={}
+    prompt_usage_calls=0; completion_usage_calls=0
     for step in range(5):
         response,usage,elapsed=chat(messages,model,base,key)
-        calls+=1;used+=usage.get("prompt_tokens",0) or 0
-        output_used+=usage.get("completion_tokens",0) or 0
+        calls+=1
+        if isinstance(usage.get("prompt_tokens"),int):
+            used+=usage["prompt_tokens"]; prompt_usage_calls+=1
+        if isinstance(usage.get("completion_tokens"),int):
+            output_used+=usage["completion_tokens"]; completion_usage_calls+=1
         model_ms.append(round(elapsed*1000,3))
         if response.get("action")=="answer":
             answer={"path":str(response.get("path","")).strip(),"symbol":str(response.get("symbol","")).strip()}
@@ -117,8 +121,12 @@ def perform(root,task,model,mode,base,key,service):
         else:
             break
     return {"mode":mode,"correct":answer==task["oracle"],"answer":answer,
-            "calls":calls,"searches":searches,"prompt_tokens":used,
-            "search_ms":search_ms,"model_ms":model_ms,"completion_tokens":output_used}
+            "oracle":task["oracle"],"query":task["query"],
+            "calls":calls,"searches":searches,
+            "prompt_usage_calls":prompt_usage_calls,"completion_usage_calls":completion_usage_calls,
+            "prompt_tokens":used if prompt_usage_calls==calls else None,
+            "search_ms":search_ms,"model_ms":model_ms,
+            "completion_tokens":output_used if completion_usage_calls==calls else None}
 
 def main():
     p=argparse.ArgumentParser()
@@ -146,7 +154,10 @@ def main():
                 result=perform(root,tasks[i],model,mode,base,key,service)
                 result.update(model=model,task=i,ok=True)
             except (urllib.error.URLError,TimeoutError,ValueError,KeyError) as exc:
-                result={"model":model,"task":i,"mode":mode,"ok":False,"error":type(exc).__name__,"error_detail":str(exc)[:300]}
+                result={"model":model,"task":i,"mode":mode,"ok":False,"correct":None,
+                        "oracle":tasks[i]["oracle"],"query":tasks[i]["query"],
+                        "error":type(exc).__name__,"error_detail":str(exc)[:300],
+                        "http_status":exc.code if isinstance(exc,urllib.error.HTTPError) else None}
             result["attempt_wall_ms"]=round((time.perf_counter()-started)*1000,3)
             rows.append(result)
             Path(args.output).write_text(json.dumps({"results":rows},indent=2),encoding="utf8")
@@ -157,13 +168,17 @@ def main():
                 for mode in ("baseline","pie")) for i in range(len(tasks))]
         valid=[(a,b) for a,b in paired if a and b and a.get("ok") and b.get("ok")
                 ]
-        base_tokens=sum(a["prompt_tokens"] for a,b in valid)
-        pie_tokens=sum(b["prompt_tokens"] for a,b in valid)
+        token_pairs=[(a,b) for a,b in valid if isinstance(a.get("prompt_tokens"),int)
+                     and isinstance(b.get("prompt_tokens"),int)]
+        base_tokens=sum(a["prompt_tokens"] for a,b in token_pairs)
+        pie_tokens=sum(b["prompt_tokens"] for a,b in token_pairs)
         report.append({"model":model,"completed_pairs":len(valid),"requested_pairs":len(tasks),
                        "baseline_correct":sum(a["correct"] for a,b in valid),
                        "pie_correct":sum(b["correct"] for a,b in valid),
-                       "baseline_prompt_tokens":base_tokens,"pie_prompt_tokens":pie_tokens,
-                       "token_saving_pct":round(100*(1-pie_tokens/base_tokens),2) if base_tokens and pie_tokens else None})
+                       "baseline_prompt_tokens":base_tokens if token_pairs else None,
+                       "pie_prompt_tokens":pie_tokens if token_pairs else None,
+                       "token_covered_pairs":len(token_pairs),
+                       "token_saving_pct":round(100*(1-pie_tokens/base_tokens),2) if base_tokens and token_pairs else None})
     output={"scope":"Model-directed PIE tool loop on public Rich; docstring-derived oracles, no edits",
             "note":"Token usage accumulates all model calls. A/B includes different tools and prompts; errors are not counted as successful.",
             "models":report,"results":rows}
