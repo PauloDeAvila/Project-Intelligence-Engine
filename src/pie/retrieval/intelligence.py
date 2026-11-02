@@ -74,6 +74,7 @@ def smart_context(root: Path, query: str, *, max_chars: int = 12000, limit: int 
         candidates = []
         diagnostics = []
         cached: dict[str, tuple[list[str], str] | None] = {}
+        descriptions: dict[tuple[str,int], str] = {}
         for row in rows:
             path = row["path"]
             if path not in cached:
@@ -81,7 +82,15 @@ def smart_context(root: Path, query: str, *, max_chars: int = 12000, limit: int 
                     data = (root / path).read_bytes()
                     if sha256(data).hexdigest() != row["sha256"]:
                         raise ValueError("source_hash_mismatch")
-                    cached[path] = (data.decode("utf-8-sig", errors="replace").splitlines(), data.decode("utf-8-sig", errors="replace"))
+                    decoded = data.decode("utf-8-sig", errors="replace")
+                    cached[path] = (decoded.splitlines(), decoded)
+                    try:
+                        tree = ast.parse(decoded)
+                        for node in ast.walk(tree):
+                            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                                descriptions[(path,node.lineno)] = (ast.get_docstring(node) or "").split("\n",1)[0][:400]
+                    except SyntaxError:
+                        pass
                 except (OSError, ValueError) as exc:
                     cached[path] = None
                     diagnostics.append({"path":path,"code":"source_hash_mismatch" if isinstance(exc, ValueError) else "file_unreadable"})
@@ -95,7 +104,7 @@ def smart_context(root: Path, query: str, *, max_chars: int = 12000, limit: int 
             path_words = _terms(path.replace("/", " "))
             # Only parse docstrings for name/path candidates OR queries which otherwise
             # have no lexical candidates; computing all docstrings is a bounded local cost.
-            description = _description(source, row["start_line"])
+            description = descriptions.get((path,row["start_line"]), "")
             desc_words = _terms(description)
             score = 8 * len(query_words & name_words) + 4 * len(query_words & path_words) + 3 * len(query_words & desc_words)
             if row["name"].lower() == query.strip().lower():
