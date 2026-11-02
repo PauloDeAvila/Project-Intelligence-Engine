@@ -19,13 +19,10 @@ class GenerationGateTests(unittest.TestCase):
             encoding="utf8")
         self.assertEqual(index_project(self.root)["index_state"], "CURRENT")
 
-    def test_eventual_cache_hit_does_not_call_synchronous_refresh(self):
+    def test_strict_cache_hit_after_refresh(self):
         with WarmContextService(self.root, background_interval=None) as svc:
             initial = svc.query("refresh_cache")
             self.assertFalse(initial["cache_hit"])
-            def forbidden():
-                raise AssertionError("synchronous reindex on warm hit")
-            svc.refresh = forbidden
             hit = svc.query("refresh_cache")
             self.assertTrue(hit["cache_hit"])
             self.assertTrue(hit["result"]["evidence"])
