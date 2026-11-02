@@ -24,13 +24,13 @@ def ensure_fts(conn: sqlite3.Connection) -> bool:
         raise
     conn.executescript("""
         CREATE TRIGGER IF NOT EXISTS pie_fts_doc_insert AFTER INSERT ON symbol_docs BEGIN
-          INSERT INTO symbol_fts(rowid,name,qualified_name,path,summary,signature)
+          INSERT OR REPLACE INTO symbol_fts(rowid,name,qualified_name,path,summary,signature)
           SELECT NEW.symbol_id,s.name,s.qualified_name,f.path,NEW.summary,NEW.signature
           FROM symbols s JOIN files f ON f.id=s.file_id WHERE s.id=NEW.symbol_id;
         END;
         CREATE TRIGGER IF NOT EXISTS pie_fts_doc_update AFTER UPDATE ON symbol_docs BEGIN
           DELETE FROM symbol_fts WHERE rowid=OLD.symbol_id;
-          INSERT INTO symbol_fts(rowid,name,qualified_name,path,summary,signature)
+          INSERT OR REPLACE INTO symbol_fts(rowid,name,qualified_name,path,summary,signature)
           SELECT NEW.symbol_id,s.name,s.qualified_name,f.path,NEW.summary,NEW.signature
           FROM symbols s JOIN files f ON f.id=s.file_id WHERE s.id=NEW.symbol_id;
         END;
@@ -39,7 +39,7 @@ def ensure_fts(conn: sqlite3.Connection) -> bool:
         END;
     """)
     # Repair older databases once and after interrupted migrations.
-    conn.execute("""INSERT INTO symbol_fts(rowid,name,qualified_name,path,summary,signature)
+    conn.execute("""INSERT OR REPLACE INTO symbol_fts(rowid,name,qualified_name,path,summary,signature)
         SELECT s.id,s.name,s.qualified_name,f.path,d.summary,d.signature
         FROM symbol_docs d JOIN symbols s ON s.id=d.symbol_id
         JOIN files f ON f.id=s.file_id
