@@ -45,10 +45,10 @@ jobs:
       - name: Run three-way PIE benchmark after successful gateway test
         shell: bash
         run: |
-          python -m compileall -q src tools/cloud_pie_benchmark.py tools/pie_causal_selector.py tools/rtk_style_context.py
+          python -m compileall -q src tools/cloud_pie_benchmark.py tools/pie_causal_selector.py tools/rtk_style_context.py tools/pie_runtime_verifier.py
           PYTHONPATH=src python -m unittest discover -s tests -q
           PYTHONPATH=src python tools/cloud_pie_benchmark.py --dry-run --scale-modules 24 --out benchmark-results
-          PYTHONPATH=src python tools/cloud_pie_benchmark.py --model "$TARGET_MODEL" --repeats 3 --modes baseline,pie_flow,pie_rtk,pie_rtk_flow --scale-modules 24 --out benchmark-results
+          PYTHONPATH=src python tools/cloud_pie_benchmark.py --model "$TARGET_MODEL" --repeats 3 --modes baseline,pie_rtk_flow,baseline_observed,pie_observed --scale-modules 24 --out benchmark-results
       - name: Publish benchmark summary on PR
         if: always()
         continue-on-error: true
