@@ -87,6 +87,29 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(details[1]["http_successes_measured"], "")
 
 
+class AgentPairingTests(unittest.TestCase):
+    def test_agent_summary_pairs_distinct_task_ids_without_generator_capture(self):
+        from tools.pie_agent_9router_lab import summarize_model_results
+        rows = [
+            {"model": "qd/qfmodel", "task": 0, "mode": "baseline",
+             "ok": False, "correct": None, "prompt_tokens": None},
+            {"model": "qd/qfmodel", "task": 0, "mode": "pie",
+             "ok": True, "correct": True, "prompt_tokens": 100},
+            {"model": "qd/qfmodel", "task": 1, "mode": "baseline",
+             "ok": True, "correct": True, "prompt_tokens": 400},
+            {"model": "qd/qfmodel", "task": 1, "mode": "pie",
+             "ok": True, "correct": False, "prompt_tokens": 200},
+        ]
+        result = summarize_model_results(rows, ["qd/qfmodel"], 2)[0]
+        self.assertEqual(result["completed_pairs"], 1)
+        self.assertEqual(result["token_covered_pairs"], 1)
+        self.assertEqual(result["baseline_correct"], 1)
+        self.assertEqual(result["pie_correct"], 0)
+        self.assertEqual(result["baseline_prompt_tokens"], 400)
+        self.assertEqual(result["pie_prompt_tokens"], 200)
+        self.assertEqual(result["token_saving_pct"], 50)
+
+
 class GatewayResponseTests(unittest.TestCase):
     def test_reasoning_only_response_is_not_a_valid_answer(self):
         from unittest import mock
