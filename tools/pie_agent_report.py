@@ -105,6 +105,8 @@ def summarize(source: Path, directory: Path):
                                              for x in records),
         "token_covered_pairs": len(token_pairs),
         "token_pair_coverage_pct": round(100 * len(token_pairs) / len(pairs), 2) if pairs else None,
+        "token_question_coverage_pct": round(100 * len(token_pairs) / 30, 2),
+        "completed_question_coverage_pct": round(100 * len(pairs) / 30, 2),
         "prompt_token_covered_attempts": len(measured),
         "baseline_prompt_tokens_paired": baseline_tokens if token_pairs else None,
         "pie_prompt_tokens_paired": pie_tokens if token_pairs else None,
