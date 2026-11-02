@@ -21,6 +21,7 @@ from pie.indexing.indexer import index_project
 from pie.graph.relationships import build_relationships
 from pie.retrieval.context import build_context
 from pie_causal_selector import build_causal_context, render_control_flow
+from rtk_style_context import compact_source_evidence
 
 LAB = {
 "mini_order/__init__.py": "from .models import Order\nfrom .inventory import Inventory\nfrom .payment import PaymentGateway\nfrom .service import OrderService\n",
@@ -170,12 +171,12 @@ def run():
     parser.add_argument('--out',default='benchmark-results')
     parser.add_argument('--dry-run',action='store_true')
     parser.add_argument('--scale-modules',type=int,default=0)
-    parser.add_argument('--modes',default='baseline,pie_raw,pie_auto,pie_compact,pie_flow,curated_reference')
+    parser.add_argument('--modes',default='baseline,pie_raw,pie_auto,pie_compact,pie_flow,pie_rtk,curated_reference')
     args=parser.parse_args()
     if not (1 <= args.repeats <= 10): parser.error('repeats 1..10')
     if not (0 <= args.scale_modules <= 150): parser.error('scale-modules 0..150')
     selected_modes=[mode.strip() for mode in args.modes.split(',')]
-    valid_modes={'baseline','pie_raw','pie_auto','pie_compact','pie_flow','curated_reference'}
+    valid_modes={'baseline','pie_raw','pie_auto','pie_compact','pie_flow','pie_rtk','curated_reference'}
     if len(selected_modes)!=len(set(selected_modes)) or not selected_modes or not set(selected_modes)<=valid_modes: parser.error('Invalid or duplicate modes')
     endpoint=os.getenv('PIE_API_BASE_URL','').rstrip('/')
     key=os.getenv('PIE_API_KEY','')
@@ -200,6 +201,7 @@ def run():
                   "pie_auto":{q:json.dumps(build_causal_context(root,q,max_chars=12000),ensure_ascii=False) for q in QUESTIONS},
                   "pie_compact":{q:compact_evidence(build_causal_context(root,q,max_chars=12000)) for q in QUESTIONS},
                   "pie_flow":{q:compact_flow_evidence(build_causal_context(root,q,max_chars=12000)) for q in QUESTIONS},
+                  "pie_rtk":{q:compact_source_evidence(build_causal_context(root,q,max_chars=12000),max_chars=12000)["content"] for q in QUESTIONS},
                   "curated_reference":{q:curated_context(q) for q in QUESTIONS}}
         retrieval_seconds=round(time.perf_counter()-retrieval_started,5)
         checks={
@@ -217,6 +219,7 @@ def run():
         if any(audit["pie_auto"][q]["missing"] for q in QUESTIONS):raise RuntimeError("Automatic causal context insufficient; no inference will run")
         if any(audit["pie_compact"][q]["missing"] for q in QUESTIONS):raise RuntimeError("Compact causal context insufficient; no inference will run")
         if any(audit["pie_flow"][q]["missing"] for q in QUESTIONS):raise RuntimeError("Control-flow context insufficient; no inference will run")
+        if any(audit["pie_rtk"][q]["missing"] for q in QUESTIONS):raise RuntimeError("RTK-style adapter context insufficient; no inference will run")
         if args.dry_run:
             print('DRY RUN PASSED:',json.dumps({q:{m:audit[m][q]['chars'] for m in contexts} for q in QUESTIONS}));return
         if not (endpoint.startswith('https://') and key):raise RuntimeError('Missing HTTPS endpoint or inference secret')
