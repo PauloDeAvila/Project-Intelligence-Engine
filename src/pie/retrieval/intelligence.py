@@ -11,6 +11,7 @@ from pathlib import Path
 import re
 
 from pie.storage.database import connect
+from pie.retrieval.fts import search_fts
 
 _STOP = frozenset("the and for from with into this that those these function method class code find where which what does how can you uma para qual como onde que uma dos das por com sobre localizar função classe método arquivo".split())
 _ALIASES = {
@@ -66,12 +67,16 @@ def smart_context(root: Path, query: str, *, max_chars: int = 12000, limit: int 
     try:
         state = conn.execute("SELECT value FROM metadata WHERE key='index_state'").fetchone()
         index_state = state[0] if state else "UNINDEXED"
-        rows = conn.execute("""SELECT s.name,s.qualified_name,s.kind,s.start_line,s.end_line,
+        rows = conn.execute("""SELECT s.id,s.name,s.qualified_name,s.kind,s.start_line,s.end_line,
                                       f.path,f.sha256,
                                       COALESCE(d.summary,'') AS summary,
                                       COALESCE(d.signature,'') AS signature
                                FROM symbols s JOIN files f ON s.file_id=f.id
                                LEFT JOIN symbol_docs d ON d.symbol_id=s.id""").fetchall()
+        fts_hits = search_fts(conn, query, limit=min(500,max(100,limit*12)))
+        fts_position = {symbol_id: i for i,(symbol_id,_) in enumerate(fts_hits)}
+        verified_counts = {r["target_name"]:r["n"] for r in conn.execute(
+            "SELECT target_name, COUNT(*) AS n FROM usages WHERE resolution='verified' AND target_name IS NOT NULL GROUP BY target_name")}
         query_words = _query_terms(query)
         candidates = []
         for row in rows:
@@ -83,7 +88,11 @@ def smart_context(root: Path, query: str, *, max_chars: int = 12000, limit: int 
                      + 3 * len(query_words & desc_words))
             if row["name"].lower() == query.strip().lower():
                 score += 25
+            rank = fts_position.get(row["id"])
+            if rank is not None:
+                score += max(2,10-rank//12)
             if score:
+                score += min(3,verified_counts.get(row["name"],0))
                 candidates.append((score,row))
         candidates.sort(key=lambda item: (-item[0],item[1]["path"],
                                           item[1]["start_line"],item[1]["qualified_name"]))
@@ -121,7 +130,7 @@ def smart_context(root: Path, query: str, *, max_chars: int = 12000, limit: int 
         result={"query":query,"index_state":index_state,"context_state":index_state,
                 "evidence":selected,"omitted":max(0,len(candidates)-len(selected)),
                 "diagnostics":diagnostics,
-                "method":"sqlite_ast_summary_rank_v2",
+                "method":"sqlite_ast_hybrid_fts5_graph_v3" if fts_hits else "sqlite_ast_summary_rank_v2",
                 "note":"Local lexical scoring; source ranges hash-verified; unselected files not rechecked"}
         if diagnostics and result["context_state"]=="CURRENT":
             result["context_state"]="STALE"
