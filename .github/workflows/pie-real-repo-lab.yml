@@ -1,0 +1,41 @@
+name: PIE - real repository Rich lab GPT NVIDIA
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/pie-real-repo-lab.yml'
+      - 'tools/pie_real_repo_lab.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-repo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      PIE_API_BASE_URL: ${{ secrets.PIE_API_BASE_URL }}
+      PIE_API_KEY: ${{ secrets.PIE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: Textualize/rich
+          ref: main
+          path: rich-corpus
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Audit unseen real corpus without calling a model
+        run: |
+          python -m compileall -q tools/pie_real_repo_lab.py
+          python tools/pie_real_repo_lab.py --dry-run --output rich-results
+      - name: Query GPT-4o Mini and NVIDIA Nemotron on Rich
+        run: python -u tools/pie_real_repo_lab.py --output rich-results
+      - name: Upload all metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pie-rich-gpt-nvidia-${{ github.run_id }}
+          path: rich-results/
+          retention-days: 30
