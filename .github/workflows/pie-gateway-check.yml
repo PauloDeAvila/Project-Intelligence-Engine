@@ -17,6 +17,11 @@ on:
 
 permissions:
   contents: read
+  issues: write
+
+concurrency:
+  group: pie-gateway-benchmark
+  cancel-in-progress: true
 
 jobs:
   gateway-check:
@@ -42,6 +47,34 @@ jobs:
           PYTHONPATH=src python -m unittest discover -s tests -q
           PYTHONPATH=src python tools/cloud_pie_benchmark.py --dry-run --out benchmark-results
           PYTHONPATH=src python tools/cloud_pie_benchmark.py --model "$TARGET_MODEL" --repeats 1 --out benchmark-results
+      - name: Publish benchmark summary on PR
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("benchmark-results/summary.json")
+          if not p.is_file(): raise SystemExit(0)
+          data=json.loads(p.read_text(encoding="utf-8"))
+          rows=[]
+          for name,rec in data.get("summary",{}).items():
+              rows.append(f"| {name} | {rec['n']} | {rec['median_latency_s']} | {rec['total_tokens']} | {rec['nonstop']} |")
+          body=(
+              "### Automatic PIE cloud benchmark\n\n"
+              "Model: `"+data.get("model","unknown")+"`\n\n"
+              "| Mode | Successful calls | Median seconds | Total tokens | Non-stop finishes |\n"
+              "|---|---:|---:|---:|---:|\n" + "\n".join(rows)+
+              "\n\n**Interpretation:** pilot only; no automatic semantic correctness verdict. "
+              "The curated_reference condition uses question-specific source selection and is not a deployable PIE algorithm. "
+              "Raw answers and evidence are preserved as Actions artifacts.\n"
+          )
+          Path("benchmark-summary.md").write_text(body,encoding="utf-8")
+          PY
+          if [ -f benchmark-summary.md ]; then gh pr comment 7 --body-file benchmark-summary.md; fi
       - name: Upload benchmark results
         if: always()
         uses: actions/upload-artifact@v4
