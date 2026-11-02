@@ -1,6 +1,8 @@
 """MCP v1 contract and persistent warm retrieval tests."""
 import io
 import json
+import subprocess
+import sys
 from pathlib import Path
 import tempfile
 import unittest
@@ -53,6 +55,33 @@ class MCPQueryTests(unittest.TestCase):
             b = json.loads(self.request("pie_query", {"query": "Model", "mode": "navigation"}, engine)["result"]["content"][0]["text"])
             self.assertFalse(a["cache_hit"])
             self.assertTrue(b["cache_hit"])
+
+    def test_real_process_stdio_client(self):
+        requests = [
+            {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {
+                "protocolVersion": "2025-03-26", "capabilities": {}, "clientInfo": {
+                    "name": "pie-smoke-client", "version": "1.0"}}},
+            {"jsonrpc": "2.0", "method": "notifications/initialized"},
+            {"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
+            {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {
+                "name": "pie_query", "arguments": {"query": "Model", "mode": "navigation"}}},
+            {"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {
+                "name": "pie_query", "arguments": {"query": "Model", "mode": "navigation"}}},
+        ]
+        result = subprocess.run(
+            [sys.executable, "-m", "pie.interfaces.mcp_server", "--root", str(self.root)],
+            input="\\n".join(json.dumps(r) for r in requests) + "\\n",
+            text=True, capture_output=True, timeout=45,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        responses = [json.loads(line) for line in result.stdout.splitlines()]
+        self.assertEqual([r["id"] for r in responses], [1, 2, 3, 4])
+        self.assertEqual(responses[0]["result"]["protocolVersion"], "2025-03-26")
+        self.assertIn("pie_query", {t["name"] for t in responses[1]["result"]["tools"]})
+        first = json.loads(responses[2]["result"]["content"][0]["text"])
+        second = json.loads(responses[3]["result"]["content"][0]["text"])
+        self.assertFalse(first["cache_hit"])
+        self.assertTrue(second["cache_hit"])
 
     def test_mcp_stdio_integration(self):
         requests = "\n".join(json.dumps(item) for item in [
