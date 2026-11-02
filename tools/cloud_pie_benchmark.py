@@ -41,9 +41,9 @@ RELEVANCE={
 "release":[("mini_order/inventory.py","Inventory.release"),("mini_order/service.py","OrderService.checkout"),("mini_order/payment.py","charge_with_retry"),("tests/test_checkout.py","test_rollback_on_failure")],
 "charge_with_retry":[("mini_order/payment.py","charge_with_retry"),("mini_order/service.py","OrderService.checkout"),("mini_order/inventory.py","Inventory.reserve"),("tests/test_checkout.py","test_rollback_on_failure"),("tests/test_checkout.py","test_nonretryable_error")],
 }
-SYSTEM=("Analise rigorosamente o código Python disponibilizado. Explique condições e efeitos. "
-        "Não invente testes ou caminhos. Quando faltar evidência, declare a limitação. "
-        "Responda em português, concisamente, distinguindo fato de hipótese.")
+SYSTEM=("Você analisa mudanças hipotéticas de código Python. Os arquivos mostrados representam o estado ANTES da alteração; simule o estado DEPOIS da alteração e siga o fluxo de chamadas, retornos, exceções e mutações. "
+        "Diferencie retorno normal de exceção e exceção original de falha durante tratamento. Não invente arquivos, testes ou fatos ausentes. "
+        "Responda apenas conforme o esquema de tipos solicitado no JSON.")
 
 def source_slice(path, symbol):
     text=LAB[path]
@@ -106,11 +106,11 @@ ANSWER_KEYS={
     "charge_with_retry":{"checkout_returns_none":True,"release_called":False,"stock_restored":False,"payment_error_propagates":False},
 }
 def evaluation_prompt(case):
-    fields=list(ANSWER_KEYS[case])
-    return (QUESTIONS[case]+"\nResponda EXCLUSIVAMENTE com um objeto JSON válido, sem markdown. "
-            "Preencha exatamente estas chaves: "+", ".join(fields)+". "
-            "Use inteiros para contagens, booleanos para verdadeiro/falso e strings para nomes de exceções. "
-            "Não omita chaves.")
+    types={k:("boolean" if type(v) is bool else "integer" if type(v) is int else "string") for k,v in ANSWER_KEYS[case].items()}
+    return (QUESTIONS[case]+"\nProduza apenas um objeto JSON válido, sem markdown, após simular a mudança. "
+            "Tipos exatos por chave (isto NÃO contém valores corretos): "+json.dumps(types)+". "
+            "Use true/false sem aspas para booleanos, números inteiros para contagens e strings para exceções. "
+            "Não omita chaves nem substitua booleanos pelo valor numérico do estoque.")
 def semantic_grade(case,answer):
     try:
         answer=answer.strip()
