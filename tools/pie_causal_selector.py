@@ -64,7 +64,7 @@ def build_causal_context(root:Path,query:str,max_chars:int=12000)->dict:
                 for t in targets:
                     if isinstance(t,ast.Name) and t.id==query.rsplit(".",1)[-1]:
                         assignments.append({"path":path,"start_line":stmt.lineno,"end_line":stmt.end_lineno,
-                                            "content":"\\n".join(lines[stmt.lineno-1:stmt.end_lineno]),"symbol":t.id})
+                                            "content":"\n".join(lines[stmt.lineno-1:stmt.end_lineno]),"symbol":t.id})
         for node,qualified in _functions(tree):
             functions.append({"path":path,"line":node.lineno,"end":node.end_lineno,"name":node.name,
                               "qualified":qualified,"calls":_calls(node),
