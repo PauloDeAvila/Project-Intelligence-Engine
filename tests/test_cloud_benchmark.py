@@ -18,10 +18,16 @@ class CloudBenchmarkTests(unittest.TestCase):
         self.assertIn("pkg/module.py:2-3",result)
         self.assertNotIn("do_not_send",result)
     def test_compact_refuses_stale_or_incomplete(self):
-        for state in ("STALE","PARTIAL","UNINDEXED"):
+        for state in ("STALE","UNINDEXED"):
             with self.subTest(state=state):
                 with self.assertRaises(RuntimeError):
                     compact_evidence({"context_state":state,"evidence":[]})
+    def test_partial_context_still_requires_evidence_audit(self):
+        # PARTIAL alone means an optional candidate may have been omitted.
+        # The benchmark's mandatory-evidence checks decide if it is usable.
+        source={"context_state":"PARTIAL","evidence":[{"path":"p.py","start_line":1,
+            "end_line":1,"kind":"function","content":"def f(): pass"}]}
+        self.assertIn("def f(): pass",compact_evidence(source))
     def test_curated_reference_is_grounded(self):
         self.assertIn("range(config.MAX_RETRIES + 1)",curated_context("MAX_RETRIES"))
         self.assertIn("test_rollback_on_failure",curated_context("release"))
