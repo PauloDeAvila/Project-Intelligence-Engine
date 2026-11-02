@@ -23,6 +23,7 @@ from pie.retrieval.context import build_context
 from pie_causal_selector import build_causal_context, render_control_flow
 from rtk_style_context import compact_source_evidence
 from pie_runtime_verifier import observe_case
+from semantic_gate import verify_fields
 
 LAB = {
 "mini_order/__init__.py": "from .models import Order\nfrom .inventory import Inventory\nfrom .payment import PaymentGateway\nfrom .service import OrderService\n",
@@ -252,6 +253,8 @@ def run():
             response=call(endpoint,key,args.model,"Pergunta: "+evaluation_prompt(q)+"\n\nCódigo e evidências:\n"+context,args.max_tokens)
             entry={"repeat":rep,"case":q,"mode":mode,"context_chars":len(context),"context_hash":sha(context),**response}
             if response["ok"]:entry["semantic_grade"]=semantic_grade(q,response["answer"])
+            if response["ok"] and mode in ("pie_observed","baseline_observed"):
+                entry["certification"]=verify_fields(response["answer"],observed[q])
             results.append(entry)
             (out/"results.json").write_text(json.dumps({"schema":1,"model":args.model,"results":results},ensure_ascii=False,indent=2),encoding="utf-8")
             print(f"{i}/{len(jobs)} {q} {mode} {'OK' if response['ok'] else 'FAIL'} {response['seconds']}s",flush=True)
@@ -260,7 +263,7 @@ def run():
     summary={}
     for mode in selected_modes:
         vals=[r for r in results if r["mode"]==mode and r["ok"]]
-        summary[mode]={"n":len(vals),"median_latency_s":round(statistics.median([x["seconds"] for x in vals]),3) if vals else None,"total_tokens":sum(x.get("usage",{}).get("total_tokens",0) for x in vals),"prompt_tokens":sum(x.get("usage",{}).get("prompt_tokens",0) for x in vals),"completion_tokens":sum(x.get("usage",{}).get("completion_tokens",0) for x in vals),"nonstop":sum(x.get("finish_reason")!="stop" for x in vals),"correct_fields":sum(x.get("semantic_grade",{}).get("passed",0) for x in vals),"total_fields":sum(x.get("semantic_grade",{}).get("total",0) for x in vals)}
+        summary[mode]={"n":len(vals),"median_latency_s":round(statistics.median([x["seconds"] for x in vals]),3) if vals else None,"total_tokens":sum(x.get("usage",{}).get("total_tokens",0) for x in vals),"prompt_tokens":sum(x.get("usage",{}).get("prompt_tokens",0) for x in vals),"completion_tokens":sum(x.get("usage",{}).get("completion_tokens",0) for x in vals),"nonstop":sum(x.get("finish_reason")!="stop" for x in vals),"correct_fields":sum(x.get("semantic_grade",{}).get("passed",0) for x in vals),"total_fields":sum(x.get("semantic_grade",{}).get("total",0) for x in vals),"certified_answers":sum(x.get("certification",{}).get("approved",False) for x in vals)}
     (out/"summary.json").write_text(json.dumps({"model":args.model,"scale_modules":args.scale_modules,"modes":selected_modes,"cases":list(QUESTIONS),"summary":summary,"verification_mode":"post-mutation isolated execution observations are included identically for both observed variants; this is not a blind LLM test","index_seconds_one_time":index_seconds,"retrieval_seconds_all_contexts":retrieval_seconds,"grading":"Deterministic JSON-field scoring against known behavior of the synthetic mini-order lab; not a general code-correctness metric.","caveat":"The curated reference uses case-specific source selection; it is NOT a general-purpose PIE algorithm. One small lab, no automated semantic grading, and no established speedup."},ensure_ascii=False,indent=2),encoding='utf-8')
     print("SUMMARY",json.dumps(summary))
     if len(results)!=len(jobs) or any(not r["ok"] for r in results):sys.exit(1)
