@@ -177,11 +177,13 @@ def perform(root,task,model,mode,base,key,service):
 def main():
     p=argparse.ArgumentParser()
     p.add_argument("--corpus",default="rich-corpus")
-    p.add_argument("--models",default="nvidia/nemotron-3-ultra-550b-a55b")
+    p.add_argument("--models",default="gh/gpt-4o-mini")
     p.add_argument("--count",type=int,default=30)
+    p.add_argument("--cooldown-seconds",type=float,default=15.0)
     p.add_argument("--output",default="pie-agent-9router.json")
     args=p.parse_args()
     if not 1<=args.count<=60:p.error("count must be 1..60")
+    if not 0<=args.cooldown_seconds<=120:p.error("cooldown must be 0..120 seconds")
     base=os.getenv("PIE_API_BASE_URL","");key=os.getenv("PIE_API_KEY","")
     if not base.startswith("https://") or not key:
         raise RuntimeError("PIE_API_BASE_URL (HTTPS) and PIE_API_KEY required")
@@ -194,7 +196,10 @@ def main():
         models=[m.strip() for m in args.models.split(";") if m.strip()]
         jobs=[(m,i,mode) for m in models for i in range(len(tasks)) for mode in ("pie","baseline")]
         random.Random(19).shuffle(jobs)
-        for model,i,mode in jobs:
+        for position,(model,i,mode) in enumerate(jobs):
+            if position:
+                print("COOLDOWN",args.cooldown_seconds,"seconds",flush=True)
+                time.sleep(args.cooldown_seconds)
             started=time.perf_counter()
             try:
                 result=perform(root,tasks[i],model,mode,base,key,service)
@@ -209,7 +214,6 @@ def main():
             Path(args.output).write_text(json.dumps({"results":rows},indent=2),encoding="utf8")
             print("AGENT",model,i,mode,result.get("correct"),result.get("error"),
                   "response_diagnostics",json.dumps(result.get("response_diagnostics",[])),flush=True)
-            time.sleep(2.0)
     report=[]
     for model in models:
         paired=[(next((r for r in rows if r["model"]==model and r["task"]==i and r["mode"]==mode),None)
