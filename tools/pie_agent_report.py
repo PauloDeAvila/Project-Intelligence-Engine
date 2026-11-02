@@ -92,13 +92,14 @@ def summarize(source: Path, directory: Path):
     valid_pairs = [(a,b) for a,b in pairs if a["response_valid"] is True and b["response_valid"] is True]
     latency_mean = round(statistics.mean(retrieval_times), 3) if retrieval_times else None
     summary = {
-        "input_exists": source.is_file(), "attempts": len(records),
+        "input_exists": source.is_file(), "gateway_preflight": raw.get("gateway_preflight"),
+        "attempts": len(records),
         "completed": len(completed), "failures": len(records) - len(completed),
         "http_failures": sum(x["error"] == "HTTPError" for x in records),
         "completed_pairs": len(pairs), "valid_answer_pairs": len(valid_pairs),
         "valid_answer_attempts": sum(x["response_valid"] is True for x in records),
         "invalid_answer_attempts": sum(x["response_valid"] is False for x in records),
-        "pie_no_search_attempts": sum(x["mode"] == "pie" and x["searches"] == 0 for x in records),
+        "pie_no_search_attempts": sum(x["mode"] == "pie" and x["ok"] is True and x["searches"] == 0 for x in records),
         "http_successes_measured": sum(x["http_successes_measured"] for x in records
                                        if isinstance(x["http_successes_measured"], int)),
         "http_status_covered_attempts": sum(isinstance(x["http_successes_measured"], int)
