@@ -55,6 +55,32 @@ class ContextIntelligenceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             remember(self.root, "secret", "outside", "../outside.txt")
 
+    def test_incremental_docs_rebuild_without_reparsing_unchanged_files(self):
+        unchanged=index_project(self.root)
+        self.assertEqual(unchanged["changed_files"], [])
+        self.assertEqual(unchanged["removed_files"], [])
+        (self.root / "cache_manager.py").write_text(
+            'def refresh_cache(value):\n'
+            '    """Recompute cached snapshots after mutations."""\n'
+            '    return value + 3\n', encoding="utf-8")
+        updated=index_project(self.root)
+        self.assertEqual(updated["changed_files"], ["cache_manager.py"])
+        result=smart_context(self.root, "Recompute cached snapshots")
+        self.assertEqual(result["context_state"], "CURRENT")
+        self.assertTrue(any("Recompute cached snapshots" in e["description"] for e in result["evidence"]))
+
+    def test_auto_glossary_from_indexed_docstrings(self):
+        result=recall(self.root,"Refresh the cached")
+        self.assertTrue(any(e.get("kind")=="indexed_symbol" and e["state"]=="CURRENT"
+                            for e in result["entries"]))
+
+    def test_incremental_deletion_invalidates_docs(self):
+        (self.root / "cache_manager.py").unlink()
+        updated=index_project(self.root)
+        self.assertIn("cache_manager.py",updated["removed_files"])
+        result=smart_context(self.root,"refresh_cache")
+        self.assertFalse(any(e["path"]=="cache_manager.py" for e in result["evidence"]))
+
     def test_impact_is_bounded_and_has_provenance(self):
         result=impact(self.root,"refresh_cache")
         self.assertIn("affected_files",result)
