@@ -97,8 +97,8 @@ def normalize_navigation_answer(answer):
     path=answer.get("path")
     symbol=answer.get("symbol")
     if not isinstance(path,str) or not isinstance(symbol,str):return {}
-    path=re.sub(r"^#+\\s*","",path.strip())
-    path=re.sub(r":\\d+(?:-\\d+)?$","",path)
+    path=re.sub(r"^#+\s*","",path.strip())
+    path=re.sub(r":\d+(?:-\d+)?$","",path)
     return {"path":path,"symbol":symbol.strip()}
 
 def infer(base,key,model,query,context,output_tokens):
