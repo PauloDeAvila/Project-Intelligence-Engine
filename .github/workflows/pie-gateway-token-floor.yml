@@ -1,0 +1,31 @@
+name: PIE - gateway prompt token floor
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/pie-gateway-token-floor.yml'
+      - 'tools/pie_gateway_token_floor.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  token-floor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      PIE_API_BASE_URL: ${{ secrets.PIE_API_BASE_URL }}
+      PIE_API_KEY: ${{ secrets.PIE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Measure actual API token usage for small prompts
+        run: python -u tools/pie_gateway_token_floor.py
+      - name: Upload diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pie-token-floor-${{ github.run_id }}
+          path: gateway-token-floor.json
+          if-no-files-found: warn
