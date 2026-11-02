@@ -67,23 +67,42 @@ def smart_context(root: Path, query: str, *, max_chars: int = 12000, limit: int 
     try:
         state = conn.execute("SELECT value FROM metadata WHERE key='index_state'").fetchone()
         index_state = state[0] if state else "UNINDEXED"
-        rows = conn.execute("""SELECT s.id,s.name,s.qualified_name,s.kind,s.start_line,s.end_line,
-                                      f.path,f.sha256,
-                                      COALESCE(d.summary,'') AS summary,
-                                      COALESCE(d.signature,'') AS signature
-                               FROM symbols s JOIN files f ON s.file_id=f.id
-                               LEFT JOIN symbol_docs d ON d.symbol_id=s.id""").fetchall()
-        fts_hits = search_fts(conn, query, limit=min(500,max(100,limit*12)))
-        fts_position = {symbol_id: i for i,(symbol_id,_) in enumerate(fts_hits)}
-        verified_counts = {
-            (r["path"],r["qualified_name"]):r["n"]
-            for r in conn.execute("""SELECT f.path,d.qualified_name,COUNT(u.id) AS n
-              FROM definitions d JOIN files f ON f.id=d.file_id
-              JOIN usages u ON u.target_binding_key=d.binding_key
-              WHERE u.resolution='verified'
-              GROUP BY f.path,d.qualified_name""")
-        }
+        # FTS5 supplies a bounded candidate set; only those symbols are hydrated.
+        # Exact-name lookup preserves identifiers omitted by the tokenizer.
         query_words = _query_terms(query)
+        fts_hits = search_fts(conn, query, limit=min(500, max(100, limit * 12)))
+        ids = [symbol_id for symbol_id, _ in fts_hits]
+        fts_position = {symbol_id: i for i, (symbol_id, _) in enumerate(fts_hits)}
+        exact = conn.execute(
+            "SELECT id FROM symbols WHERE name = ? OR qualified_name = ? LIMIT 100",
+            (query.strip(), query.strip()),
+        ).fetchall()
+        ids = list(dict.fromkeys(ids + [row[0] for row in exact]))
+        # Expand only when FTS is available, using synonym variants already
+        # defined by the legacy ranking algorithm. Never scan all symbols.
+        if query_words and conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='symbol_fts'"
+        ).fetchone():
+            expanded = sorted(query_words - _terms(query))
+            if expanded:
+                additional = search_fts(conn, " ".join(expanded), limit=150)
+                ids = list(dict.fromkeys(ids + [sid for sid, _ in additional]))[:650]
+        if ids:
+            placeholders = ",".join("?" for _ in ids)
+            rows = conn.execute(f"""SELECT s.id,s.name,s.qualified_name,s.kind,
+                       s.start_line,s.end_line,f.path,f.sha256,
+                       COALESCE(d.summary,'') AS summary,
+                       COALESCE(d.signature,'') AS signature,
+                       (SELECT COUNT(*) FROM definitions def
+                        JOIN usages u ON u.target_binding_key=def.binding_key
+                        WHERE def.file_id=s.file_id
+                          AND def.qualified_name=s.qualified_name
+                          AND u.resolution='verified') AS verified_refs
+                       FROM symbols s JOIN files f ON s.file_id=f.id
+                       LEFT JOIN symbol_docs d ON d.symbol_id=s.id
+                       WHERE s.id IN ({placeholders})""", ids).fetchall()
+        else:
+            rows = []
         candidates = []
         for row in rows:
             name_words = _terms(row["qualified_name"])
@@ -98,7 +117,7 @@ def smart_context(root: Path, query: str, *, max_chars: int = 12000, limit: int 
             if rank is not None:
                 score += max(2,10-rank//12)
             if score:
-                score += min(3,verified_counts.get((row["path"],row["qualified_name"]),0))
+                score += min(3,row["verified_refs"])
                 candidates.append((score,row))
         candidates.sort(key=lambda item: (-item[0],item[1]["path"],
                                           item[1]["start_line"],item[1]["qualified_name"]))
