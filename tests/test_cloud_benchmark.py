@@ -7,6 +7,9 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"tools"))
 sys.path.insert(0,str(ROOT/"src"))
 from cloud_pie_benchmark import LAB, QUESTIONS, ANSWER_KEYS, compact_evidence, compact_flow_evidence, curated_context, semantic_grade, evaluation_prompt, source_slice
+from pie_causal_selector import build_causal_context
+from pie.indexing.indexer import index_project
+from pie.graph.relationships import build_relationships
 
 
 class CloudBenchmarkTests(unittest.TestCase):
@@ -38,6 +41,21 @@ class CloudBenchmarkTests(unittest.TestCase):
         self.assertIn("HANDLER Exception",result)
         self.assertIn("ATTRIBUTE_CALL",result)
         self.assertIn("AttributeError",result)
+    def test_causal_retrieval_includes_module_assignment(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)
+            for name,source in LAB.items():
+                p=root/name
+                p.parent.mkdir(parents=True,exist_ok=True)
+                p.write_text(source,encoding="utf-8")
+            self.assertEqual(index_project(root)["index_state"],"CURRENT")
+            build_relationships(root)
+            ctx=build_causal_context(root,"MAX_RETRIES")
+            self.assertEqual(ctx["context_state"],"CURRENT")
+            evidence=compact_evidence(ctx)
+            self.assertIn("MAX_RETRIES = 3",evidence)
+            self.assertIn("range(config.MAX_RETRIES + 1)",evidence)
     def test_curated_reference_is_grounded(self):
         self.assertIn("range(config.MAX_RETRIES + 1)",curated_context("MAX_RETRIES"))
         self.assertIn("test_rollback_on_failure",curated_context("release"))
