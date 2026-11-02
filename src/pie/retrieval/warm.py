@@ -68,15 +68,7 @@ class WarmContextService:
                 tuple((r["path"], r["sha256"]) for r in rows))
 
     def _warm(self) -> None:
-        self._connection.execute("SELECT COUNT(*) FROM symbols").fetchone()
-        self._connection.execute("SELECT COUNT(*) FROM symbol_docs").fetchone()
-        self._verified_graph = {}
-        for edge in self._connection.execute(
-            "SELECT target_path, origin_symbol, target_name FROM usages "
-            "WHERE resolution='verified' AND target_path IS NOT NULL"
-        ):
-            self._verified_graph.setdefault(edge["target_path"], []).append(
-                {"consumer": edge["origin_symbol"], "target": edge["target_name"]})
+        self._verified_graph = VerifiedGraph.from_connection(self._connection)
 
     def refresh(self) -> dict:
         """Reindex changed files and invalidate dependent cached responses."""
@@ -141,130 +133,6 @@ class WarmContextService:
                     item["path"], item["symbol"], depth=2, limit=30)
             return {"context": result, "verified_consumers": graph,
                     "graph_edges": self._verified_graph.edge_count}
-
-    def prefetch(self, queries: list[str]) -> dict:
-        if not isinstance(queries, list) or len(queries) > 20 or any(
-                not isinstance(q, str) or not q.strip() for q in queries):
-            raise ValueError("Expected up to 20 nonempty queries")
-        with self._lock:
-            for query in queries:
-                self.query(query, include_body=True, limit=5)
-            return {"prepared": len(queries)}
-
-    def search_candidates(self, question: str, limit: int = 50) -> dict:
-        self.refresh()
-        hits = search_fts(self._connection, question, limit=limit)
-        return {"ids": [symbol_id for symbol_id, _ in hits], "count": len(hits)}
-
-    def close(self):
-        self._stop.set()
-        if self._worker is not None:
-            self._worker.join(timeout=10)
-            if self._worker.is_alive():
-                raise RuntimeError('Background worker still running')
-        with self._lock:
-            self._cache.clear()
-            self._connection.close()
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *_):
-        self.close()
-
-
-def serve(root: Path, stdin: TextIO = sys.stdin, stdout: TextIO = sys.stdout):
-    with WarmContextService(root) as service:
-        for line in stdin:
-            try:
-                request = json.loads(line)
-                if not isinstance(request, dict):
-                    raise ValueError("JSON object required")
-                method = request.get("method")
-                if method == "query":
-                    payload = service.query(request["query"],
-                                            limit=request.get("limit", 8),
-                                            max_chars=request.get("max_chars", 12000),
-                                            include_body=request.get("include_body", False),
-)
-                elif method == "task_pack":
-                    payload = service.task_pack(request["query"])
-                elif method == "prefetch":
-                    payload = service.prefetch(request["queries"])
-                elif method == "refresh":
-                    payload = service.refresh()
-                elif method == "candidates":
-                    payload = service.search_candidates(request["query"],
-                                                        limit=request.get("limit", 50))
-                elif method == "ping":
-                    payload = {"status": "ready", "cached_queries": len(service._cache)}
-                else:
-                    raise ValueError("Unknown method")
-                response = {"ok": True, "data": payload}
-            except (ValueError, KeyError, TypeError) as exc:
-                response = {"ok": False, "error": type(exc).__name__, "message": str(exc)}
-            stdout.write(json.dumps(response, ensure_ascii=False) + "\n")
-            stdout.flush()        self._verified_graph = VerifiedGraph.from_connection(self._connection)
-
-    def refresh(self) -> dict:
-        """Reindex changed files and invalidate dependent cached responses."""
-        report = index_project(self.root)
-        generation = self._snapshot()
-        if generation != self._generation:
-            self._cache.clear()
-            self._generation = generation
-            self._warm()
-        return {"index": report, "cached_queries": len(self._cache)}
-
-    def _source_valid(self, result):
-        # Each cached evidence is checked against the indexed SHA-256.
-        paths = set(item["path"] for item in result.get("evidence", []))
-        for path in paths:
-            row = self._connection.execute(
-                "SELECT sha256 FROM files WHERE path=?", (path,)
-            ).fetchone()
-            if not row:
-                return False
-            try:
-                resolved = (self.root / path).resolve()
-                if not resolved.is_relative_to(self.root):
-                    return False
-                if sha256(resolved.read_bytes()).hexdigest() != row[0]:
-                    return False
-            except OSError:
-                return False
-        return True
-
-    def query(self, question: str, *, limit: int = 8, max_chars: int = 12000,
-              include_body: bool = False) -> dict:
-        if not isinstance(question, str) or not question.strip():
-            raise ValueError("Nonempty query required")
-        with self._lock:
-            self.refresh()
-            if self._refresh_error:
-                raise RuntimeError("Background indexer failed: " + self._refresh_error)
-            key = (question, limit, max_chars, include_body)
-            if key in self._cache:
-                value = self._cache[key]
-                if self._source_valid(value):
-                    self._cache.move_to_end(key)
-                    return {"cache_hit": True, "result": value}
-                self._cache.clear()
-                self.refresh()
-            value = smart_context(self.root, question, limit=limit,
-                                  max_chars=max_chars, include_body=include_body)
-            if value["context_state"] == "CURRENT" and not value["diagnostics"]:
-                self._cache[key] = value
-                if len(self._cache) > self.cache_size:
-                    self._cache.popitem(last=False)
-            return {"cache_hit": False, "result": value}
-
-    def task_pack(self, question: str, limit: int = 5) -> dict:
-        with self._lock:
-            result = self.query(question, limit=limit, include_body=True)["result"]
-            return {"context": result, "verified_consumers": {
-                item["path"]: self._verified_graph.get(item["path"], [])[:12]
-                for item in result["evidence"]}}
 
     def prefetch(self, queries: list[str]) -> dict:
         if not isinstance(queries, list) or len(queries) > 20 or any(
