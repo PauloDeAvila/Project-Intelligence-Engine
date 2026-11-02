@@ -10,6 +10,7 @@ import re
 import sqlite3
 
 _WORD = re.compile(r"[a-zA-Z][a-zA-Z0-9]{1,}")
+_STOP = frozenset("the and for from with into this that those these function method class code find where which what does how can you are was were has have when why is there de do da dos das onde qual como uma para com por sobre".split())
 
 
 def ensure_fts(conn: sqlite3.Connection) -> bool:
@@ -56,7 +57,7 @@ def search_fts(conn: sqlite3.Connection, query: str, *, limit: int = 100) -> lis
     """Return (symbol_id, BM25 score) ordered best first; malformed input is inert."""
     if not 1 <= limit <= 500:
         raise ValueError("invalid FTS limit")
-    terms=list(dict.fromkeys(word.lower() for word in _WORD.findall(query)))[:16]
+    terms=list(dict.fromkeys(word.lower() for word in _WORD.findall(query) if word.lower() not in _STOP))[:16]
     if not terms:
         return []
     # Quote every token, preventing MATCH operators or column directives.
