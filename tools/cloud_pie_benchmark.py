@@ -18,6 +18,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'src'))
 from pie.indexing.indexer import index_project
 from pie.retrieval.context import build_context
+from pie_causal_selector import build_causal_context
 
 LAB = {
 "mini_order/__init__.py": "from .models import Order\nfrom .inventory import Inventory\nfrom .payment import PaymentGateway\nfrom .service import OrderService\n",
@@ -106,6 +107,7 @@ def run():
         if idx.get('index_state')!='CURRENT': raise RuntimeError('PIE index not current')
         contexts={"baseline":{q:baseline_context() for q in QUESTIONS},
                   "pie_raw":{q:json.dumps(build_context(root,q,max_chars=12000),ensure_ascii=False) for q in QUESTIONS},
+                  "pie_auto":{q:json.dumps(build_causal_context(root,q,max_chars=12000),ensure_ascii=False) for q in QUESTIONS},
                   "curated_reference":{q:curated_context(q) for q in QUESTIONS}}
         checks={
           "MAX_RETRIES":["range(config.MAX_RETRIES + 1)","self.inventory.release(","test_retry_limit"],
@@ -118,7 +120,7 @@ def run():
             for q,c in contexts[mode].items():
                 audit[mode][q]={"chars":len(c),"sha256":sha(c),"missing":[term for term in checks[q] if term not in c]}
         (out/"evidence.json").write_text(json.dumps({"audit":audit,"questions":QUESTIONS,"contexts":contexts},ensure_ascii=False,indent=2),encoding='utf-8')
-        if any(audit["curated_reference"][q]["missing"] for q in QUESTIONS):raise RuntimeError("Optimized context insufficient")
+        if any(audit["curated_reference"][q]["missing"] for q in QUESTIONS):raise RuntimeError("Curated context insufficient")
         if args.dry_run:
             print('DRY RUN PASSED:',json.dumps({q:{m:audit[m][q]['chars'] for m in contexts} for q in QUESTIONS}));return
         if not (endpoint.startswith('https://') and key):raise RuntimeError('Missing HTTPS endpoint or inference secret')
@@ -126,7 +128,7 @@ def run():
         for rep in range(args.repeats):
             cases=list(QUESTIONS);random.Random(101+rep).shuffle(cases)
             for q in cases:
-                modes=['baseline','pie_raw','curated_reference']
+                modes=['baseline','pie_raw','pie_auto','curated_reference']
                 random.Random(202+rep+len(q)).shuffle(modes)
                 jobs.extend((rep,q,m) for m in modes)
         for i,(rep,q,mode) in enumerate(jobs,1):
@@ -139,7 +141,7 @@ def run():
             if not response["ok"]:break
             time.sleep(.5)
     summary={}
-    for mode in ["baseline","pie_raw","curated_reference"]:
+    for mode in ["baseline","pie_raw","pie_auto","curated_reference"]:
         vals=[r for r in results if r["mode"]==mode and r["ok"]]
         summary[mode]={"n":len(vals),"median_latency_s":round(statistics.median([x["seconds"] for x in vals]),3) if vals else None,"total_tokens":sum(x.get("usage",{}).get("total_tokens",0) for x in vals),"nonstop":sum(x.get("finish_reason")!="stop" for x in vals)}
     (out/"summary.json").write_text(json.dumps({"model":args.model,"cases":list(QUESTIONS),"summary":summary,"caveat":"The curated reference uses case-specific source selection; it is NOT a general-purpose PIE algorithm. One small lab, no automated semantic grading, and no established speedup."},ensure_ascii=False,indent=2),encoding='utf-8')
