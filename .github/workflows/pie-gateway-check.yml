@@ -1,12 +1,14 @@
 name: PIE - 9Router cloud gateway check
 
 on:
-  push:
-    branches: [main, feat/cloud-9router-benchmark-gateway]
+  pull_request:
+    branches: [main]
     paths:
       - '.github/workflows/pie-gateway-check.yml'
       - 'tools/cloud_gateway_probe.py'
       - 'tools/cloud_pie_benchmark.py'
+      - 'tools/pie_causal_selector.py'
+      - 'tests/test_cloud_benchmark.py'
   workflow_dispatch:
     inputs:
       model:
