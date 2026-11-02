@@ -14,6 +14,7 @@ _WORD = re.compile(r"[a-zA-Z][a-zA-Z0-9]{1,}")
 
 def ensure_fts(conn: sqlite3.Connection) -> bool:
     """Install triggers and backfill once; do not rebuild on every query."""
+    existed = conn.execute("SELECT 1 FROM sqlite_master WHERE name='symbol_fts'").fetchone() is not None
     try:
         conn.execute("""CREATE VIRTUAL TABLE IF NOT EXISTS symbol_fts USING fts5(
             name, qualified_name, path, summary, signature, tokenize='unicode61'
@@ -22,6 +23,8 @@ def ensure_fts(conn: sqlite3.Connection) -> bool:
         if "no such module" in str(exc).lower() or "fts5" in str(exc).lower():
             return False
         raise
+    if existed:
+        return True
     conn.executescript("""
         CREATE TRIGGER IF NOT EXISTS pie_fts_doc_insert AFTER INSERT ON symbol_docs BEGIN
           INSERT OR REPLACE INTO symbol_fts(rowid,name,qualified_name,path,summary,signature)
