@@ -27,6 +27,7 @@ jobs:
           name: pie-local-latency
           path: pie-local-latency.json
   production-rich:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 50
     env:
