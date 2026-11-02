@@ -125,25 +125,13 @@ def summarize(source: Path, directory: Path):
     }
     (directory / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf8")
     try:
-        from artifact_tool import Workbook, SpreadsheetFile
-        book = Workbook.create()
-        sheet = book.worksheets.add("Tentativas")
-        sheet.get_range("A1:W1").values = [list(COLUMNS)]
-        sheet.get_range("A1:W1").format = {"fill": "#17324A", "font": {"bold": True, "color": "#FFFFFF"}}
-        for start in range(0, len(records), 100):
-            chunk = records[start:start+100]
-            cells = [[row[c] for c in COLUMNS] for row in chunk]
-            sheet.get_range(f"A{start+2}:W{start+1+len(chunk)}").values = cells
-        sheet.freeze_panes.freeze_rows(1)
-        overview = book.worksheets.add("Resumo")
-        values = list(summary.items())
-        overview.get_range("A1:B1").values = [["Métrica", "Valor"]]
-        overview.get_range("A1:B1").format = {"fill": "#17324A", "font": {"bold": True, "color": "#FFFFFF"}}
-        for i, (key, value) in enumerate(values, 2):
-            if isinstance(value, (dict, list)):
-                value = json.dumps(value, ensure_ascii=False)
-            overview.get_range(f"A{i}:B{i}").values = [[key, value]]
-        SpreadsheetFile.export_xlsx(book).save(str(directory / "pie-agent-report.xlsx"))
+        from pie_xlsx_export import export_xlsx
+        export_xlsx(directory / "pie-agent-report.xlsx", {
+            "Resumo":[["Métrica","Valor"]] + [
+                [key,json.dumps(value,ensure_ascii=False) if isinstance(value,(dict,list)) else value]
+                for key,value in summary.items()],
+            "Tentativas":[list(COLUMNS)] + [[row[column] for column in COLUMNS] for row in records],
+        })
     except Exception as exc:
         (directory / "excel_error.txt").write_text(type(exc).__name__ + ": " + str(exc)[:500], encoding="utf8")
     print("REPORT", json.dumps(summary, ensure_ascii=False))
