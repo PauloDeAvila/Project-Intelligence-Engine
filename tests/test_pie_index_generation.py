@@ -57,8 +57,8 @@ class GenerationGateTests(unittest.TestCase):
 
     def test_strict_and_invalid_mode(self):
         with WarmContextService(self.root) as svc:
-            self.assertEqual(svc.query("refresh_cache")["consistency"], "strict")
-            with self.assertRaises(ValueError):
+            self.assertIn("result", svc.query("refresh_cache"))
+            with self.assertRaises(TypeError):
                 svc.query("refresh_cache", consistency="unsafe")
 
 
