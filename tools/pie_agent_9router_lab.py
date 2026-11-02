@@ -93,10 +93,12 @@ def perform(root,task,model,mode,base,key,service):
         candidates.sort(key=lambda item:(-item[0],str(item[1])))
         body="\n\n".join(f"FILE {p.relative_to(root).as_posix()}\n{s}" for _,p,s in candidates[:2])
         messages.append({"role":"user","content":body[:55000]})
-    used=0; calls=0; searches=0; search_ms=[]; answer={}
+    used=0; output_used=0; calls=0; searches=0; search_ms=[]; model_ms=[]; answer={}
     for step in range(5):
         response,usage,elapsed=chat(messages,model,base,key)
-        calls+=1;used+=usage.get("prompt_tokens",0)
+        calls+=1;used+=usage.get("prompt_tokens",0) or 0
+        output_used+=usage.get("completion_tokens",0) or 0
+        model_ms.append(round(elapsed*1000,3))
         if response.get("action")=="answer":
             answer={"path":str(response.get("path","")).strip(),"symbol":str(response.get("symbol","")).strip()}
             break
@@ -116,7 +118,7 @@ def perform(root,task,model,mode,base,key,service):
             break
     return {"mode":mode,"correct":answer==task["oracle"],"answer":answer,
             "calls":calls,"searches":searches,"prompt_tokens":used,
-            "search_ms":search_ms}
+            "search_ms":search_ms,"model_ms":model_ms,"completion_tokens":output_used}
 
 def main():
     p=argparse.ArgumentParser()
@@ -152,14 +154,14 @@ def main():
         paired=[(next((r for r in rows if r["model"]==model and r["task"]==i and r["mode"]==mode),None)
                 for mode in ("baseline","pie")) for i in range(len(tasks))]
         valid=[(a,b) for a,b in paired if a and b and a.get("ok") and b.get("ok")
-               and b.get("prompt_tokens",0)>0 and a.get("prompt_tokens",0)>0]
+                ]
         base_tokens=sum(a["prompt_tokens"] for a,b in valid)
         pie_tokens=sum(b["prompt_tokens"] for a,b in valid)
         report.append({"model":model,"completed_pairs":len(valid),"requested_pairs":len(tasks),
                        "baseline_correct":sum(a["correct"] for a,b in valid),
                        "pie_correct":sum(b["correct"] for a,b in valid),
                        "baseline_prompt_tokens":base_tokens,"pie_prompt_tokens":pie_tokens,
-                       "token_saving_pct":round(100*(1-pie_tokens/base_tokens),2) if base_tokens else None})
+                       "token_saving_pct":round(100*(1-pie_tokens/base_tokens),2) if base_tokens and pie_tokens else None})
     output={"scope":"Model-directed PIE tool loop on public Rich; docstring-derived oracles, no edits",
             "note":"Token usage accumulates all model calls. A/B includes different tools and prompts; errors are not counted as successful.",
             "models":report,"results":rows}
