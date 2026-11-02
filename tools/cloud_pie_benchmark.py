@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import random
 import statistics
+import subprocess
 import sys
 import tempfile
 import time
@@ -103,6 +104,9 @@ def run():
         root=Path(temp)
         for p,s in LAB.items():
             target=root/p;target.parent.mkdir(parents=True,exist_ok=True);target.write_text(s,encoding='utf-8')
+        tests=subprocess.run([sys.executable,"-m","unittest","discover","-s","tests","-q"],cwd=root,env={**os.environ,"PYTHONPATH":str(root)},capture_output=True,text=True,timeout=30)
+        if tests.returncode != 0: raise RuntimeError("Lab regression tests failed before model inference")
+        print("Lab regression tests: PASS")
         idx=index_project(root)
         if idx.get('index_state')!='CURRENT': raise RuntimeError('PIE index not current')
         contexts={"baseline":{q:baseline_context() for q in QUESTIONS},
