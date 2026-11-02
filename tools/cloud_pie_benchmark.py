@@ -53,6 +53,9 @@ def source_slice(path, symbol):
     chosen=None
     for name in target:
         chosen=next((n for n in nodes if isinstance(n,(ast.ClassDef,ast.FunctionDef,ast.AsyncFunctionDef)) and n.name==name),None)
+        if chosen is None and len(target)==1:
+            matches=[n for n in ast.walk(tree) if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef)) and n.name==name]
+            if len(matches)==1:chosen=matches[0]
         if chosen is None: raise ValueError((path,symbol))
         nodes=chosen.body
     return '\n'.join(text.splitlines()[chosen.lineno-1:chosen.end_lineno])
