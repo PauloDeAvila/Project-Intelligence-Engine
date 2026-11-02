@@ -19,6 +19,7 @@ from pie.retrieval.intelligence import smart_context
 from pie.storage.database import connect
 from pie.retrieval.fts import search_fts
 from pie.graph.verified import VerifiedGraph
+from pie.retrieval.packs import build_responsibility_pack
 
 
 class WarmContextService:
@@ -123,16 +124,14 @@ class WarmContextService:
                     self._cache.popitem(last=False)
             return {"cache_hit": False, "result": value}
 
-    def task_pack(self, question: str, limit: int = 5) -> dict:
+    def task_pack(self, question: str, limit: int = 5, max_chars: int = 12000) -> dict:
+        """Return a fully budgeted, strictly source-verified responsibility pack."""
         with self._lock:
-            result = self.query(question, limit=limit, include_body=True)["result"]
-            graph = {}
-            for item in result["evidence"]:
-                key = item["path"] + "::" + item["symbol"]
-                graph[key] = self._verified_graph.consumers(
-                    item["path"], item["symbol"], depth=2, limit=30)
-            return {"context": result, "verified_consumers": graph,
-                    "graph_edges": self._verified_graph.edge_count}
+            result = self.query(question, limit=limit, max_chars=max_chars,
+                                include_body=True)["result"]
+            return build_responsibility_pack(
+                self.root, question, result, self._verified_graph,
+                self._connection, max_chars=max_chars)
 
     def prefetch(self, queries: list[str]) -> dict:
         if not isinstance(queries, list) or len(queries) > 20 or any(
@@ -180,7 +179,9 @@ def serve(root: Path, stdin: TextIO = sys.stdin, stdout: TextIO = sys.stdout):
                                             include_body=request.get("include_body", False),
 )
                 elif method == "task_pack":
-                    payload = service.task_pack(request["query"])
+                    payload = service.task_pack(request["query"],
+                                                limit=request.get("limit", 5),
+                                                max_chars=request.get("max_chars", 12000))
                 elif method == "prefetch":
                     payload = service.prefetch(request["queries"])
                 elif method == "refresh":
