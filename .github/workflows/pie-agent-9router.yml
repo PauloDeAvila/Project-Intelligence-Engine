@@ -32,7 +32,7 @@ jobs:
       - name: Verify report generation contract
         run: python -m unittest discover -s tests -p "test_pie_agent_reporting.py" -v
       - name: Agent locates implementations through PIE
-        run: python -u tools/pie_agent_9router_lab.py --corpus rich-corpus --models gh/gpt-4o-mini --count 30 --cooldown-seconds 15 --output pie-agent-9router-results.json
+        run: python -u tools/pie_agent_9router_lab.py --corpus rich-corpus --models qd/qfmodel --count 30 --cooldown-seconds 15 --output pie-agent-9router-results.json
         env:
           PIE_API_BASE_URL: ${{ secrets.PIE_API_BASE_URL }}
           PIE_API_KEY: ${{ secrets.PIE_API_KEY }}
