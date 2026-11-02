@@ -1,6 +1,7 @@
 """MCP v1 contract and persistent warm retrieval tests."""
 import io
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -72,6 +73,9 @@ class MCPQueryTests(unittest.TestCase):
             [sys.executable, "-m", "pie.interfaces.mcp_server", "--root", str(self.root)],
             input="\n".join(json.dumps(r) for r in requests) + "\n",
             text=True, capture_output=True, timeout=45,
+            env={**os.environ, "PYTHONPATH": os.pathsep.join(filter(None, [
+                str(Path(__file__).resolve().parents[1] / "src"), os.environ.get("PYTHONPATH")
+            ]))},
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         responses = [json.loads(line) for line in result.stdout.splitlines()]
