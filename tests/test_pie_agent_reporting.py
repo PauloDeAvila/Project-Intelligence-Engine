@@ -40,6 +40,29 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(details[1]["prompt_tokens"], "")
         self.assertEqual(details[1]["http_status"], "429")
 
+    def test_preflight_failure_keeps_missing_metrics_null(self):
+        summary, details = self.generate([])
+        self.assertEqual(summary["attempts"], 0)
+        self.assertEqual(summary["completed_pairs"], 0)
+        self.assertEqual(summary["pie_no_search_attempts"], 0)
+        self.assertIsNone(summary["input_token_saving_pct"])
+        self.assertIsNone(summary["retrieval_mean_ms"])
+        self.assertIsNone(summary["retrieval_p95_ms"])
+        self.assertEqual(summary["http_successes_measured"], 0)
+        self.assertFalse(summary["certification"]["fully_certified"])
+
+    def test_failed_pie_request_is_not_counted_as_no_search(self):
+        summary, _ = self.generate([
+            {"task": 0, "mode": "pie", "model": "qd/qfmodel",
+             "ok": False, "error": "URLError", "http_status": None},
+            {"task": 0, "mode": "baseline", "model": "qd/qfmodel",
+             "ok": False, "error": "URLError", "http_status": None},
+        ])
+        self.assertEqual(summary["pie_no_search_attempts"], 0)
+        self.assertEqual(summary["http_failures"], 0)
+        self.assertEqual(summary["http_status_covered_attempts"], 0)
+
+
     def test_complete_pairs_and_coverage(self):
         summary, _ = self.generate([
             {"task": 0, "mode": "pie", "model": "qd/qfmodel", "ok": True,
@@ -142,6 +165,34 @@ class GatewayResponseTests(unittest.TestCase):
         self.assertEqual(diagnostics["content_chars"], 0)
         self.assertEqual(diagnostics["reasoning_chars"], len("internal reasoning"))
         self.assertEqual(diagnostics["finish_reason"], "length")
+
+    def test_gateway_preflight_reports_transport_category_without_endpoint(self):
+        from unittest import mock
+        from urllib.error import URLError, HTTPError
+        from tools.pie_agent_9router_lab import probe_gateway
+        with mock.patch("tools.pie_agent_9router_lab.chat",
+                        side_effect=URLError(OSError("Name or service not known"))):
+            outcome = probe_gateway("https://private-gateway.example", "secret-token", "qd/qfmodel")
+        self.assertFalse(outcome["ok"])
+        self.assertEqual(outcome["category"], "dns_resolution_failed")
+        self.assertIsNone(outcome["http_status"])
+        self.assertNotIn("secret-token", json.dumps(outcome))
+        with mock.patch("tools.pie_agent_9router_lab.chat",
+                        side_effect=HTTPError("https://private-gateway.example", 401,
+                                              "Unauthorized", {}, None)):
+            rejected = probe_gateway("https://private-gateway.example", "secret-token", "qd/qfmodel")
+        self.assertEqual(rejected["http_status"], 401)
+        self.assertEqual(rejected["category"], "http_error")
+
+    def test_gateway_preflight_success_does_not_require_valid_agent_answer(self):
+        from unittest import mock
+        from tools.pie_agent_9router_lab import probe_gateway
+        with mock.patch("tools.pie_agent_9router_lab.chat",
+                        return_value=({"action":"invalid"}, {}, 0.01, {"http_status":200})):
+            outcome = probe_gateway("https://gateway.example", "key", "qd/qfmodel")
+        self.assertTrue(outcome["ok"])
+        self.assertEqual(outcome["http_status"], 200)
+
 
     def test_json_answer_remains_parseable(self):
         from unittest import mock
