@@ -9,9 +9,9 @@ def _size(obj):
 def build_responsibility_pack(root, question, evidence, graph, conn, *, max_chars=12000, max_edges=12):
     if not 500 <= max_chars <= 200000 or not 0 <= max_edges <= 100:
         raise ValueError("Invalid pack limits")
-    if evidence.get("context_state") != "CURRENT":
-        raise ValueError("Cannot create pack from non-current evidence")
-    pack={"query":question,"context_state":"CURRENT","responsibilities":[],
+    if evidence.get("context_state") not in ("CURRENT", "PARTIAL"):
+        raise ValueError("Cannot create pack from stale or incomplete evidence")
+    pack={"query":question,"context_state":evidence["context_state"],"responsibilities":[],
           "omitted":0,"graph_semantics":"verified references, potential impact only"}
     seen=set()
     for candidate in evidence["evidence"]:
