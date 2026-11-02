@@ -8,7 +8,14 @@ from pie.storage.database import connect
 from pie.graph.relationships import get_relationships
 
 
-def build_context(root: Path, query: str, max_chars: int = 12000, limit: int = 12) -> dict[str, object]:
+def build_context(root: Path, query: str, max_chars: int = 12000, limit: int = 12,
+                  *, strategy: str = "exact", include_body: bool = False) -> dict[str, object]:
+    if strategy == "smart":
+        from pie.retrieval.intelligence import smart_context
+        return smart_context(root, query, max_chars=max_chars, limit=limit,
+                             include_body=include_body)
+    if strategy != "exact":
+        raise ValueError("Unknown context retrieval strategy")
     if not query.strip():
         raise ValueError('Query cannot be empty')
     if not 500 <= max_chars <= 200000 or not 1 <= limit <= 100:
