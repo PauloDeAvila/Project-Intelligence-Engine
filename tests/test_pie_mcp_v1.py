@@ -70,7 +70,7 @@ class MCPQueryTests(unittest.TestCase):
         ]
         result = subprocess.run(
             [sys.executable, "-m", "pie.interfaces.mcp_server", "--root", str(self.root)],
-            input="\\n".join(json.dumps(r) for r in requests) + "\\n",
+            input="\n".join(json.dumps(r) for r in requests) + "\n",
             text=True, capture_output=True, timeout=45,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
