@@ -10,6 +10,7 @@ from pie.retrieval.symbols import analysis_summary, find_definitions, find_refer
 from pie.storage.database import connect
 from pie.retrieval.intelligence import impact
 from pie.retrieval.context import build_context
+from pie.retrieval.adaptive import adaptive_context
 from pie.retrieval.glossary import remember, recall
 
 
@@ -111,6 +112,13 @@ def main(argv: list[str] | None = None) -> int:
     watch_cmd.add_argument("--interval", type=float, default=5.0)
     watch_cmd.add_argument("--iterations", type=int, default=0,
                            help="0 means run until Ctrl+C")
+    adaptive = subparsers.add_parser("adaptive")
+    adaptive.add_argument("query")
+    adaptive.add_argument("--root", default=".")
+    adaptive.add_argument("--mode", choices=["navigation","edit"],default="navigation")
+    adaptive.add_argument("--full-source-path")
+    adaptive.add_argument("--max-chars", type=int, default=12000)
+    adaptive.add_argument("--limit", type=int, default=8)
     impacts = subparsers.add_parser("impact")
     impacts.add_argument("name")
     impacts.add_argument("--root", default=".")
