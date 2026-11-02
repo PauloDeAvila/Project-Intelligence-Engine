@@ -179,7 +179,7 @@ class ContextIntelligenceTests(unittest.TestCase):
         db=connect(self.root/".pie"/"index.sqlite3")
         try:
             self.assertTrue(search_fts(db,"distributed snapshots"))
-            self.assertFalse(search_fts(db,"cached value"))
+            self.assertFalse(search_fts(db,"cached"))
         finally:
             db.close()
         source.unlink()
