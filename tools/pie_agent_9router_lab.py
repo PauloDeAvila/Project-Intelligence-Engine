@@ -103,7 +103,7 @@ def perform(root,task,model,mode,base,key,service):
             question=response.get("query","")
             if not isinstance(question,str) or not question.strip():break
             start=time.perf_counter()
-            result=service.task_pack(question,max_chars=9000,limit=5)
+            result=service.task_pack(question,max_chars=12000,limit=5)
             predicted=service.predictive_prefetch(question,limit=4)
             result={"responsibility_pack":result,"predictive_prefetch":predicted}
             search_ms.append((time.perf_counter()-start)*1000)
@@ -142,7 +142,7 @@ def main():
                 result=perform(root,tasks[i],model,mode,base,key,service)
                 result.update(model=model,task=i,ok=True)
             except (urllib.error.URLError,TimeoutError,ValueError,KeyError) as exc:
-                result={"model":model,"task":i,"mode":mode,"ok":False,"error":type(exc).__name__}
+                result={"model":model,"task":i,"mode":mode,"ok":False,"error":type(exc).__name__,"error_detail":str(exc)[:300]}
             rows.append(result)
             Path(args.output).write_text(json.dumps({"results":rows},indent=2),encoding="utf8")
             print("AGENT",model,i,mode,result.get("correct"),result.get("error"),flush=True)
@@ -151,7 +151,7 @@ def main():
         paired=[(next((r for r in rows if r["model"]==model and r["task"]==i and r["mode"]==mode),None)
                 for mode in ("baseline","pie")) for i in range(len(tasks))]
         valid=[(a,b) for a,b in paired if a and b and a.get("ok") and b.get("ok")
-               and a.get("prompt_tokens",0)>0]
+               and b.get("prompt_tokens",0)>0 and a.get("prompt_tokens",0)>0]
         base_tokens=sum(a["prompt_tokens"] for a,b in valid)
         pie_tokens=sum(b["prompt_tokens"] for a,b in valid)
         report.append({"model":model,"completed_pairs":len(valid),"requested_pairs":len(tasks),
