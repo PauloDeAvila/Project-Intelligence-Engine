@@ -6,7 +6,7 @@ import unittest
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"tools"))
 sys.path.insert(0,str(ROOT/"src"))
-from cloud_pie_benchmark import LAB, QUESTIONS, ANSWER_KEYS, compact_evidence, curated_context, semantic_grade, evaluation_prompt, source_slice
+from cloud_pie_benchmark import LAB, QUESTIONS, ANSWER_KEYS, compact_evidence, compact_flow_evidence, curated_context, semantic_grade, evaluation_prompt, source_slice
 
 
 class CloudBenchmarkTests(unittest.TestCase):
@@ -28,6 +28,16 @@ class CloudBenchmarkTests(unittest.TestCase):
         source={"context_state":"PARTIAL","evidence":[{"path":"p.py","start_line":1,
             "end_line":1,"kind":"function","content":"def f(): pass"}]}
         self.assertIn("def f(): pass",compact_evidence(source))
+    def test_flow_annotation_preserves_code_and_extracts_handler(self):
+        report={"context_state":"CURRENT","evidence":[{"path":"service.py","start_line":10,
+            "end_line":15,"kind":"function","symbol":"OrderService.checkout",
+            "content":"    def checkout(self):\n        try:\n            return charge_with_retry()\n        except Exception:\n            self.inventory.release()\n            raise"}]}
+        result=compact_flow_evidence(report)
+        self.assertIn("return charge_with_retry()",result)
+        self.assertIn("TRY_RETURN",result)
+        self.assertIn("HANDLER Exception",result)
+        self.assertIn("ATTRIBUTE_CALL",result)
+        self.assertIn("AttributeError",result)
     def test_curated_reference_is_grounded(self):
         self.assertIn("range(config.MAX_RETRIES + 1)",curated_context("MAX_RETRIES"))
         self.assertIn("test_rollback_on_failure",curated_context("release"))
