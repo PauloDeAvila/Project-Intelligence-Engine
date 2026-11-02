@@ -47,10 +47,11 @@ def corpus_tasks(root, count, seed):
                 choices.append({"query":"Find the implementation responsible for: "+summary,
                                 "oracle":{"path":rel,"symbol":name}})
     random.Random(seed).shuffle(choices)
-    selected=[]; seen=set()
+    selected=[]; seen=set(); per_file={}
     for x in choices:
-        if x["oracle"]["path"] in seen:continue
-        seen.add(x["oracle"]["path"]);selected.append(x)
+        key=(x["oracle"]["path"],x["oracle"]["symbol"])
+        if key in seen or per_file.get(key[0],0)>=2:continue
+        seen.add(key);per_file[key[0]]=per_file.get(key[0],0)+1;selected.append(x)
         if len(selected)==count:break
     if len(selected)<count:raise RuntimeError(f"Not enough eligible Rich files: {len(selected)}")
     return selected
