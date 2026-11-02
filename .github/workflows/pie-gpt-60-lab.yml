@@ -1,0 +1,60 @@
+name: PIE - GPT 60-task multirepository laboratory
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/pie-gpt-60-lab.yml'
+      - 'tools/pie_gpt_60_lab.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      PIE_API_BASE_URL: ${{ secrets.PIE_API_BASE_URL }}
+      PIE_API_KEY: ${{ secrets.PIE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: Textualize/rich
+          ref: main
+          path: benchmark-corpora/rich
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: pallets/click
+          ref: main
+          path: benchmark-corpora/click
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: encode/httpx
+          ref: master
+          path: benchmark-corpora/httpx
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Record immutable repository commits
+        run: |
+          for project in rich click httpx; do
+            echo "$project: $(git -C benchmark-corpora/$project rev-parse HEAD)"
+          done
+      - name: Compile and independently validate task retrieval
+        run: |
+          python -m compileall -q src tools/pie_gpt_60_lab.py
+          PYTHONPATH=src python tools/pie_gpt_60_lab.py --dry-run --tasks-per-repo 20 --out gpt-multirepo-results
+      - name: Run 60 novel tasks in GPT-4o Mini with and without compact source
+        run: |
+          PYTHONPATH=src python -u tools/pie_gpt_60_lab.py --tasks-per-repo 20 --model gh/gpt-4o-mini --out gpt-multirepo-results
+      - name: Upload source oracle audits and model measurements
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pie-gpt-60-lab-${{ github.run_id }}
+          path: gpt-multirepo-results/
+          retention-days: 30
+          if-no-files-found: warn
