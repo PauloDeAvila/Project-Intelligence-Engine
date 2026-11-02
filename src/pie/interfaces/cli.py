@@ -108,6 +108,8 @@ def main(argv: list[str] | None = None) -> int:
     smart.add_argument("--max-chars", type=int, default=12000)
     smart.add_argument("--limit", type=int, default=8)
     smart.add_argument("--include-body", action="store_true")
+    warm_cmd = subparsers.add_parser("serve-warm")
+    warm_cmd.add_argument("--root", default=".")
     watch_cmd = subparsers.add_parser("watch")
     watch_cmd.add_argument("--root", default=".")
     watch_cmd.add_argument("--interval", type=float, default=5.0)
@@ -148,6 +150,10 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "references": result = command_references(root, args.name)
         elif args.command == "analysis": result = command_analysis(root)
         elif args.command == "context": result = build_context(root, args.query, max_chars=args.max_chars, limit=args.limit, strategy="smart", include_body=args.include_body)
+        elif args.command == "serve-warm":
+            from pie.retrieval.warm import serve
+            serve(root)
+            return 0
         elif args.command == "watch":
             if args.interval < 0.1 or args.iterations < 0:
                 parser.error("watch interval must be >=0.1 and iterations >=0")
