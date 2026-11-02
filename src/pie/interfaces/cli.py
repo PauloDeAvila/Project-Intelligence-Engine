@@ -11,6 +11,7 @@ from pie.storage.database import connect
 from pie.retrieval.intelligence import impact
 from pie.retrieval.context import build_context
 from pie.retrieval.adaptive import adaptive_context
+from pie.retrieval.task import task_context
 from pie.retrieval.glossary import remember, recall
 
 
@@ -119,6 +120,11 @@ def main(argv: list[str] | None = None) -> int:
     adaptive.add_argument("--full-source-path")
     adaptive.add_argument("--max-chars", type=int, default=12000)
     adaptive.add_argument("--limit", type=int, default=8)
+    task = subparsers.add_parser("task-context")
+    task.add_argument("query")
+    task.add_argument("--root", default=".")
+    task.add_argument("--max-chars", type=int, default=12000)
+    task.add_argument("--limit", type=int, default=8)
     impacts = subparsers.add_parser("impact")
     impacts.add_argument("name")
     impacts.add_argument("--root", default=".")
