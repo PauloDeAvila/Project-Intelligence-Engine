@@ -104,6 +104,25 @@ def summarize(source: Path, directory: Path):
         },
         "note": "Token saving is calculated only for completed pairs with reported prompt usage in both conditions. Missing values remain null. Retrieval latency excludes model inference."
     }
+    # Certification requires complete paired answers, full token accounting,
+    # and real PIE retrieval samples. Missing metrics never count as passing.
+    expected = 30
+    summary["certification"] = {
+        "expected_questions": expected,
+        "all_pairs_complete": len(pairs) == expected,
+        "all_token_pairs_measured": len(token_pairs) == expected,
+        "pie_accuracy_pct": round(100 * summary["paired_pie_correct"] / expected, 2)
+            if len(pairs) == expected else None,
+        "baseline_accuracy_pct": round(100 * summary["paired_baseline_correct"] / expected, 2)
+            if len(pairs) == expected else None,
+        "latency_target_pass": bool(retrieval_times and latency_mean < 100),
+        "token_saving_target_pass": bool(
+            len(token_pairs) == expected and saving is not None and saving >= 85),
+        "fully_certified": bool(
+            len(pairs) == expected and len(token_pairs) == expected
+            and retrieval_times and latency_mean < 100
+            and saving is not None and saving >= 85),
+    }
     (directory / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf8")
     try:
         from artifact_tool import Workbook, SpreadsheetFile
