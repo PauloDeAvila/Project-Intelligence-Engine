@@ -15,7 +15,7 @@ out = Path("gateway-check.json")
 model = os.environ.get("TARGET_MODEL", "").strip()
 base = os.environ.get("PIE_API_BASE_URL", "").rstrip("/")
 key = os.environ.get("PIE_API_KEY", "")
-report = {"model_requested": model, "reachable": False, "http_status": None, "elapsed_seconds": None, "actual_model": None, "error_category": None}
+report = {"model_requested": model, "reachable": False, "http_status": None, "elapsed_seconds": None, "actual_model": None, "error_category": None, "configuration": {"model_present": bool(model), "base_url_present": bool(base), "base_url_https": base.startswith("https://"), "api_key_present": bool(key)}}
 
 if not model or not base.startswith("https://") or not key:
     report["error_category"] = "invalid_configuration"
