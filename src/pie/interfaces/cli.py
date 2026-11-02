@@ -1,5 +1,6 @@
 import argparse
 import json
+import time
 from pathlib import Path
 
 from pie import __version__
@@ -104,6 +105,11 @@ def main(argv: list[str] | None = None) -> int:
     smart.add_argument("--max-chars", type=int, default=12000)
     smart.add_argument("--limit", type=int, default=8)
     smart.add_argument("--include-body", action="store_true")
+    watch_cmd = subparsers.add_parser("watch")
+    watch_cmd.add_argument("--root", default=".")
+    watch_cmd.add_argument("--interval", type=float, default=5.0)
+    watch_cmd.add_argument("--iterations", type=int, default=0,
+                           help="0 means run until Ctrl+C")
     impacts = subparsers.add_parser("impact")
     impacts.add_argument("name")
     impacts.add_argument("--root", default=".")
@@ -126,6 +132,22 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "references": result = command_references(root, args.name)
         elif args.command == "analysis": result = command_analysis(root)
         elif args.command == "context": result = smart_context(root, args.query, max_chars=args.max_chars, limit=args.limit, include_body=args.include_body)
+        elif args.command == "watch":
+            if args.interval < 0.1 or args.iterations < 0:
+                parser.error("watch interval must be >=0.1 and iterations >=0")
+            checks=0
+            try:
+                while not args.iterations or checks < args.iterations:
+                    update=index_project(root)
+                    if checks == 0 or update.get("changed_files") or update.get("removed_files") or update["index_state"] != "CURRENT":
+                        print(json.dumps({"event":"index_update","iteration":checks,**update},
+                                         ensure_ascii=False),flush=True)
+                    checks += 1
+                    if not args.iterations or checks < args.iterations:
+                        time.sleep(args.interval)
+            except KeyboardInterrupt:
+                pass
+            return 0
         elif args.command == "impact": result = impact(root, args.name)
         elif args.command == "remember": result = remember(root, args.key, args.description, args.source)
         elif args.command == "recall": result = recall(root, args.query)
