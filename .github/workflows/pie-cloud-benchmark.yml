@@ -1,10 +1,5 @@
 name: PIE - cloud three-way benchmark
 on:
-  push:
-    branches: [feat/cloud-9router-benchmark-gateway]
-    paths:
-      - 'tools/cloud_pie_benchmark.py'
-      - '.github/workflows/pie-cloud-benchmark.yml'
   workflow_dispatch:
     inputs:
       model:
