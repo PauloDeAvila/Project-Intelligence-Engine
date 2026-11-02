@@ -20,6 +20,7 @@ from pie.storage.database import connect
 from pie.retrieval.fts import search_fts
 from pie.graph.verified import VerifiedGraph
 from pie.retrieval.packs import build_responsibility_pack
+from pie.retrieval.predictive import predict_adjacent_queries
 
 
 class WarmContextService:
@@ -142,6 +143,16 @@ class WarmContextService:
                 self.query(query, include_body=True, limit=5)
             return {"prepared": len(queries)}
 
+    def predictive_prefetch(self, question: str, *, limit: int = 6) -> dict:
+        """Prepare graph-neighbor queries with strict freshness checks."""
+        with self._lock:
+            pack = self.task_pack(question)
+            proposed = predict_adjacent_queries(pack, limit=limit)
+            if proposed:
+                self.prefetch(proposed)
+            return {"seed": question, "predicted": proposed,
+                    "prepared": len(proposed), "consistency": "strict"}
+
     def search_candidates(self, question: str, limit: int = 50) -> dict:
         self.refresh()
         hits = search_fts(self._connection, question, limit=limit)
@@ -184,6 +195,9 @@ def serve(root: Path, stdin: TextIO = sys.stdin, stdout: TextIO = sys.stdout):
                                                 max_chars=request.get("max_chars", 12000))
                 elif method == "prefetch":
                     payload = service.prefetch(request["queries"])
+                elif method == "predictive_prefetch":
+                    payload = service.predictive_prefetch(request["query"],
+                                                         limit=request.get("limit", 6))
                 elif method == "refresh":
                     payload = service.refresh()
                 elif method == "candidates":
