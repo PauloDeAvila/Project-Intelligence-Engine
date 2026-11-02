@@ -125,6 +125,7 @@ def run():
                 audit[mode][q]={"chars":len(c),"sha256":sha(c),"missing":[term for term in checks[q] if term not in c]}
         (out/"evidence.json").write_text(json.dumps({"audit":audit,"questions":QUESTIONS,"contexts":contexts},ensure_ascii=False,indent=2),encoding='utf-8')
         if any(audit["curated_reference"][q]["missing"] for q in QUESTIONS):raise RuntimeError("Curated context insufficient")
+        if any(audit["pie_auto"][q]["missing"] for q in QUESTIONS):raise RuntimeError("Automatic causal context insufficient; no inference will run")
         if args.dry_run:
             print('DRY RUN PASSED:',json.dumps({q:{m:audit[m][q]['chars'] for m in contexts} for q in QUESTIONS}));return
         if not (endpoint.startswith('https://') and key):raise RuntimeError('Missing HTTPS endpoint or inference secret')
