@@ -41,6 +41,7 @@ def build_causal_context(root:Path,query:str,max_chars:int=12000)->dict:
     with connect(root/".pie"/"index.sqlite3") as db:
         files=db.execute("SELECT path,sha256 FROM files ORDER BY path").fetchall()
     functions=[]
+    assignments=[]
     names={query.rsplit(".",1)[-1]}
     direct=raw.get("source_ranges",[])+raw.get("expanded_source_ranges",[])
     for d in direct:
@@ -57,6 +58,13 @@ def build_causal_context(root:Path,query:str,max_chars:int=12000)->dict:
             report["context_state"]="STALE"
             report["omitted"].append({"path":path,"reason":"unavailable_or_stale"})
             return report
+        for stmt in tree.body:
+            if isinstance(stmt,(ast.Assign,ast.AnnAssign)):
+                targets=stmt.targets if isinstance(stmt,ast.Assign) else [stmt.target]
+                for t in targets:
+                    if isinstance(t,ast.Name) and t.id==query.rsplit(".",1)[-1]:
+                        assignments.append({"path":path,"start_line":stmt.lineno,"end_line":stmt.end_lineno,
+                                            "content":"\\n".join(lines[stmt.lineno-1:stmt.end_lineno]),"symbol":t.id})
         for node,qualified in _functions(tree):
             functions.append({"path":path,"line":node.lineno,"end":node.end_lineno,"name":node.name,
                               "qualified":qualified,"calls":_calls(node),
@@ -103,11 +111,13 @@ def build_causal_context(root:Path,query:str,max_chars:int=12000)->dict:
         report["evidence"].append(evidence)
         seen.add(identity)
 
+    for d in assignments:
+        add(d["path"],d["start_line"],d["end_line"],d["content"],"definition",d["symbol"])
     for d in direct:
-        if d.get("kind") in ("constant","class") and d["symbol"].rsplit(".",1)[-1]==query.rsplit(".",1)[-1]:
+        if d.get("kind") in ("constant","class","variable") and d["symbol"].rsplit(".",1)[-1]==query.rsplit(".",1)[-1]:
             add(d["path"],d["start_line"],d["end_line"],d["content"],"definition",d["symbol"])
     for x in ranked[:9]:add(x["path"],x["line"],x["end"],x["source"],"function",x["qualified"])
-    for _,x in tests[:4]:add(x["path"],x["line"],x["end"],x["source"],"behavioral_test",x["qualified"])
+    for _,x in tests[:2]:add(x["path"],x["line"],x["end"],x["source"],"behavioral_test",x["qualified"])
     if report["omitted"]:report["context_state"]="PARTIAL"
     return report
 
