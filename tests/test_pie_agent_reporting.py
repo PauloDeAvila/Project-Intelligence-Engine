@@ -53,6 +53,8 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(summary["completed_pairs"], 2)
         self.assertEqual(summary["token_covered_pairs"], 1)
         self.assertEqual(summary["token_pair_coverage_pct"], 50)
+        self.assertEqual(summary["token_question_coverage_pct"], 3.33)
+        self.assertEqual(summary["completed_question_coverage_pct"], 6.67)
         self.assertEqual(summary["input_token_saving_pct"], 40)
         self.assertEqual(summary["paired_pie_correct"], 1)
         self.assertEqual(summary["paired_baseline_correct"], 1)
