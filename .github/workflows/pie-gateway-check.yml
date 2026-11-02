@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     env:
-      PIE_API_BASE_URL: ${{ secrets.PIE_API_BASE_URL }}
+      PIE_API_BASE_URL: ${{ secrets.PIE_API_BASE_URL || vars.PIE_API_BASE_URL || 'https://fixtures-deaths-icq-disks.trycloudflare.com' }}
       PIE_API_KEY: ${{ secrets.PIE_API_KEY }}
       TARGET_MODEL: ${{ inputs.model || 'gh/gpt-4o-mini' }}
     steps:
