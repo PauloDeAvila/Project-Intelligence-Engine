@@ -136,7 +136,7 @@ class ContextIntelligenceTests(unittest.TestCase):
     def test_adaptive_crlf_source_uses_normalized_character_budget(self):
         from pie.retrieval.adaptive import adaptive_context
         source = self.root / "cache_manager.py"
-        source.write_bytes(source.read_bytes().replace(b"\\n", b"\\r\\n"))
+        source.write_bytes(source.read_bytes().replace(b"\n", b"\r\n"))
         index_project(self.root)
         result = adaptive_context(self.root, "refresh_cache", mode="edit",
                                   full_source_path="cache_manager.py")
@@ -144,7 +144,7 @@ class ContextIntelligenceTests(unittest.TestCase):
         self.assertLessEqual(result["context_characters"],
                              len(source.read_text(encoding="utf8")))
         if result["representation"] == "full_source":
-            self.assertNotIn("\\r", result["content"])
+            self.assertNotIn("\r", result["content"])
 
     def test_adaptive_navigation_is_compact_and_cited(self):
         from pie.retrieval.adaptive import adaptive_context
