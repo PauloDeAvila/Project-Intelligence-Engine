@@ -61,6 +61,32 @@ class ReportTests(unittest.TestCase):
         self.assertTrue(summary["retrieval_mean_below_100ms"])
 
 
+
+    def test_invalid_agent_output_is_reported_without_fabricating_http_status(self):
+        summary, details = self.generate([
+            {"task": 0, "mode": "pie", "model": "qd/qfmodel", "ok": True,
+             "correct": False, "answer": {}, "answer_valid": False,
+             "calls": 1, "searches": 0, "prompt_tokens": 90,
+             "response_diagnostics": [{
+                 "http_status": 200, "finish_reason": "length",
+                 "content_chars": 0, "reasoning_chars": 1200,
+                 "parsed_action": "invalid"
+             }]},
+            {"task": 0, "mode": "baseline", "model": "qd/qfmodel", "ok": True,
+             "correct": False, "answer": {}, "answer_valid": False,
+             "calls": 1, "searches": 0, "prompt_tokens": 1000}
+        ])
+        self.assertEqual(summary["completed_pairs"], 1)
+        self.assertEqual(summary["valid_answer_pairs"], 0)
+        self.assertEqual(summary["invalid_answer_attempts"], 2)
+        self.assertEqual(summary["pie_no_search_attempts"], 1)
+        self.assertEqual(summary["http_successes_measured"], 1)
+        self.assertEqual(summary["http_status_covered_attempts"], 1)
+        self.assertEqual(details[0]["last_finish_reason"], "length")
+        self.assertEqual(details[0]["last_content_chars"], "0")
+        self.assertEqual(details[1]["http_successes_measured"], "")
+
+
 class GatewayResponseTests(unittest.TestCase):
     def test_reasoning_only_response_is_not_a_valid_answer(self):
         from unittest import mock
