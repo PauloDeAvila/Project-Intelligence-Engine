@@ -20,7 +20,7 @@ sys.path.insert(0,str(ROOT/'src'))
 from pie.indexing.indexer import index_project
 from pie.graph.relationships import build_relationships
 from pie.retrieval.context import build_context
-from pie_causal_selector import build_causal_context
+from pie_causal_selector import build_causal_context, render_control_flow
 
 LAB = {
 "mini_order/__init__.py": "from .models import Order\nfrom .inventory import Inventory\nfrom .payment import PaymentGateway\nfrom .service import OrderService\n",
@@ -87,6 +87,12 @@ def compact_evidence(report):
         seen.add(key)
         lines.append(f"### {e['path']}:{e['start_line']}-{e['end_line']} [{e['kind']}]\n{e['content']}")
     return "\n\n".join(lines)
+
+
+def compact_flow_evidence(report):
+    code=compact_evidence(report)
+    facts=render_control_flow(report)
+    return code+("\n\n### Fluxo de controle inferido sintaticamente (não comprova despacho dinâmico)\n"+facts if facts else "")
 
 
 def baseline_context():
@@ -164,6 +170,7 @@ def run():
                   "pie_raw":{q:json.dumps(build_context(root,q,max_chars=12000),ensure_ascii=False) for q in QUESTIONS},
                   "pie_auto":{q:json.dumps(build_causal_context(root,q,max_chars=12000),ensure_ascii=False) for q in QUESTIONS},
                   "pie_compact":{q:compact_evidence(build_causal_context(root,q,max_chars=12000)) for q in QUESTIONS},
+                  "pie_flow":{q:compact_flow_evidence(build_causal_context(root,q,max_chars=12000)) for q in QUESTIONS},
                   "curated_reference":{q:curated_context(q) for q in QUESTIONS}}
         retrieval_seconds=round(time.perf_counter()-retrieval_started,5)
         checks={
@@ -180,6 +187,7 @@ def run():
         if any(audit["curated_reference"][q]["missing"] for q in QUESTIONS):raise RuntimeError("Curated context insufficient")
         if any(audit["pie_auto"][q]["missing"] for q in QUESTIONS):raise RuntimeError("Automatic causal context insufficient; no inference will run")
         if any(audit["pie_compact"][q]["missing"] for q in QUESTIONS):raise RuntimeError("Compact causal context insufficient; no inference will run")
+        if any(audit["pie_flow"][q]["missing"] for q in QUESTIONS):raise RuntimeError("Control-flow context insufficient; no inference will run")
         if args.dry_run:
             print('DRY RUN PASSED:',json.dumps({q:{m:audit[m][q]['chars'] for m in contexts} for q in QUESTIONS}));return
         if not (endpoint.startswith('https://') and key):raise RuntimeError('Missing HTTPS endpoint or inference secret')
@@ -187,7 +195,7 @@ def run():
         for rep in range(args.repeats):
             cases=list(QUESTIONS);random.Random(101+rep).shuffle(cases)
             for q in cases:
-                modes=['baseline','pie_raw','pie_auto','pie_compact','curated_reference']
+                modes=['baseline','pie_raw','pie_auto','pie_compact','pie_flow','curated_reference']
                 random.Random(202+rep+len(q)).shuffle(modes)
                 jobs.extend((rep,q,m) for m in modes)
         for i,(rep,q,mode) in enumerate(jobs,1):
@@ -201,7 +209,7 @@ def run():
             if not response["ok"]:break
             time.sleep(.5)
     summary={}
-    for mode in ["baseline","pie_raw","pie_auto","pie_compact","curated_reference"]:
+    for mode in ["baseline","pie_raw","pie_auto","pie_compact","pie_flow","curated_reference"]:
         vals=[r for r in results if r["mode"]==mode and r["ok"]]
         summary[mode]={"n":len(vals),"median_latency_s":round(statistics.median([x["seconds"] for x in vals]),3) if vals else None,"total_tokens":sum(x.get("usage",{}).get("total_tokens",0) for x in vals),"prompt_tokens":sum(x.get("usage",{}).get("prompt_tokens",0) for x in vals),"completion_tokens":sum(x.get("usage",{}).get("completion_tokens",0) for x in vals),"nonstop":sum(x.get("finish_reason")!="stop" for x in vals),"correct_fields":sum(x.get("semantic_grade",{}).get("passed",0) for x in vals),"total_fields":sum(x.get("semantic_grade",{}).get("total",0) for x in vals)}
     (out/"summary.json").write_text(json.dumps({"model":args.model,"cases":list(QUESTIONS),"summary":summary,"index_seconds_one_time":index_seconds,"retrieval_seconds_all_contexts":retrieval_seconds,"grading":"Deterministic JSON-field scoring against known behavior of the synthetic mini-order lab; not a general code-correctness metric.","caveat":"The curated reference uses case-specific source selection; it is NOT a general-purpose PIE algorithm. One small lab, no automated semantic grading, and no established speedup."},ensure_ascii=False,indent=2),encoding='utf-8')
