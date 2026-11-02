@@ -125,6 +125,28 @@ class ContextIntelligenceTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 recall(outside,"sample")
 
+    def test_adaptive_small_project_never_more_source_chars_than_full(self):
+        from pie.retrieval.adaptive import adaptive_context
+        result=adaptive_context(self.root,"refresh_cache",mode="edit",
+                                full_source_path="cache_manager.py")
+        self.assertEqual(result["context_state"],"CURRENT")
+        self.assertLessEqual(result["context_characters"],
+                             len((self.root/"cache_manager.py").read_text(encoding="utf8")))
+
+    def test_adaptive_navigation_is_compact_and_cited(self):
+        from pie.retrieval.adaptive import adaptive_context
+        result=adaptive_context(self.root,"refresh cache",mode="navigation")
+        self.assertEqual(result["representation"],"compact")
+        self.assertIn("cache_manager.py:",result["content"])
+        self.assertNotIn("description",result["content"])
+
+    def test_adaptive_full_source_hash_mismatch_rejected(self):
+        from pie.retrieval.adaptive import adaptive_context
+        (self.root/"cache_manager.py").write_text("def refresh_cache(): pass\n",encoding="utf8")
+        with self.assertRaises(ValueError):
+            adaptive_context(self.root,"refresh_cache",mode="edit",
+                             full_source_path="cache_manager.py")
+
     def test_impact_depth_validation(self):
         with self.assertRaises(ValueError):
             impact(self.root,"refresh_cache",depth=6)
