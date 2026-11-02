@@ -28,7 +28,7 @@ class GraphTests(unittest.TestCase):
                 self.assertTrue(any(e["source_path"]=="consumer.py" for e in edges),edges)
                 self.assertEqual(graph.consumers("other.py","execute")["edges"],[])
                 pack=service.task_pack("Execute a verified provider operation")
-                self.assertIn("provider.py::execute",pack["verified_consumers"])
+                self.assertTrue(any(x["path"]=="provider.py" and x["symbol"]=="execute" for x in pack["responsibilities"]))
                 self.assertTrue(all(e["resolution"]=="verified" for e in edges))
                 with self.assertRaises(ValueError):
                     graph.consumers("provider.py","execute",depth=6)
