@@ -75,8 +75,14 @@ def smart_context(root: Path, query: str, *, max_chars: int = 12000, limit: int 
                                LEFT JOIN symbol_docs d ON d.symbol_id=s.id""").fetchall()
         fts_hits = search_fts(conn, query, limit=min(500,max(100,limit*12)))
         fts_position = {symbol_id: i for i,(symbol_id,_) in enumerate(fts_hits)}
-        verified_counts = {r["target_name"]:r["n"] for r in conn.execute(
-            "SELECT target_name, COUNT(*) AS n FROM usages WHERE resolution='verified' AND target_name IS NOT NULL GROUP BY target_name")}
+        verified_counts = {
+            (r["path"],r["qualified_name"]):r["n"]
+            for r in conn.execute("""SELECT f.path,d.qualified_name,COUNT(u.id) AS n
+              FROM definitions d JOIN files f ON f.id=d.file_id
+              JOIN usages u ON u.target_binding_key=d.binding_key
+              WHERE u.resolution='verified'
+              GROUP BY f.path,d.qualified_name""")
+        }
         query_words = _query_terms(query)
         candidates = []
         for row in rows:
@@ -92,7 +98,7 @@ def smart_context(root: Path, query: str, *, max_chars: int = 12000, limit: int 
             if rank is not None:
                 score += max(2,10-rank//12)
             if score:
-                score += min(3,verified_counts.get(row["name"],0))
+                score += min(3,verified_counts.get((row["path"],row["qualified_name"]),0))
                 candidates.append((score,row))
         candidates.sort(key=lambda item: (-item[0],item[1]["path"],
                                           item[1]["start_line"],item[1]["qualified_name"]))
