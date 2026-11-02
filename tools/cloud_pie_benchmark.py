@@ -95,8 +95,31 @@ def compact_flow_evidence(report):
     return code+("\n\n### Fluxo de controle inferido sintaticamente (não comprova despacho dinâmico)\n"+facts if facts else "")
 
 
-def baseline_context():
-    return '\n\n'.join(f"### {p}\n{s}" for p,s in sorted(LAB.items()))
+def baseline_context(root):
+    return "\\n\\n".join(
+        f"### {p.relative_to(root).as_posix()}\\n{p.read_text(encoding='utf-8')}"
+        for p in sorted(root.rglob("*.py")) if ".pie" not in p.parts
+    )
+
+def synthetic_modules(n):
+    """Unrelated but plausible small Python modules for a transparent scaling stress test."""
+    for i in range(n):
+        lines=[f'"""Synthetic metrics module {i:03d}; not part of the order checkout pipeline."""',
+               f'class MetricsBucket{i:03d}:',
+               '    def __init__(self):',
+               '        self.values = []',
+               '    def record(self, value):',
+               '        self.values.append(value)',
+               '    def summarize(self):',
+               '        if not self.values: return 0',
+               '        return sum(self.values) / len(self.values)']
+        for j in range(10):
+            lines += [f'def transform_{i:03d}_{j:02d}(number):',
+                      f'    scaled = number * {j+2} + {i%13}',
+                      '    return (scaled // 2) if scaled > 100 else scaled']
+        yield f"unrelated_metrics/module_{i:03d}.py", "\\n".join(lines)+"\\n"
+
+
 
 # Controlled semantic ground truth for this synthetic laboratory.
 # These assertions are independent of the LLM and apply identically to all modes.
@@ -146,15 +169,17 @@ def run():
     parser.add_argument('--max-tokens',type=int,default=768)
     parser.add_argument('--out',default='benchmark-results')
     parser.add_argument('--dry-run',action='store_true')
+    parser.add_argument('--scale-modules',type=int,default=0)
     args=parser.parse_args()
     if not (1 <= args.repeats <= 10): parser.error('repeats 1..10')
+    if not (0 <= args.scale_modules <= 150): parser.error('scale-modules 0..150')
     endpoint=os.getenv('PIE_API_BASE_URL','').rstrip('/')
     key=os.getenv('PIE_API_KEY','')
     out=Path(args.out);out.mkdir(parents=True,exist_ok=True)
     results=[]
     with tempfile.TemporaryDirectory() as temp:
         root=Path(temp)
-        for p,s in LAB.items():
+        for p,s in list(LAB.items())+list(synthetic_modules(args.scale_modules)):
             target=root/p;target.parent.mkdir(parents=True,exist_ok=True);target.write_text(s,encoding='utf-8')
         tests=subprocess.run([sys.executable,"-m","unittest","discover","-s","tests","-q"],cwd=root,env={**os.environ,"PYTHONPATH":str(root)},capture_output=True,text=True,timeout=30)
         if tests.returncode != 0: raise RuntimeError("Lab regression tests failed before model inference")
@@ -166,7 +191,7 @@ def run():
         rel=build_relationships(root)
         print('Static relationships built:',rel.get('stored',rel.get('relations_observed','unknown')))
         retrieval_started=time.perf_counter()
-        contexts={"baseline":{q:baseline_context() for q in QUESTIONS},
+        contexts={"baseline":{q:baseline_context(root) for q in QUESTIONS},
                   "pie_raw":{q:json.dumps(build_context(root,q,max_chars=12000),ensure_ascii=False) for q in QUESTIONS},
                   "pie_auto":{q:json.dumps(build_causal_context(root,q,max_chars=12000),ensure_ascii=False) for q in QUESTIONS},
                   "pie_compact":{q:compact_evidence(build_causal_context(root,q,max_chars=12000)) for q in QUESTIONS},
@@ -212,7 +237,7 @@ def run():
     for mode in ["baseline","pie_raw","pie_auto","pie_compact","pie_flow","curated_reference"]:
         vals=[r for r in results if r["mode"]==mode and r["ok"]]
         summary[mode]={"n":len(vals),"median_latency_s":round(statistics.median([x["seconds"] for x in vals]),3) if vals else None,"total_tokens":sum(x.get("usage",{}).get("total_tokens",0) for x in vals),"prompt_tokens":sum(x.get("usage",{}).get("prompt_tokens",0) for x in vals),"completion_tokens":sum(x.get("usage",{}).get("completion_tokens",0) for x in vals),"nonstop":sum(x.get("finish_reason")!="stop" for x in vals),"correct_fields":sum(x.get("semantic_grade",{}).get("passed",0) for x in vals),"total_fields":sum(x.get("semantic_grade",{}).get("total",0) for x in vals)}
-    (out/"summary.json").write_text(json.dumps({"model":args.model,"cases":list(QUESTIONS),"summary":summary,"index_seconds_one_time":index_seconds,"retrieval_seconds_all_contexts":retrieval_seconds,"grading":"Deterministic JSON-field scoring against known behavior of the synthetic mini-order lab; not a general code-correctness metric.","caveat":"The curated reference uses case-specific source selection; it is NOT a general-purpose PIE algorithm. One small lab, no automated semantic grading, and no established speedup."},ensure_ascii=False,indent=2),encoding='utf-8')
+    (out/"summary.json").write_text(json.dumps({"model":args.model,"scale_modules":args.scale_modules,"cases":list(QUESTIONS),"summary":summary,"index_seconds_one_time":index_seconds,"retrieval_seconds_all_contexts":retrieval_seconds,"grading":"Deterministic JSON-field scoring against known behavior of the synthetic mini-order lab; not a general code-correctness metric.","caveat":"The curated reference uses case-specific source selection; it is NOT a general-purpose PIE algorithm. One small lab, no automated semantic grading, and no established speedup."},ensure_ascii=False,indent=2),encoding='utf-8')
     print("SUMMARY",json.dumps(summary))
     if len(results)!=len(jobs) or any(not r["ok"] for r in results):sys.exit(1)
 
