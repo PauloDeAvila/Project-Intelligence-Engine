@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/pie-gateway-check.yml'
       - 'tools/cloud_gateway_probe.py'
+      - 'tools/cloud_pie_benchmark.py'
   workflow_dispatch:
     inputs:
       model:
@@ -34,6 +35,20 @@ jobs:
       - name: Test one model request
         shell: bash
         run: python tools/cloud_gateway_probe.py
+      - name: Run three-way PIE benchmark after successful gateway test
+        shell: bash
+        run: |
+          python -m compileall -q src tools/cloud_pie_benchmark.py
+          PYTHONPATH=src python tools/cloud_pie_benchmark.py --dry-run --out benchmark-results
+          PYTHONPATH=src python tools/cloud_pie_benchmark.py --model "$TARGET_MODEL" --repeats 1 --out benchmark-results
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pie-benchmark-${{ github.run_id }}
+          path: benchmark-results/
+          retention-days: 30
+          if-no-files-found: warn
       - name: Upload diagnostic report
         if: always()
         uses: actions/upload-artifact@v4
