@@ -32,7 +32,7 @@ def corpus_tasks(root, count, seed):
     for path in sorted((root/"rich").rglob("*.py")):
         try:
             source = path.read_text(encoding="utf-8-sig")
-            if not 3500 <= len(source) <= 29000:
+            if not 1500 <= len(source) <= 80000:
                 continue
             tree = ast.parse(source)
         except (OSError, SyntaxError, UnicodeError):
@@ -87,7 +87,7 @@ def perform(root,task,model,mode,base,key,service):
             try:
                 s=p.read_text(encoding="utf-8-sig")
             except (OSError,UnicodeError):continue
-            if 3500<=len(s)<=29000:
+            if 1500<=len(s)<=80000:
                 candidates.append((len(q & terms(s)),p,s))
         candidates.sort(key=lambda item:(-item[0],str(item[1])))
         body="\n\n".join(f"FILE {p.relative_to(root).as_posix()}\n{s}" for _,p,s in candidates[:2])
@@ -120,11 +120,11 @@ def perform(root,task,model,mode,base,key,service):
 def main():
     p=argparse.ArgumentParser()
     p.add_argument("--corpus",default="rich-corpus")
-    p.add_argument("--models",default="gh/gpt-4o-mini")
-    p.add_argument("--count",type=int,default=5)
+    p.add_argument("--models",default="nvidia/nemotron-3-ultra-550b-a55b")
+    p.add_argument("--count",type=int,default=30)
     p.add_argument("--output",default="pie-agent-9router.json")
     args=p.parse_args()
-    if not 1<=args.count<=20:p.error("count must be 1..20")
+    if not 1<=args.count<=60:p.error("count must be 1..60")
     base=os.getenv("PIE_API_BASE_URL","");key=os.getenv("PIE_API_KEY","")
     if not base.startswith("https://") or not key:
         raise RuntimeError("PIE_API_BASE_URL (HTTPS) and PIE_API_KEY required")
