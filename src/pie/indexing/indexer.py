@@ -176,6 +176,8 @@ def index_project(root: Path) -> dict[str, object]:
     try:
         metadata = {row["key"]: row["value"] for row in connection.execute("SELECT key, value FROM metadata")}
         return {
+            "changed_files": sorted(changed),
+            "removed_files": sorted(removed),
             "files": connection.execute("SELECT COUNT(*) FROM files").fetchone()[0],
             "symbols": connection.execute("SELECT COUNT(*) FROM symbols").fetchone()[0],
             "imports": connection.execute("SELECT COUNT(*) FROM imports").fetchone()[0],
