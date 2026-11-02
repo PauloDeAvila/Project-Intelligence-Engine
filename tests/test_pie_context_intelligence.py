@@ -199,6 +199,18 @@ class ContextIntelligenceTests(unittest.TestCase):
         finally:
             db.close()
 
+    def test_task_context_contains_verified_source_and_budget(self):
+        from pie.retrieval.task import task_context
+        output=task_context(self.root,"refresh cache",max_chars=12000)
+        self.assertIn("cache_manager.py:",output["content"])
+        self.assertLessEqual(output["context_characters"],12000)
+        self.assertIn("verified_impact_hints",output)
+
+    def test_task_context_rejects_invalid_budget(self):
+        from pie.retrieval.task import task_context
+        with self.assertRaises(ValueError):
+            task_context(self.root,"refresh cache",max_chars=100)
+
     def test_impact_depth_validation(self):
         with self.assertRaises(ValueError):
             impact(self.root,"refresh_cache",depth=6)
