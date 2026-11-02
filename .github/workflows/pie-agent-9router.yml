@@ -6,6 +6,9 @@ on:
     paths:
       - 'tools/pie_agent_9router_lab.py'
       - '.github/workflows/pie-agent-9router.yml'
+concurrency:
+  group: pie-agent-navigation-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
