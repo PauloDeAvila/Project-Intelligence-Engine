@@ -170,9 +170,13 @@ def run():
     parser.add_argument('--out',default='benchmark-results')
     parser.add_argument('--dry-run',action='store_true')
     parser.add_argument('--scale-modules',type=int,default=0)
+    parser.add_argument('--modes',default='baseline,pie_raw,pie_auto,pie_compact,pie_flow,curated_reference')
     args=parser.parse_args()
     if not (1 <= args.repeats <= 10): parser.error('repeats 1..10')
     if not (0 <= args.scale_modules <= 150): parser.error('scale-modules 0..150')
+    selected_modes=[mode.strip() for mode in args.modes.split(',')]
+    valid_modes={'baseline','pie_raw','pie_auto','pie_compact','pie_flow','curated_reference'}
+    if len(selected_modes)!=len(set(selected_modes)) or not selected_modes or not set(selected_modes)<=valid_modes: parser.error('Invalid or duplicate modes')
     endpoint=os.getenv('PIE_API_BASE_URL','').rstrip('/')
     key=os.getenv('PIE_API_KEY','')
     out=Path(args.out);out.mkdir(parents=True,exist_ok=True)
@@ -220,7 +224,7 @@ def run():
         for rep in range(args.repeats):
             cases=list(QUESTIONS);random.Random(101+rep).shuffle(cases)
             for q in cases:
-                modes=['baseline','pie_raw','pie_auto','pie_compact','pie_flow','curated_reference']
+                modes=list(selected_modes)
                 random.Random(202+rep+len(q)).shuffle(modes)
                 jobs.extend((rep,q,m) for m in modes)
         for i,(rep,q,mode) in enumerate(jobs,1):
@@ -234,10 +238,10 @@ def run():
             if not response["ok"]:break
             time.sleep(.5)
     summary={}
-    for mode in ["baseline","pie_raw","pie_auto","pie_compact","pie_flow","curated_reference"]:
+    for mode in selected_modes:
         vals=[r for r in results if r["mode"]==mode and r["ok"]]
         summary[mode]={"n":len(vals),"median_latency_s":round(statistics.median([x["seconds"] for x in vals]),3) if vals else None,"total_tokens":sum(x.get("usage",{}).get("total_tokens",0) for x in vals),"prompt_tokens":sum(x.get("usage",{}).get("prompt_tokens",0) for x in vals),"completion_tokens":sum(x.get("usage",{}).get("completion_tokens",0) for x in vals),"nonstop":sum(x.get("finish_reason")!="stop" for x in vals),"correct_fields":sum(x.get("semantic_grade",{}).get("passed",0) for x in vals),"total_fields":sum(x.get("semantic_grade",{}).get("total",0) for x in vals)}
-    (out/"summary.json").write_text(json.dumps({"model":args.model,"scale_modules":args.scale_modules,"cases":list(QUESTIONS),"summary":summary,"index_seconds_one_time":index_seconds,"retrieval_seconds_all_contexts":retrieval_seconds,"grading":"Deterministic JSON-field scoring against known behavior of the synthetic mini-order lab; not a general code-correctness metric.","caveat":"The curated reference uses case-specific source selection; it is NOT a general-purpose PIE algorithm. One small lab, no automated semantic grading, and no established speedup."},ensure_ascii=False,indent=2),encoding='utf-8')
+    (out/"summary.json").write_text(json.dumps({"model":args.model,"scale_modules":args.scale_modules,"modes":selected_modes,"cases":list(QUESTIONS),"summary":summary,"index_seconds_one_time":index_seconds,"retrieval_seconds_all_contexts":retrieval_seconds,"grading":"Deterministic JSON-field scoring against known behavior of the synthetic mini-order lab; not a general code-correctness metric.","caveat":"The curated reference uses case-specific source selection; it is NOT a general-purpose PIE algorithm. One small lab, no automated semantic grading, and no established speedup."},ensure_ascii=False,indent=2),encoding='utf-8')
     print("SUMMARY",json.dumps(summary))
     if len(results)!=len(jobs) or any(not r["ok"] for r in results):sys.exit(1)
 
