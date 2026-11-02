@@ -1,0 +1,37 @@
+name: PIE - two-model architecture discovery laboratory
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/pie-discovery-lab.yml'
+      - 'tools/pie_discovery_benchmark.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      PIE_API_BASE_URL: ${{ secrets.PIE_API_BASE_URL }}
+      PIE_API_KEY: ${{ secrets.PIE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate benchmark and retrieval locally
+        run: |
+          PYTHONPATH=src:tools python -m compileall -q tools/pie_discovery_benchmark.py
+          PYTHONPATH=src:tools python tools/pie_discovery_benchmark.py --dry-run --out discovery-results
+      - name: Run same 12 distinct questions on GPT and NVIDIA Nemotron
+        run: |
+          PYTHONPATH=src:tools python -u tools/pie_discovery_benchmark.py --models 'gh/gpt-4o-mini;nvidia/nvidia/nemotron-3-ultra-550b-a55b' --out discovery-results
+      - name: Publish measured artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pie-discovery-two-models-${{ github.run_id }}
+          path: discovery-results/
+          retention-days: 30
+          if-no-files-found: warn

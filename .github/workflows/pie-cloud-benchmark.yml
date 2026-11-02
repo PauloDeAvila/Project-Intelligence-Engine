@@ -1,0 +1,50 @@
+name: PIE - cloud three-way benchmark
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: '9Router model ID'
+        required: true
+        default: 'gh/gpt-4o-mini'
+        type: string
+      repeats:
+        description: 'Repetitions per case (1-10)'
+        required: true
+        default: '1'
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: pie-cloud-benchmark
+  cancel-in-progress: false
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PIE_API_BASE_URL: ${{ secrets.PIE_API_BASE_URL || vars.PIE_API_BASE_URL || 'https://fixtures-deaths-icq-disks.trycloudflare.com' }}
+      PIE_API_KEY: ${{ secrets.PIE_API_KEY }}
+      MODEL: ${{ inputs.model || 'gh/gpt-4o-mini' }}
+      REPEATS: ${{ inputs.repeats || '1' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile and dry-run evidence audit (no API calls)
+        shell: bash
+        run: |
+          python -m compileall -q src tools/cloud_pie_benchmark.py
+          PYTHONPATH=src python tools/cloud_pie_benchmark.py --dry-run --out benchmark-results
+      - name: Execute controlled cloud benchmark
+        shell: bash
+        run: |
+          PYTHONPATH=src python tools/cloud_pie_benchmark.py --model "$MODEL" --repeats "$REPEATS" --out benchmark-results
+      - name: Upload results and evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pie-cloud-results-${{ github.run_id }}
+          path: benchmark-results/
+          retention-days: 30
+          if-no-files-found: warn
