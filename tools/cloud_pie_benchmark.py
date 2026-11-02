@@ -1,0 +1,149 @@
+#!/usr/bin/env python3
+"""Cloud benchmark: equal questions/model; three retrieval strategies; no secrets in output."""
+import argparse
+import ast
+import hashlib
+import json
+import os
+from pathlib import Path
+import random
+import statistics
+import sys
+import tempfile
+import time
+import urllib.request
+import urllib.error
+
+ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT/'src'))
+from pie.indexing.indexer import index_project
+from pie.retrieval.context import build_context
+
+LAB = {
+"mini_order/__init__.py": "from .models import Order\nfrom .inventory import Inventory\nfrom .payment import PaymentGateway\nfrom .service import OrderService\n",
+"mini_order/config.py": "MAX_RETRIES = 3\nRETRYABLE_ERRORS = frozenset({'temporary_failure'})\n",
+"mini_order/models.py": "from dataclasses import dataclass\nfrom decimal import Decimal\n@dataclass(frozen=True)\nclass Order:\n    sku: str\n    quantity: int\n    unit_price: Decimal\n    @property\n    def total(self):\n        return self.unit_price * self.quantity\n",
+"mini_order/inventory.py": "class InsufficientStock(Exception): pass\nclass Inventory:\n    def __init__(self, stock): self.stock = stock.copy()\n    def reserve(self, sku, quantity):\n        if quantity <= 0: raise ValueError('quantity must be positive')\n        if self.stock.get(sku, 0) < quantity: raise InsufficientStock(sku)\n        self.stock[sku] -= quantity\n    def release(self, sku, quantity):\n        self.stock[sku] = self.stock.get(sku, 0) + quantity\n",
+"mini_order/payment.py": "from . import config\nclass PaymentError(Exception):\n    def __init__(self, code):\n        self.code = code\n        super().__init__(code)\nclass PaymentGateway:\n    def __init__(self, failures_before_success=0, failure_code='temporary_failure'):\n        self.failures_before_success = failures_before_success\n        self.failure_code = failure_code\n        self.calls = 0\n    def charge(self, amount):\n        self.calls += 1\n        if self.calls <= self.failures_before_success: raise PaymentError(self.failure_code)\n        return f'payment-{self.calls}'\ndef charge_with_retry(gateway, amount):\n    for attempt in range(config.MAX_RETRIES + 1):\n        try: return gateway.charge(amount)\n        except PaymentError as error:\n            if error.code not in config.RETRYABLE_ERRORS or attempt == config.MAX_RETRIES: raise\n    raise AssertionError('unreachable')\n",
+"mini_order/service.py": "from .inventory import Inventory\nfrom .models import Order\nfrom .payment import PaymentGateway, charge_with_retry\nclass OrderService:\n    def __init__(self, inventory: Inventory, gateway: PaymentGateway):\n        self.inventory = inventory\n        self.gateway = gateway\n    def checkout(self, order: Order):\n        if order.unit_price <= 0: raise ValueError('unit_price must be positive')\n        self.inventory.reserve(order.sku, order.quantity)\n        try: return charge_with_retry(self.gateway, order.total)\n        except Exception:\n            self.inventory.release(order.sku, order.quantity)\n            raise\n",
+"tests/test_checkout.py": "import unittest\nfrom decimal import Decimal\nfrom unittest.mock import patch\nfrom mini_order import Inventory, Order, OrderService, PaymentGateway\nfrom mini_order.payment import PaymentError\nclass Tests(unittest.TestCase):\n    def test_retry_limit(self):\n        gateway=PaymentGateway(failures_before_success=99)\n        with patch('mini_order.config.MAX_RETRIES', 2):\n            with self.assertRaises(PaymentError): OrderService(Inventory({'A':2}), gateway).checkout(Order('A',1,Decimal('5')))\n        self.assertEqual(gateway.calls,3)\n    def test_retry_success(self):\n        gateway=PaymentGateway(failures_before_success=2)\n        self.assertEqual(OrderService(Inventory({'A':2}),gateway).checkout(Order('A',1,Decimal('5'))),'payment-3')\n    def test_rollback_on_failure(self):\n        stock=Inventory({'A':2})\n        with self.assertRaises(PaymentError): OrderService(stock,PaymentGateway(failures_before_success=99)).checkout(Order('A',1,Decimal('5')))\n        self.assertEqual(stock.stock['A'],2)\n    def test_nonretryable_error(self):\n        gateway=PaymentGateway(failures_before_success=99,failure_code='declined')\n        with self.assertRaises(PaymentError): OrderService(Inventory({'A':2}),gateway).checkout(Order('A',1,Decimal('5')))\n        self.assertEqual(gateway.calls,1)\n",
+}
+QUESTIONS={
+"MAX_RETRIES":"Se MAX_RETRIES mudar de 3 para 0, quantas vezes gateway.charge executa quando falha? O que ocorre em checkout e quais testes verificar?",
+"release":"Se Inventory.release for removido, qual exceção acontece após uma falha de pagamento e o que ocorre à exceção original e ao estoque? Cite testes.",
+"charge_with_retry":"Se charge_with_retry engolir PaymentError e retornar None, explique exatamente o retorno de checkout, o estado do estoque e os testes afetados."
+}
+RELEVANCE={
+"MAX_RETRIES":[("mini_order/config.py",None),("mini_order/payment.py","charge_with_retry"),("mini_order/service.py","OrderService.checkout"),("tests/test_checkout.py","test_retry_limit"),("tests/test_checkout.py","test_rollback_on_failure")],
+"release":[("mini_order/inventory.py","Inventory.release"),("mini_order/service.py","OrderService.checkout"),("mini_order/payment.py","charge_with_retry"),("tests/test_checkout.py","test_rollback_on_failure")],
+"charge_with_retry":[("mini_order/payment.py","charge_with_retry"),("mini_order/service.py","OrderService.checkout"),("mini_order/inventory.py","Inventory.reserve"),("tests/test_checkout.py","test_rollback_on_failure"),("tests/test_checkout.py","test_nonretryable_error")],
+}
+SYSTEM=("Analise rigorosamente o código Python disponibilizado. Explique condições e efeitos. "
+        "Não invente testes ou caminhos. Quando faltar evidência, declare a limitação. "
+        "Responda em português, concisamente, distinguindo fato de hipótese.")
+
+def source_slice(path, symbol):
+    text=LAB[path]
+    if symbol is None: return text
+    tree=ast.parse(text)
+    target=symbol.split('.')
+    nodes=tree.body
+    chosen=None
+    for name in target:
+        chosen=next((n for n in nodes if isinstance(n,(ast.ClassDef,ast.FunctionDef,ast.AsyncFunctionDef)) and n.name==name),None)
+        if chosen is None: raise ValueError((path,symbol))
+        nodes=chosen.body
+    return '\n'.join(text.splitlines()[chosen.lineno-1:chosen.end_lineno])
+
+def optimized_context(case):
+    parts=[]
+    seen=set()
+    for path,name in RELEVANCE[case]:
+        snippet=source_slice(path,name)
+        key=(path,hashlib.sha256(snippet.encode()).hexdigest())
+        if key in seen: continue
+        seen.add(key)
+        parts.append(f"### {path} :: {name or 'module'}\n{snippet}")
+    return '\n\n'.join(parts)
+
+def baseline_context():
+    return '\n\n'.join(f"### {p}\n{s}" for p,s in sorted(LAB.items()))
+
+def sha(text):
+    return hashlib.sha256(text.encode()).hexdigest()
+
+def call(endpoint,key,model,prompt,max_tokens):
+    payload={"model":model,"messages":[{"role":"system","content":SYSTEM},{"role":"user","content":prompt}],"max_tokens":max_tokens,"stream":False}
+    req=urllib.request.Request(endpoint.rstrip('/')+"/v1/chat/completions",data=json.dumps(payload,ensure_ascii=False).encode(),headers={"Authorization":"Bearer "+key,"Content-Type":"application/json"})
+    start=time.perf_counter()
+    try:
+        with urllib.request.urlopen(req,timeout=90) as response: data=json.load(response)
+        choice=(data.get('choices') or [{}])[0]
+        return {"ok":True,"seconds":round(time.perf_counter()-start,3),"answer":(choice.get("message") or {}).get("content") or "","finish_reason":choice.get("finish_reason"),"usage":data.get("usage",{}),"actual_model":data.get("model")}
+    except urllib.error.HTTPError as e:
+        return {"ok":False,"seconds":round(time.perf_counter()-start,3),"status":e.code,"error_category":"HTTP_ERROR"}
+    except Exception as e:
+        return {"ok":False,"seconds":round(time.perf_counter()-start,3),"error_category":type(e).__name__}
+
+def run():
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--model',default='gh/gpt-4o-mini')
+    parser.add_argument('--repeats',type=int,default=1)
+    parser.add_argument('--max-tokens',type=int,default=768)
+    parser.add_argument('--out',default='benchmark-results')
+    parser.add_argument('--dry-run',action='store_true')
+    args=parser.parse_args()
+    if not (1 <= args.repeats <= 10): parser.error('repeats 1..10')
+    endpoint=os.getenv('PIE_API_BASE_URL','').rstrip('/')
+    key=os.getenv('PIE_API_KEY','')
+    out=Path(args.out);out.mkdir(parents=True,exist_ok=True)
+    results=[]
+    with tempfile.TemporaryDirectory() as temp:
+        root=Path(temp)
+        for p,s in LAB.items():
+            target=root/p;target.parent.mkdir(parents=True,exist_ok=True);target.write_text(s,encoding='utf-8')
+        idx=index_project(root)
+        if idx.get('index_state')!='CURRENT': raise RuntimeError('PIE index not current')
+        contexts={"baseline":{q:baseline_context() for q in QUESTIONS},
+                  "pie_raw":{q:json.dumps(build_context(root,q,max_chars=12000),ensure_ascii=False) for q in QUESTIONS},
+                  "pie_optimized":{q:optimized_context(q) for q in QUESTIONS}}
+        checks={
+          "MAX_RETRIES":["range(config.MAX_RETRIES + 1)","self.inventory.release(","test_retry_limit"],
+          "release":["def release(","except Exception:","test_rollback_on_failure"],
+          "charge_with_retry":["def charge_with_retry(","self.inventory.reserve(","test_rollback_on_failure"]
+        }
+        audit={}
+        for mode in contexts:
+            audit[mode]={}
+            for q,c in contexts[mode].items():
+                audit[mode][q]={"chars":len(c),"sha256":sha(c),"missing":[term for term in checks[q] if term not in c]}
+        (out/"evidence.json").write_text(json.dumps({"audit":audit,"questions":QUESTIONS,"contexts":contexts},ensure_ascii=False,indent=2),encoding='utf-8')
+        if any(audit["pie_optimized"][q]["missing"] for q in QUESTIONS):raise RuntimeError("Optimized context insufficient")
+        if args.dry_run:
+            print('DRY RUN PASSED:',json.dumps({q:{m:audit[m][q]['chars'] for m in contexts} for q in QUESTIONS}));return
+        if not (endpoint.startswith('https://') and key):raise RuntimeError('Missing HTTPS endpoint or inference secret')
+        jobs=[]
+        for rep in range(args.repeats):
+            cases=list(QUESTIONS);random.Random(101+rep).shuffle(cases)
+            for q in cases:
+                modes=['baseline','pie_raw','pie_optimized']
+                random.Random(202+rep+len(q)).shuffle(modes)
+                jobs.extend((rep,q,m) for m in modes)
+        for i,(rep,q,mode) in enumerate(jobs,1):
+            context=contexts[mode][q]
+            response=call(endpoint,key,args.model,"Pergunta: "+QUESTIONS[q]+"\n\nCódigo e evidências:\n"+context,args.max_tokens)
+            entry={"repeat":rep,"case":q,"mode":mode,"context_chars":len(context),"context_hash":sha(context),**response}
+            results.append(entry)
+            (out/"results.json").write_text(json.dumps({"schema":1,"model":args.model,"results":results},ensure_ascii=False,indent=2),encoding="utf-8")
+            print(f"{i}/{len(jobs)} {q} {mode} {'OK' if response['ok'] else 'FAIL'} {response['seconds']}s",flush=True)
+            if not response["ok"]:break
+            time.sleep(.5)
+    summary={}
+    for mode in ["baseline","pie_raw","pie_optimized"]:
+        vals=[r for r in results if r["mode"]==mode and r["ok"]]
+        summary[mode]={"n":len(vals),"median_latency_s":round(statistics.median([x["seconds"] for x in vals]),3) if vals else None,"total_tokens":sum(x.get("usage",{}).get("total_tokens",0) for x in vals),"nonstop":sum(x.get("finish_reason")!="stop" for x in vals)}
+    (out/"summary.json").write_text(json.dumps({"model":args.model,"cases":list(QUESTIONS),"summary":summary,"caveat":"One small lab and no automatic semantic scoring; observed speedup is not established."},ensure_ascii=False,indent=2),encoding='utf-8')
+    print("SUMMARY",json.dumps(summary))
+    if len(results)!=len(jobs) or any(not r["ok"] for r in results):sys.exit(1)
+
+if __name__=="__main__":run()
