@@ -11,7 +11,9 @@ COLUMNS = (
     "answer_path", "answer_symbol", "error", "error_detail", "http_status",
     "calls", "searches", "prompt_usage_calls", "completion_usage_calls",
     "prompt_tokens", "completion_tokens", "model_ms_total", "retrieval_ms_total",
-    "model_ms_mean", "retrieval_ms_mean", "attempt_wall_ms"
+    "model_ms_mean", "retrieval_ms_mean", "attempt_wall_ms",
+    "response_valid", "last_finish_reason", "last_content_chars",
+    "last_reasoning_chars", "last_parsed_action", "http_successes_measured"
 )
 
 def percentile(values, p):
@@ -38,6 +40,12 @@ def summarize(source: Path, directory: Path):
             retrieval_times.extend(r)
         model_times.extend(m)
         oracle, answer = x.get("oracle") or {}, x.get("answer") or {}
+        diagnostics = x.get("response_diagnostics") or []
+        last = diagnostics[-1] if diagnostics else {}
+        valid = x.get("answer_valid")
+        if not isinstance(valid, bool):
+            valid = bool(answer.get("path") and answer.get("symbol")) if x.get("answer") is not None else None
+        statuses = [d.get("http_status") for d in diagnostics]
         records.append({
             "task": x.get("task"), "mode": x.get("mode"), "model": x.get("model"),
             "ok": x.get("ok"), "correct": x.get("correct"),
@@ -53,7 +61,14 @@ def summarize(source: Path, directory: Path):
             "retrieval_ms_total": round(sum(r), 3) if r else None,
             "model_ms_mean": round(statistics.mean(m), 3) if m else None,
             "retrieval_ms_mean": round(statistics.mean(r), 3) if r else None,
-            "attempt_wall_ms": x.get("attempt_wall_ms")
+            "attempt_wall_ms": x.get("attempt_wall_ms"),
+            "response_valid": valid,
+            "last_finish_reason": last.get("finish_reason"),
+            "last_content_chars": last.get("content_chars"),
+            "last_reasoning_chars": last.get("reasoning_chars"),
+            "last_parsed_action": last.get("parsed_action"),
+            "http_successes_measured": sum(isinstance(s, int) and 200 <= s < 300 for s in statuses)
+                if diagnostics and all(isinstance(s, int) for s in statuses) else None,
         })
     with (directory / "attempts.csv").open("w", newline="", encoding="utf8") as stream:
         writer = csv.DictWriter(stream, fieldnames=COLUMNS)
@@ -74,12 +89,21 @@ def summarize(source: Path, directory: Path):
     baseline_tokens = sum(a["prompt_tokens"] for a, b in token_pairs)
     pie_tokens = sum(b["prompt_tokens"] for a, b in token_pairs)
     saving = round(100 * (1 - pie_tokens / baseline_tokens), 2) if token_pairs and baseline_tokens > 0 else None
+    valid_pairs = [(a,b) for a,b in pairs if a["response_valid"] is True and b["response_valid"] is True]
     latency_mean = round(statistics.mean(retrieval_times), 3) if retrieval_times else None
     summary = {
         "input_exists": source.is_file(), "attempts": len(records),
         "completed": len(completed), "failures": len(records) - len(completed),
         "http_failures": sum(x["error"] == "HTTPError" for x in records),
-        "completed_pairs": len(pairs), "token_covered_pairs": len(token_pairs),
+        "completed_pairs": len(pairs), "valid_answer_pairs": len(valid_pairs),
+        "valid_answer_attempts": sum(x["response_valid"] is True for x in records),
+        "invalid_answer_attempts": sum(x["response_valid"] is False for x in records),
+        "pie_no_search_attempts": sum(x["mode"] == "pie" and x["searches"] == 0 for x in records),
+        "http_successes_measured": sum(x["http_successes_measured"] for x in records
+                                       if isinstance(x["http_successes_measured"], int)),
+        "http_status_covered_attempts": sum(isinstance(x["http_successes_measured"], int)
+                                             for x in records),
+        "token_covered_pairs": len(token_pairs),
         "token_pair_coverage_pct": round(100 * len(token_pairs) / len(pairs), 2) if pairs else None,
         "prompt_token_covered_attempts": len(measured),
         "baseline_prompt_tokens_paired": baseline_tokens if token_pairs else None,
@@ -102,7 +126,7 @@ def summarize(source: Path, directory: Path):
                                             and x["ok"] is True for x in records)
             } for mode in ("pie", "baseline")
         },
-        "note": "Token saving is calculated only for completed pairs with reported prompt usage in both conditions. Missing values remain null. Retrieval latency excludes model inference."
+        "note": "Token saving is calculated only for completed pairs with reported prompt usage in both conditions. Missing values remain null. Retrieval latency excludes model inference. HTTP error counts include terminal exceptions, not every retried HTTP response."
     }
     # Certification requires complete paired answers, full token accounting,
     # and real PIE retrieval samples. Missing metrics never count as passing.
@@ -110,6 +134,7 @@ def summarize(source: Path, directory: Path):
     summary["certification"] = {
         "expected_questions": expected,
         "all_pairs_complete": len(pairs) == expected,
+        "all_pairs_have_valid_answers": len(valid_pairs) == expected,
         "all_token_pairs_measured": len(token_pairs) == expected,
         "pie_accuracy_pct": round(100 * summary["paired_pie_correct"] / expected, 2)
             if len(pairs) == expected else None,
@@ -119,7 +144,7 @@ def summarize(source: Path, directory: Path):
         "token_saving_target_pass": bool(
             len(token_pairs) == expected and saving is not None and saving >= 85),
         "fully_certified": bool(
-            len(pairs) == expected and len(token_pairs) == expected
+            len(pairs) == expected and len(valid_pairs) == expected and len(token_pairs) == expected
             and retrieval_times and latency_mean < 100
             and saving is not None and saving >= 85),
     }
