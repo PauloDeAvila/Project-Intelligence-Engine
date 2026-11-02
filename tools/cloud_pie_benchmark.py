@@ -18,6 +18,7 @@ import urllib.error
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'src'))
 from pie.indexing.indexer import index_project
+from pie.graph.relationships import build_relationships
 from pie.retrieval.context import build_context
 from pie_causal_selector import build_causal_context
 
@@ -156,6 +157,8 @@ def run():
         idx=index_project(root)
         index_seconds=round(time.perf_counter()-index_started,5)
         if idx.get('index_state')!='CURRENT': raise RuntimeError('PIE index not current')
+        rel=build_relationships(root)
+        print('Static relationships built:',rel.get('stored',rel.get('relations_observed','unknown')))
         retrieval_started=time.perf_counter()
         contexts={"baseline":{q:baseline_context() for q in QUESTIONS},
                   "pie_raw":{q:json.dumps(build_context(root,q,max_chars=12000),ensure_ascii=False) for q in QUESTIONS},
