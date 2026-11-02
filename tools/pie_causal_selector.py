@@ -94,6 +94,7 @@ def build_causal_context(root:Path,query:str,max_chars:int=12000)->dict:
         naming=sum(1 for n in relevant|owner_types if n.lower() in x["source"].lower())
         if not hits and not naming:continue
         score=10*len(hits)+naming+5*bool(x["calls"] & behavior_words)
+        if query.rsplit(".",1)[-1] in x["source"]:score+=50
         if "contract" in x["path"].lower() or "references" in x["source"].lower():score-=100
         if any(word in x["name"].lower() for word in ("rollback","retry","failure","error")):score+=12
         if score>0:tests.append((score,x))
