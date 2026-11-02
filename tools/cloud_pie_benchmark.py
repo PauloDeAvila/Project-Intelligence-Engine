@@ -76,8 +76,8 @@ def compact_evidence(report):
 
     Metadata remains in evidence.json for audit rather than repeated in prompts.
     """
-    if report.get("context_state") not in ("CURRENT",):
-        raise RuntimeError("Causal context is incomplete; refuse to infer from it")
+    if report.get("context_state") not in ("CURRENT","PARTIAL"):
+        raise RuntimeError("Causal context is unavailable or stale; refuse to infer from it")
     lines=[]
     seen=set()
     for e in report.get("evidence",[]):
