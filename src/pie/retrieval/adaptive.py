@@ -58,7 +58,9 @@ def adaptive_context(root: Path, query: str, *, max_chars: int = 12000,
         raw = candidate.read_bytes()
         if sha256(raw).hexdigest() != row["sha256"]:
             raise ValueError("full source changed after indexing; run pie index")
-        # Preserve raw bytes for SHA-256 verification, but present normalized text.\n        # This matches Path.read_text() and smart_context() on Windows.\n        full = raw.decode("utf-8-sig", errors="replace").replace("\r\n", "\n").replace("\r", "\n")
+        # Preserve raw bytes for SHA-256 verification, but present normalized text.
+        # This matches Path.read_text() and smart_context() on Windows.
+        full = raw.decode("utf-8-sig", errors="replace").replace("\r\n", "\n").replace("\r", "\n")
         if len(full) <= max_chars and (not compact or len(full) <= len(compact)):
             chosen, payload = "full_source", full
     if not payload and indexed["context_state"] == "CURRENT":
