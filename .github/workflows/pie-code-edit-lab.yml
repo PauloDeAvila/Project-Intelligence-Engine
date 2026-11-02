@@ -1,6 +1,10 @@
 name: PIE - executable code edit A/B lab
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/pie_code_edit_lab.py'
 permissions:
   contents: read
 jobs:
