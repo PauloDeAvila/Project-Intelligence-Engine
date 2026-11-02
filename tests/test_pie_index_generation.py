@@ -21,22 +21,22 @@ class GenerationGateTests(unittest.TestCase):
 
     def test_eventual_cache_hit_does_not_call_synchronous_refresh(self):
         with WarmContextService(self.root, background_interval=None) as svc:
-            initial = svc.query("refresh_cache", consistency="eventual")
+            initial = svc.query("refresh_cache")
             self.assertFalse(initial["cache_hit"])
             def forbidden():
                 raise AssertionError("synchronous reindex on warm hit")
             svc.refresh = forbidden
-            hit = svc.query("refresh_cache", consistency="eventual")
+            hit = svc.query("refresh_cache")
             self.assertTrue(hit["cache_hit"])
             self.assertTrue(hit["result"]["evidence"])
 
     def test_eventual_detects_edit_of_cached_evidence(self):
         with WarmContextService(self.root, background_interval=None) as svc:
-            svc.query("refresh_cache", consistency="eventual")
+            svc.query("refresh_cache")
             self.source.write_text(
                 'def purge_cache(x):\n    """Remove obsolete cached snapshots safely."""\n    return x\n',
                 encoding="utf8")
-            answer = svc.query("refresh_cache", consistency="eventual")
+            answer = svc.query("refresh_cache")
             self.assertFalse(answer["cache_hit"])
             self.assertFalse(any(e["symbol"]=="refresh_cache" for e in answer["result"]["evidence"]))
 
@@ -48,7 +48,7 @@ class GenerationGateTests(unittest.TestCase):
                 encoding="utf8")
             deadline = time.monotonic() + 7
             while time.monotonic() < deadline:
-                answer = svc.query("reconcile_invoices", consistency="eventual")
+                answer = svc.query("reconcile_invoices")
                 if any(e["path"]=="payments.py" for e in answer["result"]["evidence"]):
                     break
                 time.sleep(0.1)
