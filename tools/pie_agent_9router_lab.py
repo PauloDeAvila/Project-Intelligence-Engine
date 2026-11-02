@@ -174,6 +174,35 @@ def perform(root,task,model,mode,base,key,service):
             "search_ms":search_ms,"model_ms":model_ms,
             "completion_tokens":output_used if completion_usage_calls==calls else None}
 
+def summarize_model_results(rows, models, expected_questions):
+    """Eagerly match each task once. Never reuse a late-bound generator's last task."""
+    report = []
+    for model in models:
+        indexed = {(r["task"], r["mode"]): r for r in rows if r.get("model") == model}
+        pairs = [
+            (indexed.get((task, "baseline")), indexed.get((task, "pie")))
+            for task in range(expected_questions)
+        ]
+        valid = [(a, b) for a, b in pairs
+                 if a is not None and b is not None and a.get("ok") is True and b.get("ok") is True]
+        token_pairs = [(a, b) for a, b in valid
+                       if type(a.get("prompt_tokens")) is int and type(b.get("prompt_tokens")) is int]
+        base_tokens = sum(a["prompt_tokens"] for a, b in token_pairs)
+        pie_tokens = sum(b["prompt_tokens"] for a, b in token_pairs)
+        report.append({
+            "model": model, "completed_pairs": len(valid),
+            "requested_pairs": expected_questions,
+            "baseline_correct": sum(a.get("correct") is True for a, b in valid),
+            "pie_correct": sum(b.get("correct") is True for a, b in valid),
+            "baseline_prompt_tokens": base_tokens if token_pairs else None,
+            "pie_prompt_tokens": pie_tokens if token_pairs else None,
+            "token_covered_pairs": len(token_pairs),
+            "token_saving_pct": round(100 * (1 - pie_tokens / base_tokens), 2)
+                if base_tokens > 0 and token_pairs else None,
+        })
+    return report
+
+
 def main():
     p=argparse.ArgumentParser()
     p.add_argument("--corpus",default="rich-corpus")
@@ -214,23 +243,7 @@ def main():
             Path(args.output).write_text(json.dumps({"results":rows},indent=2),encoding="utf8")
             print("AGENT",model,i,mode,result.get("correct"),result.get("error"),
                   "response_diagnostics",json.dumps(result.get("response_diagnostics",[])),flush=True)
-    report=[]
-    for model in models:
-        paired=[(next((r for r in rows if r["model"]==model and r["task"]==i and r["mode"]==mode),None)
-                for mode in ("baseline","pie")) for i in range(len(tasks))]
-        valid=[(a,b) for a,b in paired if a and b and a.get("ok") and b.get("ok")
-                ]
-        token_pairs=[(a,b) for a,b in valid if isinstance(a.get("prompt_tokens"),int)
-                     and isinstance(b.get("prompt_tokens"),int)]
-        base_tokens=sum(a["prompt_tokens"] for a,b in token_pairs)
-        pie_tokens=sum(b["prompt_tokens"] for a,b in token_pairs)
-        report.append({"model":model,"completed_pairs":len(valid),"requested_pairs":len(tasks),
-                       "baseline_correct":sum(a["correct"] for a,b in valid),
-                       "pie_correct":sum(b["correct"] for a,b in valid),
-                       "baseline_prompt_tokens":base_tokens if token_pairs else None,
-                       "pie_prompt_tokens":pie_tokens if token_pairs else None,
-                       "token_covered_pairs":len(token_pairs),
-                       "token_saving_pct":round(100*(1-pie_tokens/base_tokens),2) if base_tokens and token_pairs else None})
+    report=summarize_model_results(rows,models,len(tasks))
     output={"scope":"Model-directed PIE tool loop on public Rich; docstring-derived oracles, no edits",
             "note":"Token usage accumulates all model calls. A/B includes different tools and prompts; errors are not counted as successful.",
             "models":report,"results":rows}
