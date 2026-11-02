@@ -81,6 +81,39 @@ class ContextIntelligenceTests(unittest.TestCase):
         result=smart_context(self.root,"refresh_cache")
         self.assertFalse(any(e["path"]=="cache_manager.py" for e in result["evidence"]))
 
+    def test_build_context_production_smart_strategy(self):
+        from pie.retrieval.context import build_context
+        response=build_context(self.root,"refresh cache",strategy="smart",limit=4)
+        self.assertEqual(response["method"],"sqlite_ast_summary_rank_v2")
+        self.assertTrue(response["evidence"])
+
+    def test_backfill_docs_without_reindexing_unchanged_symbols(self):
+        from pie.storage.database import connect
+        conn=connect(self.root/".pie"/"index.sqlite3")
+        with conn:
+            conn.execute("DELETE FROM symbol_docs")
+        conn.close()
+        updated=index_project(self.root)
+        self.assertEqual(updated["changed_files"],[])
+        response=smart_context(self.root,"Refresh the cached value")
+        self.assertTrue(any("cached value" in e["description"] for e in response["evidence"]))
+
+    def test_watch_single_iteration_emits_parseable_record(self):
+        import contextlib
+        import io
+        from pie.interfaces.cli import main
+        stdout=io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            exit_code=main(["watch","--root",str(self.root),"--iterations","1","--interval",".1"])
+        self.assertEqual(exit_code,0)
+        event=json.loads(stdout.getvalue().strip())
+        self.assertEqual(event["event"],"index_update")
+        self.assertEqual(event["index_state"],"CURRENT")
+
+    def test_impact_depth_validation(self):
+        with self.assertRaises(ValueError):
+            impact(self.root,"refresh_cache",depth=6)
+
     def test_impact_is_bounded_and_has_provenance(self):
         result=impact(self.root,"refresh_cache")
         self.assertIn("affected_files",result)
