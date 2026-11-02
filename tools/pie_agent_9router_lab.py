@@ -61,7 +61,7 @@ def chat(messages,model,base,key):
     req=urllib.request.Request(base.rstrip("/")+"/v1/chat/completions",data=data,
         headers={"Authorization":"Bearer "+key,"Content-Type":"application/json"})
     start=time.perf_counter()
-    with urllib.request.urlopen(req,timeout=120) as response:
+    with urllib.request.urlopen(req,timeout=30) as response:
         payload=json.load(response)
     raw=(payload["choices"][0]["message"].get("content") or "").strip()
     if raw.startswith("```"):
@@ -141,11 +141,13 @@ def main():
         jobs=[(m,i,mode) for m in models for i in range(len(tasks)) for mode in ("pie","baseline")]
         random.Random(19).shuffle(jobs)
         for model,i,mode in jobs:
+            started=time.perf_counter()
             try:
                 result=perform(root,tasks[i],model,mode,base,key,service)
                 result.update(model=model,task=i,ok=True)
             except (urllib.error.URLError,TimeoutError,ValueError,KeyError) as exc:
                 result={"model":model,"task":i,"mode":mode,"ok":False,"error":type(exc).__name__,"error_detail":str(exc)[:300]}
+            result["attempt_wall_ms"]=round((time.perf_counter()-started)*1000,3)
             rows.append(result)
             Path(args.output).write_text(json.dumps({"results":rows},indent=2),encoding="utf8")
             print("AGENT",model,i,mode,result.get("correct"),result.get("error"),flush=True)
