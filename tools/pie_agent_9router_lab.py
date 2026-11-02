@@ -62,9 +62,11 @@ def chat(messages,model,base,key):
         headers={"Authorization":"Bearer "+key,"Content-Type":"application/json"})
     start=time.perf_counter()
     payload=None
+    status=None
     for attempt in range(3):
         try:
             with urllib.request.urlopen(req,timeout=45) as response:
+                status=getattr(response,"status",None)
                 payload=json.load(response)
             break
         except urllib.error.HTTPError as exc:
@@ -83,12 +85,33 @@ def chat(messages,model,base,key):
             delay=3.0*(2**attempt)
             print("RETRY",model,type(exc).__name__,"attempt",attempt+1,"delay_s",delay,flush=True)
             time.sleep(delay)
-    raw=(payload["choices"][0]["message"].get("content") or "").strip()
+    choice=payload["choices"][0]
+    message=choice.get("message") or {}
+    content=message.get("content")
+    if isinstance(content,str):
+        raw=content.strip()
+    elif isinstance(content,list):
+        raw="".join(part.get("text","") for part in content if isinstance(part,dict)).strip()
+    else:
+        raw=""
+    reasoning=message.get("reasoning_content") or message.get("reasoning") or ""
+    diagnostics={
+        "http_status":status,
+        "finish_reason":choice.get("finish_reason"),
+        "content_chars":len(raw),
+        "reasoning_chars":len(reasoning) if isinstance(reasoning,str) else None,
+        "message_fields":sorted(message.keys()),
+    }
     if raw.startswith("```"):
         raw=raw.split("\n",1)[-1].rsplit("```",1)[0].strip()
-    try:answer=json.loads(raw)
-    except ValueError:answer={"action":"invalid","raw_excerpt":raw[:150]}
-    return answer,payload.get("usage",{}),time.perf_counter()-start
+    try:
+        answer=json.loads(raw)
+        if not isinstance(answer,dict):
+            answer={"action":"invalid","raw_excerpt":raw[:150]}
+    except (ValueError,TypeError):
+        answer={"action":"invalid","raw_excerpt":raw[:150]}
+    diagnostics["parsed_action"]=answer.get("action")
+    return answer,payload.get("usage") or {},time.perf_counter()-start,diagnostics
 
 def perform(root,task,model,mode,base,key,service):
     system=("You navigate a real Python codebase. Return ONLY JSON, never markdown. "
@@ -113,11 +136,12 @@ def perform(root,task,model,mode,base,key,service):
         candidates.sort(key=lambda item:(-item[0],str(item[1])))
         body="\n\n".join(f"FILE {p.relative_to(root).as_posix()}\n{s}" for _,p,s in candidates[:2])
         messages.append({"role":"user","content":body[:55000]})
-    used=0; output_used=0; calls=0; searches=0; search_ms=[]; model_ms=[]; answer={}
+    used=0; output_used=0; calls=0; searches=0; search_ms=[]; model_ms=[]; answer={}; response_diagnostics=[]
     prompt_usage_calls=0; completion_usage_calls=0
     for step in range(5):
-        response,usage,elapsed=chat(messages,model,base,key)
+        response,usage,elapsed,diagnostics=chat(messages,model,base,key)
         calls+=1
+        response_diagnostics.append(diagnostics)
         if isinstance(usage.get("prompt_tokens"),int):
             used+=usage["prompt_tokens"]; prompt_usage_calls+=1
         if isinstance(usage.get("completion_tokens"),int):
@@ -141,6 +165,8 @@ def perform(root,task,model,mode,base,key,service):
         else:
             break
     return {"mode":mode,"correct":answer==task["oracle"],"answer":answer,
+            "answer_valid":bool(answer.get("path") and answer.get("symbol")),
+            "response_diagnostics":response_diagnostics,
             "oracle":task["oracle"],"query":task["query"],
             "calls":calls,"searches":searches,
             "prompt_usage_calls":prompt_usage_calls,"completion_usage_calls":completion_usage_calls,
@@ -181,7 +207,8 @@ def main():
             result["attempt_wall_ms"]=round((time.perf_counter()-started)*1000,3)
             rows.append(result)
             Path(args.output).write_text(json.dumps({"results":rows},indent=2),encoding="utf8")
-            print("AGENT",model,i,mode,result.get("correct"),result.get("error"),flush=True)
+            print("AGENT",model,i,mode,result.get("correct"),result.get("error"),
+                  "response_diagnostics",json.dumps(result.get("response_diagnostics",[])),flush=True)
             time.sleep(2.0)
     report=[]
     for model in models:
