@@ -38,6 +38,7 @@ class WarmContextService:
         self._cache: OrderedDict[tuple, dict] = OrderedDict()
         self._connection = connect(self.db_path)
         self._generation = self._snapshot()
+        self._verified_graph = {}
         self._warm()
         if background_interval is not None:
             self._worker = threading.Thread(target=self._background_loop, args=(background_interval,), daemon=True)
@@ -68,7 +69,13 @@ class WarmContextService:
     def _warm(self) -> None:
         self._connection.execute("SELECT COUNT(*) FROM symbols").fetchone()
         self._connection.execute("SELECT COUNT(*) FROM symbol_docs").fetchone()
-        self._connection.execute("SELECT COUNT(*) FROM usages WHERE resolution='verified'").fetchone()
+        self._verified_graph = {}
+        for edge in self._connection.execute(
+            "SELECT target_path, origin_symbol, target_name FROM usages "
+            "WHERE resolution='verified' AND target_path IS NOT NULL"
+        ):
+            self._verified_graph.setdefault(edge["target_path"], []).append(
+                {"consumer": edge["origin_symbol"], "target": edge["target_name"]})
 
     def refresh(self) -> dict:
         """Reindex changed files and invalidate dependent cached responses."""
@@ -123,6 +130,22 @@ class WarmContextService:
                     self._cache.popitem(last=False)
             return {"cache_hit": False, "result": value}
 
+    def task_pack(self, question: str, limit: int = 5) -> dict:
+        with self._lock:
+            result = self.query(question, limit=limit, include_body=True)["result"]
+            return {"context": result, "verified_consumers": {
+                item["path"]: self._verified_graph.get(item["path"], [])[:12]
+                for item in result["evidence"]}}
+
+    def prefetch(self, queries: list[str]) -> dict:
+        if not isinstance(queries, list) or len(queries) > 20 or any(
+                not isinstance(q, str) or not q.strip() for q in queries):
+            raise ValueError("Expected up to 20 nonempty queries")
+        with self._lock:
+            for query in queries:
+                self.query(query, include_body=True, limit=5)
+            return {"prepared": len(queries)}
+
     def search_candidates(self, question: str, limit: int = 50) -> dict:
         self.refresh()
         hits = search_fts(self._connection, question, limit=limit)
@@ -159,6 +182,10 @@ def serve(root: Path, stdin: TextIO = sys.stdin, stdout: TextIO = sys.stdout):
                                             max_chars=request.get("max_chars", 12000),
                                             include_body=request.get("include_body", False),
 )
+                elif method == "task_pack":
+                    payload = service.task_pack(request["query"])
+                elif method == "prefetch":
+                    payload = service.prefetch(request["queries"])
                 elif method == "refresh":
                     payload = service.refresh()
                 elif method == "candidates":
