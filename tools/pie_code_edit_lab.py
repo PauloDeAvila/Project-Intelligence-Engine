@@ -19,7 +19,7 @@ import urllib.request
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"src"))
 from pie.indexing.indexer import index_project
-from pie.retrieval.intelligence import smart_context
+from pie.retrieval.adaptive import adaptive_context
 
 SOURCE = """import re
 import unicodedata
@@ -66,10 +66,11 @@ def generate(destination,model):
         rows=[]
         for (name,requirement,_),mode in jobs:
             if mode=="pie":
-                evidence=smart_context(root,name,max_chars=8000,include_body=True,limit=2)
-                if not any(x["symbol"]==name for x in evidence["evidence"]):
-                    raise RuntimeError("missing target evidence")
-                context=json.dumps(evidence,ensure_ascii=False)
+                evidence=adaptive_context(root,name,max_chars=8000,limit=2,
+                                          mode="edit",full_source_path="service.py")
+                if evidence["context_state"] not in ("CURRENT","PARTIAL"):
+                    raise RuntimeError("PIE evidence is not valid")
+                context=evidence["content"]
             else:
                 context=SOURCE
             data={"model":model,"max_tokens":1800,"stream":False,"messages":[
