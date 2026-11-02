@@ -72,7 +72,7 @@ def generate(destination,model):
                 context=json.dumps(evidence,ensure_ascii=False)
             else:
                 context=SOURCE
-            data={"model":model,"max_tokens":900,"stream":False,"messages":[
+            data={"model":model,"max_tokens":1800,"stream":False,"messages":[
                 {"role":"system","content":"Return only a JSON object with a single key named code, containing a complete Python function definition."},
                 {"role":"user","content":f"Fix {name}: {requirement}\n\nSOURCE:\n{context}\n\nReturn a complete replacement function, keeping the same name."}]}
             request=urllib.request.Request(base+"/v1/chat/completions",
@@ -91,8 +91,10 @@ def generate(destination,model):
                         obj=json.loads(raw)
                         code=obj.get("code","") if isinstance(obj,dict) else ""
                     except ValueError:
-                        code=""
+                        code=raw if raw.lstrip().startswith("def ") or raw.lstrip().startswith("import ") else ""
                     row.update(ok=True,code=code,usage=reply.get("usage",{}),
+                               finish_reason=reply["choices"][0].get("finish_reason"),
+                               raw_length=len(raw),raw_excerpt=raw[:300] if not code else None,
                                seconds=round(time.perf_counter()-start,4))
                     break
                 except urllib.error.HTTPError as err:
@@ -113,11 +115,15 @@ def verify_candidate(row,image):
         return {"passed":False,"reason":"missing_candidate"}
     try:
         function=ast.parse(row["code"])
-        if len(function.body)!=1 or not isinstance(function.body[0],ast.FunctionDef) or function.body[0].name!=task[0]:
-            raise ValueError("not an exact function replacement")
+        matches=[n for n in function.body if isinstance(n,ast.FunctionDef) and n.name==task[0]]
+        if len(matches)!=1:
+            raise ValueError("target function not uniquely present")
+        replacement=ast.get_source_segment(row["code"],matches[0])
+        if not replacement:
+            raise ValueError("cannot isolate function source")
         target=next(n for n in ast.parse(SOURCE).body if isinstance(n,ast.FunctionDef) and n.name==task[0])
         lines=SOURCE.splitlines(keepends=True)
-        source="".join(lines[:target.lineno-1])+row["code"].rstrip()+"\n"+"".join(lines[target.end_lineno:])
+        source="".join(lines[:target.lineno-1])+replacement.rstrip()+"\n"+"".join(lines[target.end_lineno:])
         compile(source,"service.py","exec")
     except (SyntaxError,ValueError,StopIteration):
         return {"passed":False,"reason":"invalid_patch"}
