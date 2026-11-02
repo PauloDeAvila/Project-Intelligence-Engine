@@ -61,8 +61,28 @@ def chat(messages,model,base,key):
     req=urllib.request.Request(base.rstrip("/")+"/v1/chat/completions",data=data,
         headers={"Authorization":"Bearer "+key,"Content-Type":"application/json"})
     start=time.perf_counter()
-    with urllib.request.urlopen(req,timeout=30) as response:
-        payload=json.load(response)
+    payload=None
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(req,timeout=45) as response:
+                payload=json.load(response)
+            break
+        except urllib.error.HTTPError as exc:
+            if exc.code not in (408, 429, 500, 502, 503, 504) or attempt == 2:
+                raise
+            retry_after=exc.headers.get("Retry-After")
+            try:
+                delay=min(30.0,max(0.0,float(retry_after))) if retry_after else 3.0*(2**attempt)
+            except ValueError:
+                delay=3.0*(2**attempt)
+            print("RETRY",model,"http",exc.code,"attempt",attempt+1,"delay_s",delay,flush=True)
+            time.sleep(delay)
+        except (TimeoutError, urllib.error.URLError) as exc:
+            if attempt == 2:
+                raise
+            delay=3.0*(2**attempt)
+            print("RETRY",model,type(exc).__name__,"attempt",attempt+1,"delay_s",delay,flush=True)
+            time.sleep(delay)
     raw=(payload["choices"][0]["message"].get("content") or "").strip()
     if raw.startswith("```"):
         raw=raw.split("\n",1)[-1].rsplit("```",1)[0].strip()
@@ -162,6 +182,7 @@ def main():
             rows.append(result)
             Path(args.output).write_text(json.dumps({"results":rows},indent=2),encoding="utf8")
             print("AGENT",model,i,mode,result.get("correct"),result.get("error"),flush=True)
+            time.sleep(2.0)
     report=[]
     for model in models:
         paired=[(next((r for r in rows if r["model"]==model and r["task"]==i and r["mode"]==mode),None)
