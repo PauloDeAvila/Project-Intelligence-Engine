@@ -4,6 +4,7 @@ Static relationships are approximate: dynamic dispatch and monkey-patching are n
 """
 from __future__ import annotations
 import ast
+from contextlib import closing
 import hashlib
 import json
 from pathlib import Path
@@ -38,7 +39,7 @@ def build_causal_context(root:Path,query:str,max_chars:int=12000)->dict:
             "notes":"Hash-verified AST evidence; syntactic candidate calls, not guaranteed runtime call edges."}
     if raw["context_state"]!="CURRENT":return report
 
-    with connect(root/".pie"/"index.sqlite3") as db:
+    with closing(connect(root/".pie"/"index.sqlite3")) as db:
         files=db.execute("SELECT path,sha256 FROM files ORDER BY path").fetchall()
     functions=[]
     assignments=[]
