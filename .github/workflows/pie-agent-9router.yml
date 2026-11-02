@@ -1,6 +1,11 @@
 name: PIE - 9Router agent navigation
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/pie_agent_9router_lab.py'
+      - '.github/workflows/pie-agent-9router.yml'
 permissions:
   contents: read
 jobs:
