@@ -50,10 +50,10 @@ def _description(source: str, start: int) -> str:
 
 def smart_context(root: Path, query: str, *, max_chars: int = 12000, limit: int = 8,
                   include_body: bool = False) -> dict[str, object]:
-    """Rank responsibilities using names, file paths, signatures and docstrings.
+    """Rank symbol responsibility summaries, reading only selected source files.
 
-    Every returned source range is verified against the indexed SHA-256.
-    Entire JSON output is bounded by max_chars; no stale snippets are emitted.
+    Summaries are derived from indexed AST snapshots. Source SHA-256 is verified
+    before any selected evidence is returned. The serialized JSON obeys budget.
     """
     import json
     if not query.strip() or not 500 <= max_chars <= 200000 or not 1 <= limit <= 100:
@@ -67,77 +67,74 @@ def smart_context(root: Path, query: str, *, max_chars: int = 12000, limit: int 
         state = conn.execute("SELECT value FROM metadata WHERE key='index_state'").fetchone()
         index_state = state[0] if state else "UNINDEXED"
         rows = conn.execute("""SELECT s.name,s.qualified_name,s.kind,s.start_line,s.end_line,
-                                      f.path,f.sha256
+                                      f.path,f.sha256,
+                                      COALESCE(d.summary,'') AS summary,
+                                      COALESCE(d.signature,'') AS signature
                                FROM symbols s JOIN files f ON s.file_id=f.id
-                               ORDER BY f.path,s.start_line""").fetchall()
+                               LEFT JOIN symbol_docs d ON d.symbol_id=s.id""").fetchall()
         query_words = _query_terms(query)
         candidates = []
-        diagnostics = []
-        cached: dict[str, tuple[list[str], str] | None] = {}
-        descriptions: dict[tuple[str,int], str] = {}
         for row in rows:
-            path = row["path"]
-            if path not in cached:
-                try:
-                    data = (root / path).read_bytes()
-                    if sha256(data).hexdigest() != row["sha256"]:
-                        raise ValueError("source_hash_mismatch")
-                    decoded = data.decode("utf-8-sig", errors="replace")
-                    cached[path] = (decoded.splitlines(), decoded)
-                    try:
-                        tree = ast.parse(decoded)
-                        for node in ast.walk(tree):
-                            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                                descriptions[(path,node.lineno)] = (ast.get_docstring(node) or "").split("\n",1)[0][:400]
-                    except SyntaxError:
-                        pass
-                except (OSError, ValueError) as exc:
-                    cached[path] = None
-                    diagnostics.append({"path":path,"code":"source_hash_mismatch" if isinstance(exc, ValueError) else "file_unreadable"})
-            entry = cached[path]
-            if entry is None:
-                continue
-            lines, source = entry
-            if row["start_line"] < 1 or row["end_line"] > len(lines):
-                continue
             name_words = _terms(row["qualified_name"])
-            path_words = _terms(path.replace("/", " "))
-            # Only parse docstrings for name/path candidates OR queries which otherwise
-            # have no lexical candidates; computing all docstrings is a bounded local cost.
-            description = descriptions.get((path,row["start_line"]), "")
-            desc_words = _terms(description)
-            score = 8 * len(query_words & name_words) + 4 * len(query_words & path_words) + 3 * len(query_words & desc_words)
+            path_words = _terms(row["path"].replace("/", " "))
+            desc_words = _terms(row["summary"])
+            score = (8 * len(query_words & name_words)
+                     + 4 * len(query_words & path_words)
+                     + 3 * len(query_words & desc_words))
             if row["name"].lower() == query.strip().lower():
                 score += 25
-            if score <= 0:
+            if score:
+                candidates.append((score,row))
+        candidates.sort(key=lambda item: (-item[0],item[1]["path"],
+                                          item[1]["start_line"],item[1]["qualified_name"]))
+        selected=[]
+        diagnostics=[]
+        cached={}
+        for score,row in candidates:
+            if len(selected)>=limit:
+                break
+            path=row["path"]
+            if path not in cached:
+                try:
+                    data=(root/path).read_bytes()
+                    if sha256(data).hexdigest()!=row["sha256"]:
+                        raise ValueError("source_hash_mismatch")
+                    cached[path]=data.decode("utf-8-sig",errors="replace").splitlines()
+                except (OSError,ValueError) as exc:
+                    cached[path]=None
+                    diagnostics.append({"path":path,
+                        "code":"source_hash_mismatch" if isinstance(exc,ValueError) else "file_unreadable"})
+            lines=cached[path]
+            if lines is None:
                 continue
-            start, end = row["start_line"], row["end_line"]
-            signature = lines[start - 1].strip()
-            candidate = {"symbol":row["qualified_name"],"path":path,"start_line":start,
-                         "end_line":end,"kind":row["kind"],"score":score,
-                         "signature":signature[:250],"description":description}
+            start,end=row["start_line"],row["end_line"]
+            if start<1 or end>len(lines) or end<start:
+                diagnostics.append({"path":path,"code":"invalid_source_range"})
+                continue
+            candidate={"symbol":row["qualified_name"],"path":path,"start_line":start,
+                       "end_line":end,"kind":row["kind"],"score":score,
+                       "signature":row["signature"] or lines[start-1].strip()[:250],
+                       "description":row["summary"]}
             if include_body:
-                candidate["content"] = "\n".join(lines[start - 1:end])
-            candidates.append(candidate)
-        candidates.sort(key=lambda r:(-r["score"],r["path"],r["start_line"]))
-        selected = candidates[:limit]
-        result = {"query":query,"index_state":index_state,"context_state":index_state,
-                  "evidence":selected,"omitted":max(0,len(candidates)-len(selected)),
-                  "diagnostics":diagnostics,
-                  "method":"deterministic_lexical_docstring_v1",
-                  "note":"Ranking is heuristic; no semantic correctness guarantee."}
-        if diagnostics and result["context_state"] == "CURRENT":
-            result["context_state"] = "STALE"
-        while len(json.dumps(result,ensure_ascii=False)) > max_chars:
+                candidate["content"]="\n".join(lines[start-1:end])
+            selected.append(candidate)
+        result={"query":query,"index_state":index_state,"context_state":index_state,
+                "evidence":selected,"omitted":max(0,len(candidates)-len(selected)),
+                "diagnostics":diagnostics,
+                "method":"sqlite_ast_summary_rank_v2",
+                "note":"Local lexical scoring; source ranges hash-verified; unselected files not rechecked"}
+        if diagnostics and result["context_state"]=="CURRENT":
+            result["context_state"]="STALE"
+        while len(json.dumps(result,ensure_ascii=False))>max_chars:
             if result["evidence"]:
                 result["evidence"].pop()
-                result["omitted"] += 1
-                if result["context_state"] == "CURRENT":
-                    result["context_state"] = "PARTIAL"
+                result["omitted"]+=1
+                if result["context_state"]=="CURRENT":
+                    result["context_state"]="PARTIAL"
             elif result["diagnostics"]:
                 result["diagnostics"].pop()
             else:
-                raise ValueError("Metadata exceeds max_chars")
+                raise ValueError("Response metadata exceeds max_chars")
         return result
     finally:
         conn.close()
