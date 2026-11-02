@@ -110,6 +110,21 @@ class ContextIntelligenceTests(unittest.TestCase):
         self.assertEqual(event["event"],"index_update")
         self.assertEqual(event["index_state"],"CURRENT")
 
+    def test_glossary_treats_sql_wildcards_literally(self):
+        remember(self.root, "literal%_key", "strange descriptor", "cache_manager.py")
+        remember(self.root, "literalXYZkey", "another descriptor", "cache_manager.py")
+        output=recall(self.root,"literal%_key")
+        self.assertEqual([x["key"] for x in output["entries"] if "kind" not in x],["literal%_key"])
+
+    def test_glossary_requires_prior_index(self):
+        with tempfile.TemporaryDirectory() as directory:
+            outside=Path(directory)
+            (outside/"sample.py").write_text("VALUE = 1\n",encoding="utf8")
+            with self.assertRaises(ValueError):
+                remember(outside,"sample","something","sample.py")
+            with self.assertRaises(ValueError):
+                recall(outside,"sample")
+
     def test_impact_depth_validation(self):
         with self.assertRaises(ValueError):
             impact(self.root,"refresh_cache",depth=6)
