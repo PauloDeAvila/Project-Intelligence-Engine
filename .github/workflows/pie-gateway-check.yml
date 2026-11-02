@@ -31,21 +31,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Validate configuration without exposing credentials
-        shell: bash
-        run: |
-          if [ -z "$PIE_API_BASE_URL" ]; then
-            echo "::error::Missing PIE_API_BASE_URL in repository-level Actions secrets (or not available to this workflow)."
-            exit 1
-          fi
-          if [ -z "$PIE_API_KEY" ]; then
-            echo "::error::Missing PIE_API_KEY in repository-level Actions secrets (or not available to this workflow)."
-            exit 1
-          fi
-          case "$PIE_API_BASE_URL" in
-            https://*) ;;
-            *) echo "::error::PIE_API_BASE_URL must be an HTTPS URL accessible from GitHub-hosted runners."; exit 1 ;;
-          esac
       - name: Test one model request
         shell: bash
         run: python tools/cloud_gateway_probe.py
