@@ -65,7 +65,7 @@ def build_causal_context(root:Path,query:str,max_chars:int=12000)->dict:
 
     production=[x for x in functions if not x["test"]]
     seeds={x["name"] for x in production
-           if x["name"] in names or any(d["path"]==x["path"] and x["line"]<=d["start_line"]<=x["end"] for d in direct)}
+           if x["name"] in names or query.rsplit(".",1)[-1] in x["source"] or any(d["path"]==x["path"] and x["line"]<=d["start_line"]<=x["end"] for d in direct)}
     relevant=set(seeds)
     for _ in range(2):
         relevant |= {x["name"] for x in production if x["calls"] & relevant}
@@ -78,11 +78,12 @@ def build_causal_context(root:Path,query:str,max_chars:int=12000)->dict:
 
     ranked=sorted((x for x in production if relevance(x)>0),key=lambda x:(-relevance(x),len(x["source"]),x["path"]))
     behavior_words={"assertRaises","assertEqual","assert_called_once","assert_called_once_with","raises"}
+    owner_types={x["qualified"].split(".",1)[0] for x in ranked if "." in x["qualified"]}
     tests=[]
     for x in functions:
         if not x["test"]:continue
         hits=x["calls"] & relevant
-        naming=sum(1 for n in relevant if n.lower() in x["source"].lower())
+        naming=sum(1 for n in relevant|owner_types if n.lower() in x["source"].lower())
         if not hits and not naming:continue
         score=10*len(hits)+naming+5*bool(x["calls"] & behavior_words)
         if "contract" in x["path"].lower() or "references" in x["source"].lower():score-=100
