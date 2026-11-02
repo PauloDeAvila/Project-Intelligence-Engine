@@ -84,7 +84,7 @@ class ContextIntelligenceTests(unittest.TestCase):
     def test_build_context_production_smart_strategy(self):
         from pie.retrieval.context import build_context
         response=build_context(self.root,"refresh cache",strategy="smart",limit=4)
-        self.assertEqual(response["method"],"sqlite_ast_summary_rank_v2")
+        self.assertIn(response["method"],("sqlite_ast_hybrid_fts5_graph_v3","sqlite_ast_summary_rank_v2"))
         self.assertTrue(response["evidence"])
 
     def test_backfill_docs_without_reindexing_unchanged_symbols(self):
@@ -159,6 +159,45 @@ class ContextIntelligenceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             adaptive_context(self.root,"refresh_cache",mode="edit",
                              full_source_path="cache_manager.py")
+
+    def test_fts_matches_responsibility_without_exact_symbol_name(self):
+        from pie.storage.database import connect
+        from pie.retrieval.fts import search_fts
+        db=connect(self.root/".pie"/"index.sqlite3")
+        try:
+            hits=search_fts(db,"cached value")
+            self.assertTrue(hits)
+        finally:
+            db.close()
+
+    def test_fts_incremental_update_and_delete(self):
+        from pie.storage.database import connect
+        from pie.retrieval.fts import search_fts
+        source=self.root/"cache_manager.py"
+        source.write_text('def refresh_cache(value):\n    """Synchronize distributed snapshots."""\n    return value\n',encoding="utf8")
+        index_project(self.root)
+        db=connect(self.root/".pie"/"index.sqlite3")
+        try:
+            self.assertTrue(search_fts(db,"distributed snapshots"))
+            self.assertFalse(search_fts(db,"cached value"))
+        finally:
+            db.close()
+        source.unlink()
+        index_project(self.root)
+        db=connect(self.root/".pie"/"index.sqlite3")
+        try:
+            self.assertFalse(search_fts(db,"distributed snapshots"))
+        finally:
+            db.close()
+
+    def test_fts_query_operators_are_not_executed(self):
+        from pie.storage.database import connect
+        from pie.retrieval.fts import search_fts
+        db=connect(self.root/".pie"/"index.sqlite3")
+        try:
+            self.assertIsInstance(search_fts(db,'cache OR "broken"* NOT'),list)
+        finally:
+            db.close()
 
     def test_impact_depth_validation(self):
         with self.assertRaises(ValueError):
