@@ -133,5 +133,7 @@ def connect(path: Path) -> sqlite3.Connection:
     connection.execute("PRAGMA foreign_keys = ON")
     connection.executescript(SCHEMA)
     _migrate_symbol_locations(connection)
+    from pie.retrieval.fts import ensure_fts
+    ensure_fts(connection)
     return connection
 
