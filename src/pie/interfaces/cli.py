@@ -8,7 +8,8 @@ from pie.core.errors import ProjectNotInitializedError
 from pie.indexing.indexer import index_project
 from pie.retrieval.symbols import analysis_summary, find_definitions, find_references
 from pie.storage.database import connect
-from pie.retrieval.intelligence import smart_context, impact
+from pie.retrieval.intelligence import impact
+from pie.retrieval.context import build_context
 from pie.retrieval.glossary import remember, recall
 
 
@@ -132,7 +133,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "definitions": result = command_definitions(root, args.name)
         elif args.command == "references": result = command_references(root, args.name)
         elif args.command == "analysis": result = command_analysis(root)
-        elif args.command == "context": result = smart_context(root, args.query, max_chars=args.max_chars, limit=args.limit, include_body=args.include_body)
+        elif args.command == "context": result = build_context(root, args.query, max_chars=args.max_chars, limit=args.limit, strategy="smart", include_body=args.include_body)
         elif args.command == "watch":
             if args.interval < 0.1 or args.iterations < 0:
                 parser.error("watch interval must be >=0.1 and iterations >=0")
