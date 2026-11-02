@@ -1,0 +1,50 @@
+name: PIE - 9Router cloud gateway check
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: "Exact 9Router model identifier"
+        required: true
+        default: "gh/gpt-4o-mini"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  gateway-check:
+    name: Verify cloud access to 9Router
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      PIE_API_BASE_URL: ${{ secrets.PIE_API_BASE_URL }}
+      PIE_API_KEY: ${{ secrets.PIE_API_KEY }}
+      TARGET_MODEL: ${{ inputs.model }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate configuration without exposing credentials
+        shell: bash
+        run: |
+          if [ -z "$PIE_API_BASE_URL" ] || [ -z "$PIE_API_KEY" ]; then
+            echo "::error::Configure PIE_API_BASE_URL and PIE_API_KEY in GitHub Actions secrets."
+            exit 1
+          fi
+          case "$PIE_API_BASE_URL" in
+            https://*) ;;
+            *) echo "::error::PIE_API_BASE_URL must be an HTTPS URL accessible from GitHub-hosted runners."; exit 1 ;;
+          esac
+      - name: Test one model request
+        shell: bash
+        run: python tools/cloud_gateway_probe.py
+      - name: Upload diagnostic report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gateway-check-${{ github.run_id }}
+          path: gateway-check.json
+          if-no-files-found: warn
+          retention-days: 7
