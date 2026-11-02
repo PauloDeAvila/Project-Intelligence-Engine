@@ -56,6 +56,21 @@ def recall(root: Path, query: str = "", limit: int = 25) -> dict[str, object]:
                 state="CURRENT" if hashlib.sha256(p.read_bytes()).hexdigest()==row["source_sha256"] else "STALE"
             items.append({"key":row["key"],"description":row["description"] if state=="CURRENT" else None,
                           "source":row["source_path"],"state":state,"updated_utc":row["updated_utc"]})
+        remaining=limit-len(items)
+        if remaining>0:
+            rows=conn.execute("""SELECT s.qualified_name,s.kind,d.summary,f.path,f.sha256
+                  FROM symbol_docs d JOIN symbols s ON s.id=d.symbol_id
+                  JOIN files f ON f.id=s.file_id
+                  WHERE d.summary != '' AND (s.qualified_name LIKE ? OR d.summary LIKE ?)
+                  ORDER BY s.qualified_name,f.path LIMIT ?""",
+                  (f"%{query}%",f"%{query}%",remaining)).fetchall()
+            for row in rows:
+                p=(root / row["path"]).resolve()
+                state="STALE"
+                if p.is_relative_to(root) and p.is_file():
+                    state="CURRENT" if hashlib.sha256(p.read_bytes()).hexdigest()==row["sha256"] else "STALE"
+                items.append({"key":row["qualified_name"],"description":row["summary"] if state=="CURRENT" else None,
+                              "source":row["path"],"state":state,"kind":"indexed_symbol"})
         return {"query":query,"entries":items}
     finally:
         conn.close()
