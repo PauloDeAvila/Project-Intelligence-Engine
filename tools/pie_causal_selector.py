@@ -110,3 +110,51 @@ def build_causal_context(root:Path,query:str,max_chars:int=12000)->dict:
     for _,x in tests[:4]:add(x["path"],x["line"],x["end"],x["source"],"behavioral_test",x["qualified"])
     if report["omitted"]:report["context_state"]="PARTIAL"
     return report
+
+def extract_control_flow(report:dict)->list[str]:
+    """AST-derived control-flow annotations, independent of question identity.
+
+    These are syntactic facts, not proofs of runtime dispatch.
+    """
+    import textwrap
+    facts=[]
+    seen=set()
+    for item in report.get("evidence",[]):
+        if item.get("kind")!="function":continue
+        src=textwrap.dedent(item.get("content",""))
+        try: tree=ast.parse(src)
+        except SyntaxError:continue
+        functions=[n for n in tree.body if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef))]
+        if not functions:continue
+        fn=functions[0]
+        name=item.get("symbol",fn.name)
+        path=item.get("path","?")
+        for node in ast.walk(fn):
+            if not isinstance(node,(ast.Try,ast.TryStar)):continue
+            source=f"{path}::{name}"
+            for stmt in node.body:
+                if isinstance(stmt,ast.Return):
+                    value=ast.unparse(stmt.value) if stmt.value else "None"
+                    fact=f"{source}: TRY_RETURN {value}; o except só executa se ocorrer uma exceção, não por retorno None"
+                    if fact not in seen:facts.append(fact);seen.add(fact)
+            for handler in node.handlers:
+                exc=ast.unparse(handler.type) if handler.type else "BaseException"
+                action=[]
+                for stmt in handler.body:
+                    for call in ast.walk(stmt):
+                        if isinstance(call,ast.Call):action.append(ast.unparse(call.func))
+                    if isinstance(stmt,ast.Raise) and stmt.exc is None:
+                        action.append("re-raise original exception unless earlier action fails")
+                if action:
+                    fact=f"{source}: HANDLER {exc} executa {', '.join(dict.fromkeys(action))}"
+                    if fact not in seen:facts.append(fact);seen.add(fact)
+                for stmt in handler.body:
+                    for call in ast.walk(stmt):
+                        if isinstance(call,ast.Call) and isinstance(call.func,ast.Attribute):
+                            fact=f"{source}: ATTRIBUTE_CALL {ast.unparse(call.func)} dentro do handler; ausência do atributo pode gerar AttributeError e substituir a exceção em propagação"
+                            if fact not in seen:facts.append(fact);seen.add(fact)
+    return facts[:15]
+
+
+def render_control_flow(report:dict)->str:
+    return "\n".join(extract_control_flow(report))
