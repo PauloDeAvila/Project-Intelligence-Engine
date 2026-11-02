@@ -22,7 +22,10 @@ def remember(root: Path, key: str, description: str, source_path: str) -> dict[s
         raise ValueError("Evidence source must be a real file inside the project")
     import hashlib
     digest = hashlib.sha256(source.read_bytes()).hexdigest()
-    conn = connect(root / ".pie" / "index.sqlite3")
+    db = root / ".pie" / "index.sqlite3"
+    if not db.is_file():
+        raise ValueError("Run pie index first")
+    conn = connect(db)
     try:
         conn.executescript(MEMORY_SCHEMA)
         with conn:
@@ -41,11 +44,14 @@ def recall(root: Path, query: str = "", limit: int = 25) -> dict[str, object]:
     if not 1 <= limit <= 200:
         raise ValueError("limit out of range")
     import hashlib
-    conn = connect(root / ".pie" / "index.sqlite3")
+    db = root / ".pie" / "index.sqlite3"
+    if not db.is_file():
+        raise ValueError("Run pie index first")
+    conn = connect(db)
     try:
         conn.executescript(MEMORY_SCHEMA)
         rows = conn.execute("""SELECT key,description,source_path,source_sha256,updated_utc
-                  FROM project_glossary WHERE key LIKE ? OR description LIKE ?
+                  FROM project_glossary WHERE key LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\'
                   ORDER BY key LIMIT ?""",
                   ("%"+query.replace("%","\\%").replace("_","\\_")+"%",)*2+(limit,)).fetchall()
         items=[]
@@ -57,13 +63,14 @@ def recall(root: Path, query: str = "", limit: int = 25) -> dict[str, object]:
             items.append({"key":row["key"],"description":row["description"] if state=="CURRENT" else None,
                           "source":row["source_path"],"state":state,"updated_utc":row["updated_utc"]})
         remaining=limit-len(items)
+        escaped=query.replace("\\","\\\\").replace("%","\\%").replace("_","\\_")
         if remaining>0:
             rows=conn.execute("""SELECT s.qualified_name,s.kind,d.summary,f.path,f.sha256
                   FROM symbol_docs d JOIN symbols s ON s.id=d.symbol_id
                   JOIN files f ON f.id=s.file_id
-                  WHERE d.summary != '' AND (s.qualified_name LIKE ? OR d.summary LIKE ?)
+                  WHERE d.summary != '' AND (s.qualified_name LIKE ? ESCAPE '\\' OR d.summary LIKE ? ESCAPE '\\')
                   ORDER BY s.qualified_name,f.path LIMIT ?""",
-                  (f"%{query}%",f"%{query}%",remaining)).fetchall()
+                  (f"%{escaped}%",f"%{escaped}%",remaining)).fetchall()
             for row in rows:
                 p=(root / row["path"]).resolve()
                 state="STALE"
