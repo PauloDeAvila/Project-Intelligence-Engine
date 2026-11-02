@@ -68,16 +68,16 @@ def retrieve(task,items):
     hit=any({"path":e["path"],"symbol":e["symbol"]}==task["expected"] for e in selected)
     return context,hit
 def request(base,key,model,task,context):
-    data={"model":model,"messages":[{"role":"system","content":"Navigate code using supplied evidence only. Return a single JSON object with exactly path and symbol fields as strings. If insufficient evidence, use empty strings."},{"role":"user","content":task["question"]+"\n\nSOURCE:\n"+context}],"max_tokens":120,"stream":False}
+    data={"model":model,"messages":[{"role":"system","content":"Navigate code using supplied evidence only. Return a single JSON object with exactly path and symbol fields as strings. If insufficient evidence, use empty strings."},{"role":"user","content":task["question"]+"\n\nSOURCE:\n"+context}],"max_tokens":768 if "nemotron" in model.lower() else 120,"stream":False}
     req=urllib.request.Request(base.rstrip("/")+"/v1/chat/completions",data=json.dumps(data).encode(),headers={"Content-Type":"application/json","Authorization":"Bearer "+key})
     t=time.perf_counter()
     try:
         with urllib.request.urlopen(req,timeout=110) as response:payload=json.load(response)
-        content=payload["choices"][0]["message"]["content"].strip()
+        content=(payload["choices"][0]["message"].get("content") or "").strip()
         if content.startswith(chr(96)*3):content=content.split("\n",1)[-1].rsplit(chr(96)*3,1)[0].strip()
         try:answer=json.loads(content)
         except ValueError:answer={}
-        return {"ok":True,"answer":answer,"seconds":round(time.perf_counter()-t,4),"usage":payload.get("usage",{}),"actual_model":payload.get("model")}
+        return {"ok":True,"answer":answer,"seconds":round(time.perf_counter()-t,4),"usage":payload.get("usage",{}),"actual_model":payload.get("model"),"finish_reason":payload["choices"][0].get("finish_reason")}
     except urllib.error.HTTPError as e:return {"ok":False,"http_status":e.code}
     except Exception as e:return {"ok":False,"error":type(e).__name__}
 def main():
