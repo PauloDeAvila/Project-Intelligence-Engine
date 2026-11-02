@@ -95,6 +95,7 @@ def generate(destination,model):
                     row.update(ok=True,code=code,usage=reply.get("usage",{}),
                                finish_reason=reply["choices"][0].get("finish_reason"),
                                raw_length=len(raw),raw_excerpt=raw[:300] if not code else None,
+                               parser_valid=bool(code),
                                seconds=round(time.perf_counter()-start,4))
                     break
                 except urllib.error.HTTPError as err:
