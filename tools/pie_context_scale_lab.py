@@ -30,6 +30,7 @@ def run(files: int, repeats: int, max_chars: int) -> dict[str, object]:
                 f'manage caching updates and verify inputs."""\n'
                 '    if value is None:\n'
                 '        raise ValueError("missing")\n'
+                '    instruction_text = "' + ("x" * 2200) + '"\n'
                 '    return value + 1\n',
                 encoding="utf-8")
         begin=time.perf_counter()
@@ -52,7 +53,7 @@ def run(files: int, repeats: int, max_chars: int) -> dict[str, object]:
                 elapsed=[]; returned=0; size=0
                 for _ in range(repeats):
                     t=time.perf_counter()
-                    output=smart_context(root,q,max_chars=budget,include_body=True)
+                    output=smart_context(root,q,max_chars=budget,limit=100 if budget>12000 else 8,include_body=True)
                     elapsed.append(time.perf_counter()-t)
                     if output["context_state"] not in ("CURRENT","PARTIAL"):
                         raise RuntimeError("retrieval stale")
