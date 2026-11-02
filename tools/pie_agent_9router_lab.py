@@ -103,11 +103,13 @@ def perform(root,task,model,mode,base,key,service):
             question=response.get("query","")
             if not isinstance(question,str) or not question.strip():break
             start=time.perf_counter()
-            result=service.query(question,max_chars=9000,limit=5,include_body=True)
+            result=service.task_pack(question,max_chars=9000,limit=5)
+            predicted=service.predictive_prefetch(question,limit=4)
+            result={"responsibility_pack":result,"predictive_prefetch":predicted}
             search_ms.append((time.perf_counter()-start)*1000)
             searches+=1
             messages.append({"role":"assistant","content":json.dumps(response)})
-            messages.append({"role":"user","content":"PIE_SEARCH_RESULT "+json.dumps(result["result"],ensure_ascii=False)+
+            messages.append({"role":"user","content":"PIE_SEARCH_RESULT "+json.dumps(result,ensure_ascii=False)+
                              "\nYou may search again or answer with exact path and symbol."})
         else:
             break
