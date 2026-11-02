@@ -10,11 +10,13 @@ import sys
 from pathlib import Path
 
 from pie.graph.relationships import build_relationships, get_relationships
+from pie.interfaces.mcp_context import MCPContextEngine
 from pie.retrieval.context import build_context
 from pie.interfaces.cli import command_status, command_search, command_symbol
 from pie.retrieval.symbols import analysis_summary, find_definitions, find_references
 
 TOOLS = [
+    {'name':'pie_query', 'description':'Preferred unified source-grounded lookup: responsibilities, symbol/file navigation and verified impact relationships. Use this before direct file browsing.', 'inputSchema':{'type':'object','properties':{'query':{'type':'string'},'mode':{'type':'string','enum':['responsibility','navigation','impact']},'limit':{'type':'integer','minimum':1,'maximum':20},'max_chars':{'type':'integer','minimum':500,'maximum':200000}},'required':['query'],'additionalProperties':False}},
     {'name':'pie_project_status', 'description':'Read index freshness and inventory.', 'inputSchema':{'type':'object','properties':{},'additionalProperties':False}},
     {'name':'pie_search_symbols', 'description':'Find indexed symbols by name.', 'inputSchema':{'type':'object','properties':{'query':{'type':'string'}},'required':['query'],'additionalProperties':False}},
     {'name':'pie_inspect_symbol', 'description':'Inspect symbol source locations.', 'inputSchema':{'type':'object','properties':{'name':{'type':'string'}},'required':['name'],'additionalProperties':False}},
@@ -27,12 +29,14 @@ TOOLS = [
 ]
 
 
-def dispatch(request: dict, root: Path) -> dict | None:
+def dispatch(request: dict, root: Path, engine: MCPContextEngine | None = None) -> dict | None:
     rid = request.get('id')
     method = request.get('method')
     if rid is None and isinstance(method, str) and method.startswith('notifications/'):
         return None
     try:
+        if not isinstance(request, dict):
+            raise ValueError('Request must be an object')
         if method == 'initialize':
             result = {'protocolVersion':'2025-03-26','capabilities':{'tools':{}},'serverInfo':{'name':'pie','version':'0.2.0-preview'}}
         elif method == 'ping':
@@ -59,7 +63,10 @@ def dispatch(request: dict, root: Path) -> dict | None:
                         raise ValueError(f'{key} must be a string')
                     if spec.get('type') == 'integer' and (type(value) is not int or not spec.get('minimum', -10**30) <= value <= spec.get('maximum', 10**30)):
                         raise ValueError(f'{key} must be an integer within range')
+            if 'mode' in args and args['mode'] not in ('responsibility','navigation','impact'):
+                raise ValueError('Invalid mode')
             functions = {
+                'pie_query':lambda:engine.query(args['query'],mode=args.get('mode','responsibility'),limit=args.get('limit',5),max_chars=args.get('max_chars',12000)) if engine is not None else _standalone_query(root,args),
                 'pie_project_status':lambda:command_status(root),
                 'pie_search_symbols':lambda:command_search(root,args['query']),
                 'pie_inspect_symbol':lambda:command_symbol(root,args['name']),
@@ -80,15 +87,21 @@ def dispatch(request: dict, root: Path) -> dict | None:
         return {'jsonrpc':'2.0','id':rid,'error':{'code':-32603,'message':str(exc)}}
 
 
+def _standalone_query(root: Path, args: dict):
+    with MCPContextEngine(root) as engine:
+        return engine.query(args['query'], mode=args.get('mode','responsibility'), limit=args.get('limit',5), max_chars=args.get('max_chars',12000))
+
+
 def main(argv=None):
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--root',type=Path,default=Path.cwd())
     root = parser.parse_args(argv).root.resolve()
-    for line in sys.stdin:
+    with MCPContextEngine(root) as engine:
+      for line in sys.stdin:
         try:
             request = json.loads(line)
-            reply = dispatch(request,root)
+            reply = dispatch(request,root,engine)
         except Exception as exc:
             reply = {'jsonrpc':'2.0','id':None,'error':{'code':-32700,'message':str(exc)}}
         if reply is not None:
