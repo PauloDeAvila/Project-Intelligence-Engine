@@ -276,5 +276,9 @@ def run():
     (out/"summary.json").write_text(json.dumps({"model":args.model,"scale_modules":args.scale_modules,"modes":selected_modes,"cases":list(QUESTIONS),"summary":summary,"verification_mode":"post-mutation isolated execution observations are included identically for both observed variants; this is not a blind LLM test","index_seconds_one_time":index_seconds,"retrieval_seconds_all_contexts":retrieval_seconds,"causal_retrieval_seconds_by_question":causal_retrieval_seconds,"grading":"Deterministic JSON-field scoring against known behavior of the synthetic mini-order lab; not a general code-correctness metric.","caveat":"The curated reference uses case-specific source selection; it is NOT a general-purpose PIE algorithm. One small lab, no automated semantic grading, and no established speedup."},ensure_ascii=False,indent=2),encoding='utf-8')
     print("SUMMARY",json.dumps(summary))
     if len(results)!=len(jobs) or any(not r["ok"] for r in results):sys.exit(1)
+    for verified_mode in ("baseline_observed","pie_observed"):
+        if verified_mode in selected_modes and summary[verified_mode]["certified_answers"] != summary[verified_mode]["n"]:
+            print("CERTIFICATION_GAP:",verified_mode,"Only execution-verified results are approved")
+            sys.exit(3)
 
 if __name__=="__main__":run()
