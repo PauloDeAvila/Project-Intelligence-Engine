@@ -28,7 +28,7 @@ from pie.retrieval.dynamic_selection import (
 # are not counted as successful positive information retrieval.
 CASES = [
     ("location", "Onde analyze_mesh está definida?", ["path", "line"]),
-    ("location", "Em qual arquivo analyze_mesh está definida?", ["path", "line"]),
+    ("location", "Em qual arquivo analyze_mesh está definida?", ["path"]),
     ("location", "Where is analyze_mesh defined?", ["path", "line"]),
     ("location", "Qual linha contém analyze_mesh?", ["line"]),
     ("location", "Qual é a localização de analyze_mesh?", ["path", "line"]),
@@ -76,6 +76,40 @@ class IndependentPlannerGoldTests(unittest.TestCase):
                 else:
                     self.assertEqual(result["status"], "PLANNED", result)
                     self.assertEqual(result["required_fields"], expected)
+
+    def test_independent_gold_policy_is_complete_and_disjoint(self):
+        policy_path = Path(__file__).resolve().parent / "fixtures" / "dynamic_selection_gold_v3.json"
+        policy = json.loads(policy_path.read_text(encoding="utf-8"))
+        self.assertEqual(policy["version"], "DES03-human-reviewed-v1")
+        self.assertEqual([item["case_id"] for item in policy["items"]], list(range(1, 31)))
+        for case_id, (category, question, expected) in enumerate(CASES, 1):
+            entry = policy["items"][case_id - 1]
+            with self.subTest(case_id=case_id, question=question):
+                self.assertEqual(entry["abstain"], expected is None)
+                self.assertEqual(entry["required"], expected or [])
+                partitions = [set(entry[key]) for key in ("required", "optional", "forbidden")]
+                self.assertEqual(set.union(*partitions), set(FIELD_ORDER))
+                self.assertEqual(sum(len(part) for part in partitions), len(FIELD_ORDER))
+        self.assertEqual(policy["items"][1]["required"], ["path"])
+        self.assertEqual(policy["items"][1]["optional"], ["line"])
+        self.assertIn("signature", policy["items"][1]["forbidden"])
+
+    def test_file_only_selection_is_sufficient_but_exact_is_distinct(self):
+        ev = {"evidence_id": "pie:one", "signature": "def f():",
+              "path": "geometry.py", "line": 1, "direct_call_count": 0,
+              "direct_call_sites": []}
+        plan = plan_evidence("Em qual arquivo analyze_mesh está definida?")
+        self.assertEqual(plan["required_fields"], ["path"])
+        self.assertEqual(plan["optional_fields"], ["line"])
+        for fields, exact in ((["path"], True), (["path", "line"], False)):
+            with self.subTest(fields=fields):
+                verdict = validate_dynamic_selection(ev, {"selected_fields": fields}, plan)
+                self.assertEqual(verdict["status"], "VERIFIED")
+                self.assertTrue(verdict["selection_semantically_sufficient"])
+                self.assertEqual(verdict["selection_exact"], exact)
+        verdict = validate_dynamic_selection(ev, {"selected_fields": ["line"]}, plan)
+        self.assertEqual(verdict["status"], "REJECTED")
+        self.assertEqual(verdict["missing_required"], ["path"])
 
     def test_schema_is_structural_and_never_contains_gold(self):
         schema = selection_json_schema()["json_schema"]["schema"]
@@ -234,6 +268,34 @@ class DynamicGatewayIntegrationTests(unittest.TestCase):
             "question": "Onde nonexistent está definida?",
             "symbol": "nonexistent", "validation_mode": "dynamic_selection"})
         self.assertEqual(result["status"], "ABSTAIN")
+
+    def test_out_of_sample_symbol_and_project_fixtures(self):
+        # Two previously unseen symbols and independently indexed projects.
+        # This checks source isolation and rendering, not Qwen generalization.
+        fixtures = [
+            ("alpha", "calculate_total",
+             "def calculate_total(items, tax):\\n    return sum(items) + tax\\n",
+             "Qual é a assinatura de calculate_total?", ["signature"]),
+            ("beta", "parse_configuration",
+             "def parse_configuration(raw, defaults):\\n    return defaults\\n",
+             "Em qual arquivo parse_configuration está definida?", ["path"]),
+        ]
+        for project_name, symbol, body, question, expected in fixtures:
+            with self.subTest(project=project_name, symbol=symbol):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    root = Path(temp_dir)
+                    (root / "module.py").write_text(body, encoding="utf-8")
+                    command_init(root)
+                    self.assertEqual(index_project(root)["index_state"], "CURRENT")
+                    def select(q, evidence, *, validation_mode):
+                        return validate_dynamic_selection(evidence, {
+                            "selected_fields": expected}, plan_evidence(q))
+                    result = Gateway(root, model_query=select).answer({
+                        "question": question, "symbol": symbol,
+                        "validation_mode": "dynamic_selection"})
+                    self.assertEqual(result["status"], "CERTIFIED_FACTS")
+                    self.assertEqual(set(result["selected_facts"]), set(expected))
+                    self.assertNotIn("analyze_mesh", result["answer"])
 
     def test_stale_project_abstains(self):
         (self.root / "geometry.py").write_text("def analyze_mesh(revised):\n    return revised\n", encoding="utf-8")
