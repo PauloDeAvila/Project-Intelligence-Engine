@@ -38,12 +38,17 @@ class MCPStdioE2ETests(unittest.TestCase):
 
     def _invoke(self, messages):
         lines = "\n".join(json.dumps(message) for message in messages) + "\n"
+        child_env = os.environ.copy()
+        source_root = str(Path(__file__).resolve().parents[1] / "src")
+        child_env["PYTHONPATH"] = os.pathsep.join(filter(None, (
+            source_root, child_env.get("PYTHONPATH", ""),
+        )))
         proc = subprocess.run(
             [sys.executable, "-u", "-m", "pie.interfaces.mcp_server",
              "--root", str(self.root)],
             input=lines, text=True, encoding="utf-8",
             capture_output=True, timeout=30, check=False,
-            env=os.environ.copy(),
+            env=child_env,
         )
         self.assertEqual(proc.returncode, 0, proc.stderr)
         output = [json.loads(line) for line in proc.stdout.splitlines() if line.strip()]
