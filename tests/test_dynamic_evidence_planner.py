@@ -79,7 +79,9 @@ class IndependentPlannerGoldTests(unittest.TestCase):
         prompt = selection_prompt(question, "pie:identifier")
         self.assertIn("selected_fields", prompt)
         self.assertIn(question, prompt)
-        self.assertIn("pie:identifier", prompt)
+        self.assertNotIn("pie:identifier", prompt)
+        self.assertNotIn("EVIDENCE_ID", prompt)
+        self.assertIn("CATALOG=", prompt)
         self.assertNotIn("EXPECTED_OUTPUT", prompt)
         self.assertNotIn("geometry.py", prompt)
         self.assertNotIn("def analyze_mesh(", prompt)
@@ -104,10 +106,10 @@ class IndependentPlannerGoldTests(unittest.TestCase):
               "direct_call_sites": []}
         plan = plan_evidence("Qual é a assinatura?")
         bad = [
-            ({"evidence_id": "fake", "selected_fields": ["signature"]}, "evidence_id_mismatch"),
-            ({"evidence_id": "pie:one", "selected_fields": ["signature", "signature"]}, "duplicate_field"),
-            ({"evidence_id": "pie:one", "selected_fields": ["invented"]}, "unknown_field"),
-            ({"evidence_id": "pie:one", "selected_fields": []}, "invalid_selected_fields"),
+            ({"evidence_id": "fake", "selected_fields": ["signature"]}, "invalid_selection_shape"),
+            ({"selected_fields": ["signature", "signature"]}, "duplicate_field"),
+            ({"selected_fields": ["invented"]}, "unknown_field"),
+            ({"selected_fields": []}, "invalid_selected_fields"),
         ]
         for proposal, reason in bad:
             with self.subTest(reason=reason):
@@ -134,7 +136,6 @@ class DynamicGatewayIntegrationTests(unittest.TestCase):
             self.assertEqual(validation_mode, "dynamic_selection")
             plan = plan_evidence(question)
             return validate_dynamic_selection(evidence, {
-                "evidence_id": evidence["evidence_id"],
                 "selected_fields": ["path", "line"]}, plan)
         result = Gateway(self.root, model_query=select).answer({
             "question": "Onde analyze_mesh está definida?",
@@ -148,7 +149,6 @@ class DynamicGatewayIntegrationTests(unittest.TestCase):
     def test_incorrect_selection_abstains_without_leaking_facts(self):
         def wrong(question, evidence, *, validation_mode):
             return validate_dynamic_selection(evidence, {
-                "evidence_id": evidence["evidence_id"],
                 "selected_fields": ["signature"]}, plan_evidence(question))
         result = Gateway(self.root, model_query=wrong).answer({
             "question": "Onde analyze_mesh está definida?",
