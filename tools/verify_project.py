@@ -38,14 +38,18 @@ def run(config):
             results.append({"tier": tier, "status": "not-applicable", "reason": entry["reason"]})
             continue
         start = time.monotonic()
+        command = list(entry["command"])
+        if command and command[0].lower() in {"python", "python3", "py"}:
+            command[0] = sys.executable
         try:
-            p = subprocess.run(entry["command"], cwd=ROOT, timeout=entry.get("timeout_seconds", 1200), check=False)
+            p = subprocess.run(command, cwd=ROOT, timeout=entry.get("timeout_seconds", 1200), check=False,
+                               capture_output=True, text=True)
             code = p.returncode
             status = "passed" if code == 0 else "failed"
         except (OSError, subprocess.TimeoutExpired) as exc:
             code, status = None, "blocked"
-            print(f"{tier}: {exc}", file=sys.stderr)
-        results.append({"tier": tier, "status": status, "returncode": code, "seconds": round(time.monotonic()-start, 2), "command": entry["command"]})
+        results.append({"tier": tier, "status": status, "returncode": code, "seconds": round(time.monotonic()-start, 2), "command": command,
+                        **({"error": str(exc)} if status == "blocked" else {})})
         failure |= status != "passed"
     out = ROOT / "verification-results.json"
     out.write_text(json.dumps({"results": results}, indent=2) + "\n", encoding="utf-8")
