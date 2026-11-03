@@ -126,6 +126,8 @@ class WarmContextService:
 
     def _source_valid(self, result):
         # Each cached evidence is checked against the indexed SHA-256.
+        if result.get("context_state") != "CURRENT":
+            return False
         paths = set(item["path"] for item in result.get("evidence", []))
         for path in paths:
             row = self._connection.execute(
@@ -135,7 +137,7 @@ class WarmContextService:
                 return False
             try:
                 resolved = (self.root / path).resolve()
-                if not resolved.is_relative_to(self.root):
+                if not resolved.is_relative_to(self.root) or resolved.is_symlink() or (self.root / path).is_symlink():
                     return False
                 if sha256(resolved.read_bytes()).hexdigest() != row[0]:
                     return False
