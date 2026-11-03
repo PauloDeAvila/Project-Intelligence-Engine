@@ -76,6 +76,16 @@ class MCPContextEngine:
             omitted_owner["omitted"] += 1
             if omitted_owner.get("context_state") == "CURRENT":
                 omitted_owner["context_state"] = "PARTIAL"
+        if "pack" in output:
+            # Keep the pack's own size field consistent after wrapper trimming.
+            for _ in range(3):
+                output["pack"]["serialized_chars"] = _size(output["pack"])
+            while _size(output) > max_chars and evidence:
+                evidence.pop()
+                omitted_owner["omitted"] += 1
+                if omitted_owner.get("context_state") == "CURRENT":
+                    omitted_owner["context_state"] = "PARTIAL"
+                output["pack"]["serialized_chars"] = _size(output["pack"])
         if _size(output) > max_chars:
             raise ValueError("Query metadata exceeds max_chars; use a larger budget")
         return output
