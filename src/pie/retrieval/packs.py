@@ -24,7 +24,7 @@ def build_responsibility_pack(root, question, evidence, graph, conn, *, max_char
         if row is None:
             raise ValueError("Missing indexed source")
         source=(root/candidate["path"]).resolve()
-        if not source.is_relative_to(root.resolve()):
+        if not source.is_relative_to(root.resolve()) or (root/candidate["path"]).is_symlink():
             raise ValueError("Escaping source path")
         if sha256(source.read_bytes()).hexdigest()!=row[0]:
             raise ValueError("Source changed during pack creation")
