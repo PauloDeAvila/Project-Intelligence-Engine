@@ -30,6 +30,52 @@ def snapshot(root):
     return {r.path.as_posix(): r.content for r in records}
 
 
+def verify_pack_source_contract(pack, snapshot_bytes):
+    """Validate provenance and the bounded v2 contract against copied source bytes.
+
+    This is an independent consumer check: do not trust a pack's self-reported
+    hashes, completeness or source paths without checking the local snapshot.
+    It does not assert exhaustive static or runtime call coverage.
+    """
+    if pack.get('schema_version') != 'pie-context-pack-v2':
+        raise AssertionError('Unexpected Context Pack schema version')
+    if pack.get('status') != 'VERIFIED_STATIC_CONTEXT':
+        raise AssertionError('Context Pack does not contain verified static evidence')
+    coverage = pack['coverage']
+    if coverage.get('static_analysis_coverage') != 'PARTIAL' or coverage.get('exhaustive') is not False:
+        raise AssertionError('Context Pack incorrectly claims exhaustive coverage')
+    if coverage.get('returned_verified_call_list_complete') is not True:
+        raise AssertionError('Known verified callers were truncated')
+    if coverage.get('omitted_by_budget') != 0 or coverage.get('omitted_by_call_limit') != 0:
+        raise AssertionError('Unreported caller omissions')
+    if coverage.get('returned_direct_call_count') != len(pack['callers']):
+        raise AssertionError('Returned caller count mismatch')
+    if coverage.get('verified_direct_call_count') != len(pack['callers']):
+        raise AssertionError('Verified caller count mismatch')
+    if pack['impact'].get('status') != 'UNDETERMINED' or pack['impact'].get('breaking_change_proven') is not False:
+        raise AssertionError('Unsupported runtime-impact certification')
+
+    def verify_source(path, expected_hash, line):
+        # Only paths discovered and copied from the source snapshot are eligible;
+        # never resolve attacker-supplied pack paths against the local filesystem.
+        if not isinstance(path, str) or path not in snapshot_bytes:
+            raise AssertionError('Unrecognized source path in Context Pack')
+        raw = snapshot_bytes[path]
+        if not isinstance(expected_hash, str) or sha256(raw).hexdigest() != expected_hash:
+            raise AssertionError('Source hash mismatch in Context Pack')
+        if type(line) is not int or not 1 <= line <= len(raw.decode('utf-8-sig').splitlines()):
+            raise AssertionError('Source line outside verified snapshot')
+
+    definition = pack['definition']
+    verify_source(definition['path'], definition['sha256'], definition['line'])
+    for caller in pack['callers']:
+        if caller.get('resolution') != 'verified' or caller.get('usage_kind') != 'direct_call':
+            raise AssertionError('Non-verified caller presented as a verified direct call')
+        if caller.get('target_binding') != definition['binding']:
+            raise AssertionError('Caller target binding differs from definition')
+        verify_source(caller['path'], caller['source_sha256'], caller['line'])
+
+
 def validate(original, symbols, expected):
     before = snapshot(original)
     with TemporaryDirectory(prefix='pie-real-project-') as directory:
@@ -70,13 +116,7 @@ def validate(original, symbols, expected):
             if reply.get('isError'):
                 raise AssertionError(reply)
             pack = json.loads(reply['content'][0]['text'])
-            if pack['coverage']['exhaustive'] or pack['coverage']['static_analysis_coverage'] != 'PARTIAL':
-                raise AssertionError('Misleading exhaustive claim')
-            if not pack['coverage']['returned_verified_call_list_complete']:
-                raise AssertionError('Known results were truncated')
-            for caller in pack['callers']:
-                if sha256(before[caller['path']]).hexdigest() != caller['source_sha256']:
-                    raise AssertionError('Caller hash mismatch')
+            verify_pack_source_contract(pack, before)
             packs[symbol] = pack
         for symbol, locations in expected.items():
             actual = {(c['path'], c['line']) for c in packs[symbol]['callers']}
