@@ -14,6 +14,7 @@ explicit ``STALE`` state telling it to re-index.
 """
 from __future__ import annotations
 
+import ast
 import json
 from hashlib import sha256
 from pathlib import Path
@@ -153,6 +154,51 @@ FROM usages u JOIN files f ON f.id = u.file_id
 """
 
 
+
+def _usage_kinds(root: Path, rows) -> dict[tuple[str, int, int], str]:
+    """Classify verified source occurrences by their AST role.
+
+    A name loaded as a value is not necessarily called. In particular, a
+    resolved import binding alone cannot prove a direct invocation. Parsing
+    happens only after callers hash-check the source, and never changes the
+    stored resolution verdict.
+    """
+    result: dict[tuple[str, int, int], str] = {}
+    by_path: dict[str, list] = {}
+    for row in rows:
+        by_path.setdefault(row["path"], []).append(row)
+    for path, occurrences in by_path.items():
+        try:
+            tree = ast.parse((root / path).read_text(encoding="utf-8-sig"), filename=path)
+        except (OSError, UnicodeError, SyntaxError):
+            continue
+        parents = {}
+        for node in ast.walk(tree):
+            for child in ast.iter_child_nodes(node):
+                parents[id(child)] = node
+        positions: dict[tuple[int, int], str] = {}
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Name):
+                continue
+            parent = parents.get(id(node))
+            if isinstance(parent, ast.Call) and parent.func is node:
+                kind = "direct_call"
+            elif isinstance(parent, ast.Call) and (
+                node in parent.args or any(kw.value is node for kw in parent.keywords)
+            ):
+                kind = "argument_pass"
+            elif isinstance(parent, (ast.Assign, ast.AnnAssign, ast.NamedExpr)) and parent.value is node:
+                kind = "value_reference"
+            else:
+                kind = "read" if isinstance(node.ctx, ast.Load) else "write"
+            positions[(node.lineno, node.col_offset)] = kind
+        for row in occurrences:
+            result[(path, row["line"], row["col"])] = positions.get(
+                (row["line"], row["col"]), "unknown"
+            )
+    return result
+
+
 def find_definitions(root: Path, name: str, limit: int = 100) -> dict[str, object]:
     """Every definition site of ``name`` (exact name, exact qualified name or suffix)."""
     if not name.strip():
@@ -235,6 +281,7 @@ def find_references(root: Path, name: str, limit: int = 100) -> dict[str, object
             for row in rows
             if row["path"] not in drift and row["target_binding_key"] in live_keys
         ]
+        usage_kinds = _usage_kinds(root, kept_rows)
         result: dict[str, object] = {
             "query": name,
             "definitions": [_definition_row(row) for row in kept_targets],
@@ -245,6 +292,7 @@ def find_references(root: Path, name: str, limit: int = 100) -> dict[str, object
                     "column": row["col"],
                     "name": row["name"],
                     "context": row["context"],
+                    "usage_kind": usage_kinds.get((row["path"], row["line"], row["col"]), "unknown"),
                     "consumer_scope": row["scope_key"],
                     "consumer_symbol": row["origin_symbol"],
                     "resolution": row["resolution"],
