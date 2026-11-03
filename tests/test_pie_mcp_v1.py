@@ -132,6 +132,8 @@ class MCPQueryTests(unittest.TestCase):
                  "params": {"name": "pie_query", "arguments": {"query": "Model", "limit": True}}},
                 {"jsonrpc": "2.0", "id": 1, "method": "tools/call",
                  "params": {"name": "pie_query", "arguments": {"query": "X" * 4097}}},
+                {"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                 "params": {"name": "pie_query", "arguments": {"query": "Model" + chr(0)}}},
             ]
             for request in bad:
                 result = dispatch(request, self.root, engine)
