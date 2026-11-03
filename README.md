@@ -51,3 +51,17 @@ python tools/benchmark_index.py
 python tools/benchmark_index.py --files 5000 --queries 100
 python tools/benchmark_index.py --source path/to/real/project --queries 100
 ```
+
+
+## Local MCP setup (experimental V1 pathway)
+
+Python 3.12+ and an installed checkout are required.
+
+```powershell
+python -m pip install -e .
+pie-setup --project "C:\\path\\to\\project" --clients vscode codex claude
+```
+
+This initializes and indexes each project and writes project-scoped, non-destructive MCP configurations for VS Code, Codex, and Claude Code. Each project keeps a separate `.pie/index.sqlite3`. Run the same command for each workspace; repeated setup is idempotent.
+
+For full installation options, client diagnostics, upgrades, and recovery procedures, see [Local MCP setup and operations](docs/pie-local-mcp-installation.md). The package version remains pre-1.0; this documentation does not constitute a production-release certification.
