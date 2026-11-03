@@ -84,10 +84,12 @@ def validate_dynamic_selection(evidence: dict, proposed: object, plan: dict) -> 
     if plan["status"] != "PLANNED":
         return {"status": "ABSTAIN", "reason": plan["reason"],
                 "selected_fields": [], "missing_required": []}
-    if not isinstance(proposed, dict) or set(proposed) != {"evidence_id", "selected_fields"}:
+    # Bind the source snapshot on the trusted Gateway side. A model should
+    # choose fields, NOT reproduce a long hash-like evidence identifier.
+    # Legacy ID-bearing proposals are rejected in dynamic mode rather than
+    # silently accepting any model-supplied identifier.
+    if not isinstance(proposed, dict) or set(proposed) != {"selected_fields"}:
         return {"status": "REJECTED", "reason": "invalid_selection_shape", "selected_fields": []}
-    if proposed["evidence_id"] != evidence["evidence_id"]:
-        return {"status": "REJECTED", "reason": "evidence_id_mismatch", "selected_fields": []}
     fields = proposed["selected_fields"]
     if not isinstance(fields, list) or not 1 <= len(fields) <= len(FIELDS):
         return {"status": "REJECTED", "reason": "invalid_selected_fields", "selected_fields": []}
@@ -108,15 +110,17 @@ def validate_dynamic_selection(evidence: dict, proposed: object, plan: dict) -> 
             "resolved_facts": {field: evidence[field] for field in FIELD_ORDER if field in chosen}}
 
 
-def selection_prompt(question: str, evidence_id: str) -> str:
-    """No answer key and no source values appear in the model instructions."""
+def selection_prompt(question: str, evidence_id: str | None = None) -> str:
+    """Provide a catalog, never source IDs, canonical values or the answer key."""
+    import json
+
     return (
-        "Select evidence fields required to answer the user's question. "
-        "Only use the supplied catalog. Return exactly one JSON object with "
-        "keys evidence_id and selected_fields; selected_fields is an array "
-        "of distinct catalog field names. Do not add facts, values, prose or "
-        "markdown. Never guess an evidence_id. "
-        "CATALOG=" + __import__("json").dumps(FIELDS, ensure_ascii=False)
-        + "\nEVIDENCE_ID=" + evidence_id
-        + "\nQUESTION=" + question
+        "Select evidence fields required to answer the QUESTION. "
+        "Return exactly one JSON object with one key: selected_fields, "
+        "an array of distinct names from CATALOG. No evidence_id, source "
+        "values, explanations, markdown or other properties. "
+        "Select the minimum fields necessary to answer this question. "
+        "If no field is relevant, return {\\\"selected_fields\\\":[]}. "
+        "CATALOG=" + json.dumps(FIELDS, ensure_ascii=False)
+        + "\\nQUESTION=" + question
     )
