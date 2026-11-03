@@ -4,7 +4,7 @@ Model execution is opt-in. Raw JSONL is retained locally and a sanitized summary
 is written for publication; no token value is inferred when usage is absent.
 """
 from __future__ import annotations
-import argparse, hashlib, json, re, subprocess, time
+import argparse, hashlib, json, os, platform, re, subprocess, time
 from pathlib import Path
 
 def scrub(value):
@@ -26,11 +26,26 @@ def parse_events(path):
     pie = [x for x in mcp if str(x.get("server", "")).startswith("pie-")]
     return {"usage": usage, "pie_mcp_executed": any(x["status"] == "completed" for x in pie), "mcp_calls": mcp, "final": final}
 
+def manifest(root):
+    files = sorted(p for p in root.rglob("*.py") if ".pie" not in p.parts)
+    rows = {str(p.relative_to(root)).replace("\\", "/"): hashlib.sha256(p.read_bytes()).hexdigest() for p in files}
+    digest = hashlib.sha256("".join(k+v for k,v in rows.items()).encode()).hexdigest()
+    return rows, digest
+
+def sanitize_jsonl(source, destination):
+    with source.open(encoding="utf-8", errors="replace") as inp, destination.open("w", encoding="utf-8") as out:
+        for line in inp:
+            try: out.write(json.dumps(json.loads(scrub(line)), ensure_ascii=False) + "\n")
+            except json.JSONDecodeError: out.write(scrub(line))
+
 def main():
-    p = argparse.ArgumentParser(); p.add_argument("--project", type=Path, required=True); p.add_argument("--prompt-without-pie", required=True); p.add_argument("--prompt-with-pie", required=True); p.add_argument("--output", type=Path, required=True); p.add_argument("--repetitions", type=int, default=5); p.add_argument("--run", action="store_true"); p.add_argument("--codex", default="codex"); p.add_argument("--bypass-approvals", action="store_true"); a = p.parse_args()
-    files = sorted(p for p in a.project.rglob("*.py") if ".pie" not in p.parts)
-    manifest = {str(p.relative_to(a.project)).replace("\\", "/"): hashlib.sha256(p.read_bytes()).hexdigest() for p in files}
-    snapshot_hash = hashlib.sha256("".join(k+v for k,v in manifest.items()).encode()).hexdigest()
+    p = argparse.ArgumentParser(); p.add_argument("--project", type=Path, required=True); p.add_argument("--prompt-without-pie", required=True); p.add_argument("--prompt-with-pie", required=True); p.add_argument("--output", type=Path, required=True); p.add_argument("--repetitions", type=int, default=5); p.add_argument("--run", action="store_true"); p.add_argument("--codex", default="codex"); p.add_argument("--model"); p.add_argument("--bypass-approvals", action="store_true"); p.add_argument("--required-evidence", nargs="*", default=[]); a = p.parse_args()
+    files, snapshot_hash = manifest(a.project)
+    prompt_hashes = {"without_pie": hashlib.sha256(a.prompt_without_pie.encode()).hexdigest(), "with_pie": hashlib.sha256(a.prompt_with_pie.encode()).hexdigest()}
+    try: codex_version = subprocess.check_output([a.codex, "--version"], text=True, stderr=subprocess.STDOUT).strip()
+    except Exception: codex_version = None
+    try: git_commit = subprocess.check_output(["git", "-C", str(a.project), "rev-parse", "HEAD"], text=True, stderr=subprocess.STDOUT).strip()
+    except Exception: git_commit = None
     records = []
     if a.run:
         for repeat in range(1, a.repetitions + 1):
@@ -40,8 +55,10 @@ def main():
                 if a.bypass_approvals: cmd.insert(4, "--dangerously-bypass-approvals-and-sandbox")
                 started = time.perf_counter()
                 with raw.open("w", encoding="utf-8") as stream: result = subprocess.run(cmd + [prompt], stdout=stream, stderr=subprocess.STDOUT, text=True, check=False)
-                parsed = parse_events(raw); records.append({"repeat": repeat, "mode": mode, "returncode": result.returncode, "seconds": round(time.perf_counter()-started, 4), **parsed, "raw_sha256": hashlib.sha256(raw.read_bytes()).hexdigest()})
-    output = {"schema": "pie-codex-paired-benchmark-v1", "project": str(a.project), "snapshot_sha256": snapshot_hash, "files": len(files), "repetitions": a.repetitions, "executed": a.run, "records": records}
+                parsed = parse_events(raw); sanitized = raw.with_suffix(".sanitized.jsonl"); sanitize_jsonl(raw, sanitized); final = parsed.get("final") or ""; records.append({"repeat": repeat, "mode": mode, "returncode": result.returncode, "seconds": round(time.perf_counter()-started, 4), "quality_passed": all(token in final for token in a.required_evidence), "required_evidence": a.required_evidence, **parsed, "raw_sha256": hashlib.sha256(raw.read_bytes()).hexdigest(), "sanitized_sha256": hashlib.sha256(sanitized.read_bytes()).hexdigest()})
+        _, after_hash = manifest(a.project)
+        if after_hash != snapshot_hash: raise SystemExit("Project snapshot changed during benchmark")
+    output = {"schema": "pie-codex-paired-benchmark-v1", "project": str(a.project), "snapshot_sha256": snapshot_hash, "project_git_commit": git_commit, "codex_version": codex_version, "model": a.model, "platform": platform.platform(), "python": platform.python_version(), "prompt_sha256": prompt_hashes, "files": len(files), "repetitions": a.repetitions, "executed": a.run, "records": records}
     a.output.write_text(json.dumps(output, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(json.dumps({"snapshot_sha256": snapshot_hash, "files": len(files), "records": len(records), "executed": a.run}))
 
