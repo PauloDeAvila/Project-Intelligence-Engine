@@ -1,0 +1,588 @@
+{
+  "schema_version": "des04-eval-v1",
+  "status": "DRAFT_NOT_FROZEN",
+  "score_allowed": false,
+  "model_inference_performed": false,
+  "review_policy": {
+    "independent_reviewers_required_per_case": 2,
+    "actual_reviewers_recorded": false,
+    "gold_frozen_before_inference": false
+  },
+  "repositories": [
+    {
+      "name": "requests",
+      "url": "https://github.com/psf/requests",
+      "tag": "v2.32.5",
+      "commit_sha": "b25c87d7cb8d6a18a37fa12442b5f883f9e41741",
+      "expected_commit_sha": "b25c87d7cb8d6a18a37fa12442b5f883f9e41741",
+      "clean_checkout_verified": true,
+      "license": "Apache-2.0",
+      "license_file": "LICENSE",
+      "source_clone": "local-only:repositories/requests-v2.32.5",
+      "indexed_snapshot": "local-only:snapshots/requests-v2.32.5",
+      "index_state": "CURRENT",
+      "index_diagnostics": [],
+      "index_counts": {
+        "python_files": 36,
+        "symbols": 755,
+        "imports": 471,
+        "definitions": 4300,
+        "references": 10866
+      },
+      "clean_checkout": true
+    },
+    {
+      "name": "click",
+      "url": "https://github.com/pallets/click",
+      "tag": "8.3.1",
+      "commit_sha": "1d038f270701498433cb432f54db89f95f07a845",
+      "expected_commit_sha": "1d038f270701498433cb432f54db89f95f07a845",
+      "clean_checkout_verified": true,
+      "license": "BSD-3-Clause",
+      "license_file": "LICENSE.txt",
+      "source_clone": "local-only:repositories/click-8.3.1",
+      "indexed_snapshot": "local-only:snapshots/click-8.3.1",
+      "index_state": "CURRENT",
+      "index_diagnostics": [],
+      "index_counts": {
+        "python_files": 62,
+        "symbols": 1550,
+        "imports": 557,
+        "definitions": 7071,
+        "references": 23107
+      },
+      "clean_checkout": true
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "requests-01",
+      "repository": "requests",
+      "category": "unambiguous_static_direct_call",
+      "question": "Liste as chamadas diretas resolvidas para merge_setting, com caminho e linha.",
+      "provisional_expected_status": "VERIFIED_STATIC",
+      "expected_breakage": false,
+      "source_spans": [
+        {
+          "path": "src/requests/sessions.py",
+          "line": 61
+        },
+        {
+          "path": "src/requests/sessions.py",
+          "line": 103
+        },
+        {
+          "path": "src/requests/sessions.py",
+          "line": 490
+        },
+        {
+          "path": "src/requests/sessions.py",
+          "line": 493
+        },
+        {
+          "path": "src/requests/sessions.py",
+          "line": 494
+        },
+        {
+          "path": "src/requests/sessions.py",
+          "line": 774
+        },
+        {
+          "path": "src/requests/sessions.py",
+          "line": 775
+        },
+        {
+          "path": "src/requests/sessions.py",
+          "line": 776
+        },
+        {
+          "path": "src/requests/sessions.py",
+          "line": 777
+        }
+      ],
+      "observed_pie": "8 verified direct calls returned, all within sessions.py.",
+      "scenario": null,
+      "reviewers": [],
+      "review_status": "UNREVIEWED",
+      "gold_frozen_before_inference": false,
+      "expected_status": "VERIFIED_STATIC"
+    },
+    {
+      "case_id": "requests-02",
+      "repository": "requests",
+      "category": "ambiguous_symbol_name",
+      "question": "Qual defini??o exata de __init__ est? sendo referenciada sem informar a classe?",
+      "provisional_expected_status": "ABSTAIN",
+      "expected_breakage": false,
+      "source_spans": [
+        {
+          "path": "src/requests/adapters.py",
+          "line": 116
+        },
+        {
+          "path": "src/requests/auth.py",
+          "line": 79
+        }
+      ],
+      "observed_pie": "Many same-named constructors; exact bare-name resolution is ambiguous.",
+      "scenario": null,
+      "reviewers": [],
+      "review_status": "UNREVIEWED",
+      "gold_frozen_before_inference": false,
+      "expected_status": "ABSTAIN"
+    },
+    {
+      "case_id": "requests-03",
+      "repository": "requests",
+      "category": "multi_file_evidence",
+      "question": "Quais locais do pacote Requests chamam diretamente extract_cookies_to_jar?",
+      "provisional_expected_status": "VERIFIED_STATIC",
+      "expected_breakage": false,
+      "source_spans": [
+        {
+          "path": "src/requests/cookies.py",
+          "line": 124
+        },
+        {
+          "path": "src/requests/adapters.py",
+          "line": 365
+        },
+        {
+          "path": "src/requests/auth.py",
+          "line": 270
+        },
+        {
+          "path": "src/requests/sessions.py",
+          "line": 240
+        },
+        {
+          "path": "src/requests/sessions.py",
+          "line": 276
+        },
+        {
+          "path": "src/requests/sessions.py",
+          "line": 716
+        },
+        {
+          "path": "src/requests/sessions.py",
+          "line": 718
+        }
+      ],
+      "observed_pie": "API returns zero edges; source inspection shows six direct call expressions in adapters.py, auth.py and sessions.py. Candidate for recall/false-negative evaluation.",
+      "scenario": null,
+      "reviewers": [],
+      "review_status": "UNREVIEWED",
+      "gold_frozen_before_inference": false,
+      "expected_status": "VERIFIED_STATIC"
+    },
+    {
+      "case_id": "requests-04",
+      "repository": "requests",
+      "category": "dynamic_or_indirect_call_limit",
+      "question": "A implementa??o garante que release_conn existe e ser? chamado no objeto raw?",
+      "provisional_expected_status": "ABSTAIN",
+      "expected_breakage": false,
+      "source_spans": [
+        {
+          "path": "src/requests/models.py",
+          "line": 1037
+        },
+        {
+          "path": "src/requests/models.py",
+          "line": 1038
+        },
+        {
+          "path": "src/requests/models.py",
+          "line": 1039
+        }
+      ],
+      "observed_pie": "Attribute is obtained dynamically with getattr and invoked conditionally; this is not a verified target edge.",
+      "scenario": null,
+      "reviewers": [],
+      "review_status": "UNREVIEWED",
+      "gold_frozen_before_inference": false,
+      "expected_status": "ABSTAIN"
+    },
+    {
+      "case_id": "requests-05",
+      "repository": "requests",
+      "category": "stale_source_changed",
+      "question": "Ap?s sessions.py mudar depois da indexa??o, a rela??o registrada para merge_setting ainda pode ser certificada?",
+      "provisional_expected_status": "ABSTAIN",
+      "expected_breakage": false,
+      "source_spans": [
+        {
+          "path": "src/requests/sessions.py",
+          "line": 61
+        },
+        {
+          "path": "src/requests/sessions.py",
+          "line": 103
+        }
+      ],
+      "observed_pie": "Throwaway-copy mutation was blocked with STALE_PROJECT.",
+      "scenario": "Append a newline to sessions.py in a disposable copy after indexing; do not mutate pinned snapshot.",
+      "reviewers": [],
+      "review_status": "UNREVIEWED",
+      "gold_frozen_before_inference": false,
+      "expected_status": "ABSTAIN"
+    },
+    {
+      "case_id": "requests-06",
+      "repository": "requests",
+      "category": "stale_new_file",
+      "question": "Ap?s adicionar um novo m?dulo chamador depois da indexa??o, o total de chamadas de merge_setting continua completo?",
+      "provisional_expected_status": "ABSTAIN",
+      "expected_breakage": false,
+      "source_spans": [
+        {
+          "path": "src/requests/sessions.py",
+          "line": 61
+        }
+      ],
+      "observed_pie": "Throwaway-copy addition of a Python caller was blocked with STALE_PROJECT.",
+      "scenario": "Add src/requests/_des04_new_caller.py in a disposable copy after indexing.",
+      "reviewers": [],
+      "review_status": "UNREVIEWED",
+      "gold_frozen_before_inference": false,
+      "expected_status": "ABSTAIN"
+    },
+    {
+      "case_id": "requests-07",
+      "repository": "requests",
+      "category": "unresolved_reference",
+      "question": "A refer?ncia RequestsDependencyWarning em __init__.py resolve para a defini??o local de exceptions.py?",
+      "provisional_expected_status": "ABSTAIN",
+      "expected_breakage": false,
+      "source_spans": [
+        {
+          "path": "src/requests/__init__.py",
+          "line": 45
+        },
+        {
+          "path": "src/requests/__init__.py",
+          "line": 89
+        },
+        {
+          "path": "src/requests/exceptions.py",
+          "line": 150
+        }
+      ],
+      "observed_pie": "Indexed usage is marked unresolved although the relative-import target exists in the indexed repository.",
+      "scenario": null,
+      "reviewers": [],
+      "review_status": "UNREVIEWED",
+      "gold_frozen_before_inference": false,
+      "expected_status": "ABSTAIN"
+    },
+    {
+      "case_id": "requests-08",
+      "repository": "requests",
+      "category": "not_enough_evidence_for_breakage",
+      "question": "Alterar merge_setting necessariamente quebrar? o comportamento de Session?",
+      "provisional_expected_status": "ABSTAIN",
+      "expected_breakage": false,
+      "source_spans": [
+        {
+          "path": "src/requests/sessions.py",
+          "line": 61
+        },
+        {
+          "path": "src/requests/sessions.py",
+          "line": 490
+        },
+        {
+          "path": "src/requests/sessions.py",
+          "line": 774
+        }
+      ],
+      "observed_pie": "Static edges do not prove a runtime or causal outcome; report impact must remain UNDETERMINED.",
+      "scenario": null,
+      "reviewers": [],
+      "review_status": "UNREVIEWED",
+      "gold_frozen_before_inference": false,
+      "expected_status": "ABSTAIN"
+    },
+    {
+      "case_id": "click-01",
+      "repository": "click",
+      "category": "unambiguous_static_direct_call",
+      "question": "Qual chamada direta resolvida de style ocorre em secho? Informe arquivo e linha.",
+      "provisional_expected_status": "VERIFIED_STATIC",
+      "expected_breakage": false,
+      "source_spans": [
+        {
+          "path": "src/click/termui.py",
+          "line": 518
+        },
+        {
+          "path": "src/click/termui.py",
+          "line": 688
+        }
+      ],
+      "observed_pie": "One verified direct call returned within termui.py.",
+      "scenario": null,
+      "reviewers": [],
+      "review_status": "UNREVIEWED",
+      "gold_frozen_before_inference": false,
+      "expected_status": "VERIFIED_STATIC"
+    },
+    {
+      "case_id": "click-02",
+      "repository": "click",
+      "category": "ambiguous_symbol_name",
+      "question": "Qual implementa??o concreta de get_current_context corresponde ao nome, considerando as declara??es overload?",
+      "provisional_expected_status": "ABSTAIN",
+      "expected_breakage": false,
+      "source_spans": [
+        {
+          "path": "src/click/globals.py",
+          "line": 13
+        },
+        {
+          "path": "src/click/globals.py",
+          "line": 17
+        },
+        {
+          "path": "src/click/globals.py",
+          "line": 20
+        }
+      ],
+      "observed_pie": "The evidence helper rejects the same-name overloads as AMBIGUOUS. Reviewer must assess whether runtime implementation should instead be singled out.",
+      "scenario": null,
+      "reviewers": [],
+      "review_status": "UNREVIEWED",
+      "gold_frozen_before_inference": false,
+      "expected_status": "ABSTAIN"
+    },
+    {
+      "case_id": "click-03",
+      "repository": "click",
+      "category": "multi_file_evidence",
+      "question": "Quais chamadas diretas de format_filename aparecem nos m?dulos de produ??o do Click?",
+      "provisional_expected_status": "VERIFIED_STATIC",
+      "expected_breakage": false,
+      "source_spans": [
+        {
+          "path": "src/click/utils.py",
+          "line": 407
+        },
+        {
+          "path": "src/click/utils.py",
+          "line": 149
+        },
+        {
+          "path": "src/click/types.py",
+          "line": 856
+        },
+        {
+          "path": "src/click/types.py",
+          "line": 989
+        },
+        {
+          "path": "src/click/types.py",
+          "line": 998
+        },
+        {
+          "path": "src/click/types.py",
+          "line": 1006
+        },
+        {
+          "path": "src/click/types.py",
+          "line": 1015
+        },
+        {
+          "path": "src/click/types.py",
+          "line": 1024
+        },
+        {
+          "path": "src/click/types.py",
+          "line": 1033
+        },
+        {
+          "path": "src/click/exceptions.py",
+          "line": 285
+        }
+      ],
+      "observed_pie": "API returns one same-file edge; source inspection shows eight further calls in types.py and exceptions.py. Candidate for cross-file recall evaluation.",
+      "scenario": null,
+      "reviewers": [],
+      "review_status": "UNREVIEWED",
+      "gold_frozen_before_inference": false,
+      "expected_status": "VERIFIED_STATIC"
+    },
+    {
+      "case_id": "click-04",
+      "repository": "click",
+      "category": "dynamic_or_indirect_call_limit",
+      "question": "? poss?vel enumerar estaticamente todos os atributos encaminhados por EchoingStdin?",
+      "provisional_expected_status": "ABSTAIN",
+      "expected_breakage": false,
+      "source_spans": [
+        {
+          "path": "src/click/testing.py",
+          "line": 31
+        },
+        {
+          "path": "src/click/testing.py",
+          "line": 32
+        }
+      ],
+      "observed_pie": "__getattr__ forwards arbitrary attribute names using getattr(self._input, x).",
+      "scenario": null,
+      "reviewers": [],
+      "review_status": "UNREVIEWED",
+      "gold_frozen_before_inference": false,
+      "expected_status": "ABSTAIN"
+    },
+    {
+      "case_id": "click-05",
+      "repository": "click",
+      "category": "stale_source_changed",
+      "question": "Ap?s utils.py mudar depois da indexa??o, a rela??o de format_filename continua certific?vel?",
+      "provisional_expected_status": "ABSTAIN",
+      "expected_breakage": false,
+      "source_spans": [
+        {
+          "path": "src/click/utils.py",
+          "line": 407
+        },
+        {
+          "path": "src/click/utils.py",
+          "line": 149
+        }
+      ],
+      "observed_pie": "Throwaway-copy mutation was blocked with STALE_PROJECT.",
+      "scenario": "Append a newline to utils.py in a disposable copy after indexing; do not mutate pinned snapshot.",
+      "reviewers": [],
+      "review_status": "UNREVIEWED",
+      "gold_frozen_before_inference": false,
+      "expected_status": "ABSTAIN"
+    },
+    {
+      "case_id": "click-06",
+      "repository": "click",
+      "category": "stale_new_file",
+      "question": "Ap?s adicionar um novo consumidor de format_filename depois da indexa??o, a lista de chamadas continua completa?",
+      "provisional_expected_status": "ABSTAIN",
+      "expected_breakage": false,
+      "source_spans": [
+        {
+          "path": "src/click/utils.py",
+          "line": 407
+        }
+      ],
+      "observed_pie": "Throwaway-copy addition of a Python caller was blocked with STALE_PROJECT.",
+      "scenario": "Add src/click/_des04_new_caller.py in a disposable copy after indexing.",
+      "reviewers": [],
+      "review_status": "UNREVIEWED",
+      "gold_frozen_before_inference": false,
+      "expected_status": "ABSTAIN"
+    },
+    {
+      "case_id": "click-07",
+      "repository": "click",
+      "category": "unresolved_reference",
+      "question": "A refer?ncia TracebackType em _compat.py resolve para types.TracebackType da biblioteca padr?o?",
+      "provisional_expected_status": "ABSTAIN",
+      "expected_breakage": false,
+      "source_spans": [
+        {
+          "path": "src/click/_compat.py",
+          "line": 10
+        },
+        {
+          "path": "src/click/_compat.py",
+          "line": 480
+        }
+      ],
+      "observed_pie": "Index reports unresolved because it associates the absolute stdlib types import with local src/click/types.py, which lacks TracebackType.",
+      "scenario": null,
+      "reviewers": [],
+      "review_status": "UNREVIEWED",
+      "gold_frozen_before_inference": false,
+      "expected_status": "ABSTAIN"
+    },
+    {
+      "case_id": "click-08",
+      "repository": "click",
+      "category": "not_enough_evidence_for_breakage",
+      "question": "Alterar format_filename necessariamente quebrar? os comandos de CLI que o utilizam?",
+      "provisional_expected_status": "ABSTAIN",
+      "expected_breakage": false,
+      "source_spans": [
+        {
+          "path": "src/click/utils.py",
+          "line": 407
+        },
+        {
+          "path": "src/click/types.py",
+          "line": 856
+        },
+        {
+          "path": "src/click/exceptions.py",
+          "line": 285
+        }
+      ],
+      "observed_pie": "Static call sites do not prove behavioral breakage; impact remains UNDETERMINED.",
+      "scenario": null,
+      "reviewers": [],
+      "review_status": "UNREVIEWED",
+      "gold_frozen_before_inference": false,
+      "expected_status": "ABSTAIN"
+    }
+  ],
+  "observations": [
+    {
+      "repository": "requests",
+      "query": "extract_cookies_to_jar",
+      "manual_source_call_sites": 6,
+      "pie_reported_edges": 0,
+      "status": "cross_module_recall_gap_observed"
+    },
+    {
+      "repository": "click",
+      "query": "format_filename",
+      "manual_source_call_sites": 9,
+      "pie_reported_edges": 1,
+      "status": "cross_module_recall_gap_observed"
+    },
+    {
+      "repository": "requests",
+      "query": "merge_setting",
+      "manual_source_call_sites": 8,
+      "pie_reported_edges": 8,
+      "status": "same_module_direct_calls_verified"
+    },
+    {
+      "repository": "click",
+      "query": "style",
+      "manual_source_call_sites": 1,
+      "pie_reported_edges": 1,
+      "status": "same_module_direct_call_verified"
+    },
+    {
+      "repository": "requests",
+      "query": "RequestsDependencyWarning",
+      "status": "indexed_relative_import_marked_unresolved"
+    },
+    {
+      "repository": "click",
+      "query": "TracebackType",
+      "status": "stdlib_import_confused_with_local_module_and_marked_unresolved"
+    },
+    {
+      "repository": "both",
+      "scenario": "post-index source mutation and new source file",
+      "result": "both blocked as STALE_PROJECT in disposable copies"
+    }
+  ],
+  "limitations": [
+    "These are candidate cases, not reviewed gold.",
+    "No Qwen or scored benchmark was run.",
+    "Observed cross-module call-site misses mean the current candidate set exposes a PIE retrieval gap; do not interpret zero returned edges as absence of source calls.",
+    "Candidate repos are small tagged versions; broader real-repository evaluation remains necessary."
+  ],
+  "next_gate": "Obtain two genuinely independent reviews of every case and resolve/accept the observed recall gaps before freezing a manifest.",
+  "candidate_format": "des04-evidence-audit-candidates-v1"
+}

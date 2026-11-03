@@ -1,0 +1,108 @@
+{
+  "record_schema": "des04-baseline-record-v1",
+  "status": "DRAFT_NOT_FROZEN",
+  "score_allowed": false,
+  "model_inference_performed": false,
+  "baseline_immutable": true,
+  "captured_at_local": "2026-11-03",
+  "pie": {
+    "repository": "PauloDeAvila/Project-Intelligence-Engine",
+    "version": "0.1.0",
+    "commit": "fa88930aafa4d9973c45633f1ab0b4ddea2ac5de",
+    "branch": "feat/des04-static-traceability-evaluation",
+    "pr": 12,
+    "draft": true
+  },
+  "candidate_dossier": {
+    "path": "evaluation/des04/baseline-candidates.draft.json",
+    "sha256": "189DA647CC73D79CA188A3202077628B8EB7387E5DA76A333A0C96ED56D0116E",
+    "case_count": 16,
+    "actual_independent_reviewers_recorded": false,
+    "human_gold_frozen": false,
+    "source_path": "local baseline artifact (outside repository)",
+    "source_sha256": "DF207BDBD74F35B352B08EF78E3E6024CF22C59DA4397487C82DE2CD6B23A0B0",
+    "committed_copy_redacted": true
+  },
+  "repositories": [
+    {
+      "name": "requests",
+      "url": "https://github.com/psf/requests",
+      "tag": "v2.32.5",
+      "commit_sha": "b25c87d7cb8d6a18a37fa12442b5f883f9e41741",
+      "clean_checkout_verified": true,
+      "license": "Apache-2.0",
+      "index_state": "CURRENT",
+      "index_counts": {
+        "python_files": 36,
+        "symbols": 755,
+        "imports": 471,
+        "definitions": 4300,
+        "references": 10866
+      },
+      "source_clone": "local-only:repositories/requests-v2.32.5",
+      "indexed_snapshot": "local-only:snapshots/requests-v2.32.5",
+      "index_db_sha256": "104C4D074B6AD339BB78959F2D1279A3419115ED9DE78157142A2FE40568A820",
+      "clone_tree_status": "clean"
+    },
+    {
+      "name": "click",
+      "url": "https://github.com/pallets/click",
+      "tag": "8.3.1",
+      "commit_sha": "1d038f270701498433cb432f54db89f95f07a845",
+      "clean_checkout_verified": true,
+      "license": "BSD-3-Clause",
+      "index_state": "CURRENT",
+      "index_counts": {
+        "python_files": 62,
+        "symbols": 1550,
+        "imports": 557,
+        "definitions": 7071,
+        "references": 23107
+      },
+      "source_clone": "local-only:repositories/click-8.3.1",
+      "indexed_snapshot": "local-only:snapshots/click-8.3.1",
+      "index_db_sha256": "F41DC0F11E15AFCDDCD8627260ECB00BA20A2C6DA923ABF89F24238AE7672468",
+      "clone_tree_status": "clean"
+    }
+  ],
+  "preliminary_observations": [
+    {
+      "repository": "requests",
+      "target": "extract_cookies_to_jar",
+      "source_candidate_calls": 6,
+      "pie_returned_edges": 0,
+      "coverage_fraction": 0.0,
+      "qualification": "manual preliminary inventory; no independent review"
+    },
+    {
+      "repository": "click",
+      "target": "format_filename",
+      "source_candidate_calls": 9,
+      "pie_returned_edges": 1,
+      "coverage_fraction": 0.1111111111111111,
+      "qualification": "manual preliminary inventory; no independent review"
+    },
+    {
+      "repository": "requests",
+      "target": "merge_setting",
+      "source_candidate_calls": 8,
+      "pie_returned_edges": 8,
+      "coverage_fraction": 1.0,
+      "qualification": "same-module comparison; no independent review"
+    },
+    {
+      "repository": "click",
+      "target": "style",
+      "source_candidate_calls": 1,
+      "pie_returned_edges": 1,
+      "coverage_fraction": 1.0,
+      "qualification": "same-module comparison; no independent review"
+    }
+  ],
+  "policy": {
+    "do_not_relabel_unresolved_as_verified_without_proven_resolution_chain": true,
+    "no_qwen_scoring_until_independent_review_and_freeze_gate": true,
+    "two_real_independent_reviewers_per_case_required": true
+  },
+  "baseline_preservation_note": "Portable committed copies omit machine-specific absolute paths. Original local files remain unchanged; their SHA-256 values are in baseline-source-artifacts.sha256."
+}
