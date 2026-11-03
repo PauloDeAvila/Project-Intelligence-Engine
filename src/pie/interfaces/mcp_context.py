@@ -71,16 +71,25 @@ class MCPContextEngine:
         # Never relabel unresolved references as verified or manufacture inferred edges.
         # Verified relationship details remain in each responsibility's verified_consumers.
         verified_count = sum(len(item.get("verified_consumers", [])) for item in evidence)
+        inferred_count = 0
         unresolved_count = 0
         for item in evidence:
-            unresolved_count += self.service._connection.execute(
-                "SELECT COUNT(*) FROM usages u JOIN files f ON f.id=u.file_id "
-                "WHERE f.path=? AND u.origin_symbol=? AND u.resolution<>'verified'",
-                (item["path"], item["symbol"])
-            ).fetchone()[0]
+            if mode != "navigation":
+                inferred_count += len(item.get("inferred_references", []))
+                unresolved_count += len(item.get("unresolved_references", []))
+            else:
+                rows = self.service._connection.execute(
+                    "SELECT u.resolution, COUNT(*) AS amount FROM usages u "
+                    "JOIN files f ON f.id=u.file_id "
+                    "WHERE f.path=? AND u.origin_symbol=? AND u.resolution<>'verified' "
+                    "GROUP BY u.resolution",
+                    (item["path"], item["symbol"])
+                ).fetchall()
+                inferred_count += sum(r["amount"] for r in rows if r["resolution"]=="inferred")
+                unresolved_count += sum(r["amount"] for r in rows if r["resolution"]!="inferred")
         output["relation_classes"] = {
             "verified": verified_count,
-            "inferred": 0,
+            "inferred": inferred_count,
             "unresolved": unresolved_count,
         }
         output["metrics"] = dict(metrics, serialization_ms=0.0, total_ms=0.0)
