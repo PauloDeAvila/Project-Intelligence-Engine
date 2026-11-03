@@ -1,0 +1,47 @@
+{
+  "schema_version": "des04-eval-v1",
+  "status": "DRAFT_NOT_FROZEN",
+  "intent": "Real-repository retrieval and static-traceability evaluation. Do not score while draft.",
+  "candidate_repositories": [
+    {
+      "name": "requests",
+      "url": "https://github.com/psf/requests",
+      "candidate_ref": "v2.32.5",
+      "commit_sha": null,
+      "license_review": "PENDING"
+    },
+    {
+      "name": "click",
+      "url": "https://github.com/pallets/click",
+      "candidate_ref": "8.3.1",
+      "commit_sha": null,
+      "license_review": "PENDING"
+    }
+  ],
+  "freeze_requirements": {
+    "verified_full_commit_sha": true,
+    "clean_checkout": true,
+    "reviewed_questions_and_independent_gold": true,
+    "reviewers": 2,
+    "no_use_of_model_predictions_for_gold": true,
+    "store_manifest_sha256": true
+  },
+  "cases": [],
+  "required_case_categories": [
+    "unambiguous_static_direct_call",
+    "ambiguous_symbol_name",
+    "multi_file_evidence",
+    "dynamic_or_indirect_call_limit",
+    "stale_source_changed",
+    "stale_new_file",
+    "unresolved_reference",
+    "not_enough_evidence_for_breakage"
+  ],
+  "minimum_cases_per_repository": 8,
+  "replay_seed": 20261103,
+  "performance_policy": {
+    "report_model_latency_separately": true,
+    "report_abstention_latency_separately": true,
+    "tokens_unmeasured_if_gateway_does_not_expose_them": true
+  }
+}
