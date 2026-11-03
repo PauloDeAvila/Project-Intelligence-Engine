@@ -6,6 +6,9 @@ on:
       - 'src/pie/interfaces/mcp_server.py'
       - 'src/pie/interfaces/mcp_context.py'
       - 'src/pie/retrieval/warm.py'
+      - 'src/pie/retrieval/context.py'
+      - 'src/pie/retrieval/intelligence.py'
+      - 'src/pie/retrieval/packs.py'
       - 'tests/test_pie_mcp_v1.py'
       - '.github/workflows/pie-mcp-v1.yml'
   workflow_dispatch:
