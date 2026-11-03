@@ -122,13 +122,39 @@ class CertifiedGatewayTests(unittest.TestCase):
             gateway.answer({"question": "What is the signature?",
                             "symbol": "analyze_mesh"})
 
+    def test_validator_distinguishes_wrong_id_from_wrong_value(self):
+        evidence = build_evidence(self.root, "analyze_mesh")
+        claims = {"claims": [
+            {"evidence_id": "invented", "field": "signature", "value": evidence["signature"]},
+            {"evidence_id": evidence["evidence_id"], "field": "path", "value": "nonexistent.py"},
+            {"evidence_id": evidence["evidence_id"], "field": "direct_call_count", "value": 4},
+        ]}
+        result = validate_claims(evidence, claims)
+        self.assertEqual(result["status"], "REJECTED")
+        self.assertEqual([check["reason"] for check in result["checks"]],
+                         ["evidence_id_mismatch", "value_mismatch", "value_mismatch"])
+        self.assertEqual(result["missing_required"], ["path", "signature"])
+
+    def test_validator_rejects_duplicate_and_unknown_fields(self):
+        evidence = build_evidence(self.root, "analyze_mesh")
+        claim = {"evidence_id": evidence["evidence_id"], "field": "signature",
+                 "value": evidence["signature"]}
+        result = validate_claims(evidence, {"claims": [
+            claim, claim, {"evidence_id": evidence["evidence_id"],
+                           "field": "made_up", "value": "x"},
+        ]})
+        self.assertEqual([c["reason"] for c in result["checks"]],
+                         ["exact_match", "duplicate_field", "unknown_field"])
+        self.assertEqual(result["status"], "REJECTED")
+
     def test_missing_model_claim_fails_closed(self):
         evidence = build_evidence(self.root, "analyze_mesh")
         response = validate_claims(evidence, {"claims": [
             {"evidence_id": evidence["evidence_id"], "field": "path",
              "value": evidence["path"]}]})
         self.assertEqual(response["status"], "REJECTED")
-        self.assertEqual(response["reason"], "claim_mismatch_or_missing")
+        self.assertEqual(response["reason"], "missing_required_claims")
+        self.assertEqual(response["missing_required"], ["signature"])
 
     def test_restrict_remote_upstream(self):
         for url in ("https://127.0.0.1:1234/v1", "http://example.com:1234/v1",
