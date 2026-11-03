@@ -120,7 +120,7 @@ def selection_prompt(question: str, evidence_id: str | None = None) -> str:
         "an array of distinct names from CATALOG. No evidence_id, source "
         "values, explanations, markdown or other properties. "
         "Select the minimum fields necessary to answer this question. "
-        "If no field is relevant, return {\\\"selected_fields\\\":[]}. "
+        "If no field is relevant, return an empty selected_fields array. "
         "CATALOG=" + json.dumps(FIELDS, ensure_ascii=False)
         + "\\nQUESTION=" + question
     )
