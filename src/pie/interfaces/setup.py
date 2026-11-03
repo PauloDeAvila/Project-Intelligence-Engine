@@ -26,7 +26,7 @@ def _project(path: Path) -> Path:
 
 def _identifier(root: Path) -> str:
     # Stable per-project identifier; independent indexes remain inside each root.
-    return "pie-" + sha256(str(root).encode("utf8")).hexdigest()[:10]
+    return "pie-" + sha256(str(root.resolve()).encode("utf8")).hexdigest()[:10]
 
 
 def _write_json_config(path: Path, key: str, name: str, entry: dict) -> str:
