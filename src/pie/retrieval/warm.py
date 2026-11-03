@@ -176,11 +176,11 @@ class WarmContextService:
         with self._lock:
             lookup = self.query(question, limit=limit, max_chars=max_chars,
                                 include_body=True)
-            start = time.perf_counter()
+            graph_timings = {}
             pack = build_responsibility_pack(
                 self.root, question, lookup["result"], self._verified_graph,
-                self._connection, max_chars=max_chars)
-            graph_ms = round((time.perf_counter() - start) * 1000, 3)
+                self._connection, max_chars=max_chars, timings=graph_timings)
+            graph_ms = round(graph_timings.get("graph_ms", 0.0), 3)
             if with_metrics:
                 return {"pack": pack, "metrics": {
                     "cache_hit": lookup["cache_hit"],
