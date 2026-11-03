@@ -185,6 +185,34 @@ class MCPQueryTests(unittest.TestCase):
             self.assertFalse(result["metrics"]["cache_hit"])
             self.assertTrue(result["result"]["context_state"] in ("CURRENT", "PARTIAL"))
 
+    def test_relationship_resolution_classes_are_not_conflated(self):
+        from pie.storage.database import connect
+        db = connect(self.root / ".pie" / "index.sqlite3")
+        try:
+            fid = db.execute("SELECT id FROM files WHERE path='models.py'").fetchone()[0]
+            with db:
+                db.executemany(
+                    "INSERT INTO usages(file_id,name,qualified_name,scope_key,context,"
+                    "line,col,origin_symbol,resolution,evidence) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                    [(fid, "unknown_call", "unknown_call", "fixture", "load", 2, 0,
+                      "Model", "unresolved", "no binding"),
+                     (fid, "probable_call", "probable_call", "fixture", "load", 3, 0,
+                      "Model", "inferred", "heuristic only")]
+                )
+        finally:
+            db.close()
+        with MCPContextEngine(self.root) as engine:
+            output = engine.query("Model", mode="responsibility")
+            self.assertEqual(output["relation_classes"]["inferred"], 1)
+            self.assertEqual(output["relation_classes"]["unresolved"], 1)
+            matching = [x for x in output["pack"]["responsibilities"]
+                        if x["symbol"] == "Model"]
+            self.assertTrue(matching)
+            record = matching[0]
+            self.assertEqual(record["inferred_references"][0]["name"], "probable_call")
+            self.assertEqual(record["unresolved_references"][0]["name"], "unknown_call")
+            self.assertEqual(record.get("verified_consumers"), [])
+
     def test_real_process_stdio_client(self):
         requests = [
             {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {
