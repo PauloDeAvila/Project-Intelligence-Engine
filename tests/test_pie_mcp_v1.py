@@ -115,6 +115,8 @@ class MCPQueryTests(unittest.TestCase):
             ambiguous = engine.query("Model", mode="navigation")
             self.assertEqual(ambiguous["lookup_status"], "AMBIGUOUS")
             self.assertEqual(ambiguous["exact_match_count"], 2)
+            self.assertEqual(engine.query("model", mode="navigation")["lookup_status"],
+                             "AMBIGUOUS")
             missing = engine.query("UnfindableUniqueClass999", mode="navigation")
             self.assertEqual(missing["lookup_status"], "NOT_FOUND")
             self.assertEqual(missing["relation_classes"]["inferred"], 0)
