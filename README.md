@@ -1,10 +1,10 @@
 # Project Intelligence Engine
 
-PIE V0.1 is a local, offline and persistent code index for Python repositories. It records source-file hashes, extracts Python symbols and imports, stores evidence in SQLite and exposes JSON CLI queries.
+PIE started as a V0.1 local Python code index. This development branch additionally implements experimental contextual retrieval and a local stdio MCP integration. It records source-file hashes, extracts Python symbols and imports, stores evidence in SQLite and exposes JSON CLI queries.
 
 ## Purpose
 
-The repository retains its engineering governance foundation while providing the first functional indexing slice. Semantic references, graph traversal, Context Builder and MCP are later milestones.
+The repository retains its engineering governance foundation while providing the first functional indexing slice. Semantic references, graph traversal, Context Builder, and MCP are implemented on this development branch, but production V1 certification remains pending.
 
 ## Getting started
 
