@@ -99,6 +99,6 @@ def main():
     a.output.parent.mkdir(parents=True, exist_ok=True); a.output.write_text(json.dumps(result, indent=2, ensure_ascii=False)+"\n", encoding="utf-8")
     for mode in ("without_pie", "mcp_cold", "mcp_persistent"):
         rows = [r for r in records if r["mode"] == mode]
-        print(mode, "n=", len(rows), "median_seconds=", round(statistics.median(r["seconds"] for r in rows), 4), "median_bytes=", statistics.median(r["source_bytes_read"] for r in rows))
+        print(mode, "n=", len(rows), "median_seconds=", round(statistics.median(r["seconds"] for r in rows), 4), "median_source_bytes=", statistics.median(r["source_bytes_read_estimate"] for r in rows), "median_mcp_bytes=", statistics.median(r["mcp_transfer_bytes"] for r in rows))
 
 if __name__ == "__main__": main()
