@@ -67,7 +67,7 @@ def build_context_pack(
         definition["snippet"] = _snippet(source, evidence["line"], after=5)
 
     result = {
-        "schema_version": "pie-context-pack-v1",
+        "schema_version": "pie-context-pack-v2",
         "status": "VERIFIED_STATIC_CONTEXT",
         "source_evidence_id": evidence["evidence_id"],
         "definition": definition,
@@ -78,7 +78,9 @@ def build_context_pack(
             "omitted_by_call_limit": evidence["direct_call_sites_omitted"],
             "omitted_by_budget": 0,
             "source_snippets_omitted_by_budget": 0,
-            "complete_direct_call_list": False,
+            "returned_verified_call_list_complete": False,
+            "static_analysis_coverage": "PARTIAL",
+            "exhaustive": False,
             "limitations": [
                 "Static direct calls only; dynamic dispatch and indirect aliases may be missed",
                 "Unindexed and external consumers are outside the indexed project",
@@ -121,7 +123,7 @@ def build_context_pack(
         coverage = result["coverage"]
         coverage["returned_direct_call_count"] = count
         coverage["omitted_by_budget"] = len(sites) - count
-        coverage["complete_direct_call_list"] = (
+        coverage["returned_verified_call_list_complete"] = (
             coverage["omitted_by_call_limit"] == 0 and coverage["omitted_by_budget"] == 0
         )
         # Used length counts its own numeric value: reach a stable fixed point.

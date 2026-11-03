@@ -97,6 +97,31 @@ class MCPStdioE2ETests(unittest.TestCase):
         self.assertTrue(payload["isError"])
         self.assertIn("STALE_PROJECT", payload["content"][0]["text"])
 
+    def test_stdio_local_import_and_qualified_method_contracts(self):
+        (self.root / 'consumer.py').write_text(
+            'class Runner:\n    def run(self):\n        from logic import compute\n'
+            '        return [compute(x) for x in range(3)]\n', encoding='utf-8')
+        (self.root / 'cache.py').write_text(
+            'class MeasurementCache:\n    def get(self, key):\n        return key\n', encoding='utf-8')
+        self.assertEqual(index_project(self.root)['index_state'], 'CURRENT')
+        replies = self._invoke([
+            self._call(1, 'pie_build_context_pack', {'symbol': 'compute'}),
+            self._call(2, 'pie_build_context_pack', {'symbol': 'MeasurementCache.get'}),
+            self._call(3, 'pie_verified_evidence', {'symbol': 'MeasurementCache.get'}),
+            self._call(4, 'pie_build_context_pack', {'symbol': 'MeasurementCache.get()'}),
+        ])
+        for number in (1, 2, 3):
+            self.assertFalse(replies[number]['result'].get('isError', False))
+        compute = json.loads(replies[1]['result']['content'][0]['text'])
+        self.assertEqual([(c['path'], c['line']) for c in compute['callers']], [('consumer.py', 4)])
+        pack = json.loads(replies[2]['result']['content'][0]['text'])
+        self.assertEqual(pack['schema_version'], 'pie-context-pack-v2')
+        self.assertEqual(pack['definition']['binding'], 'cache.py::class:MeasurementCache::get')
+        self.assertTrue(pack['coverage']['returned_verified_call_list_complete'])
+        self.assertFalse(pack['coverage']['exhaustive'])
+        self.assertEqual(pack['coverage']['static_analysis_coverage'], 'PARTIAL')
+        self.assertTrue(replies[4]['result']['isError'])
+
     def test_stdio_rejects_workspace_override(self):
         replies = self._invoke([
             self._call(7, "pie_build_context_pack",
@@ -104,6 +129,15 @@ class MCPStdioE2ETests(unittest.TestCase):
         ])
         self.assertTrue(replies[7]["result"]["isError"])
         self.assertIn("Unknown arguments", replies[7]["result"]["content"][0]["text"])
+
+    def test_stdio_refuses_ambiguous_qualified_methods(self):
+        for name in ('one.py', 'two.py'):
+            (self.root / name).write_text('class Cache:\n    def get(self):\n        return 1\n',
+                                          encoding='utf-8')
+        self.assertEqual(index_project(self.root)['index_state'], 'CURRENT')
+        replies = self._invoke([self._call(1, 'pie_build_context_pack', {'symbol': 'Cache.get'})])
+        self.assertTrue(replies[1]['result']['isError'])
+        self.assertIn('AMBIGUOUS', replies[1]['result']['content'][0]['text'])
 
 
 if __name__ == "__main__":

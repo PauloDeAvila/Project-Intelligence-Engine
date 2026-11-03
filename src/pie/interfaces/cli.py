@@ -110,7 +110,7 @@ def main(argv: list[str] | None = None) -> int:
     smart.add_argument("--limit", type=int, default=8)
     smart.add_argument("--include-body", action="store_true")
     pack_cmd = subparsers.add_parser("context-pack")
-    pack_cmd.add_argument("symbol")
+    pack_cmd.add_argument("symbol", help="Exact unambiguous function or qualified method, e.g. MeasurementCache.get")
     pack_cmd.add_argument("--root", default=".")
     pack_cmd.add_argument("--max-chars", type=int, default=12000)
     pack_cmd.add_argument("--max-calls", type=int, default=100)

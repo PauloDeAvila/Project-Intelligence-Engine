@@ -211,7 +211,7 @@ def analyze_source(source: str | bytes, path: str) -> ModuleAnalysis:
     return analyze_module(ast.parse(source, filename=path), path)
 
 
-def _effective_site(sites: list[Definition], line: int) -> Definition | None:
+def _effective_site(sites: list[Definition], line: int, col: int = 10**9) -> Definition | None:
     """Last definition at or before ``line``; the first one otherwise.
 
     Choosing by position keeps ``x = 1`` / ``x = 2`` honest: a read after the
@@ -221,7 +221,7 @@ def _effective_site(sites: list[Definition], line: int) -> Definition | None:
         return None
     chosen = None
     for site in sites:
-        if site.line <= line:
+        if (site.line, site.col) <= (line, col):
             chosen = site
         else:
             break
@@ -267,7 +267,10 @@ class Resolver:
         if usage.attribute_base is not None:
             target, resolution, evidence, via = self._resolve_attribute(usage, scope, facts)
         else:
-            target, resolution, evidence, via = self._resolve_name(usage.name, scope, usage.line, facts)
+            # `del name` consumes the preceding binding; only later reads see
+            # the unbinding marker recorded at this exact source position.
+            col = usage.col - 1 if usage.context == "del" else usage.col
+            target, resolution, evidence, via = self._resolve_name(usage.name, scope, usage.line, facts, col)
         return Reference(
             path=usage.path,
             name=usage.name,
@@ -318,13 +321,22 @@ class Resolver:
         return None
 
     def _resolve_name(
-        self, name: str, scope: Scope, line: int, facts: ModuleFacts
+        self, name: str, scope: Scope, line: int, facts: ModuleFacts, col: int = 10**9
     ) -> tuple[Definition | None, str, str, str | None]:
         owner, why = self._lookup(name, scope)
         if owner is not None:
             sites = facts.sites(owner.key, name)
-            site = _effective_site(sites, line)
-            if owner.kind == MODULE_SCOPE and site is not None and site.kind == "import":
+            site = _effective_site(sites, line, col)
+            if site is not None and site.declared_by == "delete":
+                return None, UNRESOLVED, f"'{name}' was deleted at line {site.line}", None
+            if site is not None and site.kind == "import":
+                # Imports bind names in their lexical owner, including method,
+                # closure and comprehension enclosing scopes. Never certify a
+                # read textually before its local import. Deferred forward
+                # closures are conservatively unresolved; no execution order
+                # or control-flow dominance is inferred here.
+                if owner.kind != MODULE_SCOPE and (site.line, site.col) > (line, col):
+                    return None, UNRESOLVED, f"'{name}' is read before its local import", site.binding_key
                 if site.source_name is None:
                     return self._resolve_module_import(site, name)
                 followed = self._follow_import(site, 0, frozenset())
@@ -394,12 +406,18 @@ class Resolver:
             if base in BUILTIN_NAMES:
                 return None, UNRESOLVED, f"'{base}' is a builtin; its attributes are not project bindings", None
             return None, UNRESOLVED, f"{why}: cannot determine what '{base}' is", None
+        site = _effective_site(facts.sites(base_owner.key, base), usage.line, usage.col)
+        if site is not None and site.declared_by == "delete":
+            return None, UNRESOLVED, f"'{base}' was deleted at line {site.line}", None
+        if site is not None and site.kind == "import":
+            if base_owner.kind != MODULE_SCOPE and (site.line, site.col) > (usage.line, usage.col):
+                return None, UNRESOLVED, f"'{base}' is read before its local import", site.binding_key
+            return self._resolve_imported_attribute(site, usage, base, tail)
         if base_owner.kind != MODULE_SCOPE:
             return None, UNRESOLVED, (
                 f"'{base}' is a local binding in {base_owner.key}; its type is unknown statically"
             ), None
 
-        site = _effective_site(facts.sites(MODULE_SCOPE, base), usage.line)
         if site is None:
             return None, UNRESOLVED, f"'{base}' has no module-level definition site", None
         if site.kind == "class":
