@@ -4,7 +4,7 @@ Model execution is opt-in. Raw JSONL is retained locally and a sanitized summary
 is written for publication; no token value is inferred when usage is absent.
 """
 from __future__ import annotations
-import argparse, hashlib, json, os, platform, re, subprocess, time
+import argparse, hashlib, json, os, platform, re, subprocess, sys, time
 from pathlib import Path
 
 def scrub(value):
@@ -26,9 +26,11 @@ def parse_events(path):
     pie = [x for x in mcp if str(x.get("server", "")).startswith("pie-")]
     return {"usage": usage, "pie_mcp_executed": any(x["status"] == "completed" for x in pie), "mcp_calls": mcp, "final": final}
 
-def manifest(root):
-    files = sorted(p for p in root.rglob("*.py") if ".pie" not in p.parts)
-    rows = {str(p.relative_to(root)).replace("\\", "/"): hashlib.sha256(p.read_bytes()).hexdigest() for p in files}
+def manifest(root, pie_source_root):
+    sys.path.insert(0, str(pie_source_root))
+    from pie.scanning.discovery import iter_files
+    records = list(iter_files(root))
+    rows = {record.path.as_posix(): record.sha256 for record in records}
     digest = hashlib.sha256("".join(k+v for k,v in rows.items()).encode()).hexdigest()
     return rows, digest
 
@@ -38,9 +40,22 @@ def sanitize_jsonl(source, destination):
             try: out.write(json.dumps(json.loads(scrub(line)), ensure_ascii=False) + "\n")
             except json.JSONDecodeError: out.write(scrub(line))
 
+def structured_score(final, gold):
+    try:
+        text = final.strip().removeprefix("```json").removesuffix("```").strip()
+        data = json.loads(text)
+    except (AttributeError, json.JSONDecodeError): return {"passed": False, "reason": "invalid_json"}
+    definition = data.get("definition") or {}; path = definition.get("path") or definition.get("file")
+    line = definition.get("line")
+    callers = data.get("callers") or []
+    actual = {(c.get("path") or c.get("file"), c.get("line")) for c in callers if isinstance(c, dict)}
+    expected = {(c["path"], c["line"]) for c in gold["callers"]}
+    return {"passed": path == gold["definition"]["path"] and line == gold["definition"]["line"] and actual == expected, "definition_match": path == gold["definition"]["path"] and line == gold["definition"]["line"], "callers_match": actual == expected, "actual_call_count": len(actual), "expected_call_count": len(expected)}
+
 def main():
-    p = argparse.ArgumentParser(); p.add_argument("--project", type=Path, required=True); p.add_argument("--prompt-without-pie", required=True); p.add_argument("--prompt-with-pie", required=True); p.add_argument("--output", type=Path, required=True); p.add_argument("--repetitions", type=int, default=5); p.add_argument("--run", action="store_true"); p.add_argument("--codex", default="codex"); p.add_argument("--model"); p.add_argument("--bypass-approvals", action="store_true"); p.add_argument("--required-evidence", nargs="*", default=[]); a = p.parse_args()
-    files, snapshot_hash = manifest(a.project)
+    p = argparse.ArgumentParser(); p.add_argument("--project", type=Path, required=True); p.add_argument("--pie-source-root", type=Path, required=True); p.add_argument("--prompt-without-pie", required=True); p.add_argument("--prompt-with-pie", required=True); p.add_argument("--output", type=Path, required=True); p.add_argument("--gold", type=Path, required=True); p.add_argument("--repetitions", type=int, default=5); p.add_argument("--run", action="store_true"); p.add_argument("--codex", default="codex"); p.add_argument("--model"); p.add_argument("--bypass-approvals", action="store_true"); a = p.parse_args()
+    files, snapshot_hash = manifest(a.project, a.pie_source_root)
+    gold = json.loads(a.gold.read_text(encoding="utf-8"))
     prompt_hashes = {"without_pie": hashlib.sha256(a.prompt_without_pie.encode()).hexdigest(), "with_pie": hashlib.sha256(a.prompt_with_pie.encode()).hexdigest()}
     try: codex_version = subprocess.check_output([a.codex, "--version"], text=True, stderr=subprocess.STDOUT).strip()
     except Exception: codex_version = None
@@ -52,13 +67,17 @@ def main():
             for mode, prompt in (("without_pie", a.prompt_without_pie), ("with_pie", a.prompt_with_pie)):
                 raw = a.output.with_name(f"{a.output.stem}-{mode}-{repeat}.jsonl"); last = a.output.with_name(f"{a.output.stem}-{mode}-{repeat}.txt")
                 cmd = [a.codex, "exec", "--ephemeral", "--json", "-C", str(a.project), "-s", "read-only", "-o", str(last)]
+                if a.model: cmd += ["-m", a.model]
+                if mode == "without_pie": cmd += ["--ignore-user-config"]
                 if a.bypass_approvals: cmd.insert(4, "--dangerously-bypass-approvals-and-sandbox")
                 started = time.perf_counter()
                 with raw.open("w", encoding="utf-8") as stream: result = subprocess.run(cmd + [prompt], stdout=stream, stderr=subprocess.STDOUT, text=True, check=False)
-                parsed = parse_events(raw); sanitized = raw.with_suffix(".sanitized.jsonl"); sanitize_jsonl(raw, sanitized); final = parsed.get("final") or ""; records.append({"repeat": repeat, "mode": mode, "returncode": result.returncode, "seconds": round(time.perf_counter()-started, 4), "quality_passed": all(token in final for token in a.required_evidence), "required_evidence": a.required_evidence, **parsed, "raw_sha256": hashlib.sha256(raw.read_bytes()).hexdigest(), "sanitized_sha256": hashlib.sha256(sanitized.read_bytes()).hexdigest()})
-        _, after_hash = manifest(a.project)
+                parsed = parse_events(raw); sanitized = raw.with_suffix(".sanitized.jsonl"); sanitize_jsonl(raw, sanitized); final = parsed.get("final") or ""; records.append({"repeat": repeat, "mode": mode, "returncode": result.returncode, "seconds": round(time.perf_counter()-started, 4), "quality": structured_score(final, gold), **parsed, "raw_sha256": hashlib.sha256(raw.read_bytes()).hexdigest(), "sanitized_sha256": hashlib.sha256(sanitized.read_bytes()).hexdigest()})
+        _, after_hash = manifest(a.project, a.pie_source_root)
         if after_hash != snapshot_hash: raise SystemExit("Project snapshot changed during benchmark")
-    output = {"schema": "pie-codex-paired-benchmark-v1", "project": str(a.project), "snapshot_sha256": snapshot_hash, "project_git_commit": git_commit, "codex_version": codex_version, "model": a.model, "platform": platform.platform(), "python": platform.python_version(), "prompt_sha256": prompt_hashes, "files": len(files), "repetitions": a.repetitions, "executed": a.run, "records": records}
+    output = {"schema": "pie-codex-paired-benchmark-v2", "project": str(a.project), "snapshot_sha256": snapshot_hash, "project_git_commit": git_commit, "codex_version": codex_version, "model": a.model, "platform": platform.platform(), "python": platform.python_version(), "prompts": {mode: {"sha256": prompt_hashes[mode], "sanitized_path": str(a.output.with_name(mode + ".prompt.txt"))} for mode in prompt_hashes}, "files": len(files), "gold": str(a.gold), "repetitions": a.repetitions, "executed": a.run, "records": records}
+    for mode, prompt in (("without_pie", a.prompt_without_pie), ("with_pie", a.prompt_with_pie)):
+        a.output.with_name(mode + ".prompt.txt").write_text(scrub(prompt), encoding="utf-8")
     a.output.write_text(json.dumps(output, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(json.dumps({"snapshot_sha256": snapshot_hash, "files": len(files), "records": len(records), "executed": a.run}))
 
