@@ -104,6 +104,25 @@ class CertifiedGatewayTests(unittest.TestCase):
         self.assertEqual(response["model_validation"]["status"], "NOT_REQUESTED")
         self.assertIn("mesh, matrix, config", response["answer"])
 
+    def test_source_change_during_model_call_is_blocked(self):
+        def changing_model(question, evidence):
+            (self.root / "geometry.py").write_text(
+                "def analyze_mesh(replaced):\\n    return replaced\\n",
+                encoding="utf-8")
+            return {"status": "VERIFIED", "reason": "faked", "checks": []}
+        gateway = Gateway(self.root, model_query=changing_model)
+        with self.assertRaises(EvidenceError):
+            gateway.answer({"question": "What is the signature?",
+                            "symbol": "analyze_mesh"})
+
+    def test_missing_model_claim_fails_closed(self):
+        evidence = build_evidence(self.root, "analyze_mesh")
+        response = validate_claims(evidence, {"claims": [
+            {"evidence_id": evidence["evidence_id"], "field": "path",
+             "value": evidence["path"]}]})
+        self.assertEqual(response["status"], "REJECTED")
+        self.assertEqual(response["reason"], "claim_mismatch_or_missing")
+
     def test_restrict_remote_upstream(self):
         for url in ("https://127.0.0.1:1234/v1", "http://example.com:1234/v1",
                     "http://127.0.0.1:1234/admin"):
