@@ -38,6 +38,8 @@ class MCPContextEngine:
         if mode == "navigation":
             lookup = self.service.query(query, limit=limit, max_chars=max_chars,
                                         include_body=False)
+            if lookup["result"]["context_state"] not in ("CURRENT", "PARTIAL"):
+                raise ValueError("Cannot return stale navigation evidence")
             metrics = {"cache_hit": lookup["cache_hit"],
                        "reindexed": lookup["reindexed"],
                        "refresh_ms": lookup["refresh_ms"],
