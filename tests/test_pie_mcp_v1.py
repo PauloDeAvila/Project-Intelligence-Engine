@@ -169,6 +169,22 @@ class MCPQueryTests(unittest.TestCase):
             self.assertFalse(result["metrics"]["cache_hit"])
             self.assertTrue(result["metrics"]["reindexed"])
 
+    def test_hash_detects_same_size_same_mtime_tampering(self):
+        with MCPContextEngine(self.root) as engine:
+            engine.query("Model", mode="navigation")
+            source = self.root / "models.py"
+            before = source.stat()
+            original = source.read_text(encoding="utf8")
+            modified = original.replace("Store validated model state.", "Store validated model STATE.")
+            self.assertEqual(len(modified), len(original))
+            source.write_text(modified, encoding="utf8")
+            os.utime(source, ns=(before.st_atime_ns, before.st_mtime_ns))
+            self.assertEqual(source.stat().st_size, before.st_size)
+            self.assertEqual(source.stat().st_mtime_ns, before.st_mtime_ns)
+            result = engine.query("Model", mode="navigation")
+            self.assertFalse(result["metrics"]["cache_hit"])
+            self.assertTrue(result["result"]["context_state"] in ("CURRENT", "PARTIAL"))
+
     def test_real_process_stdio_client(self):
         requests = [
             {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {
