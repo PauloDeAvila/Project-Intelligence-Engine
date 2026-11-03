@@ -65,7 +65,7 @@ def dispatch(request: dict, root: Path, engine: MCPContextEngine | None = None) 
                     value = args[key]
                     if spec.get('type') == 'string' and not isinstance(value, str):
                         raise ValueError(f'{key} must be a string')
-                    if spec.get('type') == 'string' and (len(value) > 4096 or not value.strip() or '\\x00' in value):
+                    if spec.get('type') == 'string' and (len(value) > 4096 or not value.strip() or '\x00' in value):
                         raise ValueError(f'{key} must be a nonempty safe string <= 4096 chars')
                     if spec.get('type') == 'integer' and (type(value) is not int or not spec.get('minimum', -10**30) <= value <= spec.get('maximum', 10**30)):
                         raise ValueError(f'{key} must be an integer within range')
