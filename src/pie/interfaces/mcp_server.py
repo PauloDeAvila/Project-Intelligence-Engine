@@ -30,13 +30,15 @@ TOOLS = [
 
 
 def dispatch(request: dict, root: Path, engine: MCPContextEngine | None = None) -> dict | None:
+    if not isinstance(request, dict):
+        return {'jsonrpc':'2.0','id':None,'error':{'code':-32600,'message':'Request must be an object'}}
     rid = request.get('id')
     method = request.get('method')
     if rid is None and isinstance(method, str) and method.startswith('notifications/'):
         return None
     try:
-        if not isinstance(request, dict):
-            raise ValueError('Request must be an object')
+        if request.get("jsonrpc") != "2.0":
+            raise ValueError("jsonrpc must be 2.0")
         if method == 'initialize':
             result = {'protocolVersion':'2025-03-26','capabilities':{'tools':{}},'serverInfo':{'name':'pie','version':'0.2.0-preview'}}
         elif method == 'ping':
@@ -45,7 +47,9 @@ def dispatch(request: dict, root: Path, engine: MCPContextEngine | None = None) 
             result = {'tools':TOOLS}
         elif method == 'tools/call':
             params = request.get('params') or {}
-            args = params.get('arguments') or {}
+            if not isinstance(params, dict):
+                raise ValueError('params must be an object')
+            args = params.get('arguments', {})
             name = params.get('name')
             allowed = next((t for t in TOOLS if t['name']==name), None)
             if allowed is None:
@@ -61,6 +65,8 @@ def dispatch(request: dict, root: Path, engine: MCPContextEngine | None = None) 
                     value = args[key]
                     if spec.get('type') == 'string' and not isinstance(value, str):
                         raise ValueError(f'{key} must be a string')
+                    if spec.get('type') == 'string' and (len(value) > 4096 or not value.strip() or '\\x00' in value):
+                        raise ValueError(f'{key} must be a nonempty safe string <= 4096 chars')
                     if spec.get('type') == 'integer' and (type(value) is not int or not spec.get('minimum', -10**30) <= value <= spec.get('maximum', 10**30)):
                         raise ValueError(f'{key} must be an integer within range')
             if 'mode' in args and args['mode'] not in ('responsibility','navigation','impact'):
@@ -96,7 +102,12 @@ def main(argv=None):
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--root',type=Path,default=Path.cwd())
-    root = parser.parse_args(argv).root.resolve()
+    configured_root = parser.parse_args(argv).root
+    if configured_root.is_symlink():
+        raise ValueError('MCP root must not be a symlink')
+    root = configured_root.resolve(strict=True)
+    if not root.is_dir():
+        raise ValueError('MCP root must be an existing directory')
     with MCPContextEngine(root) as engine:
       for line in sys.stdin:
         try:
