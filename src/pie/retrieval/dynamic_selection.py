@@ -54,11 +54,23 @@ def plan_evidence(question: str) -> dict:
     if contains("assinatura", "parametros", "parametro", "argumentos",
                 "signature", "parameters", "argument", "arguments"):
         selected.add("signature")
-    if contains("onde", "localizacao", "localizado", "localizada",
-                "arquivo", "definida", "definido", "where", "located",
-                "definition", "defined", "file"):
+    # An explicitly requested file requires a path, not a line number.
+    # Generic "where defined" queries may reasonably include both.
+    file_only = contains("arquivo", "file") and not contains("linha", "line")
+    line_only = contains("linha", "line") and not contains(
+        "arquivo", "file", "onde", "where", "localizacao", "located")
+    optional: set[str] = set()
+    if file_only:
+        selected.add("path")
+        optional.add("line")
+    elif line_only:
+        selected.add("line")
+        optional.add("path")
+    elif contains("onde", "localizacao", "localizado", "localizada",
+                  "definida", "definido", "where", "located",
+                  "definition", "defined"):
         selected.update(("path", "line"))
-    if contains("linha", "line"):
+    elif contains("linha", "line"):
         selected.add("line")
     if contains("quantas", "quantos", "numero", "quantidade",
                 "count", "how many"):
@@ -75,8 +87,12 @@ def plan_evidence(question: str) -> dict:
     if not selected:
         return {"status": "ABSTAIN", "reason": "unsupported_or_unrecognized_intent",
                 "required_fields": []}
+    optional -= selected
     return {"status": "PLANNED", "reason": "static_query_intent",
-            "required_fields": [field for field in FIELD_ORDER if field in selected]}
+            "required_fields": [field for field in FIELD_ORDER if field in selected],
+            "optional_fields": [field for field in FIELD_ORDER if field in optional],
+            "forbidden_fields": [field for field in FIELD_ORDER
+                                 if field not in selected and field not in optional]}
 
 
 def selection_json_schema() -> dict:
@@ -122,15 +138,19 @@ def validate_dynamic_selection(evidence: dict, proposed: object, plan: dict) -> 
     if len(set(fields)) != len(fields):
         return {"status": "REJECTED", "reason": "duplicate_field", "selected_fields": []}
     expected = set(plan["required_fields"])
+    optional = set(plan.get("optional_fields", []))
     chosen = set(fields)
     missing = [field for field in FIELD_ORDER if field in expected - chosen]
-    extra = [field for field in FIELD_ORDER if field in chosen - expected]
+    extra = [field for field in FIELD_ORDER if field in chosen - expected - optional]
     if missing or extra:
         return {"status": "REJECTED", "reason": "selection_relevance_mismatch",
                 "selected_fields": fields, "missing_required": missing,
                 "unexpected_fields": extra}
+    exact = chosen == expected
     return {"status": "VERIFIED", "reason": "selection_matches_independent_plan",
             "selected_fields": fields, "missing_required": [], "unexpected_fields": [],
+            "selection_exact": exact,
+            "selection_semantically_sufficient": True,
             "resolved_facts": {field: evidence[field] for field in FIELD_ORDER if field in chosen}}
 
 
