@@ -17,8 +17,15 @@ class SnapshotVerifierTests(unittest.TestCase):
         self.temp.cleanup()
 
     def test_unchanged_manifest_is_current(self):
-        result = SnapshotVerifier(self.root, self.manifest).verify()
+        verifier = SnapshotVerifier(self.root, self.manifest)
+        result = verifier.verify()
         self.assertEqual(result.files_checked, 1)
+        self.assertIn("hash_seconds", verifier.last_metrics)
+
+    def test_oversized_file_is_rejected(self):
+        (self.root / "large.py").write_bytes(b"x" * (5_000_001))
+        with self.assertRaisesRegex(SnapshotError, "PARTIAL_PROJECT"):
+            SnapshotVerifier(self.root, self.manifest).verify()
 
     def test_same_size_content_change_is_stale(self):
         (self.root / "a.py").write_text("value = 2\n", encoding="utf-8")
