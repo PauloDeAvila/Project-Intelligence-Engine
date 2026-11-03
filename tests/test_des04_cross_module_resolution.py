@@ -82,6 +82,27 @@ class CrossModuleResolutionTests(unittest.TestCase):
         with self.assertRaises(EvidenceError):
             build_evidence(self.root, "helper")
 
+    def test_relative_consumer_reference_is_invalidated_after_reindex(self):
+        # A prior verified reference must not survive a changed import target.
+        self.assertEqual(build_evidence(self.root, "helper")["direct_call_count"], 3)
+        (self.pkg / "helpers.py").write_text(
+            "def replacement(value):\n    return value\n", encoding="utf-8")
+        self.assertEqual(index_project(self.root)["index_state"], "CURRENT")
+        from pie.storage.database import connect
+        connection = connect(self.root / ".pie" / "index.sqlite3")
+        try:
+            rows = connection.execute(
+                "SELECT name, resolution, target_binding_key FROM usages u "
+                "JOIN files f ON f.id=u.file_id "
+                "WHERE f.path=? AND u.line IN (5,6,7) AND u.name IN ('renamed','helper')",
+                ("src/samplepkg/caller.py",),
+            ).fetchall()
+            self.assertGreaterEqual(len(rows), 3)
+            self.assertTrue(all(row["resolution"] != "verified" for row in rows))
+            self.assertTrue(all(row["target_binding_key"] is None for row in rows))
+        finally:
+            connection.close()
+
     def test_name_collision_fails_closed(self):
         (self.pkg / "other.py").write_text(
             "def helper(value):\n    return value\n", encoding="utf-8")
