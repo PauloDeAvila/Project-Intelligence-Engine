@@ -43,4 +43,5 @@ class SnapshotVerifier:
         self.last_metrics = {"total_seconds": time.perf_counter() - started,
                              "read_seconds": metrics["read_seconds"],
                              "hash_seconds": metrics["hash_seconds"]}
+        self.last_metrics["enumeration_seconds"] = max(0.0, self.last_metrics["total_seconds"] - self.last_metrics["read_seconds"] - self.last_metrics["hash_seconds"])
         return result
