@@ -80,7 +80,7 @@ def main():
     gold = {s: [{"path": p, "line": line} for p, line in reviewed["callers"][s]] for s in TASKS}; records = []
     for repeat in range(1, a.repetitions + 1):
         for mode in ("without_pie", "mcp_cold", "mcp_persistent"):
-            started = time.perf_counter(); source_bytes = 0; calls = []
+            started = time.perf_counter(); source_bytes = 0; selected_bytes = 0; transferred_bytes = 0; calls = []
             if mode == "without_pie":
                 for symbol in TASKS: calls.append((symbol, {"callers": direct_calls(frozen, symbol), "definition": {"path": "direct-read"}}, 0.0))
                 source_bytes = sum(x["bytes"] for x in frozen.values())
@@ -89,10 +89,12 @@ def main():
                     # Count the definition/caller files actually re-read after MCP.
                     paths = {pack.get("definition", {}).get("path")} | {c.get("path") for c in pack.get("callers", [])}
                     source_bytes += sum(frozen[p]["bytes"] for p in paths if p in frozen)
+                    selected_bytes += sum(len(json.dumps(c, ensure_ascii=False).encode("utf-8")) for c in pack.get("callers", []))
+                    transferred_bytes += len(json.dumps(pack, ensure_ascii=False).encode("utf-8"))
                     calls.append((symbol, pack, elapsed))
             elapsed = time.perf_counter() - started
             scored = {s: score(p, gold[s]) for s, p, _ in calls}
-            records.append({"repeat": repeat, "mode": mode, "seconds": elapsed, "mcp_seconds": sum(x[2] for x in calls), "source_bytes_read": source_bytes, "complementary_source_reads": len(calls) if mode != "without_pie" else 0, "scores": scored, "prompt_tokens": None})
+            records.append({"repeat": repeat, "mode": mode, "seconds": elapsed, "mcp_seconds": sum(x[2] for x in calls), "source_bytes_read_estimate": source_bytes, "selected_evidence_bytes": selected_bytes, "mcp_transfer_bytes": transferred_bytes, "complementary_source_reads": len(calls) if mode != "without_pie" else 0, "scores": scored, "prompt_tokens": None})
     result = {"schema":"pie-efficiency-benchmark-v2", "project":str(a.project_root), "repetitions":a.repetitions, "tasks":TASKS, "gold":str(a.gold), "snapshot":{"files":len(frozen), "sha256":snapshot_hash}, "token_telemetry":"unavailable", "codex_execution":"not_run", "records":records}
     a.output.parent.mkdir(parents=True, exist_ok=True); a.output.write_text(json.dumps(result, indent=2, ensure_ascii=False)+"\n", encoding="utf-8")
     for mode in ("without_pie", "mcp_cold", "mcp_persistent"):
