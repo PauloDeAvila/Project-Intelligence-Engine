@@ -5,6 +5,7 @@ import json
 import time
 
 from pie.retrieval.warm import WarmContextService
+from pie.retrieval.symbols import find_references
 
 
 def _size(value):
@@ -57,6 +58,29 @@ class MCPContextEngine:
             evidence = output["pack"]["responsibilities"]
             omitted_owner = output["pack"]
             if mode == "impact":
+                # Exact reverse references are separate from the outgoing
+                # conservative CALLS graph. Only expose hash-verified
+                # syntactic calls, and do not label generic LOAD as a call.
+                for item in evidence:
+                    refs = find_references(self.service.root, item["symbol"], limit=100)
+                    if refs.get("state") != "CURRENT":
+                        item["direct_call_sites_state"] = "STALE"
+                        continue
+                    sites = [
+                        {"path": ref["path"], "line": ref["line"],
+                         "consumer_symbol": ref["consumer_symbol"],
+                         "usage_kind": "direct_call"}
+                        for ref in refs.get("references", [])
+                        if ref.get("resolution") == "verified"
+                        and ref.get("usage_kind") == "direct_call"
+                        and any(d.get("path") == item["path"]
+                                and d.get("line") == item["start_line"]
+                                for d in refs.get("definitions", [])
+                                if d.get("binding") == ref.get("target"))
+                    ]
+                    item["direct_call_sites"] = sites[:8]
+                    if len(sites) > 8:
+                        item["direct_call_sites_omitted"] = len(sites) - 8
                 output["caveat"] = (
                     "Verified consumers indicate potential impact, not guaranteed runtime effects.")
         # Exact duplicate names are explicitly ambiguous even if ranking prefers one.
@@ -97,6 +121,17 @@ class MCPContextEngine:
         # Omit low-ranked complete evidence items; never slice source in mid-symbol.
         serialization_start = time.perf_counter()
         while _size(output) > max_chars and evidence:
+            # Drop optional call-site detail before dropping an entire
+            # high-ranked responsibility from a tightly budgeted response.
+            trimmed = False
+            for item in reversed(evidence):
+                if item.get("direct_call_sites"):
+                    item["direct_call_sites"].pop()
+                    item["direct_call_sites_omitted"] = item.get("direct_call_sites_omitted", 0) + 1
+                    trimmed = True
+                    break
+            if trimmed:
+                continue
             evidence.pop()
             omitted_owner["omitted"] += 1
             if omitted_owner.get("context_state") == "CURRENT":
