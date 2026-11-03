@@ -7,6 +7,7 @@ from pathlib import Path
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 
@@ -14,6 +15,7 @@ from pie.indexing.indexer import index_project
 from pie.interfaces.cli import command_init
 from pie.interfaces.gateway import Gateway, handler_factory, _local_upstream, query_lmstudio
 from pie.retrieval.evidence import build_evidence, EvidenceError
+import pie.retrieval.evidence as evidence_module
 from pie.retrieval.guard import validate_claims, parse_model_proposal, validate_selection
 
 
@@ -89,6 +91,16 @@ class CertifiedGatewayTests(unittest.TestCase):
         (self.root / "geometry.py").write_text("def analyze_mesh(mesh):\n    pass\n", encoding="utf-8")
         with self.assertRaises(EvidenceError):
             build_evidence(self.root, "analyze_mesh")
+
+    def test_change_after_inventory_scan_is_rejected(self):
+        original = evidence_module.find_definitions
+        def mutate_then_find(*args, **kwargs):
+            (self.root / "geometry.py").write_text(
+                "def analyze_mesh(changed):\n    return changed\n", encoding="utf-8")
+            return original(*args, **kwargs)
+        with patch.object(evidence_module, "find_definitions", side_effect=mutate_then_find):
+            with self.assertRaisesRegex(EvidenceError, "STALE_SOURCE"):
+                build_evidence(self.root, "analyze_mesh")
 
     def test_new_unindexed_caller_invalidates_global_coverage(self):
         (self.root / "new_caller.py").write_text(
