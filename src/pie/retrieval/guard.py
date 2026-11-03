@@ -12,33 +12,61 @@ ALLOWED_FACTS = ("signature", "path", "line", "direct_call_count")
 
 
 def validate_claims(evidence: dict, proposed: object) -> dict:
-    """Validate a bounded model proposal without assuming it is truthful."""
+    """Check exact grounded claims, exposing bounded actionable diagnostics.
+
+    The validator never upgrades unverified model text into source evidence.
+    Rejected values and raw model output are intentionally not echoed.
+    """
     if not isinstance(proposed, dict) or not isinstance(proposed.get("claims"), list):
-        return {"status": "REJECTED", "reason": "invalid_structured_proposal", "checks": []}
-    if len(proposed["claims"]) > 32:
-        return {"status": "REJECTED", "reason": "too_many_claims", "checks": []}
+        return {"status": "REJECTED", "reason": "invalid_structured_proposal", "checks": [],
+                "missing_required": ["signature", "path"]}
+    claims = proposed["claims"]
+    if len(claims) > 32:
+        return {"status": "REJECTED", "reason": "too_many_claims", "checks": [],
+                "missing_required": ["signature", "path"]}
     checks = []
-    for claim in proposed["claims"]:
+    valid_fields = set()
+    seen_fields = set()
+    for claim in claims:
         if not isinstance(claim, dict):
-            return {"status": "REJECTED", "reason": "invalid_claim_shape", "checks": checks}
+            checks.append({"field": None, "status": "REJECTED", "reason": "invalid_claim_shape"})
+            continue
         field = claim.get("field")
-        if field not in ALLOWED_FACTS or claim.get("evidence_id") != evidence["evidence_id"]:
+        if not isinstance(field, str) or field not in ALLOWED_FACTS:
             checks.append({"field": field if isinstance(field, str) else None,
-                           "status": "REJECTED", "reason": "unknown_or_unbound_evidence"})
+                           "status": "REJECTED", "reason": "unknown_field"})
+            continue
+        if field in seen_fields:
+            checks.append({"field": field, "status": "REJECTED", "reason": "duplicate_field"})
+            continue
+        seen_fields.add(field)
+        if claim.get("evidence_id") != evidence["evidence_id"]:
+            checks.append({"field": field, "status": "REJECTED", "reason": "evidence_id_mismatch"})
+            continue
+        if "value" not in claim:
+            checks.append({"field": field, "status": "REJECTED", "reason": "missing_value"})
             continue
         expected = evidence[field]
-        matched = type(claim.get("value")) is type(expected) and claim["value"] == expected
+        matched = type(claim["value"]) is type(expected) and claim["value"] == expected
         checks.append({"field": field, "status": "VERIFIED" if matched else "REJECTED",
                        "reason": "exact_match" if matched else "value_mismatch"})
-    required = {"signature", "path"}
-    certified = {
-        c["field"] for c in checks if c["status"] == "VERIFIED"
-    }
-    passed = (required <= certified and bool(checks)
-              and all(c["status"] == "VERIFIED" for c in checks))
+        if matched:
+            valid_fields.add(field)
+    missing = sorted({"signature", "path"} - valid_fields)
+    passed = not missing and bool(checks) and all(c["status"] == "VERIFIED" for c in checks)
+    failure_reasons = {c["reason"] for c in checks if c["status"] == "REJECTED"}
+    if passed:
+        reason = "all_required_claims_verified"
+    elif missing and not failure_reasons:
+        reason = "missing_required_claims"
+    elif len(failure_reasons) == 1 and not missing:
+        reason = next(iter(failure_reasons))
+    elif len(failure_reasons) == 1 and missing and len(checks) == 1:
+        reason = next(iter(failure_reasons))
+    else:
+        reason = "claim_validation_failed"
     return {"status": "VERIFIED" if passed else "REJECTED",
-            "reason": "all_required_claims_verified" if passed else "claim_mismatch_or_missing",
-            "checks": checks}
+            "reason": reason, "checks": checks, "missing_required": missing}
 
 
 def render_certified(evidence: dict) -> str:
