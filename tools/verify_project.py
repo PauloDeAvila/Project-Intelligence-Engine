@@ -47,9 +47,11 @@ def run(config):
             code = p.returncode
             status = "passed" if code == 0 else "failed"
         except (OSError, subprocess.TimeoutExpired) as exc:
-            code, status = None, "blocked"
+            code, status, error = None, "blocked", str(exc)
+        else:
+            error = None
         results.append({"tier": tier, "status": status, "returncode": code, "seconds": round(time.monotonic()-start, 2), "command": command,
-                        **({"error": str(exc)} if status == "blocked" else {})})
+                        **({"error": error} if error is not None else {})})
         failure |= status != "passed"
     out = ROOT / "verification-results.json"
     out.write_text(json.dumps({"results": results}, indent=2) + "\n", encoding="utf-8")
