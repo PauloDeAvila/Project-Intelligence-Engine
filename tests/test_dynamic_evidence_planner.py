@@ -274,10 +274,10 @@ class DynamicGatewayIntegrationTests(unittest.TestCase):
         # This checks source isolation and rendering, not Qwen generalization.
         fixtures = [
             ("alpha", "calculate_total",
-             "def calculate_total(items, tax):\\n    return sum(items) + tax\\n",
+             "def calculate_total(items, tax):\n    return sum(items) + tax\n",
              "Qual é a assinatura de calculate_total?", ["signature"]),
             ("beta", "parse_configuration",
-             "def parse_configuration(raw, defaults):\\n    return defaults\\n",
+             "def parse_configuration(raw, defaults):\n    return defaults\n",
              "Em qual arquivo parse_configuration está definida?", ["path"]),
         ]
         for project_name, symbol, body, question, expected in fixtures:
