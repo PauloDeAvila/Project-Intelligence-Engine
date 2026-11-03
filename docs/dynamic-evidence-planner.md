@@ -10,10 +10,10 @@ modes are retained unchanged, and `main` is not modified.
    classifies a question into supported static facts:
    `signature`, `path`, `line`, `direct_call_count`,
    `direct_call_sites`.
-2. The model receives a **field catalog and evidence_id**, but NOT the
+2. The model receives a **field catalog**, but NOT any evidence_id, the
    planner's expected fields, the canonical fact values, or the gold answer.
-3. Qwen proposes `{"evidence_id":"pie:...","selected_fields":["path","line"]}`.
-4. The guard checks the exact evidence ID, schema, unique allowed fields,
+3. Qwen proposes `{"selected_fields":["path","line"]}`.
+4. The Gateway binds the verified evidence ID internally; the guard checks schema, unique allowed fields,
    plus **relevance against the independent plan**.
 5. Only after approval does PIE resolve and render the *actual source-backed
    values*; otherwise it returns `ABSTAIN` instead of pretending the model
@@ -105,3 +105,17 @@ Do not merge, tag 1.0 or change the default `claims` mode until:
 
 **Important:** PIE Gateway is an application API (`/ask`), not a transparent
 OpenAI-compatible proxy and does not modify normal LM Studio chat.
+
+## Follow-up after first real Qwen run (12/20)
+
+The first 30-question integrated run achieved 12/20 positive selections and
+10/10 safe abstentions, with seven of the eight positive failures caused by
+Qwen copying the long evidence_id incorrectly. This branch revision changes
+**only dynamic_selection**, so Qwen now emits just a list of selected field
+names; the Gateway retains and revalidates its own trusted evidence handle.
+No model-supplied identifier is accepted. The old `claims` and fixed
+`evidence_selection` modes are unchanged.
+
+This should be retested in the **isolated** environment before replacing the
+existing gateway. This is a contract correction, not proof of an improved
+selection score until a new real-model benchmark is run.
