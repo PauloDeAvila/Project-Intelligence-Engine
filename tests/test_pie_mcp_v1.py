@@ -83,7 +83,7 @@ class MCPQueryTests(unittest.TestCase):
         with MCPContextEngine(self.root) as engine:
             engine.query("Model", mode="navigation")
             (self.root / "models.py").write_text(
-                'class RenamedModel:\\n    """New model behavior."""\\n    pass\\n',
+                'class RenamedModel:\n    """New model behavior."""\n    pass\n',
                 encoding="utf8")
             import pie.retrieval.warm as warm
             original_index = warm.index_project
