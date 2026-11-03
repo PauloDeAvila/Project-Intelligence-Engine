@@ -70,11 +70,14 @@ def score(pack, gold):
     tp = len(set(got) & set(expected)); precision = tp / len(got) if got else (1.0 if not expected else 0.0)
     recall = tp / len(expected) if expected else (1.0 if not got else 0.0)
     definition = pack.get("definition", {})
-    return {"precision": precision, "recall": recall, "definition_present": bool(definition.get("path")), "returned_calls": len(got), "gold_calls": len(expected)}
+    qualified_definition_only = pack.get("symbol", "").find(".") >= 0 and not expected
+    return {"precision": precision, "recall": (None if qualified_definition_only else recall), "call_coverage": "not_applicable_definition_only" if qualified_definition_only else "evaluated", "definition_present": bool(definition.get("path")), "returned_calls": len(got), "gold_calls": len(expected)}
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--project-root", type=Path, required=True); ap.add_argument("--source-root", type=Path, required=True); ap.add_argument("--python", type=Path, required=True); ap.add_argument("--repetitions", type=int, default=5); ap.add_argument("--output", type=Path, required=True); ap.add_argument("--gold", type=Path, default=Path("benchmarks/doctor_mesh_gold_v2.json"))
-    a = ap.parse_args(); frozen = snapshot(a.project_root); reviewed = json.loads(a.gold.read_text(encoding="utf-8")); gold = {s: [{"path": p, "line": line} for p, line in reviewed["callers"][s]] for s in TASKS}; records = []
+    a = ap.parse_args(); frozen = snapshot(a.project_root); snapshot_hash = hashlib.sha256("".join(f+v["sha256"] for f,v in sorted(frozen.items())).encode()).hexdigest(); reviewed = json.loads(a.gold.read_text(encoding="utf-8"));
+    if reviewed.get("snapshot_sha256") != snapshot_hash: raise SystemExit(f"Gold/snapshot mismatch: expected {reviewed.get('snapshot_sha256')}, observed {snapshot_hash}")
+    gold = {s: [{"path": p, "line": line} for p, line in reviewed["callers"][s]] for s in TASKS}; records = []
     for repeat in range(1, a.repetitions + 1):
         for mode in ("without_pie", "mcp_cold", "mcp_persistent"):
             started = time.perf_counter(); source_bytes = 0; calls = []
@@ -90,7 +93,7 @@ def main():
             elapsed = time.perf_counter() - started
             scored = {s: score(p, gold[s]) for s, p, _ in calls}
             records.append({"repeat": repeat, "mode": mode, "seconds": elapsed, "mcp_seconds": sum(x[2] for x in calls), "source_bytes_read": source_bytes, "complementary_source_reads": len(calls) if mode != "without_pie" else 0, "scores": scored, "prompt_tokens": None})
-    result = {"schema":"pie-efficiency-benchmark-v2", "project":str(a.project_root), "repetitions":a.repetitions, "tasks":TASKS, "gold":str(a.gold), "snapshot":{"files":len(frozen), "sha256":hashlib.sha256("".join(f+v["sha256"] for f,v in sorted(frozen.items())).encode()).hexdigest()}, "token_telemetry":"unavailable", "codex_execution":"not_run", "records":records}
+    result = {"schema":"pie-efficiency-benchmark-v2", "project":str(a.project_root), "repetitions":a.repetitions, "tasks":TASKS, "gold":str(a.gold), "snapshot":{"files":len(frozen), "sha256":snapshot_hash}, "token_telemetry":"unavailable", "codex_execution":"not_run", "records":records}
     a.output.parent.mkdir(parents=True, exist_ok=True); a.output.write_text(json.dumps(result, indent=2, ensure_ascii=False)+"\n", encoding="utf-8")
     for mode in ("without_pie", "mcp_cold", "mcp_persistent"):
         rows = [r for r in records if r["mode"] == mode]
