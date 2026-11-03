@@ -63,7 +63,7 @@ class MCPContextEngine:
         exact = self.service._connection.execute(
             "SELECT COUNT(DISTINCT f.path || ':' || s.qualified_name) "
             "FROM symbols s JOIN files f ON f.id=s.file_id "
-            "WHERE s.name=? OR s.qualified_name=?", (query.strip(), query.strip())
+            "WHERE s.name=? COLLATE NOCASE OR s.qualified_name=? COLLATE NOCASE", (query.strip(), query.strip())
         ).fetchone()[0]
         output["lookup_status"] = ("AMBIGUOUS" if exact > 1 else
                                    "FOUND" if evidence else "NOT_FOUND")
