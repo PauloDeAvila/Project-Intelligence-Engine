@@ -83,7 +83,7 @@ def main():
         for mode in ("without_pie", "mcp_cold", "mcp_persistent"):
             started = time.perf_counter(); source_bytes = 0; selected_bytes = 0; transferred_bytes = 0; calls = []
             if mode == "without_pie":
-                for symbol in TASKS: calls.append((symbol, {"callers": direct_calls(frozen, symbol), "definition": {"path": "direct-read"}}, 0.0))
+                for symbol in TASKS: calls.append((symbol, {"callers": direct_calls(frozen, symbol), "definition": {"path": "direct-read", "symbol": symbol}}, 0.0))
                 source_bytes = sum(x["bytes"] for x in frozen.values())
             else:
                 for symbol, pack, elapsed in run_pie(a.python, a.source_root, a.project_root, TASKS, mode == "mcp_persistent"):
