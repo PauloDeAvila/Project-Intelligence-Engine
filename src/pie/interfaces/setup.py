@@ -79,12 +79,12 @@ def _write_codex(path: Path, name: str, python: Path, root: Path) -> str:
 
 
 def provision(root: Path, *, python: Path | None = None,
-              clients: tuple[str, ...] = ("vscode", "codex", "claude")) -> dict:
+              clients: tuple[str, ...] = ("vscode", "codex", "claude", "cursor")) -> dict:
     root = _project(root)
     python = (python or Path(sys.executable)).resolve(strict=True)
     if not python.is_file():
         raise ValueError("Python interpreter was not found")
-    invalid = set(clients) - {"vscode", "codex", "claude"}
+    invalid = set(clients) - {"vscode", "codex", "claude", "cursor"}
     if invalid:
         raise ValueError(f"Unsupported clients: {sorted(invalid)}")
     # Initialize and index before touching client configuration.
@@ -112,6 +112,11 @@ def provision(root: Path, *, python: Path | None = None,
         status = _write_json_config(path, "mcpServers", name,
                                     {"command": str(python), "args": args})
         operations["claude"] = {"file": str(path), "status": status}
+    if "cursor" in clients:
+        path = root / ".cursor" / "mcp.json"
+        status = _write_json_config(path, "mcpServers", name,
+                                    {"command": str(python), "args": args})
+        operations["cursor"] = {"file": str(path), "status": status}
     return {"root": str(root), "server_id": name, "index_state": index["index_state"],
             "database": str(root / ".pie" / "index.sqlite3"), "clients": operations}
 
@@ -120,8 +125,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Initialize PIE and register project-scoped MCP servers")
     parser.add_argument("--project", type=Path, default=Path.cwd())
     parser.add_argument("--python", type=Path, default=Path(sys.executable))
-    parser.add_argument("--clients", nargs="+", choices=("vscode", "codex", "claude"),
-                        default=["vscode", "codex", "claude"])
+    parser.add_argument("--clients", nargs="+", choices=("vscode", "codex", "claude", "cursor"),
+                        default=["vscode", "codex", "claude", "cursor"])
     args = parser.parse_args(argv)
     try:
         report = provision(args.project, python=args.python, clients=tuple(args.clients))
