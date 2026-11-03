@@ -13,6 +13,7 @@ import json
 from pathlib import Path
 import sys
 import time
+import os
 from typing import TextIO
 
 from pie.indexing.indexer import index_project
@@ -22,6 +23,8 @@ from pie.retrieval.fts import search_fts
 from pie.graph.verified import VerifiedGraph
 from pie.retrieval.packs import build_responsibility_pack
 from pie.retrieval.predictive import predict_adjacent_queries
+from pie.scanning.discovery import IGNORED_DIRECTORIES
+from pie.scanning.ignore import IgnoreRules
 
 
 class WarmContextService:
@@ -75,18 +78,31 @@ class WarmContextService:
         self._verified_graph = VerifiedGraph.from_connection(self._connection)
 
     def _file_snapshot(self):
-        """Cheap metadata check: never read source contents or build an index."""
-        excluded = {".pie", ".git", ".venv", "venv", "__pycache__", "node_modules", ".tox"}
+        """Stat-only mirror of scanner discovery; no file content is read."""
+        root = self.root
+        ignores = IgnoreRules(root)
         snapshot = {}
-        for path in self.root.rglob("*.py"):
-            if any(part in excluded for part in path.relative_to(self.root).parts[:-1]):
-                continue
-            try:
-                stat = path.stat()
-            except OSError:
-                snapshot[path.relative_to(self.root).as_posix()] = None
-                continue
-            snapshot[path.relative_to(self.root).as_posix()] = (stat.st_size, stat.st_mtime_ns)
+        for current, directories, filenames in os.walk(root, topdown=True):
+            base = Path(current)
+            directories[:] = [
+                name for name in directories
+                if name not in IGNORED_DIRECTORIES
+                and not (base / name).is_symlink()
+                and not ignores.ignored((base / name).relative_to(root),
+                                        is_directory=True)
+            ]
+            for name in filenames:
+                if not name.lower().endswith(".py"):
+                    continue
+                path = base / name
+                relative = path.relative_to(root)
+                if path.is_symlink() or ignores.ignored(relative):
+                    continue
+                try:
+                    stat = path.stat()
+                    snapshot[relative.as_posix()] = (stat.st_size, stat.st_mtime_ns)
+                except OSError:
+                    snapshot[relative.as_posix()] = None
         return snapshot
 
     def _refresh_if_changed(self):
@@ -195,8 +211,9 @@ class WarmContextService:
                     "prepared": len(proposed), "consistency": "strict"}
 
     def search_candidates(self, question: str, limit: int = 50) -> dict:
-        self.refresh()
-        hits = search_fts(self._connection, question, limit=limit)
+        with self._lock:
+            self._refresh_if_changed()
+            hits = search_fts(self._connection, question, limit=limit)
         return {"ids": [symbol_id for symbol_id, _ in hits], "count": len(hits)}
 
     def close(self):
