@@ -201,7 +201,7 @@ class Gateway:
                     lines.append("Há chamadas omitidas pelo limite da busca.")
             lines.append("Evidência: " + evidence["evidence_id"])
             return {"status": "CERTIFIED_FACTS", "validation_mode": validation_mode,
-                    "model_validation": verdict, "answer": "\\n".join(lines),
+                    "model_validation": verdict, "answer": chr(10).join(lines),
                     "selected_facts": selected,
                     "evidence_id": evidence["evidence_id"],
                     "coverage_note": evidence["coverage_note"],
