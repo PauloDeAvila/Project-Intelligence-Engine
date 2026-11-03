@@ -150,3 +150,46 @@ The local endpoint remains `POST http://127.0.0.1:8766/ask`. Inspect the
 `model_validation.checks` and `missing_required` fields. Do not interpret a
 `CERTIFIED_FACTS` response as proof the Qwen proposal passed; the two verdicts
 are deliberately independent.
+
+## Evidence Selection mode (opt-in, alongside claims)
+
+The 30-trial offline LM Studio comparison used the same Qwen and task:
+claims 0/30 accepted vs selection 30/30 accepted. Those results were for
+**direct LM Studio calls**, not for the integrated Gateway endpoint.
+
+To measure the integrated variant, update the local Python installation,
+restart the Gateway, and POST:
+
+~~~powershell
+$Python = "$env:USERPROFILE\pie-evidence-gateway\.venv\Scripts\python.exe"
+$Root = "$env:USERPROFILE\pie-evidence-gateway\Doctor Mesh"
+$Source = "$env:USERPROFILE\pie-evidence-gateway\source"
+git -C $Source pull --ff-only origin feat/v1-evidence-guard-gateway
+& $Python -m pip install --upgrade --no-deps $Source
+
+# Start in a separate terminal, after stopping the previous Gateway:
+& $Python -m pie.interfaces.gateway --root $Root --port 8766 --upstream http://127.0.0.1:1234/v1 --model qwen3-4b-instruct-2507
+~~~
+
+~~~powershell
+$Body = @{ question = "Qual é a assinatura de analyze_mesh e quantas chamadas diretas existem?"
+           symbol = "analyze_mesh"
+           validation_mode = "evidence_selection" } | ConvertTo-Json -Compress
+$Result = Invoke-RestMethod -Uri http://127.0.0.1:8766/ask -Method Post -ContentType "application/json; charset=utf-8" -Body ([Text.Encoding]::UTF8.GetBytes($Body))
+$Result.model_validation | ConvertTo-Json -Depth 8
+$Result.answer
+~~~
+
+The previous `claims` contract remains the default when `validation_mode`
+is omitted. Pass `"validation_mode":"claims"` to select it explicitly.
+
+Selection validates the exact evidence ID, an allowed, unique list of fields,
+and the fixed required contract (`signature`, `path`, `direct_call_count`).
+The PIE fills the field values directly from canonical evidence, never from
+the model. The model is shown an example JSON containing the required fields;
+passing this benchmark demonstrates **format adherence**, not free-form
+semantic understanding. The PIE returns the same deterministic `answer` even
+if a selection is rejected. Do not confuse `CERTIFIED_FACTS` with model approval.
+
+This route is still a project-specific HTTP application, not an OpenAI API
+replacement, and does not intercept ordinary LM Studio chat responses.
