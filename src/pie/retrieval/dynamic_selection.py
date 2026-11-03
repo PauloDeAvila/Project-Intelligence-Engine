@@ -79,6 +79,28 @@ def plan_evidence(question: str) -> dict:
             "required_fields": [field for field in FIELD_ORDER if field in selected]}
 
 
+def selection_json_schema() -> dict:
+    """Constrain syntax and allowed names, never the correct field selection."""
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "pie_dynamic_evidence_fields",
+            "strict": True,
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "selected_fields": {
+                        "type": "array",
+                        "items": {"type": "string", "enum": list(FIELD_ORDER)},
+                    }
+                },
+                "required": ["selected_fields"],
+                "additionalProperties": False,
+            },
+        },
+    }
+
+
 def validate_dynamic_selection(evidence: dict, proposed: object, plan: dict) -> dict:
     """Separate model syntax, source grounding and *planned* relevance."""
     if plan["status"] != "PLANNED":
@@ -89,7 +111,9 @@ def validate_dynamic_selection(evidence: dict, proposed: object, plan: dict) -> 
     # Legacy ID-bearing proposals are rejected in dynamic mode rather than
     # silently accepting any model-supplied identifier.
     if not isinstance(proposed, dict) or set(proposed) != {"selected_fields"}:
-        return {"status": "REJECTED", "reason": "invalid_selection_shape", "selected_fields": []}
+        keys = sorted(k for k in proposed if isinstance(k, str))[:8] if isinstance(proposed, dict) else []
+        return {"status": "REJECTED", "reason": "invalid_selection_shape",
+                "selected_fields": [], "received_keys": keys}
     fields = proposed["selected_fields"]
     if not isinstance(fields, list) or not 1 <= len(fields) <= len(FIELDS):
         return {"status": "REJECTED", "reason": "invalid_selected_fields", "selected_fields": []}
