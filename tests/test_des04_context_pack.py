@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -102,6 +104,30 @@ class ContextPackContractTests(unittest.TestCase):
                      {"max_calls": False}, {"include_snippets": "false"}):
             with self.subTest(args=args), self.assertRaises(ValueError):
                 build_context_pack(self.root, "calculate", **args)
+
+    def test_cli_context_pack_emits_json(self):
+        from pie.interfaces.cli import main
+        output = StringIO()
+        with redirect_stdout(output):
+            code = main([
+                "context-pack", "calculate", "--root", str(self.root),
+                "--max-chars", "3000",
+            ])
+        self.assertEqual(code, 0)
+        result = json.loads(output.getvalue())
+        self.assertEqual(result["definition"]["symbol"], "calculate")
+        self.assertEqual(result["callers"][0]["line"], 3)
+
+    def test_mcp_rejects_stale_project(self):
+        (self.root / "not_indexed.py").write_text(
+            "from logic import calculate\ncalculate(4)\n", encoding="utf-8")
+        reply = dispatch({
+            "jsonrpc": "2.0", "id": 77, "method": "tools/call",
+            "params": {"name": "pie_build_context_pack",
+                       "arguments": {"symbol": "calculate"}},
+        }, self.root)
+        self.assertTrue(reply["result"]["isError"])
+        self.assertIn("STALE_PROJECT", reply["result"]["content"][0]["text"])
 
     def test_mcp_exposes_pack_and_rejects_untrusted_arguments(self):
         listed = dispatch({"jsonrpc":"2.0", "id":1, "method":"tools/list"}, self.root)
