@@ -120,3 +120,33 @@ The gateway does **not** claim to reason over arbitrary final prose. It can
 reject structured mismatches with the canonical evidence and uses a deterministic
 renderer to replace proposed factual text. This is the supported, testable
 meaning of "automatic correction" in this preview.
+
+## Re-testing Qwen claim accuracy (post-benchmark 0/10)
+
+The gateway now returns structured diagnostics in `model_validation.checks`:
+
+- `evidence_id_mismatch`: the claim refers to an unknown evidence ID
+- `value_mismatch`: the value does not equal the canonical field
+- `missing_value`: the model omitted the required value property
+- `unknown_field` and `duplicate_field`: malformed claim selection
+- `missing_required`: signature and path were not both verified
+
+The Qwen instruction now contains an explicit canonical JSON output example;
+**this is a copying/conformance test, not a measure of independent model
+understanding**. `answer` is still rendered entirely by the deterministic PIE.
+
+After pulling/installing the updated branch, **stop and restart** the previously
+running gateway (it does not hot-reload Python files). Existing MCP connections
+and LM Studio model settings can remain unchanged.
+
+~~~powershell
+$Python = "$env:USERPROFILE\\pie-evidence-gateway\\.venv\\Scripts\\python.exe"
+$Root = "$env:USERPROFILE\\pie-evidence-gateway\\Doctor Mesh"
+& $Python -m pip install --upgrade --force-reinstall "git+https://github.com/PauloDeAvila/Project-Intelligence-Engine.git@feat/v1-evidence-guard-gateway"
+& $Python -m pie.interfaces.gateway --root $Root --port 8766 --upstream http://127.0.0.1:1234/v1 --model qwen3-4b-instruct-2507
+~~~
+
+The local endpoint remains `POST http://127.0.0.1:8766/ask`. Inspect the
+`model_validation.checks` and `missing_required` fields. Do not interpret a
+`CERTIFIED_FACTS` response as proof the Qwen proposal passed; the two verdicts
+are deliberately independent.
