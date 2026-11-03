@@ -15,3 +15,13 @@ Maintain this map from inspected source only. Link to concrete files and symbols
 2. Verify entries against source; the map can become stale.
 3. Trace callers and consumers before modifying contracts.
 4. Update only entries affected by confirmed changes.
+
+## Context Pack v2
+
+Exact function/qualified-method evidence is built in `retrieval/evidence.py`.
+`retrieval/context_pack.py` separates returned verified-call completeness from
+partial static coverage. `analysis/resolver.py` follows imports in lexical scopes;
+`analysis/definitions.py` records name deletion positions. Consumers include MCP,
+CLI and the evidence Gateway. Regressions: `test_static_call_coverage.py`,
+`test_des04_context_pack.py`, `test_des04_mcp_stdio_e2e.py`; see
+`des04-context-pack-mcp.md` for limitations and migration.

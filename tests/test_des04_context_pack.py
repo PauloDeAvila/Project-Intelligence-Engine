@@ -34,13 +34,15 @@ class ContextPackContractTests(unittest.TestCase):
 
     def test_definition_callers_and_source_provenance(self):
         result = build_context_pack(self.root, "calculate")
-        self.assertEqual(result["schema_version"], "pie-context-pack-v1")
+        self.assertEqual(result["schema_version"], "pie-context-pack-v2")
         self.assertEqual(result["status"], "VERIFIED_STATIC_CONTEXT")
         self.assertEqual(result["definition"]["path"], "logic.py")
         self.assertEqual(result["definition"]["line"], 1)
         self.assertIn("def calculate(value)", result["definition"]["snippet"]["text"])
         self.assertEqual(result["coverage"]["verified_direct_call_count"], 1)
-        self.assertTrue(result["coverage"]["complete_direct_call_list"])
+        self.assertTrue(result["coverage"]["returned_verified_call_list_complete"])
+        self.assertEqual(result["coverage"]["static_analysis_coverage"], "PARTIAL")
+        self.assertFalse(result["coverage"]["exhaustive"])
         self.assertEqual(len(result["callers"]), 1)
         caller = result["callers"][0]
         self.assertEqual((caller["path"], caller["line"]), ("service.py", 3))
@@ -71,7 +73,7 @@ class ContextPackContractTests(unittest.TestCase):
         self.assertEqual(coverage["returned_direct_call_count"], len(report["callers"]))
         self.assertGreater(coverage["omitted_by_budget"], 0)
         self.assertEqual(coverage["omitted_by_budget"] + coverage["returned_direct_call_count"], 50)
-        self.assertFalse(coverage["complete_direct_call_list"])
+        self.assertFalse(coverage["returned_verified_call_list_complete"])
         self.assertLessEqual(report["budget"]["used_chars"], 1800)
 
     def test_call_limit_omission_is_not_hidden(self):
@@ -85,7 +87,7 @@ class ContextPackContractTests(unittest.TestCase):
         self.assertEqual(report["coverage"]["verified_direct_call_count"], 7)
         self.assertEqual(report["coverage"]["omitted_by_call_limit"], 5)
         self.assertEqual(report["coverage"]["returned_direct_call_count"], 2)
-        self.assertFalse(report["coverage"]["complete_direct_call_list"])
+        self.assertFalse(report["coverage"]["returned_verified_call_list_complete"])
 
     def test_stale_and_ambiguous_fail_closed(self):
         (self.root / "new_caller.py").write_text(

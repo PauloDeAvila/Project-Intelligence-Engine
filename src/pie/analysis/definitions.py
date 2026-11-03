@@ -279,6 +279,15 @@ class DefinitionCollector(ScopedVisitor):
         # AugAssign reads the binding and writes it back: both are recorded.
         self.store_target(node.target, "augassign", infer_type(node.value))
 
+    def visit_Delete(self, node: ast.Delete) -> None:
+        # A deleted lexical name must stop resolving to an earlier import.
+        # Record the unbinding position; attribute/subscript deletes do not
+        # unbind their base name and therefore remain ordinary usages only.
+        for target in node.targets:
+            for name in _target_names(target):
+                owner = self.owning_scope(name)
+                self._emit(owner, name, _kind_for(owner, name, target), "delete", target)
+
     def visit_For(self, node: ast.For) -> None:
         self.visit(node.iter)
         self.store_target(node.target, "for", None)

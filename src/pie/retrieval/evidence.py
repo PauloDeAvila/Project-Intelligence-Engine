@@ -6,6 +6,7 @@ external dependencies, model calls or dynamic imports of analysed projects.
 from __future__ import annotations
 
 import ast
+import keyword
 from hashlib import sha256
 from pathlib import Path
 
@@ -100,8 +101,10 @@ def build_evidence(root: Path, symbol: str, *, max_calls: int = 20) -> dict:
     This is intentionally limited to *exact, unambiguous* function definitions.
     Missing, stale and ambiguous results are errors, not empty authoritative facts.
     """
-    if not isinstance(symbol, str) or not symbol.isidentifier() or len(symbol) > 128:
-        raise EvidenceError("Expected an exact Python identifier (max 128 chars)")
+    if (not isinstance(symbol, str) or len(symbol) > 128
+            or not all(part.isidentifier() and not keyword.iskeyword(part)
+                       for part in symbol.split("."))):
+        raise EvidenceError("Expected an exact Python identifier or qualified callable (max 128 chars)")
     if type(max_calls) is not int or not 1 <= max_calls <= 100:
         raise EvidenceError("Invalid max_calls")
     root = Path(root).resolve(strict=True)
@@ -109,9 +112,12 @@ def build_evidence(root: Path, symbol: str, *, max_calls: int = 20) -> dict:
     definitions = find_definitions(root, symbol, limit=500)
     if definitions.get("state") != "CURRENT":
         raise EvidenceError("Index/definitions are not CURRENT")
+    if len(definitions.get("definitions", [])) >= 500:
+        raise EvidenceError("Definition coverage truncated at the query limit")
     functions = [
         item for item in definitions.get("definitions", [])
-        if item["name"] == symbol and item["kind"] == "function"
+        if (item["qualified_name"] == symbol if "." in symbol else item["name"] == symbol)
+        and item["kind"] in ("function", "method")
         and item.get("declared_by") in ("def", "async_def")
     ]
     if not functions:
@@ -120,7 +126,7 @@ def build_evidence(root: Path, symbol: str, *, max_calls: int = 20) -> dict:
         raise EvidenceError("AMBIGUOUS: multiple function definitions share this name")
     target = functions[0]
     source, digest = _source_snapshot(root, target["path"])
-    signature = _signature(source, target["line"], symbol)
+    signature = _signature(source, target["line"], target["name"])
 
     references = find_references(root, symbol, limit=500)
     if references.get("state") != "CURRENT":
