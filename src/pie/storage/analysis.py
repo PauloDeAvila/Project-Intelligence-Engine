@@ -174,8 +174,41 @@ def load_facts(connection: sqlite3.Connection) -> list[ModuleFacts]:
     return facts
 
 
+def _relative_import_paths(importer: str, imported_module: str,
+                           imported_name: str | None) -> set[str]:
+    """Return exact potential source paths for a relative import.
+
+    This is an invalidation dependency only: finding a candidate path does
+    not verify a reference. `from . import child` may depend on the child
+    file as well as the package __init__.
+    """
+    level = len(imported_module) - len(imported_module.lstrip("."))
+    if level == 0:
+        return set()
+    parts = importer.replace("\\", "/").split("/")[:-1]
+    if level > len(parts):
+        return set()
+    suffix = imported_module[level:]
+    if suffix and not all(p.isidentifier() for p in suffix.split(".")):
+        return set()
+    base_parts = parts[:len(parts)-level+1] + (suffix.split(".") if suffix else [])
+    base = "/".join(base_parts)
+    candidates = {base + ".py", base + "/__init__.py"}
+    if imported_name and imported_name.isidentifier():
+        candidates.update({
+            base + "/" + imported_name + ".py",
+            base + "/" + imported_name + "/__init__.py",
+        })
+    return candidates
+
+
 def dependents_of(connection: sqlite3.Connection, paths: set[str]) -> set[str]:
-    """Indexed files importing a module that changed, so their references move."""
+    """Reanalyse direct importers of changed modules, including relative imports.
+
+    Absolute imports keep their indexed name match. Relative imports are
+    matched to exact paths based on the importing file's package directory.
+    Neither lookup certifies a graph edge without the resolver's proof.
+    """
     if not paths:
         return set()
     wanted: set[str] = set()
@@ -186,9 +219,18 @@ def dependents_of(connection: sqlite3.Connection, paths: set[str]) -> set[str]:
         "SELECT DISTINCT f.path FROM imports i JOIN files f ON f.id = i.file_id "
         f"WHERE i.module IN ({placeholders})",
         tuple(wanted),
+    ).fetchall() if wanted else []
+    dependents = {row["path"] for row in rows if row["path"] not in paths}
+    relative = connection.execute(
+        "SELECT f.path, i.module, i.imported_name FROM imports i "
+        "JOIN files f ON f.id = i.file_id WHERE i.module LIKE '.%'"
     ).fetchall()
-    return {row["path"] for row in rows if row["path"] not in paths}
-
+    for row in relative:
+        if row["path"] not in paths and _relative_import_paths(
+            row["path"], row["module"], row["imported_name"]
+        ).intersection(paths):
+            dependents.add(row["path"])
+    return dependents
 
 def files_missing_analysis(connection: sqlite3.Connection) -> set[str]:
     """Python files with no analysis state - the V0.1/V0.2 migration entry point."""
