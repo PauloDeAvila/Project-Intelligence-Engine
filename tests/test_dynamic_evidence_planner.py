@@ -8,6 +8,9 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.request import Request, urlopen
+import threading
 import tempfile
 import unittest
 
@@ -17,7 +20,7 @@ from pie.interfaces.gateway import Gateway
 from pie.retrieval.evidence import build_evidence
 from pie.retrieval.dynamic_selection import (
     FIELD_ORDER, FIELDS, plan_evidence, selection_prompt,
-    validate_dynamic_selection,
+    validate_dynamic_selection, selection_json_schema,
 )
 
 # Manually reviewed examples with more than one intended selection.
@@ -73,6 +76,25 @@ class IndependentPlannerGoldTests(unittest.TestCase):
                 else:
                     self.assertEqual(result["status"], "PLANNED", result)
                     self.assertEqual(result["required_fields"], expected)
+
+    def test_schema_is_structural_and_never_contains_gold(self):
+        schema = selection_json_schema()["json_schema"]["schema"]
+        self.assertEqual(schema["required"], ["selected_fields"])
+        self.assertFalse(schema["additionalProperties"])
+        self.assertEqual(schema["properties"]["selected_fields"]["items"]["enum"], list(FIELD_ORDER))
+        self.assertNotIn("path", schema.get("required", []))
+        self.assertNotIn("evidence_id", schema["properties"])
+
+    def test_invalid_shape_reports_keys_without_exposing_values(self):
+        ev = {"evidence_id": "pie:one", "signature": "def f():",
+              "path": "geometry.py", "line": 1, "direct_call_count": 0,
+              "direct_call_sites": []}
+        result = validate_dynamic_selection(ev, {
+            "selected_fields": ["path", "line"], "evidence_id": "secret-hash"},
+            plan_evidence("Onde analyze_mesh está definida?"))
+        self.assertEqual(result["reason"], "invalid_selection_shape")
+        self.assertEqual(result["received_keys"], ["evidence_id", "selected_fields"])
+        self.assertNotIn("secret-hash", str(result))
 
     def test_dynamic_prompt_does_not_leak_plan_or_answer_values(self):
         question = "Onde analyze_mesh está definida?"
@@ -130,6 +152,47 @@ class DynamicGatewayIntegrationTests(unittest.TestCase):
 
     def tearDown(self):
         self.tmp.cleanup()
+
+    def test_schema_mode_uses_json_schema_and_keeps_canonical_values(self):
+        requests = []
+
+        class MockModel(BaseHTTPRequestHandler):
+            def do_POST(self):
+                req = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                requests.append(req)
+                data = json.dumps({"choices": [{"message": {
+                    "content": json.dumps({"selected_fields": ["path", "line"]})
+                }}]}).encode()
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+
+            def log_message(self, format, *args):
+                pass
+
+        upstream = ThreadingHTTPServer(("127.0.0.1", 0), MockModel)
+        worker = threading.Thread(target=upstream.serve_forever, daemon=True)
+        worker.start()
+        try:
+            gateway = Gateway(
+                self.root, upstream=f"http://127.0.0.1:{upstream.server_port}/v1",
+                model="qwen-fixture")
+            result = gateway.answer({
+                "question": "Onde analyze_mesh está definida?",
+                "symbol": "analyze_mesh",
+                "validation_mode": "dynamic_selection_schema"})
+            self.assertEqual(result["status"], "CERTIFIED_FACTS")
+            self.assertEqual(result["model_validation"]["status"], "VERIFIED")
+            self.assertEqual(result["selected_facts"], {"path": "geometry.py", "line": 1})
+            self.assertEqual(requests[0]["response_format"]["type"], "json_schema")
+            self.assertNotIn("EXPECTED_OUTPUT", requests[0]["messages"][0]["content"])
+            self.assertNotIn("pie:", requests[0]["messages"][0]["content"])
+            self.assertNotIn("geometry.py", requests[0]["messages"][0]["content"])
+        finally:
+            upstream.shutdown()
+            upstream.server_close()
+            worker.join(timeout=5)
 
     def test_only_selected_fields_rendered(self):
         def select(question, evidence, *, validation_mode):
