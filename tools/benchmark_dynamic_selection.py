@@ -32,7 +32,10 @@ def load_gold(path: Path) -> list:
     raise ValueError("Benchmark gold CASES not found")
 
 
-def evaluate(base_url: str, cases: list, *, timeout: float = 60) -> dict:
+def evaluate(base_url: str, cases: list, *, timeout: float = 60,
+             validation_mode: str = "dynamic_selection") -> dict:
+    if validation_mode not in ("dynamic_selection", "dynamic_selection_schema"):
+        raise ValueError("Unsupported validation_mode")
     if base_url != "http://127.0.0.1:8766":
         raise ValueError("Benchmark only permits the local PIE Gateway on port 8766")
     results = []
@@ -45,7 +48,7 @@ def evaluate(base_url: str, cases: list, *, timeout: float = 60) -> dict:
             data=json.dumps({
                 "question": question,
                 "symbol": "analyze_mesh",
-                "validation_mode": "dynamic_selection",
+                "validation_mode": validation_mode,
             }, ensure_ascii=False).encode("utf-8"),
             headers={"Content-Type": "application/json; charset=utf-8"},
             method="POST",
@@ -103,6 +106,7 @@ def evaluate(base_url: str, cases: list, *, timeout: float = 60) -> dict:
     durations = [x["latency_s"] for x in results if x["status"] != "ERROR"]
     return {
         "design": "30 distinct fixed questions, deterministic shuffle; exact-symbol queries",
+        "validation_mode": validation_mode,
         "n": len(results),
         "supported_n": len(supported), "abstention_n": len(abstain),
         "positive_exact": sum(x["exact_or_safe_abstention"] for x in supported),
@@ -127,11 +131,13 @@ def evaluate(base_url: str, cases: list, *, timeout: float = 60) -> dict:
 def main():
     parser = argparse.ArgumentParser(description="PIE dynamic selection 30-case benchmark")
     parser.add_argument("--gateway", default="http://127.0.0.1:8766")
+    parser.add_argument("--mode", choices=("dynamic_selection", "dynamic_selection_schema"),
+                        default="dynamic_selection")
     parser.add_argument("--gold", type=Path, default=Path(__file__).resolve().parents[1]
                         / "tests" / "test_dynamic_evidence_planner.py")
     parser.add_argument("--output", type=Path, default=Path("dynamic-selection-results.json"))
     args = parser.parse_args()
-    result = evaluate(args.gateway, load_gold(args.gold))
+    result = evaluate(args.gateway, load_gold(args.gold), validation_mode=args.mode)
     args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print("RESULT=" + json.dumps({key: value for key, value in result.items()
                                  if key != "results"}, ensure_ascii=False))
