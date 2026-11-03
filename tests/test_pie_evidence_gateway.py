@@ -14,7 +14,7 @@ from pie.indexing.indexer import index_project
 from pie.interfaces.cli import command_init
 from pie.interfaces.gateway import Gateway, handler_factory, _local_upstream, query_lmstudio
 from pie.retrieval.evidence import build_evidence, EvidenceError
-from pie.retrieval.guard import validate_claims, parse_model_proposal
+from pie.retrieval.guard import validate_claims, parse_model_proposal, validate_selection
 
 
 class CertifiedGatewayTests(unittest.TestCase):
@@ -155,6 +155,111 @@ class CertifiedGatewayTests(unittest.TestCase):
         self.assertEqual(response["status"], "REJECTED")
         self.assertEqual(response["reason"], "missing_required_claims")
         self.assertEqual(response["missing_required"], ["signature"])
+
+    def test_selection_accepts_canonical_fields_without_model_values(self):
+        evidence = build_evidence(self.root, "analyze_mesh")
+        proposal = {"evidence_id": evidence["evidence_id"],
+                    "selected_fields": ["signature", "path", "direct_call_count"]}
+        verdict = validate_selection(evidence, proposal)
+        self.assertEqual(verdict["status"], "VERIFIED")
+        self.assertEqual(verdict["resolved_facts"]["signature"], evidence["signature"])
+        self.assertEqual(verdict["resolved_facts"]["direct_call_count"], 1)
+
+    def test_selection_rejects_missing_wrong_id_and_unknown_fields(self):
+        evidence = build_evidence(self.root, "analyze_mesh")
+        good_id = evidence["evidence_id"]
+        for proposal, reason in [
+            ({"evidence_id": "fake", "selected_fields": ["signature", "path", "direct_call_count"]},
+             "evidence_id_mismatch"),
+            ({"evidence_id": good_id, "selected_fields": ["signature", "path"]},
+             "missing_required_fields"),
+            ({"evidence_id": good_id, "selected_fields": ["signature", "path", "fake"]},
+             "unknown_field"),
+            ({"evidence_id": good_id, "selected_fields": ["signature", "signature", "path"]},
+             "duplicate_field"),
+            ({"evidence_id": good_id, "selected_fields": ["signature", "path", "direct_call_count", "line"]},
+             "unexpected_fields"),
+        ]:
+            verdict = validate_selection(evidence, proposal)
+            self.assertEqual(verdict["status"], "REJECTED", proposal)
+            self.assertEqual(verdict["reason"], reason, proposal)
+            self.assertNotIn("resolved_facts", verdict)
+
+    def test_selection_model_rejection_cannot_change_canonical_answer(self):
+        def invalid_selection(question, evidence, *, validation_mode):
+            self.assertEqual(validation_mode, "evidence_selection")
+            return validate_selection(evidence, {
+                "evidence_id": evidence["evidence_id"],
+                "selected_fields": ["signature", "path"],
+            })
+        result = Gateway(self.root, model_query=invalid_selection).answer({
+            "question": "How many calls?",
+            "symbol": "analyze_mesh",
+            "validation_mode": "evidence_selection"})
+        self.assertEqual(result["model_validation"]["status"], "REJECTED")
+        self.assertEqual(result["validation_mode"], "evidence_selection")
+        self.assertIn("Chamadas diretas verificadas: 1", result["answer"])
+
+    def test_unknown_gateway_validation_mode_rejected(self):
+        with self.assertRaises(ValueError):
+            Gateway(self.root).answer({
+                "question": "signature", "symbol": "analyze_mesh",
+                "validation_mode": "arbitrary"})
+
+    def test_selection_integrated_http_transport(self):
+        evidence = build_evidence(self.root, "analyze_mesh")
+        desired = {"evidence_id": evidence["evidence_id"],
+                   "selected_fields": ["signature", "path", "direct_call_count"]}
+
+        class LMStudioHandler(BaseHTTPRequestHandler):
+            def do_POST(self):
+                if self.path != "/v1/chat/completions":
+                    self.send_error(404)
+                    return
+                body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                if body.get("max_tokens") != 120:
+                    self.send_error(400)
+                    return
+                data = json.dumps({"choices": [{"message": {
+                    "content": json.dumps(desired)}}]}).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+
+            def log_message(self, format, *args):
+                pass
+
+        upstream = ThreadingHTTPServer(("127.0.0.1", 0), LMStudioHandler)
+        upstream_thread = threading.Thread(target=upstream.serve_forever, daemon=True)
+        upstream_thread.start()
+        gateway = Gateway(self.root,
+                          upstream=f"http://127.0.0.1:{upstream.server_port}/v1",
+                          model="qwen-test")
+        server = ThreadingHTTPServer(("127.0.0.1", 0), handler_factory(gateway))
+        server_thread = threading.Thread(target=server.serve_forever, daemon=True)
+        server_thread.start()
+        try:
+            address = f"http://127.0.0.1:{server.server_port}/ask"
+            body = json.dumps({"question": "How many direct calls?",
+                               "symbol": "analyze_mesh",
+                               "validation_mode": "evidence_selection"}).encode()
+            with urlopen(Request(address, data=body,
+                                 headers={"Content-Type": "application/json"}), timeout=8) as response:
+                result = json.load(response)
+            self.assertEqual(result["status"], "CERTIFIED_FACTS")
+            self.assertEqual(result["model_validation"]["status"], "VERIFIED")
+            self.assertEqual(result["validation_mode"], "evidence_selection")
+            self.assertEqual(result["model_validation"]["resolved_facts"]["direct_call_count"], 1)
+            self.assertIn("def analyze_mesh(mesh, matrix, config):", result["answer"])
+        finally:
+            server.shutdown()
+            upstream.shutdown()
+            server.server_close()
+            upstream.server_close()
+            server_thread.join(timeout=5)
+            upstream_thread.join(timeout=5)
 
     def test_restrict_remote_upstream(self):
         for url in ("https://127.0.0.1:1234/v1", "http://example.com:1234/v1",
