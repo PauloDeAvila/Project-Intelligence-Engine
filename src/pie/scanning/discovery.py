@@ -1,4 +1,5 @@
 import os
+import time
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -23,6 +24,7 @@ def iter_files(
     unreadable_paths: set[Path] | None = None,
     unreadable_directories: set[Path] | None = None,
     oversized_paths: set[Path] | None = None,
+    metrics: dict[str, float] | None = None,
 ) -> Iterator[FileRecord]:
     """Yield eligible files one at a time, keeping only one content snapshot in memory."""
     if max_bytes < 0:
@@ -53,13 +55,18 @@ def iter_files(
 
     for path in scan_paths():
         relative = path.relative_to(root)
-        if path.is_symlink() or any(part in IGNORED_DIRECTORIES for part in relative.parts) or ignore.ignored(relative):
-            continue
+        # Non-Python files cannot enter the index. Skip them before filesystem
+        # metadata and ignore-rule checks; directory traversal rules remain
+        # unchanged in scan_paths().
         language = LANGUAGES.get(path.suffix.lower())
         if language is None:
             continue
+        if path.is_symlink() or any(part in IGNORED_DIRECTORIES for part in relative.parts) or ignore.ignored(relative):
+            continue
         try:
+            read_started = time.perf_counter()
             content = read_snapshot(path, max_bytes)
+            if metrics is not None: metrics["read_seconds"] = metrics.get("read_seconds", 0.0) + time.perf_counter() - read_started
         except OSError:
             # Keep the last indexed state for this path rather than treating a
             # transient read failure as a confirmed deletion.
@@ -70,7 +77,10 @@ def iter_files(
             if oversized_paths is not None:
                 oversized_paths.add(relative)
             continue
-        yield FileRecord(relative, sha256_bytes(content), len(content), language, content)
+        hash_started = time.perf_counter()
+        digest = sha256_bytes(content)
+        if metrics is not None: metrics["hash_seconds"] = metrics.get("hash_seconds", 0.0) + time.perf_counter() - hash_started
+        yield FileRecord(relative, digest, len(content), language, content)
 
 
 def discover_files(root: Path, max_bytes: int = 5_000_000) -> list[FileRecord]:

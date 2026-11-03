@@ -211,7 +211,7 @@ def analyze_source(source: str | bytes, path: str) -> ModuleAnalysis:
     return analyze_module(ast.parse(source, filename=path), path)
 
 
-def _effective_site(sites: list[Definition], line: int) -> Definition | None:
+def _effective_site(sites: list[Definition], line: int, col: int = 10**9) -> Definition | None:
     """Last definition at or before ``line``; the first one otherwise.
 
     Choosing by position keeps ``x = 1`` / ``x = 2`` honest: a read after the
@@ -221,7 +221,7 @@ def _effective_site(sites: list[Definition], line: int) -> Definition | None:
         return None
     chosen = None
     for site in sites:
-        if site.line <= line:
+        if (site.line, site.col) <= (line, col):
             chosen = site
         else:
             break
@@ -267,7 +267,10 @@ class Resolver:
         if usage.attribute_base is not None:
             target, resolution, evidence, via = self._resolve_attribute(usage, scope, facts)
         else:
-            target, resolution, evidence, via = self._resolve_name(usage.name, scope, usage.line, facts)
+            # `del name` consumes the preceding binding; only later reads see
+            # the unbinding marker recorded at this exact source position.
+            col = usage.col - 1 if usage.context == "del" else usage.col
+            target, resolution, evidence, via = self._resolve_name(usage.name, scope, usage.line, facts, col)
         return Reference(
             path=usage.path,
             name=usage.name,
@@ -318,13 +321,22 @@ class Resolver:
         return None
 
     def _resolve_name(
-        self, name: str, scope: Scope, line: int, facts: ModuleFacts
+        self, name: str, scope: Scope, line: int, facts: ModuleFacts, col: int = 10**9
     ) -> tuple[Definition | None, str, str, str | None]:
         owner, why = self._lookup(name, scope)
         if owner is not None:
             sites = facts.sites(owner.key, name)
-            site = _effective_site(sites, line)
-            if owner.kind == MODULE_SCOPE and site is not None and site.kind == "import":
+            site = _effective_site(sites, line, col)
+            if site is not None and site.declared_by == "delete":
+                return None, UNRESOLVED, f"'{name}' was deleted at line {site.line}", None
+            if site is not None and site.kind == "import":
+                # Imports bind names in their lexical owner, including method,
+                # closure and comprehension enclosing scopes. Never certify a
+                # read textually before its local import. Deferred forward
+                # closures are conservatively unresolved; no execution order
+                # or control-flow dominance is inferred here.
+                if owner.kind != MODULE_SCOPE and (site.line, site.col) > (line, col):
+                    return None, UNRESOLVED, f"'{name}' is read before its local import", site.binding_key
                 if site.source_name is None:
                     return self._resolve_module_import(site, name)
                 followed = self._follow_import(site, 0, frozenset())
@@ -351,7 +363,7 @@ class Resolver:
 
     def _import_failure(self, site: Definition) -> str:
         """Explain precisely why an import chain could not be followed."""
-        candidates = self._modules_for(site.source_module or "")
+        candidates = self._modules_for_import(site)
         if not candidates:
             return "that module is not indexed"
         if len(candidates) > 1:
@@ -359,7 +371,7 @@ class Resolver:
             return f"the module name is ambiguous between {paths}"
         module = candidates[0]
         if not module.sites(MODULE_SCOPE, site.source_name or ""):
-            if self._submodule(site.source_module or "", site.source_name or "") is None:
+            if self._submodule_for_import(site, site.source_name or "") is None:
                 return f"'{site.source_name}' is not a module-level name of {module.path}"
             return "the import chain does not terminate in a project definition"
         return "the import chain does not terminate in a project definition"
@@ -368,7 +380,7 @@ class Resolver:
         self, site: Definition, name: str
     ) -> tuple[Definition | None, str, str, str | None]:
         """``import pkg.mod`` / ``import pkg.mod as alias``: the value is the module."""
-        candidates = self._modules_for(site.source_module or "")
+        candidates = self._modules_for_import(site)
         if len(candidates) == 1 and candidates[0].module_binding is not None:
             binding = candidates[0].module_binding
             return binding, VERIFIED, (
@@ -394,12 +406,18 @@ class Resolver:
             if base in BUILTIN_NAMES:
                 return None, UNRESOLVED, f"'{base}' is a builtin; its attributes are not project bindings", None
             return None, UNRESOLVED, f"{why}: cannot determine what '{base}' is", None
+        site = _effective_site(facts.sites(base_owner.key, base), usage.line, usage.col)
+        if site is not None and site.declared_by == "delete":
+            return None, UNRESOLVED, f"'{base}' was deleted at line {site.line}", None
+        if site is not None and site.kind == "import":
+            if base_owner.kind != MODULE_SCOPE and (site.line, site.col) > (usage.line, usage.col):
+                return None, UNRESOLVED, f"'{base}' is read before its local import", site.binding_key
+            return self._resolve_imported_attribute(site, usage, base, tail)
         if base_owner.kind != MODULE_SCOPE:
             return None, UNRESOLVED, (
                 f"'{base}' is a local binding in {base_owner.key}; its type is unknown statically"
             ), None
 
-        site = _effective_site(facts.sites(MODULE_SCOPE, base), usage.line)
         if site is None:
             return None, UNRESOLVED, f"'{base}' has no module-level definition site", None
         if site.kind == "class":
@@ -509,7 +527,7 @@ class Resolver:
         if site.source_name is not None:
             # ``from pkg import sub``: ``sub`` may be a module, so ``sub.x`` is
             # looked up inside ``pkg.sub`` rather than inside ``pkg``.
-            submodule = self._submodule(site.source_module or "", site.source_name)
+            submodule = self._submodule_for_import(site, site.source_name)
             if submodule is not None:
                 return self._attribute_of_module(submodule, tail, dotted, site.binding_key)
         module_dotted = site.source_module or ""
@@ -522,7 +540,7 @@ class Resolver:
             return None, UNRESOLVED, (
                 f"'{dotted}' does not belong to imported module '{module_dotted}'"
             ), site.binding_key
-        candidates = self._modules_for(module_dotted)
+        candidates = self._modules_for_import(site)
         if len(candidates) != 1:
             reason = "not indexed" if not candidates else "ambiguous"
             return None, UNRESOLVED, f"module '{module_dotted}' is {reason}", site.binding_key
@@ -562,16 +580,83 @@ class Resolver:
 
     # -- imports ---------------------------------------------------------
     def _modules_for(self, dotted: str) -> list[ModuleFacts]:
-        """Modules reachable by ``dotted``; more than one means ambiguity."""
+        """Conservative absolute lookup; reject unsafe src-package leaf alias.
+
+        Preserve the legacy ambiguity rule for competing suffix names. However,
+        `import types` cannot certify a reference to `src/click/types.py`:
+        the module is inside package `click`, not a top-level `types`.
+        """
         if not dotted:
             return []
         found: list[ModuleFacts] = []
         seen: set[str] = set()
         for module in self.by_dotted.get(dotted, []):
+            path = module.path.replace("\\", "/")
+            parts = path[:-3].split("/") if path.endswith(".py") else []
+            if (len(parts) >= 3 and parts[0] == "src"
+                    and len(dotted.split(".")) == 1
+                    and dotted == parts[-1]):
+                continue
             if module.path not in seen:
                 seen.add(module.path)
                 found.append(module)
         return found
+
+    def _modules_for_import(self, site: Definition) -> list[ModuleFacts]:
+        """Resolve explicit relative imports by *source path*, never suffix guesses.
+
+        A leading dot in Python denotes the importing file's package, not a
+        global module name. Resolve only exact indexed files; an ambiguous or
+        out-of-package path remains unresolved. Absolute imports retain their
+        existing lookup contract.
+        """
+        dotted = site.source_module or ""
+        if not dotted.startswith("."):
+            return self._modules_for(dotted)
+        level = len(dotted) - len(dotted.lstrip("."))
+        suffix = dotted[level:]
+        components = site.path.replace("\\", "/").split("/")[:-1]
+        if level > len(components):
+            return []
+        package = components[:len(components) - level + 1]
+        if suffix:
+            if not all(part.isidentifier() for part in suffix.split(".")):
+                return []
+            package.extend(suffix.split("."))
+        base = "/".join(package)
+        paths = (base + ".py", base + "/__init__.py")
+        return [self.by_path[path] for path in paths if path in self.by_path]
+
+    def _submodule_for_import(self, site: Definition, name: str) -> ModuleFacts | None:
+        """Resolve `from . import child` / `from .pkg import child` locally."""
+        if not name.isidentifier():
+            return None
+        matches: dict[str, ModuleFacts] = {}
+        for package in self._modules_for_import(site):
+            if package.path.endswith("/__init__.py"):
+                base = package.path[:-len("/__init__.py")]
+            elif package.path.endswith(".py"):
+                base = package.path[:-3]
+            else:
+                continue
+            for path in (base + "/" + name + ".py",
+                         base + "/" + name + "/__init__.py"):
+                if path in self.by_path:
+                    matches[path] = self.by_path[path]
+        # For a dotted source module with no indexed package __init__, still
+        # permit an exact relative child path, but never an unproven fallback.
+        if not matches and (site.source_module or "").startswith("."):
+            source = site.source_module or ""
+            level = len(source) - len(source.lstrip("."))
+            suffix = source[level:]
+            parts = site.path.replace("\\", "/").split("/")[:-1]
+            if level <= len(parts) and all(p.isidentifier() for p in suffix.split(".") if p):
+                base = parts[:len(parts)-level+1] + ([*suffix.split(".")] if suffix else [])
+                for path in ("/".join(base+[name])+".py",
+                             "/".join(base+[name, "__init__.py"])):
+                    if path in self.by_path:
+                        matches[path] = self.by_path[path]
+        return next(iter(matches.values())) if len(matches) == 1 else None
 
     def _follow_import(
         self, site: Definition, depth: int, seen: frozenset[str]
@@ -581,14 +666,14 @@ class Resolver:
             return None
         if site.source_name is None:
             return None
-        candidates = self._modules_for(site.source_module or "")
+        candidates = self._modules_for_import(site)
         if len(candidates) != 1:
             return None
         module = candidates[0]
         target = _effective_site(module.sites(MODULE_SCOPE, site.source_name), 10**9)
         if target is None:
             # ``from pkg import sub``: ``sub`` may be the indexed module ``pkg.sub``.
-            submodule = self._submodule(site.source_module or "", site.source_name)
+            submodule = self._submodule_for_import(site, site.source_name)
             if submodule is not None and submodule.module_binding is not None:
                 return (
                     submodule.module_binding,

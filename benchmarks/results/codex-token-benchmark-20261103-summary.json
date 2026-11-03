@@ -1,0 +1,31 @@
+{
+  "schema": "codex-token-benchmark-v1",
+  "task": "audit_component",
+  "snapshot": {"files": 45, "bytes": 240676},
+  "repetitions_per_condition": 5,
+  "conditions": {
+    "without_pie": {
+      "median_input_tokens": 150185,
+      "median_cached_input_tokens": 127488,
+      "median_uncached_input_tokens": 22697,
+      "median_output_tokens": 852,
+      "mcp_pie_executed": false
+    },
+    "with_pie": {
+      "median_input_tokens": 82536,
+      "median_cached_input_tokens": 66944,
+      "median_uncached_input_tokens": 15592,
+      "median_output_tokens": 440,
+      "mcp_pie_executed": true,
+      "verified_direct_call_count": 6,
+      "coverage": "PARTIAL",
+      "exhaustive": false
+    }
+  },
+  "derived": {
+    "raw_input_token_reduction_percent": 45.06,
+    "uncached_input_token_reduction_percent": 31.31,
+    "output_token_reduction_percent": 48.36
+  },
+  "interpretation": "Five real Codex exec runs per condition. The PIE condition executed pie_build_context_pack successfully in all five runs and returned the expected six verified callers. This measures one code-navigation task, not general Codex performance or all project tasks."
+}

@@ -1,0 +1,448 @@
+{
+  "version": "DES03-human-reviewed-v1",
+  "description": "Independent question scoring: mandatory, acceptable optional and forbidden. The model never receives this file.",
+  "items": [
+    {
+      "case_id": 1,
+      "required": [
+        "path",
+        "line"
+      ],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": false,
+      "question": "Onde analyze_mesh está definida?"
+    },
+    {
+      "case_id": 2,
+      "required": [
+        "path"
+      ],
+      "optional": [
+        "line"
+      ],
+      "forbidden": [
+        "signature",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": false,
+      "question": "Em qual arquivo analyze_mesh está definida?"
+    },
+    {
+      "case_id": 3,
+      "required": [
+        "path",
+        "line"
+      ],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": false,
+      "question": "Where is analyze_mesh defined?"
+    },
+    {
+      "case_id": 4,
+      "required": [
+        "line"
+      ],
+      "optional": [
+        "path"
+      ],
+      "forbidden": [
+        "signature",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": false,
+      "question": "Qual linha contém analyze_mesh?"
+    },
+    {
+      "case_id": 5,
+      "required": [
+        "path",
+        "line"
+      ],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": false,
+      "question": "Qual é a localização de analyze_mesh?"
+    },
+    {
+      "case_id": 6,
+      "required": [
+        "signature"
+      ],
+      "optional": [],
+      "forbidden": [
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": false,
+      "question": "Qual é a assinatura de analyze_mesh?"
+    },
+    {
+      "case_id": 7,
+      "required": [
+        "signature"
+      ],
+      "optional": [],
+      "forbidden": [
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": false,
+      "question": "Quais parâmetros analyze_mesh recebe?"
+    },
+    {
+      "case_id": 8,
+      "required": [
+        "signature"
+      ],
+      "optional": [],
+      "forbidden": [
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": false,
+      "question": "Show the signature of analyze_mesh"
+    },
+    {
+      "case_id": 9,
+      "required": [
+        "signature"
+      ],
+      "optional": [],
+      "forbidden": [
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": false,
+      "question": "Quais argumentos analyze_mesh declara?"
+    },
+    {
+      "case_id": 10,
+      "required": [
+        "signature"
+      ],
+      "optional": [],
+      "forbidden": [
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": false,
+      "question": "Qual parametro analyze_mesh declara?"
+    },
+    {
+      "case_id": 11,
+      "required": [
+        "direct_call_count"
+      ],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_sites"
+      ],
+      "abstain": false,
+      "question": "Quantas chamadas diretas existem para analyze_mesh?"
+    },
+    {
+      "case_id": 12,
+      "required": [
+        "direct_call_count"
+      ],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_sites"
+      ],
+      "abstain": false,
+      "question": "Qual a quantidade de chamadas de analyze_mesh?"
+    },
+    {
+      "case_id": 13,
+      "required": [
+        "direct_call_count"
+      ],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_sites"
+      ],
+      "abstain": false,
+      "question": "How many calls refer to analyze_mesh?"
+    },
+    {
+      "case_id": 14,
+      "required": [
+        "direct_call_sites"
+      ],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_count"
+      ],
+      "abstain": false,
+      "question": "Quem chama analyze_mesh?"
+    },
+    {
+      "case_id": 15,
+      "required": [
+        "direct_call_sites"
+      ],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_count"
+      ],
+      "abstain": false,
+      "question": "Quais consumidores chamam analyze_mesh?"
+    },
+    {
+      "case_id": 16,
+      "required": [
+        "signature",
+        "path",
+        "line"
+      ],
+      "optional": [],
+      "forbidden": [
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": false,
+      "question": "Onde analyze_mesh está definida e qual sua assinatura?"
+    },
+    {
+      "case_id": 17,
+      "required": [
+        "signature",
+        "path",
+        "line"
+      ],
+      "optional": [],
+      "forbidden": [
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": false,
+      "question": "Em qual arquivo e linha analyze_mesh está definida e quais parâmetros aceita?"
+    },
+    {
+      "case_id": 18,
+      "required": [
+        "signature",
+        "direct_call_count"
+      ],
+      "optional": [],
+      "forbidden": [
+        "path",
+        "line",
+        "direct_call_sites"
+      ],
+      "abstain": false,
+      "question": "Qual assinatura e quantas chamadas de analyze_mesh?"
+    },
+    {
+      "case_id": 19,
+      "required": [
+        "signature",
+        "direct_call_sites"
+      ],
+      "optional": [],
+      "forbidden": [
+        "path",
+        "line",
+        "direct_call_count"
+      ],
+      "abstain": false,
+      "question": "Quem chama analyze_mesh e qual sua assinatura?"
+    },
+    {
+      "case_id": 20,
+      "required": [
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line"
+      ],
+      "abstain": false,
+      "question": "Quantas chamadas e quais consumidores chamam analyze_mesh?"
+    },
+    {
+      "case_id": 21,
+      "required": [],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": true,
+      "question": "Se eu alterar analyze_mesh, o que quebra?"
+    },
+    {
+      "case_id": 22,
+      "required": [],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": true,
+      "question": "Qual impacto de mudar analyze_mesh?"
+    },
+    {
+      "case_id": 23,
+      "required": [],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": true,
+      "question": "Posso garantir que mudar analyze_mesh é seguro?"
+    },
+    {
+      "case_id": 24,
+      "required": [],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": true,
+      "question": "Will changing analyze_mesh break callers?"
+    },
+    {
+      "case_id": 25,
+      "required": [],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": true,
+      "question": "Analyze the runtime impact of analyze_mesh"
+    },
+    {
+      "case_id": 26,
+      "required": [],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": true,
+      "question": "Explique a arquitetura geral de analyze_mesh"
+    },
+    {
+      "case_id": 27,
+      "required": [],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": true,
+      "question": "O código de analyze_mesh é eficiente?"
+    },
+    {
+      "case_id": 28,
+      "required": [],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": true,
+      "question": "Qual o algoritmo usado pela função?"
+    },
+    {
+      "case_id": 29,
+      "required": [],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": true,
+      "question": "What does analyze_mesh actually compute?"
+    },
+    {
+      "case_id": 30,
+      "required": [],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": true,
+      "question": "Qual a complexidade temporal de analyze_mesh?"
+    }
+  ]
+}
