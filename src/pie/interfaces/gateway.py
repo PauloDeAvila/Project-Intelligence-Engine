@@ -15,7 +15,7 @@ from urllib.error import URLError
 
 from pie.retrieval.evidence import build_evidence, EvidenceError
 from pie.retrieval.dynamic_selection import (plan_evidence, selection_prompt,
-                                             validate_dynamic_selection)
+                                             validate_dynamic_selection, selection_json_schema)
 from pie.retrieval.guard import (parse_model_proposal, render_certified, validate_claims,
                                  validate_selection, SELECTION_FIELDS)
 
@@ -41,9 +41,9 @@ def query_lmstudio(endpoint: str, model: str, question: str, evidence: dict,
     """Ask for structured claims once; never trust or render natural language."""
     if not isinstance(model, str) or not model.strip() or len(model) > 128:
         raise ValueError("Invalid model id")
-    if validation_mode not in ("claims", "evidence_selection", "dynamic_selection"):
+    if validation_mode not in ("claims", "evidence_selection", "dynamic_selection", "dynamic_selection_schema"):
         raise ValueError("Invalid validation mode")
-    if validation_mode == "dynamic_selection":
+    if validation_mode in ("dynamic_selection", "dynamic_selection_schema"):
         prompt = selection_prompt(question, evidence["evidence_id"])
     elif validation_mode == "evidence_selection":
         available = {
@@ -89,12 +89,14 @@ def query_lmstudio(endpoint: str, model: str, question: str, evidence: dict,
         )
     payload = {
         "model": model, "temperature": 0, "stream": False,
-        "max_tokens": 160 if validation_mode == "dynamic_selection" else (120 if validation_mode == "evidence_selection" else 350),
+        "max_tokens": 160 if validation_mode in ("dynamic_selection", "dynamic_selection_schema") else (120 if validation_mode == "evidence_selection" else 350),
         "messages": [
             {"role": "system", "content": prompt},
             {"role": "user", "content": question},
         ],
     }
+    if validation_mode == "dynamic_selection_schema":
+        payload["response_format"] = selection_json_schema()
     data = json.dumps(payload).encode("utf-8")
     request = Request(endpoint, data=data, headers={"Content-Type": "application/json"}, method="POST")
     opener = build_opener(ProxyHandler({}))
@@ -105,7 +107,7 @@ def query_lmstudio(endpoint: str, model: str, question: str, evidence: dict,
             raise ValueError("LM Studio response exceeds size limit")
         reply = json.loads(raw)
         content = reply["choices"][0]["message"]["content"]
-        if validation_mode in ("evidence_selection", "dynamic_selection"):
+        if validation_mode in ("evidence_selection", "dynamic_selection", "dynamic_selection_schema"):
             if not isinstance(content, str) or len(content) > 16384:
                 raise ValueError("Invalid model selection text")
             proposal = json.loads(content)
@@ -114,7 +116,7 @@ def query_lmstudio(endpoint: str, model: str, question: str, evidence: dict,
     except (URLError, TimeoutError, KeyError, IndexError, TypeError, ValueError, json.JSONDecodeError) as exc:
         return {"status": "REJECTED", "reason": "model_transport_or_format_failure",
                 "diagnostic": type(exc).__name__, "checks": []}
-    if validation_mode == "dynamic_selection":
+    if validation_mode in ("dynamic_selection", "dynamic_selection_schema"):
         return validate_dynamic_selection(evidence, proposal, plan)
     if validation_mode == "evidence_selection":
         return validate_selection(evidence, proposal)
@@ -141,11 +143,11 @@ class Gateway:
         question = request.get("question")
         symbol = request.get("symbol")
         validation_mode = request.get("validation_mode", "claims")
-        if validation_mode not in ("claims", "evidence_selection", "dynamic_selection"):
-            raise ValueError("validation_mode must be claims, evidence_selection or dynamic_selection")
+        if validation_mode not in ("claims", "evidence_selection", "dynamic_selection", "dynamic_selection_schema"):
+            raise ValueError("validation_mode must be claims, evidence_selection, dynamic_selection or dynamic_selection_schema")
         if not isinstance(question, str) or not question.strip() or len(question) > 2048:
             raise ValueError("Question must be nonempty and <= 2048 chars")
-        plan = plan_evidence(question) if validation_mode == "dynamic_selection" else None
+        plan = plan_evidence(question) if validation_mode in ("dynamic_selection", "dynamic_selection_schema") else None
         if plan is not None and plan["status"] != "PLANNED":
             return {"status": "ABSTAIN", "validation_mode": validation_mode,
                     "model_validation": {"status": "NOT_REQUESTED", "reason": plan["reason"]},
@@ -155,14 +157,14 @@ class Gateway:
         try:
             evidence = build_evidence(self.root, symbol)
         except EvidenceError as exc:
-            if validation_mode != "dynamic_selection":
+            if validation_mode not in ("dynamic_selection", "dynamic_selection_schema"):
                 raise
             return {"status": "ABSTAIN", "validation_mode": validation_mode,
                     "model_validation": {"status": "NOT_REQUESTED", "reason": "evidence_unavailable"},
                     "answer": "Não há evidência inequívoca e atual para certificar a resposta.",
                     "plan_status": "ABSTAIN", "reason": str(exc)}
         if self.model_query is not None:
-            if validation_mode in ("evidence_selection", "dynamic_selection"):
+            if validation_mode in ("evidence_selection", "dynamic_selection", "dynamic_selection_schema"):
                 # Tests can inject a mode-aware model transport.
                 verdict = self.model_query(question, evidence, validation_mode=validation_mode)
             else:
@@ -177,7 +179,7 @@ class Gateway:
         refreshed = build_evidence(self.root, symbol)
         if refreshed != evidence:
             raise EvidenceError("Evidence changed during model evaluation")
-        if validation_mode == "dynamic_selection":
+        if validation_mode in ("dynamic_selection", "dynamic_selection_schema"):
             if verdict.get("status") != "VERIFIED":
                 return {"status": "ABSTAIN", "validation_mode": validation_mode,
                         "model_validation": verdict,
