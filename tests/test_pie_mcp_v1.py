@@ -57,6 +57,55 @@ class MCPQueryTests(unittest.TestCase):
             self.assertFalse(a["cache_hit"])
             self.assertTrue(b["cache_hit"])
 
+    def test_query_phases_and_total_character_budget(self):
+        with MCPContextEngine(self.root) as engine:
+            for mode in ("navigation", "responsibility", "impact"):
+                result = engine.query("Model", mode=mode, max_chars=1000, limit=5)
+                encoded = json.dumps(result, ensure_ascii=False, separators=(",", ":"))
+                self.assertLessEqual(len(encoded), 1000)
+                metrics = result["metrics"]
+                for key in ("cache_hit", "reindexed", "refresh_ms", "search_ms",
+                            "graph_ms", "serialization_ms", "total_ms"):
+                    self.assertIn(key, metrics)
+                self.assertGreaterEqual(metrics["total_ms"], 0)
+
+    def test_unchanged_query_never_calls_indexer(self):
+        with MCPContextEngine(self.root) as engine:
+            with patch("pie.retrieval.warm.index_project",
+                       side_effect=AssertionError("Unexpected full reindex")):
+                first = engine.query("Model", mode="navigation")
+                second = engine.query("Model", mode="navigation")
+                self.assertFalse(first["metrics"]["reindexed"])
+                self.assertFalse(second["metrics"]["reindexed"])
+                self.assertTrue(second["metrics"]["cache_hit"])
+
+    def test_source_change_reindexes_once_and_invalidates_cache(self):
+        with MCPContextEngine(self.root) as engine:
+            engine.query("Model", mode="navigation")
+            (self.root / "models.py").write_text(
+                'class RenamedModel:\\n    """New model behavior."""\\n    pass\\n',
+                encoding="utf8")
+            import pie.retrieval.warm as warm
+            original_index = warm.index_project
+            with patch("pie.retrieval.warm.index_project", wraps=original_index) as indexer:
+                changed = engine.query("RenamedModel", mode="navigation")
+                unchanged = engine.query("RenamedModel", mode="navigation")
+                self.assertEqual(indexer.call_count, 1)
+                self.assertTrue(changed["metrics"]["reindexed"])
+                self.assertFalse(unchanged["metrics"]["reindexed"])
+                self.assertTrue(unchanged["metrics"]["cache_hit"])
+
+    def test_budget_omission_is_explicit_and_deduplicated(self):
+        with MCPContextEngine(self.root) as engine:
+            result = engine.query("Model", mode="responsibility", max_chars=700)
+            pack = result["pack"]
+            identities = [(item["path"], item["symbol"], item["start_line"])
+                          for item in pack["responsibilities"]]
+            self.assertEqual(len(identities), len(set(identities)))
+            self.assertIn("omitted", pack)
+            self.assertLessEqual(len(json.dumps(result, ensure_ascii=False,
+                                               separators=(",", ":"))), 700)
+
     def test_real_process_stdio_client(self):
         requests = [
             {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {
