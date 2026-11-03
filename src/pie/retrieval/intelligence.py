@@ -130,14 +130,18 @@ def smart_context(root: Path, query: str, *, max_chars: int = 12000, limit: int 
             path=row["path"]
             if path not in cached:
                 try:
-                    data=(root/path).read_bytes()
+                    source_path = root / path
+                    resolved = source_path.resolve()
+                    if not resolved.is_relative_to(root) or source_path.is_symlink():
+                        raise ValueError("source_path_outside_root")
+                    data=resolved.read_bytes()
                     if sha256(data).hexdigest()!=row["sha256"]:
                         raise ValueError("source_hash_mismatch")
                     cached[path]=data.decode("utf-8-sig",errors="replace").splitlines()
                 except (OSError,ValueError) as exc:
                     cached[path]=None
                     diagnostics.append({"path":path,
-                        "code":"source_hash_mismatch" if isinstance(exc,ValueError) else "file_unreadable"})
+                        "code":str(exc) if isinstance(exc,ValueError) else "file_unreadable"})
             lines=cached[path]
             if lines is None:
                 continue
