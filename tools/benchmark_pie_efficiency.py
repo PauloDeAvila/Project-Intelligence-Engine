@@ -70,7 +70,8 @@ def score(pack, gold):
     tp = len(set(got) & set(expected)); precision = tp / len(got) if got else (1.0 if not expected else 0.0)
     recall = tp / len(expected) if expected else (1.0 if not got else 0.0)
     definition = pack.get("definition", {})
-    qualified_definition_only = pack.get("symbol", "").find(".") >= 0 and not expected
+    qualified_symbol = pack.get("definition", {}).get("symbol", "")
+    qualified_definition_only = isinstance(qualified_symbol, str) and "." in qualified_symbol and not expected
     return {"precision": precision, "recall": (None if qualified_definition_only else recall), "call_coverage": "not_applicable_definition_only" if qualified_definition_only else "evaluated", "definition_present": bool(definition.get("path")), "returned_calls": len(got), "gold_calls": len(expected)}
 
 def main():
