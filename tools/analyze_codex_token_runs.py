@@ -13,7 +13,8 @@ def analyze(path: Path):
         if item.get("type") == "mcp_tool_call":
             tool_calls.append({"server": item.get("server"), "tool": item.get("tool"), "status": item.get("status"), "error": (item.get("error") or {}).get("message")})
         if item.get("type") == "agent_message": final = item.get("text")
-    return {"run": str(path), "usage": usage, "mcp_tool_calls": tool_calls, "mcp_executed": any(x["status"] == "completed" for x in tool_calls), "final": final}
+    pie_calls = [x for x in tool_calls if str(x.get("server", "")).startswith("pie-")]
+    return {"run": str(path), "usage": usage, "mcp_tool_calls": tool_calls, "mcp_executed": any(x["status"] == "completed" for x in pie_calls), "final": final}
 
 def main():
     p = argparse.ArgumentParser(); p.add_argument("runs", nargs="+", type=Path); p.add_argument("--output", type=Path, required=True); a = p.parse_args()
