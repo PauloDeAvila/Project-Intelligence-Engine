@@ -9,6 +9,7 @@ from pie.indexing.indexer import index_project
 from pie.interfaces.cli import command_init
 from pie.retrieval.symbols import find_references, find_definitions
 from pie.interfaces.mcp_server import dispatch
+from pie.interfaces.mcp_context import MCPContextEngine
 
 
 class ReferenceUsageKindTests(unittest.TestCase):
@@ -90,6 +91,16 @@ class ReferenceUsageKindTests(unittest.TestCase):
                              "params": {"name": "pie_project_status", "arguments": {}}}, self.root)
         self.assertNotIn("error", response)
         self.assertFalse(response["result"].get("isError", False))
+
+    def test_impact_pack_includes_direct_call_sites(self):
+        with MCPContextEngine(self.root) as engine:
+            result = engine.query("analyze_mesh", mode="impact", limit=5, max_chars=12000)
+        responsibilities = result["pack"]["responsibilities"]
+        sites = [site for item in responsibilities
+                 if item["path"] == "geometry.py" and item["symbol"] == "analyze_mesh"
+                 for site in item.get("direct_call_sites", [])]
+        self.assertTrue(any(site["path"] == "tests.py" and site["line"] == 3
+                            for site in sites), result)
 
     def test_changed_definition_invalidates_reference_proof(self):
         (self.root / "geometry.py").write_text("def analyze_mesh(mesh):\n    return mesh\n", encoding="utf-8")
