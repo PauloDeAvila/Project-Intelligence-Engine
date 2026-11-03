@@ -39,8 +39,8 @@ class ProvisionTests(unittest.TestCase):
         codex = tomllib.loads((self.one / ".codex" / "config.toml").read_text())
         self.assertEqual(vscode["servers"][name]["type"], "stdio")
         self.assertIn("--root", vscode["servers"][name]["args"])
-        self.assertEqual(portable["mcpServers"][name]["command"], sys.executable)
-        self.assertEqual(codex["mcp_servers"][name]["command"], sys.executable)
+        self.assertEqual(portable["mcpServers"][name]["command"], str(Path(sys.executable).resolve()))
+        self.assertEqual(codex["mcp_servers"][name]["command"], str(Path(sys.executable).resolve()))
         second = provision(self.one)
         self.assertTrue(all(item["status"] == "unchanged"
                             for item in second["clients"].values()))
