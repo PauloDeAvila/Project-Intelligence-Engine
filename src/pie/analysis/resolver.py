@@ -562,30 +562,25 @@ class Resolver:
 
     # -- imports ---------------------------------------------------------
     def _modules_for(self, dotted: str) -> list[ModuleFacts]:
-        """Look up explicit absolute imports without mistaking nested modules
-        for top-level standard-library modules.
+        """Conservative absolute lookup; reject unsafe src-package leaf alias.
 
-        The generic suffix index is useful for discovery but NOT proof that
-        `import types` means `src/click/types.py`. Only a full project path
-        or its conventional `src/` package-root form is accepted as a
-        verified absolute import target.
+        Preserve the legacy ambiguity rule for competing suffix names. However,
+        `import types` cannot certify a reference to `src/click/types.py`:
+        the module is inside package `click`, not a top-level `types`.
         """
         if not dotted:
             return []
         found: list[ModuleFacts] = []
+        seen: set[str] = set()
         for module in self.by_dotted.get(dotted, []):
             path = module.path.replace("\\", "/")
-            if not path.endswith(".py"):
+            parts = path[:-3].split("/") if path.endswith(".py") else []
+            if (len(parts) >= 3 and parts[0] == "src"
+                    and len(dotted.split(".")) == 1
+                    and dotted == parts[-1]):
                 continue
-            parts = path[:-3].split("/")
-            if parts[-1] == "__init__":
-                parts.pop()
-            if not parts:
-                continue
-            names = {".".join(parts)}
-            if parts[0] == "src" and len(parts) > 1:
-                names.add(".".join(parts[1:]))
-            if dotted in names:
+            if module.path not in seen:
+                seen.add(module.path)
                 found.append(module)
         return found
 
