@@ -25,8 +25,11 @@ def _source_snapshot(root: Path, path: str) -> tuple[str, str]:
     resolved = candidate.resolve(strict=True)
     if not resolved.is_relative_to(root) or not resolved.is_file():
         raise EvidenceError("Source escapes the project root")
-    with connect(root / ".pie" / "index.sqlite3") as connection:
+    connection = connect(root / ".pie" / "index.sqlite3")
+    try:
         row = connection.execute("SELECT sha256 FROM files WHERE path=?", (path,)).fetchone()
+    finally:
+        connection.close()
     if row is None:
         raise EvidenceError("Source not indexed")
     raw = resolved.read_bytes()
