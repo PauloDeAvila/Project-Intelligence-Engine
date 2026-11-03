@@ -82,9 +82,9 @@ def score_selection(selected: object, policy: dict) -> dict:
     optional = set(policy["optional"])
     forbidden = set(policy["forbidden"])
     valid_unique = len(selected) == len(chosen) and chosen <= ALLOWED_FIELDS
-    sufficient = bool(valid_unique and required <= chosen
-                      and not chosen.intersection(forbidden))
-    exact = bool(valid_unique and chosen == required)
+    sufficient = bool(not policy["abstain"] and chosen and valid_unique
+                      and required <= chosen and not chosen.intersection(forbidden))
+    exact = bool(not policy["abstain"] and valid_unique and chosen == required)
     acceptable = required | optional
     true_positive = len(chosen.intersection(acceptable))
     precision = true_positive / len(chosen) if chosen else 0.0
