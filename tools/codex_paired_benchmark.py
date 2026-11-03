@@ -40,7 +40,18 @@ def sanitize_jsonl(source, destination):
             try: out.write(json.dumps(json.loads(scrub(line)), ensure_ascii=False) + "\n")
             except json.JSONDecodeError: out.write(scrub(line))
 
-def structured_score(final, gold):
+def _relative_evidence_path(value, project):
+    raw = str(value or "").replace("\\", "/")
+    root = str(project).replace("\\", "/").rstrip("/") + "/"
+    if raw.startswith(root):
+        return raw[len(root):]
+    for marker in ("ai_mesh_doctor/", "tests/"):
+        index = raw.find(marker)
+        if index >= 0:
+            return raw[index:]
+    return raw
+
+def structured_score(final, gold, symbol, project):
     try:
         text = final.strip().removeprefix("```json").removesuffix("```").strip()
         data = json.loads(text)
@@ -48,12 +59,23 @@ def structured_score(final, gold):
     definition = data.get("definition") or {}; path = definition.get("path") or definition.get("file")
     line = definition.get("line")
     callers = data.get("callers") or []
-    actual = {(c.get("path") or c.get("file"), c.get("line")) for c in callers if isinstance(c, dict)}
-    expected = {(c["path"], c["line"]) for c in gold["callers"]}
-    return {"passed": path == gold["definition"]["path"] and line == gold["definition"]["line"] and actual == expected, "definition_match": path == gold["definition"]["path"] and line == gold["definition"]["line"], "callers_match": actual == expected, "actual_call_count": len(actual), "expected_call_count": len(expected)}
+    actual = set()
+    for caller in callers:
+        if not isinstance(caller, dict):
+            continue
+        base = _relative_evidence_path(caller.get("path") or caller.get("file"), project)
+        nested = caller.get("calls")
+        if isinstance(nested, list):
+            actual.update((base, item.get("line")) for item in nested if isinstance(item, dict))
+        else:
+            actual.add((base, caller.get("line")))
+    expected_definition = gold["definitions"][symbol]
+    expected = {(c[0], c[1]) for c in gold["callers"][symbol]}
+    definition_match = _relative_evidence_path(path, project) == expected_definition[0] and line == expected_definition[1]
+    return {"passed": definition_match and actual == expected, "definition_match": definition_match, "callers_match": actual == expected, "actual_call_count": len(actual), "expected_call_count": len(expected)}
 
 def main():
-    p = argparse.ArgumentParser(); p.add_argument("--project", type=Path, required=True); p.add_argument("--pie-source-root", type=Path, required=True); p.add_argument("--prompt-without-pie", required=True); p.add_argument("--prompt-with-pie", required=True); p.add_argument("--output", type=Path, required=True); p.add_argument("--gold", type=Path, required=True); p.add_argument("--repetitions", type=int, default=5); p.add_argument("--run", action="store_true"); p.add_argument("--codex", default="codex"); p.add_argument("--model"); p.add_argument("--bypass-approvals", action="store_true"); a = p.parse_args()
+    p = argparse.ArgumentParser(); p.add_argument("--project", type=Path, required=True); p.add_argument("--pie-source-root", type=Path, required=True); p.add_argument("--prompt-without-pie", required=True); p.add_argument("--prompt-with-pie", required=True); p.add_argument("--output", type=Path, required=True); p.add_argument("--gold", type=Path, required=True); p.add_argument("--symbol", required=True); p.add_argument("--repetitions", type=int, default=5); p.add_argument("--run", action="store_true"); p.add_argument("--codex", default="codex"); p.add_argument("--model"); p.add_argument("--bypass-approvals", action="store_true"); a = p.parse_args()
     files, snapshot_hash = manifest(a.project, a.pie_source_root)
     gold = json.loads(a.gold.read_text(encoding="utf-8"))
     prompt_hashes = {"without_pie": hashlib.sha256(a.prompt_without_pie.encode()).hexdigest(), "with_pie": hashlib.sha256(a.prompt_with_pie.encode()).hexdigest()}
@@ -72,10 +94,10 @@ def main():
                 if a.bypass_approvals: cmd.insert(4, "--dangerously-bypass-approvals-and-sandbox")
                 started = time.perf_counter()
                 with raw.open("w", encoding="utf-8") as stream: result = subprocess.run(cmd + [prompt], stdout=stream, stderr=subprocess.STDOUT, text=True, check=False)
-                parsed = parse_events(raw); sanitized = raw.with_suffix(".sanitized.jsonl"); sanitize_jsonl(raw, sanitized); final = parsed.get("final") or ""; records.append({"repeat": repeat, "mode": mode, "returncode": result.returncode, "seconds": round(time.perf_counter()-started, 4), "quality": structured_score(final, gold), **parsed, "raw_sha256": hashlib.sha256(raw.read_bytes()).hexdigest(), "sanitized_sha256": hashlib.sha256(sanitized.read_bytes()).hexdigest()})
+                parsed = parse_events(raw); sanitized = raw.with_suffix(".sanitized.jsonl"); sanitize_jsonl(raw, sanitized); final = parsed.get("final") or ""; records.append({"repeat": repeat, "mode": mode, "returncode": result.returncode, "seconds": round(time.perf_counter()-started, 4), "quality": structured_score(final, gold, a.symbol, a.project), **parsed, "raw_sha256": hashlib.sha256(raw.read_bytes()).hexdigest(), "sanitized_sha256": hashlib.sha256(sanitized.read_bytes()).hexdigest()})
         _, after_hash = manifest(a.project, a.pie_source_root)
         if after_hash != snapshot_hash: raise SystemExit("Project snapshot changed during benchmark")
-    output = {"schema": "pie-codex-paired-benchmark-v2", "project": str(a.project), "snapshot_sha256": snapshot_hash, "project_git_commit": git_commit, "codex_version": codex_version, "model": a.model, "platform": platform.platform(), "python": platform.python_version(), "prompts": {mode: {"sha256": prompt_hashes[mode], "sanitized_path": str(a.output.with_name(mode + ".prompt.txt"))} for mode in prompt_hashes}, "files": len(files), "gold": str(a.gold), "repetitions": a.repetitions, "executed": a.run, "records": records}
+    output = {"schema": "pie-codex-paired-benchmark-v2", "project": str(a.project), "snapshot_sha256": snapshot_hash, "project_git_commit": git_commit, "codex_version": codex_version, "model": a.model or "codex-config-default", "model_argument_passed": bool(a.model), "symbol": a.symbol, "platform": platform.platform(), "python": platform.python_version(), "prompts": {mode: {"sha256": prompt_hashes[mode], "sanitized_path": str(a.output.with_name(mode + ".prompt.txt"))} for mode in prompt_hashes}, "files": len(files), "gold": str(a.gold), "repetitions": a.repetitions, "executed": a.run, "records": records}
     for mode, prompt in (("without_pie", a.prompt_without_pie), ("with_pie", a.prompt_with_pie)):
         a.output.with_name(mode + ".prompt.txt").write_text(scrub(prompt), encoding="utf-8")
     a.output.write_text(json.dumps(output, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

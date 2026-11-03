@@ -1,0 +1,343 @@
+{
+  "schema": "pie-codex-paired-benchmark-v2",
+  "project": "C:\\Users\\phsra\\OneDrive\\Documents\\Doctor Mesh",
+  "snapshot_sha256": "b734528e19da0c9ba864c2f199eff75ba10830b1d8501b47205b9b0a502e35cf",
+  "project_git_commit": "4fc86c3f18fa8e0424d3360ed669cfcdb95e5ac0",
+  "codex_version": "codex-cli 0.166.0-alpha.5.1",
+  "model": "codex-config-default",
+  "model_argument_passed": false,
+  "symbol": "audit_component",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python": "3.13.17",
+  "prompts": {
+    "without_pie": {
+      "sha256": "1dac4a57243fbaf427b57bb2052cf4da39525d9907adf65be8450c38542e95cb",
+      "sanitized_path": "C:\\Users\\phsra\\pie-doctor-mesh-evaluation\\without_pie.prompt.txt"
+    },
+    "with_pie": {
+      "sha256": "04f3862fbfe6203a4231d2e4689a6b2813ae730f24491e50adb22b0ff4a9520a",
+      "sanitized_path": "C:\\Users\\phsra\\pie-doctor-mesh-evaluation\\with_pie.prompt.txt"
+    }
+  },
+  "files": 45,
+  "gold": "benchmarks\\doctor_mesh_gold_v2.json",
+  "repetitions": 5,
+  "executed": true,
+  "records": [
+    {
+      "repeat": 1,
+      "mode": "without_pie",
+      "returncode": 0,
+      "seconds": 30.0959,
+      "quality": {
+        "passed": true,
+        "definition_match": true,
+        "callers_match": true,
+        "actual_call_count": 6,
+        "expected_call_count": 6
+      },
+      "usage": {
+        "input_tokens": 135213,
+        "cached_input_tokens": 116736,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1006,
+        "reasoning_output_tokens": 35
+      },
+      "pie_mcp_executed": false,
+      "mcp_calls": [],
+      "final": "{\n  \"definition\": {\n    \"name\": \"audit_component\",\n    \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\ai_mesh_doctor\\\\quality.py\",\n    \"line\": 158,\n    \"end_line\": 159,\n    \"signature\": \"audit_component(obj, constraints=(), policy=None)\",\n    \"body\": \"return audit_mesh(obj.data,obj.matrix_world,constraints,policy)\",\n    \"behavior\": \"Returns audit_mesh's result using the object's mesh data and world matrix.\"\n  },\n  \"callers\": [\n    {\n      \"name\": \"ComponentBatch.stage\",\n      \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\ai_mesh_doctor\\\\batch.py\",\n      \"line\": 62,\n      \"call\": \"audit_component(obj,constraints)\"\n    },\n    {\n      \"name\": \"CaptureSession.__init__\",\n      \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\ai_mesh_doctor\\\\capture.py\",\n      \"line\": 115,\n      \"call\": \"audit_component(obj)\",\n      \"context\": \"Called for each object in self.targets when require_quality is enabled.\"\n    },\n    {\n      \"name\": \"MD_OT_accept_component.execute\",\n      \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\ai_mesh_doctor\\\\ui.py\",\n      \"line\": 627,\n      \"call\": \"audit_component(data['candidate'])\"\n    },\n    {\n      \"name\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\",\n      \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\tests\\\\test_efficiency.py\",\n      \"line\": 118,\n      \"call\": \"audit_component(self.cube)\"\n    },\n    {\n      \"name\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\",\n      \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\tests\\\\test_efficiency.py\",\n      \"line\": 119,\n      \"call\": \"audit_component(self.cube,policy=QualityPolicy(max_triangles=1))\"\n    },\n    {\n      \"name\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\",\n      \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\tests\\\\test_efficiency.py\",\n      \"line\": 122,\n      \"call\": \"audit_component(obj)\"\n    }\n  ]\n}",
+      "raw_sha256": "61917f9c97c1bfac6f8f839aa45c3a9ac7b590dc1b1c611c40abc578aa8b02fe",
+      "sanitized_sha256": "75f68971c23c96f88367bdf0167faac2c7b5de948c92e07cec636d384d4e38bc"
+    },
+    {
+      "repeat": 1,
+      "mode": "with_pie",
+      "returncode": 0,
+      "seconds": 24.937,
+      "quality": {
+        "passed": true,
+        "definition_match": true,
+        "callers_match": true,
+        "actual_call_count": 6,
+        "expected_call_count": 6
+      },
+      "usage": {
+        "input_tokens": 82138,
+        "cached_input_tokens": 66688,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 461,
+        "reasoning_output_tokens": 0
+      },
+      "pie_mcp_executed": true,
+      "mcp_calls": [
+        {
+          "server": "pie-doctor-mesh",
+          "tool": "pie_build_context_pack",
+          "status": "in_progress",
+          "error": ""
+        },
+        {
+          "server": "pie-doctor-mesh",
+          "tool": "pie_build_context_pack",
+          "status": "completed",
+          "error": ""
+        }
+      ],
+      "final": "{\n  \"definition\": {\n    \"symbol\": \"audit_component\",\n    \"path\": \"ai_mesh_doctor/quality.py\",\n    \"line\": 158,\n    \"end_line\": 159,\n    \"signature\": \"def audit_component(obj, constraints=(), policy=None):\"\n  },\n  \"callers\": [\n    {\n      \"path\": \"ai_mesh_doctor/batch.py\",\n      \"line\": 62,\n      \"symbol\": \"ComponentBatch.stage\"\n    },\n    {\n      \"path\": \"ai_mesh_doctor/capture.py\",\n      \"line\": 115,\n      \"symbol\": \"CaptureSession.__init__\"\n    },\n    {\n      \"path\": \"ai_mesh_doctor/ui.py\",\n      \"line\": 627,\n      \"symbol\": \"MD_OT_accept_component.execute\"\n    },\n    {\n      \"path\": \"tests/test_efficiency.py\",\n      \"line\": 118,\n      \"symbol\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\"\n    },\n    {\n      \"path\": \"tests/test_efficiency.py\",\n      \"line\": 119,\n      \"symbol\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\"\n    },\n    {\n      \"path\": \"tests/test_efficiency.py\",\n      \"line\": 122,\n      \"symbol\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\"\n    }\n  ]\n}",
+      "raw_sha256": "1f58a92cc9863e7a1cec2f99fd5e2378c44a00fee432052c3c3c49a412ca2c34",
+      "sanitized_sha256": "68d7296ca158e8d8dc28219e01efbff9c64abd712c55f1136ce529331178a8f9"
+    },
+    {
+      "repeat": 2,
+      "mode": "without_pie",
+      "returncode": 0,
+      "seconds": 26.8253,
+      "quality": {
+        "passed": true,
+        "definition_match": true,
+        "callers_match": true,
+        "actual_call_count": 6,
+        "expected_call_count": 6
+      },
+      "usage": {
+        "input_tokens": 141215,
+        "cached_input_tokens": 120960,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1012,
+        "reasoning_output_tokens": 26
+      },
+      "pie_mcp_executed": false,
+      "mcp_calls": [],
+      "final": "{\n  \"definition\": {\n    \"symbol\": \"ai_mesh_doctor.quality.audit_component\",\n    \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\ai_mesh_doctor\\\\quality.py\",\n    \"line\": 158,\n    \"end_line\": 159,\n    \"signature\": \"audit_component(obj, constraints=(), policy=None)\",\n    \"body\": \"return audit_mesh(obj.data,obj.matrix_world,constraints,policy)\"\n  },\n  \"callers\": [\n    {\n      \"symbol\": \"ComponentBatch.stage\",\n      \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\ai_mesh_doctor\\\\batch.py\",\n      \"line\": 62,\n      \"call\": \"audit_component(obj,constraints)\"\n    },\n    {\n      \"symbol\": \"CaptureSession.__init__\",\n      \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\ai_mesh_doctor\\\\capture.py\",\n      \"line\": 115,\n      \"call\": \"audit_component(obj)\",\n      \"condition\": \"require_quality; called for each object in self.targets\"\n    },\n    {\n      \"symbol\": \"MD_OT_accept_component.execute\",\n      \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\ai_mesh_doctor\\\\ui.py\",\n      \"line\": 627,\n      \"call\": \"audit_component(data['candidate'])\"\n    },\n    {\n      \"symbol\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\",\n      \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\tests\\\\test_efficiency.py\",\n      \"line\": 118,\n      \"call\": \"audit_component(self.cube)\"\n    },\n    {\n      \"symbol\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\",\n      \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\tests\\\\test_efficiency.py\",\n      \"line\": 119,\n      \"call\": \"audit_component(self.cube,policy=QualityPolicy(max_triangles=1))\"\n    },\n    {\n      \"symbol\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\",\n      \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\tests\\\\test_efficiency.py\",\n      \"line\": 122,\n      \"call\": \"audit_component(obj)\"\n    }\n  ]\n}",
+      "raw_sha256": "1e769cf4ef353c3262ffb477258e036fcb8311311a6e9fc9359538c2842e3a09",
+      "sanitized_sha256": "ecd89a5a6334193c06cd12e90aaa1c0c7d35b31e60592c12b042cbe729001178"
+    },
+    {
+      "repeat": 2,
+      "mode": "with_pie",
+      "returncode": 0,
+      "seconds": 26.9775,
+      "quality": {
+        "passed": true,
+        "definition_match": true,
+        "callers_match": true,
+        "actual_call_count": 6,
+        "expected_call_count": 6
+      },
+      "usage": {
+        "input_tokens": 80443,
+        "cached_input_tokens": 65792,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 634,
+        "reasoning_output_tokens": 0
+      },
+      "pie_mcp_executed": true,
+      "mcp_calls": [
+        {
+          "server": "pie-doctor-mesh",
+          "tool": "pie_build_context_pack",
+          "status": "in_progress",
+          "error": ""
+        },
+        {
+          "server": "pie-doctor-mesh",
+          "tool": "pie_build_context_pack",
+          "status": "completed",
+          "error": ""
+        }
+      ],
+      "final": "{\n  \"definition\": {\n    \"symbol\": \"audit_component\",\n    \"path\": \"ai_mesh_doctor/quality.py\",\n    \"line\": 158,\n    \"end_line\": 159,\n    \"signature\": \"def audit_component(obj, constraints=(), policy=None):\",\n    \"body\": \"return audit_mesh(obj.data,obj.matrix_world,constraints,policy)\"\n  },\n  \"callers\": [\n    {\n      \"path\": \"ai_mesh_doctor/batch.py\",\n      \"line\": 62,\n      \"consumer_symbol\": \"ComponentBatch.stage\",\n      \"code\": \"item['quality']=audit_component(obj,constraints)\"\n    },\n    {\n      \"path\": \"ai_mesh_doctor/capture.py\",\n      \"line\": 115,\n      \"consumer_symbol\": \"CaptureSession.__init__\",\n      \"code\": \"reports = [audit_component(obj) for obj in self.targets]\"\n    },\n    {\n      \"path\": \"ai_mesh_doctor/ui.py\",\n      \"line\": 627,\n      \"consumer_symbol\": \"MD_OT_accept_component.execute\",\n      \"code\": \"quality = audit_component(data['candidate'])\"\n    },\n    {\n      \"path\": \"tests/test_efficiency.py\",\n      \"line\": 118,\n      \"consumer_symbol\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\",\n      \"code\": \"self.assertTrue(audit_component(self.cube)['accepted'])\"\n    },\n    {\n      \"path\": \"tests/test_efficiency.py\",\n      \"line\": 119,\n      \"consumer_symbol\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\",\n      \"code\": \"self.assertFalse(audit_component(self.cube,policy=QualityPolicy(max_triangles=1))['accepted'])\"\n    },\n    {\n      \"path\": \"tests/test_efficiency.py\",\n      \"line\": 122,\n      \"consumer_symbol\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\",\n      \"code\": \"self.assertFalse(audit_component(obj)['accepted'])\"\n    }\n  ],\n  \"coverage\": {\n    \"returned_verified_call_list_complete\": true,\n    \"static_analysis_coverage\": \"PARTIAL\",\n    \"exhaustive\": false,\n    \"limitations\": [\n      \"Static direct calls only; dynamic dispatch and indirect aliases may be missed.\",\n      \"Unindexed and external consumers are outside the indexed project.\"\n    ]\n  }\n}",
+      "raw_sha256": "5aebaf71f828f4dfea2fc1e01553ff23fc2773efae6bdbdedb3d616909f1a341",
+      "sanitized_sha256": "6e0dd2519e4a0b1c1341b3e9cad507e3f43e1c47d3fb3a5e449e8c75cdc94d76"
+    },
+    {
+      "repeat": 3,
+      "mode": "without_pie",
+      "returncode": 0,
+      "seconds": 24.5215,
+      "quality": {
+        "passed": true,
+        "definition_match": true,
+        "callers_match": true,
+        "actual_call_count": 6,
+        "expected_call_count": 6
+      },
+      "usage": {
+        "input_tokens": 140448,
+        "cached_input_tokens": 106880,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 876,
+        "reasoning_output_tokens": 40
+      },
+      "pie_mcp_executed": false,
+      "mcp_calls": [],
+      "final": "{\n  \"definition\": {\n    \"name\": \"audit_component\",\n    \"path\": \"C:/Users/phsra/OneDrive/Documents/Doctor Mesh/ai_mesh_doctor/quality.py\",\n    \"line\": 158,\n    \"signature\": \"audit_component(obj, constraints=(), policy=None)\",\n    \"body_line\": 159,\n    \"behavior\": \"Returns audit_mesh(obj.data, obj.matrix_world, constraints, policy).\"\n  },\n  \"callers\": [\n    {\n      \"name\": \"ComponentBatch.stage\",\n      \"path\": \"C:/Users/phsra/OneDrive/Documents/Doctor Mesh/ai_mesh_doctor/batch.py\",\n      \"line\": 62,\n      \"call\": \"audit_component(obj,constraints)\"\n    },\n    {\n      \"name\": \"CaptureSession.__init__\",\n      \"path\": \"C:/Users/phsra/OneDrive/Documents/Doctor Mesh/ai_mesh_doctor/capture.py\",\n      \"line\": 115,\n      \"call\": \"audit_component(obj)\",\n      \"condition\": \"When require_quality is truthy, for each object in self.targets.\"\n    },\n    {\n      \"name\": \"MD_OT_accept_component.execute\",\n      \"path\": \"C:/Users/phsra/OneDrive/Documents/Doctor Mesh/ai_mesh_doctor/ui.py\",\n      \"line\": 627,\n      \"call\": \"audit_component(data['candidate'])\"\n    },\n    {\n      \"name\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\",\n      \"path\": \"C:/Users/phsra/OneDrive/Documents/Doctor Mesh/tests/test_efficiency.py\",\n      \"line\": 118,\n      \"call\": \"audit_component(self.cube)\"\n    },\n    {\n      \"name\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\",\n      \"path\": \"C:/Users/phsra/OneDrive/Documents/Doctor Mesh/tests/test_efficiency.py\",\n      \"line\": 119,\n      \"call\": \"audit_component(self.cube,policy=QualityPolicy(max_triangles=1))\"\n    },\n    {\n      \"name\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\",\n      \"path\": \"C:/Users/phsra/OneDrive/Documents/Doctor Mesh/tests/test_efficiency.py\",\n      \"line\": 122,\n      \"call\": \"audit_component(obj)\"\n    }\n  ]\n}",
+      "raw_sha256": "f50be9afcbadf6fe00719da06184225123b8a67232400727a4e6012a0acc2be5",
+      "sanitized_sha256": "af9d3272f530b8d0814b246ed825f2e0f9517c84183b15eecabcbce4044686ee"
+    },
+    {
+      "repeat": 3,
+      "mode": "with_pie",
+      "returncode": 0,
+      "seconds": 24.7671,
+      "quality": {
+        "passed": true,
+        "definition_match": true,
+        "callers_match": true,
+        "actual_call_count": 6,
+        "expected_call_count": 6
+      },
+      "usage": {
+        "input_tokens": 82449,
+        "cached_input_tokens": 66688,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 425,
+        "reasoning_output_tokens": 0
+      },
+      "pie_mcp_executed": true,
+      "mcp_calls": [
+        {
+          "server": "pie-doctor-mesh",
+          "tool": "pie_build_context_pack",
+          "status": "in_progress",
+          "error": ""
+        },
+        {
+          "server": "pie-doctor-mesh",
+          "tool": "pie_build_context_pack",
+          "status": "completed",
+          "error": ""
+        }
+      ],
+      "final": "{\n  \"definition\": {\n    \"symbol\": \"audit_component\",\n    \"path\": \"ai_mesh_doctor/quality.py\",\n    \"line\": 158,\n    \"end_line\": 159,\n    \"signature\": \"def audit_component(obj, constraints=(), policy=None):\"\n  },\n  \"callers\": [\n    {\n      \"path\": \"ai_mesh_doctor/batch.py\",\n      \"line\": 62,\n      \"symbol\": \"ComponentBatch.stage\"\n    },\n    {\n      \"path\": \"ai_mesh_doctor/capture.py\",\n      \"line\": 115,\n      \"symbol\": \"CaptureSession.__init__\"\n    },\n    {\n      \"path\": \"ai_mesh_doctor/ui.py\",\n      \"line\": 627,\n      \"symbol\": \"MD_OT_accept_component.execute\"\n    },\n    {\n      \"path\": \"tests/test_efficiency.py\",\n      \"line\": 118,\n      \"symbol\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\"\n    },\n    {\n      \"path\": \"tests/test_efficiency.py\",\n      \"line\": 119,\n      \"symbol\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\"\n    },\n    {\n      \"path\": \"tests/test_efficiency.py\",\n      \"line\": 122,\n      \"symbol\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\"\n    }\n  ]\n}",
+      "raw_sha256": "b9aa4a3fc83fc098872d1348df3fc6c02a9de9dbc489e866615c2438ee8ae791",
+      "sanitized_sha256": "306164e43fe343c4e9fe481be887b052339fddfc700e09cf44a29b837df4b2c0"
+    },
+    {
+      "repeat": 4,
+      "mode": "without_pie",
+      "returncode": 0,
+      "seconds": 20.3651,
+      "quality": {
+        "passed": true,
+        "definition_match": true,
+        "callers_match": true,
+        "actual_call_count": 6,
+        "expected_call_count": 6
+      },
+      "usage": {
+        "input_tokens": 139061,
+        "cached_input_tokens": 120064,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 891,
+        "reasoning_output_tokens": 0
+      },
+      "pie_mcp_executed": false,
+      "mcp_calls": [],
+      "final": "{\n  \"definition\": {\n    \"name\": \"ai_mesh_doctor.quality.audit_component\",\n    \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\ai_mesh_doctor\\\\quality.py\",\n    \"line\": 158,\n    \"end_line\": 159,\n    \"signature\": \"audit_component(obj, constraints=(), policy=None)\",\n    \"body\": \"return audit_mesh(obj.data,obj.matrix_world,constraints,policy)\",\n    \"description\": \"Delegates mesh auditing to audit_mesh using the object's mesh data and world matrix, forwarding constraints and policy and returning the result unchanged.\"\n  },\n  \"callers\": [\n    {\n      \"name\": \"ComponentBatch.stage\",\n      \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\ai_mesh_doctor\\\\batch.py\",\n      \"line\": 62,\n      \"code\": \"item['quality']=audit_component(obj,constraints)\"\n    },\n    {\n      \"name\": \"MD_OT_accept_component.execute\",\n      \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\ai_mesh_doctor\\\\ui.py\",\n      \"line\": 627,\n      \"code\": \"quality = audit_component(data['candidate'])\"\n    },\n    {\n      \"name\": \"CaptureSession.__init__\",\n      \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\ai_mesh_doctor\\\\capture.py\",\n      \"line\": 115,\n      \"code\": \"reports = [audit_component(obj) for obj in self.targets]\",\n      \"condition\": \"require_quality\"\n    },\n    {\n      \"name\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\",\n      \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\tests\\\\test_efficiency.py\",\n      \"calls\": [\n        {\n          \"line\": 118,\n          \"code\": \"self.assertTrue(audit_component(self.cube)['accepted'])\"\n        },\n        {\n          \"line\": 119,\n          \"code\": \"self.assertFalse(audit_component(self.cube,policy=QualityPolicy(max_triangles=1))['accepted'])\"\n        },\n        {\n          \"line\": 122,\n          \"code\": \"self.assertFalse(audit_component(obj)['accepted'])\"\n        }\n      ]\n    }\n  ]\n}",
+      "raw_sha256": "72b7479b41bf3d09566399e5aeacdcfd6b2470edb2f31a8880099091eae1eca2",
+      "sanitized_sha256": "876deffe0a78a550515732e8603931db23d4b263a2fc0da1e492073d6d218a1f"
+    },
+    {
+      "repeat": 4,
+      "mode": "with_pie",
+      "returncode": 0,
+      "seconds": 24.8325,
+      "quality": {
+        "passed": true,
+        "definition_match": true,
+        "callers_match": true,
+        "actual_call_count": 6,
+        "expected_call_count": 6
+      },
+      "usage": {
+        "input_tokens": 81007,
+        "cached_input_tokens": 65920,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 431,
+        "reasoning_output_tokens": 0
+      },
+      "pie_mcp_executed": true,
+      "mcp_calls": [
+        {
+          "server": "pie-doctor-mesh",
+          "tool": "pie_build_context_pack",
+          "status": "in_progress",
+          "error": ""
+        },
+        {
+          "server": "pie-doctor-mesh",
+          "tool": "pie_build_context_pack",
+          "status": "completed",
+          "error": ""
+        }
+      ],
+      "final": "{\n  \"definition\": {\n    \"symbol\": \"audit_component\",\n    \"path\": \"ai_mesh_doctor/quality.py\",\n    \"line\": 158,\n    \"end_line\": 159,\n    \"signature\": \"def audit_component(obj, constraints=(), policy=None):\"\n  },\n  \"callers\": [\n    {\n      \"path\": \"ai_mesh_doctor/batch.py\",\n      \"line\": 62,\n      \"consumer_symbol\": \"ComponentBatch.stage\"\n    },\n    {\n      \"path\": \"ai_mesh_doctor/capture.py\",\n      \"line\": 115,\n      \"consumer_symbol\": \"CaptureSession.__init__\"\n    },\n    {\n      \"path\": \"ai_mesh_doctor/ui.py\",\n      \"line\": 627,\n      \"consumer_symbol\": \"MD_OT_accept_component.execute\"\n    },\n    {\n      \"path\": \"tests/test_efficiency.py\",\n      \"line\": 118,\n      \"consumer_symbol\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\"\n    },\n    {\n      \"path\": \"tests/test_efficiency.py\",\n      \"line\": 119,\n      \"consumer_symbol\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\"\n    },\n    {\n      \"path\": \"tests/test_efficiency.py\",\n      \"line\": 122,\n      \"consumer_symbol\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\"\n    }\n  ]\n}",
+      "raw_sha256": "977f2308e8a0d905e085bc813537fef45703deb824f0d9ef737551910694ad02",
+      "sanitized_sha256": "84e3b3dbadc1ce2e752f4ca4eb7bd1c715e8ea405502cfe8a2b4fc22cb73954b"
+    },
+    {
+      "repeat": 5,
+      "mode": "without_pie",
+      "returncode": 0,
+      "seconds": 23.1712,
+      "quality": {
+        "passed": true,
+        "definition_match": true,
+        "callers_match": true,
+        "actual_call_count": 6,
+        "expected_call_count": 6
+      },
+      "usage": {
+        "input_tokens": 140157,
+        "cached_input_tokens": 120704,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 985,
+        "reasoning_output_tokens": 0
+      },
+      "pie_mcp_executed": false,
+      "mcp_calls": [],
+      "final": "{\n  \"definition\": {\n    \"symbol\": \"audit_component\",\n    \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\ai_mesh_doctor\\\\quality.py\",\n    \"line\": 158,\n    \"end_line\": 159,\n    \"signature\": \"audit_component(obj, constraints=(), policy=None)\",\n    \"behavior\": \"Returns audit_mesh(obj.data, obj.matrix_world, constraints, policy).\"\n  },\n  \"callers\": [\n    {\n      \"symbol\": \"CaptureSession.__init__\",\n      \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\ai_mesh_doctor\\\\capture.py\",\n      \"line\": 115,\n      \"call\": \"audit_component(obj)\",\n      \"context\": \"Audits each target when require_quality is enabled; rejects capture if any report is not accepted.\"\n    },\n    {\n      \"symbol\": \"ComponentBatch.stage\",\n      \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\ai_mesh_doctor\\\\batch.py\",\n      \"line\": 62,\n      \"call\": \"audit_component(obj,constraints)\",\n      \"context\": \"Stores the candidate quality report and rejects staging if not accepted.\"\n    },\n    {\n      \"symbol\": \"MD_OT_accept_component.execute\",\n      \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\ai_mesh_doctor\\\\ui.py\",\n      \"line\": 627,\n      \"call\": \"audit_component(data['candidate'])\",\n      \"context\": \"Blocks component acceptance when the quality report is not accepted.\"\n    },\n    {\n      \"symbol\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\",\n      \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\tests\\\\test_efficiency.py\",\n      \"line\": 118,\n      \"call\": \"audit_component(self.cube)\",\n      \"context\": \"Asserts a closed cube is accepted.\"\n    },\n    {\n      \"symbol\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\",\n      \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\tests\\\\test_efficiency.py\",\n      \"line\": 119,\n      \"call\": \"audit_component(self.cube,policy=QualityPolicy(max_triangles=1))\",\n      \"context\": \"Asserts an insufficient triangle budget causes rejection.\"\n    },\n    {\n      \"symbol\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\",\n      \"path\": \"C:\\\\Users\\\\phsra\\\\OneDrive\\\\Documents\\\\Doctor Mesh\\\\tests\\\\test_efficiency.py\",\n      \"line\": 122,\n      \"call\": \"audit_component(obj)\",\n      \"context\": \"Asserts an open triangle mesh is rejected.\"\n    }\n  ]\n}",
+      "raw_sha256": "92ebdaa767c9069c3bcec0b1a1aefa7b8e7152eac2bcf9a86dff71a14e329479",
+      "sanitized_sha256": "d416db5a963f52237219c28ce7a00e670a084614a4b55eec343c20d9b00cb92c"
+    },
+    {
+      "repeat": 5,
+      "mode": "with_pie",
+      "returncode": 0,
+      "seconds": 23.5494,
+      "quality": {
+        "passed": true,
+        "definition_match": true,
+        "callers_match": true,
+        "actual_call_count": 6,
+        "expected_call_count": 6
+      },
+      "usage": {
+        "input_tokens": 80408,
+        "cached_input_tokens": 65792,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 421,
+        "reasoning_output_tokens": 0
+      },
+      "pie_mcp_executed": true,
+      "mcp_calls": [
+        {
+          "server": "pie-doctor-mesh",
+          "tool": "pie_build_context_pack",
+          "status": "in_progress",
+          "error": ""
+        },
+        {
+          "server": "pie-doctor-mesh",
+          "tool": "pie_build_context_pack",
+          "status": "completed",
+          "error": ""
+        }
+      ],
+      "final": "{\n  \"definition\": {\n    \"symbol\": \"audit_component\",\n    \"path\": \"ai_mesh_doctor/quality.py\",\n    \"line\": 158,\n    \"end_line\": 159,\n    \"signature\": \"def audit_component(obj, constraints=(), policy=None):\"\n  },\n  \"callers\": [\n    {\n      \"path\": \"ai_mesh_doctor/batch.py\",\n      \"line\": 62,\n      \"consumer_symbol\": \"ComponentBatch.stage\"\n    },\n    {\n      \"path\": \"ai_mesh_doctor/capture.py\",\n      \"line\": 115,\n      \"consumer_symbol\": \"CaptureSession.__init__\"\n    },\n    {\n      \"path\": \"ai_mesh_doctor/ui.py\",\n      \"line\": 627,\n      \"consumer_symbol\": \"MD_OT_accept_component.execute\"\n    },\n    {\n      \"path\": \"tests/test_efficiency.py\",\n      \"line\": 118,\n      \"consumer_symbol\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\"\n    },\n    {\n      \"path\": \"tests/test_efficiency.py\",\n      \"line\": 119,\n      \"consumer_symbol\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\"\n    },\n    {\n      \"path\": \"tests/test_efficiency.py\",\n      \"line\": 122,\n      \"consumer_symbol\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\"\n    }\n  ]\n}",
+      "raw_sha256": "8b1708f25f883360cb8c3affd0264ed9902212a9eacc6b3e4e73f9e8b29c0994",
+      "sanitized_sha256": "4ad2d1a135a0dda017d1a09b0dc433301775d99662532e1c1a233e7ccd3e5eaf"
+    }
+  ]
+}

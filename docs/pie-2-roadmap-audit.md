@@ -14,12 +14,22 @@
   0.827 s. That latency claim must remain experimental until its raw paired
   artifact is published.
 
-## Stage-0 acceptance gap
+## Stage-0 hardening result
 
-The missing artifact is a deterministic runner that records prompt, model,
-parameters, project hash, commit, raw JSONL (sanitized), usage events, MCP tool
-status, final answer and independent scoring. This branch adds that runner; it
-does not execute model calls automatically.
+The paired runner now records prompt hashes and sanitized prompt files, the
+requested/effective model source, the scanner-produced project inventory,
+snapshot hash, raw and sanitized JSONL hashes, usage events, MCP tool status and
+an independent structured gold score. The no-PIE command uses
+`--ignore-user-config`; the PIE command keeps the configured MCP servers. A
+post-run scanner manifest comparison fails the benchmark if the project changes.
+
+The five-repetition artifact is `benchmarks/results/stage0-final-v4.json`.
+It contains ten successful Codex sessions on the same 45-file snapshot:
+all five direct runs have no PIE MCP calls and all five PIE runs execute
+`pie-doctor-mesh`; all ten structured definition/caller scores pass. The CLI
+could not accept the desktop-only `ag/claude-opus-4-6-thinking` identifier with
+a ChatGPT account, so the artifact explicitly labels the effective source as
+`codex-config-default` rather than claiming an unsupported model override.
 
 ## Roadmap decision
 
