@@ -55,10 +55,13 @@ def iter_files(
 
     for path in scan_paths():
         relative = path.relative_to(root)
-        if path.is_symlink() or any(part in IGNORED_DIRECTORIES for part in relative.parts) or ignore.ignored(relative):
-            continue
+        # Non-Python files cannot enter the index. Skip them before filesystem
+        # metadata and ignore-rule checks; directory traversal rules remain
+        # unchanged in scan_paths().
         language = LANGUAGES.get(path.suffix.lower())
         if language is None:
+            continue
+        if path.is_symlink() or any(part in IGNORED_DIRECTORIES for part in relative.parts) or ignore.ignored(relative):
             continue
         try:
             read_started = time.perf_counter()

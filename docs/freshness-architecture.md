@@ -27,3 +27,9 @@ within one explicitly scoped verification object, while retaining a final
 current-file hash before publication. Persistent reuse should be introduced only
 with journal coverage proofs and tests for content-preserving timestamp changes,
 create/delete, rename, journal loss, and queue overflow.
+
+The first measured discovery optimization filters non-Python files before
+per-file symlink and ignore-rule checks. Directory filtering is unchanged, and
+Python files still receive the same ignore and hash validation. On the Doctor
+Mesh snapshot this reduced median verification from roughly 0.21--0.36 s to
+0.07--0.08 s without changing the manifest or freshness contract.
