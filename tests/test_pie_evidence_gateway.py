@@ -1,7 +1,7 @@
 """Offline tests for certified evidence, model error containment and gateway HTTP."""
 from __future__ import annotations
 
-from http.server import ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
 import tempfile
@@ -12,7 +12,7 @@ from urllib.error import HTTPError
 
 from pie.indexing.indexer import index_project
 from pie.interfaces.cli import command_init
-from pie.interfaces.gateway import Gateway, handler_factory, _local_upstream
+from pie.interfaces.gateway import Gateway, handler_factory, _local_upstream, query_lmstudio
 from pie.retrieval.evidence import build_evidence, EvidenceError
 from pie.retrieval.guard import validate_claims, parse_model_proposal
 
@@ -130,6 +130,57 @@ class CertifiedGatewayTests(unittest.TestCase):
                 _local_upstream(url)
         self.assertEqual(_local_upstream("http://127.0.0.1:1234/v1"),
                          "http://127.0.0.1:1234/v1/chat/completions")
+
+    def test_real_http_transport_to_mock_lmstudio(self):
+        evidence = build_evidence(self.root, "analyze_mesh")
+        expected_claims = {"claims": [
+            {"evidence_id": evidence["evidence_id"], "field": "signature",
+             "value": evidence["signature"]},
+            {"evidence_id": evidence["evidence_id"], "field": "path",
+             "value": evidence["path"]},
+        ]}
+
+        class ModelHandler(BaseHTTPRequestHandler):
+            proposals = expected_claims
+
+            def do_POST(self):
+                if self.path != "/v1/chat/completions":
+                    self.send_error(404)
+                    return
+                incoming = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                if incoming["stream"] is not False or incoming["temperature"] != 0:
+                    self.send_error(400)
+                    return
+                content = json.dumps(self.proposals)
+                data = json.dumps({"choices": [{"message": {"content": content}}]}).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+
+            def log_message(self, format, *args):
+                pass
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), ModelHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            endpoint = _local_upstream(f"http://127.0.0.1:{server.server_port}/v1")
+            accepted = query_lmstudio(endpoint, "qwen-local", "Check the signature", evidence)
+            self.assertEqual(accepted["status"], "VERIFIED")
+            ModelHandler.proposals = {"claims": [
+                {"evidence_id": evidence["evidence_id"], "field": "signature",
+                 "value": "def analyze_mesh(mesh: Mesh) -> AnalysisResult:"},
+                {"evidence_id": evidence["evidence_id"], "field": "path",
+                 "value": evidence["path"]},
+            ]}
+            rejected = query_lmstudio(endpoint, "qwen-local", "Check the signature", evidence)
+            self.assertEqual(rejected["status"], "REJECTED")
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=5)
 
     def test_http_health_and_ask_and_block_browser_origin(self):
         server = ThreadingHTTPServer(("127.0.0.1", 0), handler_factory(Gateway(self.root)))
