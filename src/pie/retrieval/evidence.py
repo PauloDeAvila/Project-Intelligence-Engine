@@ -13,7 +13,7 @@ from pathlib import Path
 
 from pie.retrieval.symbols import find_definitions, find_references
 from pie.storage.database import connect
-from pie.scanning.discovery import iter_files
+from pie.retrieval.snapshot import SnapshotError, SnapshotVerifier
 
 
 class EvidenceError(ValueError):
@@ -39,20 +39,14 @@ def _verify_project_snapshot(root: Path) -> dict:
     finally:
         connection.close()
     db_seconds = time.perf_counter() - db_started
-    unreadable: set[Path] = set()
-    directories: set[Path] = set()
-    oversized: set[Path] = set()
     scan_started = time.perf_counter()
-    records = list(iter_files(root, unreadable_paths=unreadable,
-                              unreadable_directories=directories, oversized_paths=oversized))
+    try:
+        result = SnapshotVerifier(root, indexed).verify()
+    except SnapshotError as exc:
+        raise EvidenceError(str(exc)) from exc
     scan_seconds = time.perf_counter() - scan_started
-    observed = {record.path.as_posix(): record.sha256 for record in records}
-    if unreadable or directories or oversized:
-        raise EvidenceError("PARTIAL_PROJECT: unreadable or oversized sources")
-    if indexed != observed:
-        raise EvidenceError("STALE_PROJECT: source inventory/hash mismatch; reindex required")
     return {"db_seconds": round(db_seconds, 6), "discovery_hash_seconds": round(scan_seconds, 6),
-            "files_checked": len(records), "bytes_hashed": sum(record.size for record in records),
+            "files_checked": result.files_checked, "bytes_hashed": result.bytes_hashed,
             "total_seconds": round(time.perf_counter() - started, 6)}
 
 
