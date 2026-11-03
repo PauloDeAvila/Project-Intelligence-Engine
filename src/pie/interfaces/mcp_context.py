@@ -57,6 +57,30 @@ class MCPContextEngine:
             if mode == "impact":
                 output["caveat"] = (
                     "Verified consumers indicate potential impact, not guaranteed runtime effects.")
+        # Exact duplicate names are explicitly ambiguous even if ranking prefers one.
+        exact = self.service._connection.execute(
+            "SELECT COUNT(DISTINCT f.path || ':' || s.qualified_name) "
+            "FROM symbols s JOIN files f ON f.id=s.file_id "
+            "WHERE s.name=? OR s.qualified_name=?", (query.strip(), query.strip())
+        ).fetchone()[0]
+        output["lookup_status"] = ("AMBIGUOUS" if exact > 1 else
+                                   "FOUND" if evidence else "NOT_FOUND")
+        output["exact_match_count"] = exact
+        # Never relabel unresolved references as verified or manufacture inferred edges.
+        # Verified relationship details remain in each responsibility's verified_consumers.
+        verified_count = sum(len(item.get("verified_consumers", [])) for item in evidence)
+        unresolved_count = 0
+        for item in evidence:
+            unresolved_count += self.service._connection.execute(
+                "SELECT COUNT(*) FROM usages u JOIN files f ON f.id=u.file_id "
+                "WHERE f.path=? AND u.origin_symbol=? AND u.resolution<>'verified'",
+                (item["path"], item["symbol"])
+            ).fetchone()[0]
+        output["relation_classes"] = {
+            "verified": verified_count,
+            "inferred": 0,
+            "unresolved": unresolved_count,
+        }
         output["metrics"] = dict(metrics, serialization_ms=0.0, total_ms=0.0)
         # The total JSON payload, not just source snippets, must fit the budget.
         # Omit low-ranked complete evidence items; never slice source in mid-symbol.
