@@ -14,9 +14,11 @@ from pie.interfaces.mcp_context import MCPContextEngine
 from pie.retrieval.context import build_context
 from pie.interfaces.cli import command_status, command_search, command_symbol
 from pie.retrieval.symbols import analysis_summary, find_definitions, find_references
+from pie.retrieval.evidence import build_evidence
 
 TOOLS = [
     {'name':'pie_query', 'description':'Preferred unified source-grounded lookup: responsibilities, symbol/file navigation and verified impact relationships. Use this before direct file browsing.', 'inputSchema':{'type':'object','properties':{'query':{'type':'string'},'mode':{'type':'string','enum':['responsibility','navigation','impact']},'limit':{'type':'integer','minimum':1,'maximum':20},'max_chars':{'type':'integer','minimum':500,'maximum':200000}},'required':['query'],'additionalProperties':False}},
+    {'name':'pie_verified_evidence', 'description':'Canonical hash-verified Python function signature and bounded direct call sites; rejects ambiguous or stale evidence.', 'inputSchema':{'type':'object','properties':{'symbol':{'type':'string'}},'required':['symbol'],'additionalProperties':False}},
     {'name':'pie_project_status', 'description':'Read index freshness and inventory.', 'inputSchema':{'type':'object','properties':{},'additionalProperties':False}},
     {'name':'pie_search_symbols', 'description':'Find indexed symbols by name.', 'inputSchema':{'type':'object','properties':{'query':{'type':'string'}},'required':['query'],'additionalProperties':False}},
     {'name':'pie_inspect_symbol', 'description':'Inspect symbol source locations.', 'inputSchema':{'type':'object','properties':{'name':{'type':'string'}},'required':['name'],'additionalProperties':False}},
@@ -73,6 +75,7 @@ def dispatch(request: dict, root: Path, engine: MCPContextEngine | None = None) 
                 raise ValueError('Invalid mode')
             functions = {
                 'pie_query':lambda:engine.query(args['query'],mode=args.get('mode','responsibility'),limit=args.get('limit',5),max_chars=args.get('max_chars',12000)) if engine is not None else _standalone_query(root,args),
+                'pie_verified_evidence':lambda:build_evidence(root,args['symbol']),
                 'pie_project_status':lambda:command_status(root),
                 'pie_search_symbols':lambda:command_search(root,args['query']),
                 'pie_inspect_symbol':lambda:command_symbol(root,args['name']),
