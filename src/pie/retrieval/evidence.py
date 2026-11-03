@@ -7,12 +7,13 @@ from __future__ import annotations
 
 import ast
 import keyword
+import time
 from hashlib import sha256
 from pathlib import Path
 
 from pie.retrieval.symbols import find_definitions, find_references
 from pie.storage.database import connect
-from pie.scanning.discovery import iter_files
+from pie.retrieval.snapshot import SnapshotError, SnapshotVerifier
 
 
 class EvidenceError(ValueError):
@@ -20,13 +21,15 @@ class EvidenceError(ValueError):
 
 
 
-def _verify_project_snapshot(root: Path) -> None:
+def _verify_project_snapshot(root: Path) -> dict:
     """Reject incomplete or globally drifted project snapshots.
 
     Unlike per-result hash checks, a reverse-lookup count also depends on files
     that did not appear in its result. A newly added caller must invalidate the
     count until reindexing. This deliberate full scan trades latency for safety.
     """
+    started = time.perf_counter()
+    db_started = time.perf_counter()
     connection = connect(root / ".pie" / "index.sqlite3")
     try:
         indexed = {
@@ -35,19 +38,21 @@ def _verify_project_snapshot(root: Path) -> None:
         }
     finally:
         connection.close()
-    unreadable: set[Path] = set()
-    directories: set[Path] = set()
-    oversized: set[Path] = set()
-    observed = {
-        record.path.as_posix(): record.sha256
-        for record in iter_files(
-            root, unreadable_paths=unreadable,
-            unreadable_directories=directories, oversized_paths=oversized)
-    }
-    if unreadable or directories or oversized:
-        raise EvidenceError("PARTIAL_PROJECT: unreadable or oversized sources")
-    if indexed != observed:
-        raise EvidenceError("STALE_PROJECT: source inventory/hash mismatch; reindex required")
+    db_seconds = time.perf_counter() - db_started
+    scan_started = time.perf_counter()
+    try:
+        verifier = SnapshotVerifier(root, indexed)
+        result = verifier.verify()
+    except SnapshotError as exc:
+        raise EvidenceError(str(exc)) from exc
+    scan_seconds = time.perf_counter() - scan_started
+    metrics = getattr(verifier, "last_metrics", {})
+    return {"db_seconds": round(db_seconds, 6), "discovery_hash_seconds": round(scan_seconds, 6),
+            "files_checked": result.files_checked, "bytes_hashed": result.bytes_hashed,
+            "total_seconds": round(time.perf_counter() - started, 6),
+            "read_seconds": round(metrics.get("read_seconds", 0.0), 6),
+            "hash_seconds": round(metrics.get("hash_seconds", 0.0), 6),
+            "enumeration_seconds": round(metrics.get("enumeration_seconds", scan_seconds), 6)}
 
 
 def _source_snapshot(root: Path, path: str) -> tuple[str, str]:
@@ -108,7 +113,7 @@ def build_evidence(root: Path, symbol: str, *, max_calls: int = 20) -> dict:
     if type(max_calls) is not int or not 1 <= max_calls <= 100:
         raise EvidenceError("Invalid max_calls")
     root = Path(root).resolve(strict=True)
-    _verify_project_snapshot(root)
+    verification_metrics = _verify_project_snapshot(root)
     definitions = find_definitions(root, symbol, limit=500)
     if definitions.get("state") != "CURRENT":
         raise EvidenceError("Index/definitions are not CURRENT")
@@ -169,4 +174,5 @@ def build_evidence(root: Path, symbol: str, *, max_calls: int = 20) -> dict:
             "Static, hash-checked direct calls only; dynamic dispatch, "
             "indirect aliases and external callers may not be covered."
         ),
+        "verification_metrics": verification_metrics,
     }

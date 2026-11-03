@@ -48,19 +48,21 @@ def rpc(proc, ident, method, params=None):
         reply = json.loads(line)
         if reply.get("id") == ident: return reply
 
-def run_pie(python, source_root, project_root, symbols):
+def run_pie(python, source_root, project_root, symbols, persistent):
     env = os.environ.copy(); env["PYTHONPATH"] = str(source_root / "src")
-    proc = subprocess.Popen([str(python), "-u", "-m", "pie.interfaces.mcp_server", "--root", str(project_root)],
-                            stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, encoding="utf-8", env=env)
+    proc = None
+    def start():
+        return subprocess.Popen([str(python), "-u", "-m", "pie.interfaces.mcp_server", "--root", str(project_root)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, encoding="utf-8", env=env)
     try:
-        rpc(proc, 1, "initialize", {"protocolVersion":"2025-03-26", "capabilities":{}, "clientInfo":{"name":"efficiency-benchmark","version":"1"}})
         for i, symbol in enumerate(symbols, 2):
+            if proc is None: proc = start(); rpc(proc, 1, "initialize", {"protocolVersion":"2025-03-26", "capabilities":{}, "clientInfo":{"name":"efficiency-benchmark","version":"1"}})
             started = time.perf_counter(); reply = rpc(proc, i, "tools/call", {"name":"pie_build_context_pack", "arguments":{"symbol":symbol, "max_chars":32000, "max_calls":100}})
             elapsed = time.perf_counter() - started
             text = reply["result"]["content"][0]["text"]
             yield symbol, json.loads(text), elapsed
+            if not persistent: proc.kill(); proc.wait(timeout=5); proc = None
     finally:
-        proc.kill(); proc.wait(timeout=5)
+        if proc is not None: proc.kill(); proc.wait(timeout=5)
 
 def score(pack, gold):
     got = sorted({(c.get("path"), c.get("line")) for c in pack.get("callers", [])})
@@ -68,30 +70,36 @@ def score(pack, gold):
     tp = len(set(got) & set(expected)); precision = tp / len(got) if got else (1.0 if not expected else 0.0)
     recall = tp / len(expected) if expected else (1.0 if not got else 0.0)
     definition = pack.get("definition", {})
-    return {"precision": precision, "recall": recall, "definition_present": bool(definition.get("path")), "returned_calls": len(got), "gold_calls": len(expected)}
+    qualified_symbol = pack.get("definition", {}).get("symbol", "")
+    qualified_definition_only = isinstance(qualified_symbol, str) and "." in qualified_symbol and not expected
+    return {"precision": precision, "recall": (None if qualified_definition_only else recall), "call_coverage": "not_applicable_definition_only" if qualified_definition_only else "evaluated", "definition_present": bool(definition.get("path")), "returned_calls": len(got), "gold_calls": len(expected)}
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--project-root", type=Path, required=True); ap.add_argument("--source-root", type=Path, required=True); ap.add_argument("--python", type=Path, required=True); ap.add_argument("--repetitions", type=int, default=5); ap.add_argument("--output", type=Path, required=True)
-    a = ap.parse_args(); frozen = snapshot(a.project_root); gold = {s: direct_calls(frozen, s) for s in TASKS}; records = []
+    ap = argparse.ArgumentParser(); ap.add_argument("--project-root", type=Path, required=True); ap.add_argument("--source-root", type=Path, required=True); ap.add_argument("--python", type=Path, required=True); ap.add_argument("--repetitions", type=int, default=5); ap.add_argument("--output", type=Path, required=True); ap.add_argument("--gold", type=Path, default=Path("benchmarks/doctor_mesh_gold_v2.json"))
+    a = ap.parse_args(); frozen = snapshot(a.project_root); snapshot_hash = hashlib.sha256("".join(f+v["sha256"] for f,v in sorted(frozen.items())).encode()).hexdigest(); reviewed = json.loads(a.gold.read_text(encoding="utf-8"));
+    if reviewed.get("snapshot_sha256") != snapshot_hash: raise SystemExit(f"Gold/snapshot mismatch: expected {reviewed.get('snapshot_sha256')}, observed {snapshot_hash}")
+    gold = {s: [{"path": p, "line": line} for p, line in reviewed["callers"][s]] for s in TASKS}; records = []
     for repeat in range(1, a.repetitions + 1):
-        for mode in ("without_pie", "with_pie"):
-            started = time.perf_counter(); source_bytes = 0; calls = []
+        for mode in ("without_pie", "mcp_cold", "mcp_persistent"):
+            started = time.perf_counter(); source_bytes = 0; selected_bytes = 0; transferred_bytes = 0; calls = []
             if mode == "without_pie":
-                for symbol in TASKS: calls.append((symbol, {"callers": direct_calls(frozen, symbol), "definition": {"path": "direct-read"}}, 0.0))
+                for symbol in TASKS: calls.append((symbol, {"callers": direct_calls(frozen, symbol), "definition": {"path": "direct-read", "symbol": symbol}}, 0.0))
                 source_bytes = sum(x["bytes"] for x in frozen.values())
             else:
-                for symbol, pack, elapsed in run_pie(a.python, a.source_root, a.project_root, TASKS):
+                for symbol, pack, elapsed in run_pie(a.python, a.source_root, a.project_root, TASKS, mode == "mcp_persistent"):
                     # Count the definition/caller files actually re-read after MCP.
                     paths = {pack.get("definition", {}).get("path")} | {c.get("path") for c in pack.get("callers", [])}
                     source_bytes += sum(frozen[p]["bytes"] for p in paths if p in frozen)
+                    selected_bytes += sum(len(json.dumps(c, ensure_ascii=False).encode("utf-8")) for c in pack.get("callers", []))
+                    transferred_bytes += len(json.dumps(pack, ensure_ascii=False).encode("utf-8"))
                     calls.append((symbol, pack, elapsed))
             elapsed = time.perf_counter() - started
             scored = {s: score(p, gold[s]) for s, p, _ in calls}
-            records.append({"repeat": repeat, "mode": mode, "seconds": elapsed, "mcp_seconds": sum(x[2] for x in calls), "source_bytes_read": source_bytes, "complementary_source_reads": len(calls) if mode == "with_pie" else 0, "scores": scored, "prompt_tokens": None})
-    result = {"schema":"pie-efficiency-benchmark-v1", "project":str(a.project_root), "repetitions":a.repetitions, "tasks":TASKS, "snapshot":{"files":len(frozen), "sha256":hashlib.sha256("".join(f+v["sha256"] for f,v in sorted(frozen.items())).encode()).hexdigest()}, "token_telemetry":"unavailable", "records":records}
+            records.append({"repeat": repeat, "mode": mode, "seconds": elapsed, "mcp_seconds": sum(x[2] for x in calls), "source_bytes_read_estimate": source_bytes, "selected_evidence_bytes": selected_bytes, "mcp_transfer_bytes": transferred_bytes, "complementary_source_reads": len(calls) if mode != "without_pie" else 0, "scores": scored, "prompt_tokens": None})
+    result = {"schema":"pie-efficiency-benchmark-v2", "project":str(a.project_root), "repetitions":a.repetitions, "tasks":TASKS, "gold":str(a.gold), "snapshot":{"files":len(frozen), "sha256":snapshot_hash}, "token_telemetry":"unavailable", "codex_execution":"not_run", "records":records}
     a.output.parent.mkdir(parents=True, exist_ok=True); a.output.write_text(json.dumps(result, indent=2, ensure_ascii=False)+"\n", encoding="utf-8")
-    for mode in ("without_pie", "with_pie"):
+    for mode in ("without_pie", "mcp_cold", "mcp_persistent"):
         rows = [r for r in records if r["mode"] == mode]
-        print(mode, "n=", len(rows), "median_seconds=", round(statistics.median(r["seconds"] for r in rows), 4), "median_bytes=", statistics.median(r["source_bytes_read"] for r in rows))
+        print(mode, "n=", len(rows), "median_seconds=", round(statistics.median(r["seconds"] for r in rows), 4), "median_source_bytes=", statistics.median(r["source_bytes_read_estimate"] for r in rows), "median_mcp_bytes=", statistics.median(r["mcp_transfer_bytes"] for r in rows))
 
 if __name__ == "__main__": main()

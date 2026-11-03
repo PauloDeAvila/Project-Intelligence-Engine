@@ -13,6 +13,12 @@ class EfficiencyBenchmarkContractTests(unittest.TestCase):
         files = {"x.py": {"raw": b"value.get()\n", "bytes": 12, "sha256": ""}}
         self.assertEqual(direct_calls(files, "MeasurementCache.get"), [])
 
+    def test_real_context_pack_shape_marks_qualified_definition_only(self):
+        pack = {"definition": {"symbol": "MeasurementCache.get", "path": "cache.py"}, "callers": []}
+        result = score(pack, [])
+        self.assertIsNone(result["recall"])
+        self.assertEqual(result["call_coverage"], "not_applicable_definition_only")
+
 
 if __name__ == "__main__":
     unittest.main()

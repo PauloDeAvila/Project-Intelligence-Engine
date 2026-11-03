@@ -1,0 +1,18 @@
+{
+  "source_review": "Independent review of the frozen Doctor Mesh snapshot used by PR #14 validation.",
+  "snapshot_sha256": "b734528e19da0c9ba864c2f199eff75ba10830b1d8501b47205b9b0a502e35cf",
+  "definitions": {
+    "audit_component": ["ai_mesh_doctor/quality.py", 158],
+    "MeasurementCache.get": ["ai_mesh_doctor/cache.py", 26],
+    "analyze_mesh": ["ai_mesh_doctor/geometry.py", 63],
+    "validate_change": ["ai_mesh_doctor/validation.py", 7],
+    "content_key": ["ai_mesh_doctor/cache.py", 10]
+  },
+  "callers": {
+    "audit_component": [["ai_mesh_doctor/batch.py", 62], ["ai_mesh_doctor/capture.py", 115], ["ai_mesh_doctor/ui.py", 627], ["tests/test_efficiency.py", 118], ["tests/test_efficiency.py", 119], ["tests/test_efficiency.py", 122]],
+    "MeasurementCache.get": [],
+    "analyze_mesh": [["ai_mesh_doctor/quality.py", 120], ["ai_mesh_doctor/reconstruction.py", 114], ["ai_mesh_doctor/scanner.py", 108], ["ai_mesh_doctor/validation.py", 8], ["ai_mesh_doctor/validation.py", 9], ["tests/test_blender.py", 51], ["tests/test_blender.py", 82], ["tests/test_efficiency.py", 100], ["tests/test_efficiency.py", 101]],
+    "validate_change": [["ai_mesh_doctor/repair.py", 138]],
+    "content_key": [["ai_mesh_doctor/cache.py", 35], ["ai_mesh_doctor/cache.py", 47], ["ai_mesh_doctor/scanner.py", 99], ["tests/test_efficiency.py", 59]]
+  }
+}

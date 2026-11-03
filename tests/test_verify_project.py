@@ -1,9 +1,12 @@
 import importlib.util
+import io
 import json
+import os
 import pathlib
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from unittest.mock import patch
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -51,12 +54,36 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_failed_command_blocks_delivery_and_records_evidence(self):
         config = matrix()
-        config["checks"]["unit"] = {"status": "required", "command": [sys.executable, "-c", "raise SystemExit(7)"]}
+        config["checks"]["unit"] = {"status": "required", "command": [sys.executable, "-c", "import sys; print('failure context'); print('failure details', file=sys.stderr); raise SystemExit(7)"]}
         with tempfile.TemporaryDirectory() as d, patch.object(module, "ROOT", pathlib.Path(d)):
             self.assertEqual(module.run(config), 1)
             results = json.loads((pathlib.Path(d) / "verification-results.json").read_text())["results"]
             self.assertEqual(results[0]["status"], "failed")
             self.assertEqual(results[0]["returncode"], 7)
+            self.assertIn("failure context", results[0]["stdout"]["text"])
+            self.assertIn("failure details", results[0]["stderr"]["text"])
+
+    def test_failed_output_is_bounded_redacted_and_unicode_safe(self):
+        config = matrix()
+        config["checks"]["unit"] = {"status": "required", "command": [sys.executable, "-c", "import os, sys; print('x' * 20000); print(os.environ['PIE_TEST_TOKEN']); print('password=hunter22'); print('Bearer abc.def.ghi'); sys.stdout.buffer.write(b'\\xff'); raise SystemExit(7)"]}
+        with tempfile.TemporaryDirectory() as d, patch.object(module, "ROOT", pathlib.Path(d)), patch.dict(os.environ, {"PIE_TEST_TOKEN": "private-test-credential-719"}), redirect_stdout(io.StringIO()):
+            self.assertEqual(module.run(config), 1)
+            raw = (pathlib.Path(d) / "verification-results.json").read_text(encoding="utf-8")
+            row = json.loads(raw)["results"][0]
+            self.assertTrue(row["stdout"]["truncated"])
+            self.assertLessEqual(len(row["stdout"]["text"].encode("utf-8")), module.OUTPUT_LIMIT)
+            for secret in ("private-test-credential-719", "hunter22", "abc.def.ghi"):
+                self.assertNotIn(secret, raw)
+            self.assertIn("[REDACTED]", raw)
+
+    def test_timeout_records_partial_diagnostic_output(self):
+        config = matrix()
+        config["checks"]["unit"] = {"status": "required", "timeout_seconds": 0.2, "command": [sys.executable, "-u", "-c", "import time; print('before timeout', flush=True); time.sleep(10)"]}
+        with tempfile.TemporaryDirectory() as d, patch.object(module, "ROOT", pathlib.Path(d)), redirect_stdout(io.StringIO()):
+            self.assertEqual(module.run(config), 1)
+            row = json.loads((pathlib.Path(d) / "verification-results.json").read_text())["results"][0]
+            self.assertEqual(row["status"], "blocked")
+            self.assertIn("before timeout", row["stdout"]["text"])
 
     def test_missing_executable_blocks_delivery(self):
         config = matrix()
