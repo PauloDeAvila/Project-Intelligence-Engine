@@ -53,10 +53,11 @@ def _verify_project_snapshot(root: Path) -> dict:
         raise EvidenceError("STALE_PROJECT: source inventory/hash mismatch; reindex required")
     return {"db_seconds": round(db_seconds, 6), "discovery_hash_seconds": round(scan_seconds, 6),
             "files_checked": len(records), "bytes_hashed": sum(record.size for record in records),
-            "total_seconds": round(time.perf_counter() - started, 6)}
+            "total_seconds": round(time.perf_counter() - started, 6),
+            "verified_files": {record.path.as_posix(): record.content for record in records}}
 
 
-def _source_snapshot(root: Path, path: str) -> tuple[str, str]:
+def _source_snapshot(root: Path, path: str, verified_files: dict[str, bytes] | None = None) -> tuple[str, str]:
     root = root.resolve(strict=True)
     candidate = root / path
     if candidate.is_symlink():
@@ -71,7 +72,7 @@ def _source_snapshot(root: Path, path: str) -> tuple[str, str]:
         connection.close()
     if row is None:
         raise EvidenceError("Source not indexed")
-    raw = resolved.read_bytes()
+    raw = verified_files[path] if verified_files is not None and path in verified_files else resolved.read_bytes()
     digest = sha256(raw).hexdigest()
     if digest != row["sha256"]:
         raise EvidenceError("STALE_SOURCE: source hash differs from index")
@@ -115,6 +116,7 @@ def build_evidence(root: Path, symbol: str, *, max_calls: int = 20) -> dict:
         raise EvidenceError("Invalid max_calls")
     root = Path(root).resolve(strict=True)
     verification_metrics = _verify_project_snapshot(root)
+    verified_files = verification_metrics.pop("verified_files")
     definitions = find_definitions(root, symbol, limit=500)
     if definitions.get("state") != "CURRENT":
         raise EvidenceError("Index/definitions are not CURRENT")
@@ -131,7 +133,7 @@ def build_evidence(root: Path, symbol: str, *, max_calls: int = 20) -> dict:
     if len(functions) != 1:
         raise EvidenceError("AMBIGUOUS: multiple function definitions share this name")
     target = functions[0]
-    source, digest = _source_snapshot(root, target["path"])
+    source, digest = _source_snapshot(root, target["path"], verified_files)
     signature = _signature(source, target["line"], target["name"])
 
     references = find_references(root, symbol, limit=500)
@@ -149,7 +151,7 @@ def build_evidence(root: Path, symbol: str, *, max_calls: int = 20) -> dict:
     checked = set()
     for row in matches:
         if row["path"] not in checked:
-            _source_snapshot(root, row["path"])
+            _source_snapshot(root, row["path"], verified_files)
             checked.add(row["path"])
     calls = [
         {"path": row["path"], "line": row["line"],
