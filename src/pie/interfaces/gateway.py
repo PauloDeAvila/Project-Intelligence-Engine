@@ -99,6 +99,11 @@ class Gateway:
             verdict = query_lmstudio(self.endpoint, self.model, question, evidence)
         else:
             verdict = {"status": "NOT_REQUESTED", "reason": "deterministic_mode", "checks": []}
+        # Recheck all source evidence after the model call: the files might
+        # have changed while the upstream was generating its proposal.
+        refreshed = build_evidence(self.root, symbol)
+        if refreshed != evidence:
+            raise EvidenceError("Evidence changed during model evaluation")
         # The renderer NEVER incorporates model-generated text, even on success.
         return {
             "status": "CERTIFIED_FACTS",
@@ -149,9 +154,11 @@ def handler_factory(gateway: Gateway):
                 request = json.loads(self.rfile.read(length))
                 answer = gateway.answer(request)
                 return self._respond(200, answer)
+            except EvidenceError as exc:
+                return self._respond(409, {"error": type(exc).__name__, "detail": str(exc)})
             except (ValueError, TypeError, json.JSONDecodeError) as exc:
                 return self._respond(400, {"error": type(exc).__name__, "detail": str(exc)})
-            except (EvidenceError, OSError) as exc:
+            except OSError as exc:
                 return self._respond(409, {"error": type(exc).__name__, "detail": str(exc)})
 
         def log_message(self, format, *args):
