@@ -122,6 +122,14 @@ class CertifiedGatewayTests(unittest.TestCase):
             gateway.answer({"question": "What is the signature?",
                             "symbol": "analyze_mesh"})
 
+    def test_operational_metrics_do_not_change_canonical_evidence(self):
+        def annotate_model(question, evidence):
+            evidence["verification_metrics"]["total_seconds"] += 1.0
+            return {"status": "VERIFIED", "checks": []}
+        response = Gateway(self.root, model_query=annotate_model).answer({
+            "question": "What is the signature?", "symbol": "analyze_mesh"})
+        self.assertEqual(response["status"], "CERTIFIED_FACTS")
+
     def test_validator_distinguishes_wrong_id_from_wrong_value(self):
         evidence = build_evidence(self.root, "analyze_mesh")
         claims = {"claims": [

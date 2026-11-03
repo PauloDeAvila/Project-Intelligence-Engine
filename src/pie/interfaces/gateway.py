@@ -177,7 +177,13 @@ class Gateway:
         # Recheck all source evidence after the model call: the files might
         # have changed while the upstream was generating its proposal.
         refreshed = build_evidence(self.root, symbol)
-        if refreshed != evidence:
+        # Operational timings are diagnostics, not canonical evidence. They
+        # naturally differ between the first and second freshness checks and
+        # must not mask real changes to hashes, bindings or call sites.
+        def canonical(value):
+            return {key: item for key, item in value.items()
+                    if key != "verification_metrics"}
+        if canonical(refreshed) != canonical(evidence):
             raise EvidenceError("Evidence changed during model evaluation")
         if validation_mode in ("dynamic_selection", "dynamic_selection_schema"):
             if verdict.get("status") != "VERIFIED":
