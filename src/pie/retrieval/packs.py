@@ -32,10 +32,25 @@ def build_responsibility_pack(root, question, evidence, graph, conn, *, max_char
         links=graph.consumers(candidate["path"],candidate["symbol"],depth=2,limit=max(1,max_edges))["edges"] if max_edges else []
         if timings is not None:
             timings["graph_ms"] = timings.get("graph_ms", 0.0) + (time.perf_counter() - graph_started) * 1000
+        uncertain=conn.execute(
+            "SELECT u.name,u.line,u.resolution FROM usages u "
+            "JOIN files f ON f.id=u.file_id "
+            "WHERE f.path=? AND u.origin_symbol=? AND u.resolution<>'verified' "
+            "ORDER BY u.line,u.name LIMIT 12",
+            (candidate["path"],candidate["symbol"])
+        ).fetchall()
         item={"responsibility":candidate["description"],"path":candidate["path"],
               "symbol":candidate["symbol"],"start_line":candidate["start_line"],
               "end_line":candidate["end_line"],"sha256":row[0],
               "source":candidate.get("content",""),"verified_consumers":links[:max_edges]}
+        unresolved=[{"name":r["name"],"line":r["line"],"resolution":r["resolution"]}
+                    for r in uncertain if r["resolution"]!="inferred"]
+        inferred=[{"name":r["name"],"line":r["line"],"resolution":"inferred"}
+                  for r in uncertain if r["resolution"]=="inferred"]
+        if unresolved:
+            item["unresolved_references"]=unresolved
+        if inferred:
+            item["inferred_references"]=inferred
         tentative={**pack,"responsibilities":pack["responsibilities"]+[item]}
         if _size(tentative)<=max_chars:
             pack["responsibilities"].append(item)
