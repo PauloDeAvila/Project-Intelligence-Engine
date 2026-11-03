@@ -34,7 +34,8 @@ def _local_upstream(url: str) -> str:
     return f"http://127.0.0.1:{parsed.port}/v1/chat/completions"
 
 
-def query_lmstudio(endpoint: str, model: str, question: str, evidence: dict,\n                   *, validation_mode: str = "claims") -> dict:
+def query_lmstudio(endpoint: str, model: str, question: str, evidence: dict,
+                   *, validation_mode: str = "claims") -> dict:
     """Ask for structured claims once; never trust or render natural language."""
     if not isinstance(model, str) or not model.strip() or len(model) > 128:
         raise ValueError("Invalid model id")
@@ -100,11 +101,18 @@ def query_lmstudio(endpoint: str, model: str, question: str, evidence: dict,\n  
             raise ValueError("LM Studio response exceeds size limit")
         reply = json.loads(raw)
         content = reply["choices"][0]["message"]["content"]
-        if validation_mode == "evidence_selection":\n            if not isinstance(content, str) or len(content) > 16384:\n                raise ValueError("Invalid model selection text")\n            proposal = json.loads(content)\n        else:\n            proposal = parse_model_proposal(content)
+        if validation_mode == "evidence_selection":
+            if not isinstance(content, str) or len(content) > 16384:
+                raise ValueError("Invalid model selection text")
+            proposal = json.loads(content)
+        else:
+            proposal = parse_model_proposal(content)
     except (URLError, TimeoutError, KeyError, IndexError, TypeError, ValueError, json.JSONDecodeError) as exc:
         return {"status": "REJECTED", "reason": "model_transport_or_format_failure",
                 "diagnostic": type(exc).__name__, "checks": []}
-    if validation_mode == "evidence_selection":\n        return validate_selection(evidence, proposal)\n    return validate_claims(evidence, proposal)
+    if validation_mode == "evidence_selection":
+        return validate_selection(evidence, proposal)
+    return validate_claims(evidence, proposal)
 
 
 class Gateway:
@@ -125,15 +133,23 @@ class Gateway:
         if not isinstance(request, dict) or set(request) - {"question", "symbol", "validation_mode"}:
             raise ValueError("Expected question, symbol and optional validation_mode")
         question = request.get("question")
-        symbol = request.get("symbol")\n        validation_mode = request.get("validation_mode", "claims")\n        if validation_mode not in ("claims", "evidence_selection"):\n            raise ValueError("validation_mode must be claims or evidence_selection")
+        symbol = request.get("symbol")
+        validation_mode = request.get("validation_mode", "claims")
+        if validation_mode not in ("claims", "evidence_selection"):
+            raise ValueError("validation_mode must be claims or evidence_selection")
         if not isinstance(question, str) or not question.strip() or len(question) > 2048:
             raise ValueError("Question must be nonempty and <= 2048 chars")
         # Explicit symbol is required: no LLM guessing an identifier.
         evidence = build_evidence(self.root, symbol)
         if self.model_query is not None:
-            if validation_mode == "evidence_selection":\n                # Tests can inject a mode-aware model transport.\n                verdict = self.model_query(question, evidence, validation_mode=validation_mode)\n            else:\n                verdict = self.model_query(question, evidence)
+            if validation_mode == "evidence_selection":
+                # Tests can inject a mode-aware model transport.
+                verdict = self.model_query(question, evidence, validation_mode=validation_mode)
+            else:
+                verdict = self.model_query(question, evidence)
         elif self.endpoint:
-            verdict = query_lmstudio(self.endpoint, self.model, question, evidence,\n                                     validation_mode=validation_mode)
+            verdict = query_lmstudio(self.endpoint, self.model, question, evidence,
+                                     validation_mode=validation_mode)
         else:
             verdict = {"status": "NOT_REQUESTED", "reason": "deterministic_mode", "checks": []}
         # Recheck all source evidence after the model call: the files might
@@ -144,7 +160,8 @@ class Gateway:
         # The renderer NEVER incorporates model-generated text, even on success.
         return {
             "status": "CERTIFIED_FACTS",
-            "model_validation": verdict,\n            "validation_mode": validation_mode,
+            "model_validation": verdict,
+            "validation_mode": validation_mode,
             "answer": render_certified(evidence),
             "evidence": evidence,
             "note": ("Certified facts are static and limited to this indexed Python "
