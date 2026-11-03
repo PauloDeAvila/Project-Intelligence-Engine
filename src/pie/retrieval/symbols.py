@@ -155,7 +155,7 @@ FROM usages u JOIN files f ON f.id = u.file_id
 
 
 
-def _usage_kinds(root: Path, rows) -> dict[tuple[str, int, int], str]:
+def _usage_kinds(root: Path, rows) -> dict[tuple[str, int, int, str], str]:
     """Classify verified source occurrences by their AST role.
 
     A name loaded as a value is not necessarily called. In particular, a
@@ -163,7 +163,7 @@ def _usage_kinds(root: Path, rows) -> dict[tuple[str, int, int], str]:
     happens only after callers hash-check the source, and never changes the
     stored resolution verdict.
     """
-    result: dict[tuple[str, int, int], str] = {}
+    result: dict[tuple[str, int, int, str], str] = {}
     by_path: dict[str, list] = {}
     for row in rows:
         by_path.setdefault(row["path"], []).append(row)
@@ -176,9 +176,10 @@ def _usage_kinds(root: Path, rows) -> dict[tuple[str, int, int], str]:
         for node in ast.walk(tree):
             for child in ast.iter_child_nodes(node):
                 parents[id(child)] = node
-        positions: dict[tuple[int, int], str] = {}
+        name_positions: dict[tuple[int, int, str], str] = {}
+        attribute_positions: dict[tuple[int, int, str], str] = {}
         for node in ast.walk(tree):
-            if not isinstance(node, ast.Name):
+            if not isinstance(node, (ast.Name, ast.Attribute)):
                 continue
             parent = parents.get(id(node))
             if isinstance(parent, ast.Call) and parent.func is node:
@@ -191,10 +192,23 @@ def _usage_kinds(root: Path, rows) -> dict[tuple[str, int, int], str]:
                 kind = "value_reference"
             else:
                 kind = "read" if isinstance(node.ctx, ast.Load) else "write"
-            positions[(node.lineno, node.col_offset)] = kind
+            if isinstance(node, ast.Name):
+                name_positions[(node.lineno, node.col_offset, node.id)] = kind
+            else:
+                # A resolved imported attribute can be a direct call:
+                # `module.function()` or `alias.function()`.
+                # Match the complete AST expression, not just its location:
+                # an additional root-name usage is stored at the same offset.
+                try:
+                    qualified = ast.unparse(node)
+                except (ValueError, TypeError):
+                    continue
+                attribute_positions[(node.lineno, node.col_offset, qualified)] = kind
         for row in occurrences:
-            result[(path, row["line"], row["col"])] = positions.get(
-                (row["line"], row["col"]), "unknown"
+            key = (row["line"], row["col"], row["qualified_name"])
+            result[(path, row["line"], row["col"], row["qualified_name"])] = (
+                attribute_positions.get(key)
+                or name_positions.get((row["line"], row["col"], row["name"]), "unknown")
             )
     return result
 
@@ -292,7 +306,7 @@ def find_references(root: Path, name: str, limit: int = 100) -> dict[str, object
                     "column": row["col"],
                     "name": row["name"],
                     "context": row["context"],
-                    "usage_kind": usage_kinds.get((row["path"], row["line"], row["col"]), "unknown"),
+                    "usage_kind": usage_kinds.get((row["path"], row["line"], row["col"], row["qualified_name"]), "unknown"),
                     "consumer_scope": row["scope_key"],
                     "consumer_symbol": row["origin_symbol"],
                     "resolution": row["resolution"],
