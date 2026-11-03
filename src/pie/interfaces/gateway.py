@@ -14,6 +14,8 @@ from urllib.request import Request, build_opener, ProxyHandler
 from urllib.error import URLError
 
 from pie.retrieval.evidence import build_evidence, EvidenceError
+from pie.retrieval.dynamic_selection import (plan_evidence, selection_prompt,
+                                             validate_dynamic_selection)
 from pie.retrieval.guard import (parse_model_proposal, render_certified, validate_claims,
                                  validate_selection, SELECTION_FIELDS)
 
@@ -35,13 +37,15 @@ def _local_upstream(url: str) -> str:
 
 
 def query_lmstudio(endpoint: str, model: str, question: str, evidence: dict,
-                   *, validation_mode: str = "claims") -> dict:
+                   *, validation_mode: str = "claims", plan: dict | None = None) -> dict:
     """Ask for structured claims once; never trust or render natural language."""
     if not isinstance(model, str) or not model.strip() or len(model) > 128:
         raise ValueError("Invalid model id")
-    if validation_mode not in ("claims", "evidence_selection"):
+    if validation_mode not in ("claims", "evidence_selection", "dynamic_selection"):
         raise ValueError("Invalid validation mode")
-    if validation_mode == "evidence_selection":
+    if validation_mode == "dynamic_selection":
+        prompt = selection_prompt(question, evidence["evidence_id"])
+    elif validation_mode == "evidence_selection":
         available = {
             "signature": "canonical Python function signature",
             "path": "source file path",
@@ -85,7 +89,7 @@ def query_lmstudio(endpoint: str, model: str, question: str, evidence: dict,
         )
     payload = {
         "model": model, "temperature": 0, "stream": False,
-        "max_tokens": 120 if validation_mode == "evidence_selection" else 350,
+        "max_tokens": 160 if validation_mode == "dynamic_selection" else (120 if validation_mode == "evidence_selection" else 350),
         "messages": [
             {"role": "system", "content": prompt},
             {"role": "user", "content": question},
@@ -101,7 +105,7 @@ def query_lmstudio(endpoint: str, model: str, question: str, evidence: dict,
             raise ValueError("LM Studio response exceeds size limit")
         reply = json.loads(raw)
         content = reply["choices"][0]["message"]["content"]
-        if validation_mode == "evidence_selection":
+        if validation_mode in ("evidence_selection", "dynamic_selection"):
             if not isinstance(content, str) or len(content) > 16384:
                 raise ValueError("Invalid model selection text")
             proposal = json.loads(content)
@@ -110,6 +114,8 @@ def query_lmstudio(endpoint: str, model: str, question: str, evidence: dict,
     except (URLError, TimeoutError, KeyError, IndexError, TypeError, ValueError, json.JSONDecodeError) as exc:
         return {"status": "REJECTED", "reason": "model_transport_or_format_failure",
                 "diagnostic": type(exc).__name__, "checks": []}
+    if validation_mode == "dynamic_selection":
+        return validate_dynamic_selection(evidence, proposal, plan)
     if validation_mode == "evidence_selection":
         return validate_selection(evidence, proposal)
     return validate_claims(evidence, proposal)
@@ -135,21 +141,35 @@ class Gateway:
         question = request.get("question")
         symbol = request.get("symbol")
         validation_mode = request.get("validation_mode", "claims")
-        if validation_mode not in ("claims", "evidence_selection"):
-            raise ValueError("validation_mode must be claims or evidence_selection")
+        if validation_mode not in ("claims", "evidence_selection", "dynamic_selection"):
+            raise ValueError("validation_mode must be claims, evidence_selection or dynamic_selection")
         if not isinstance(question, str) or not question.strip() or len(question) > 2048:
             raise ValueError("Question must be nonempty and <= 2048 chars")
+        plan = plan_evidence(question) if validation_mode == "dynamic_selection" else None
+        if plan is not None and plan["status"] != "PLANNED":
+            return {"status": "ABSTAIN", "validation_mode": validation_mode,
+                    "model_validation": {"status": "NOT_REQUESTED", "reason": plan["reason"]},
+                    "answer": "Evidência insuficiente para certificar essa pergunta.",
+                    "plan_status": "ABSTAIN", "reason": plan["reason"]}
         # Explicit symbol is required: no LLM guessing an identifier.
-        evidence = build_evidence(self.root, symbol)
+        try:
+            evidence = build_evidence(self.root, symbol)
+        except EvidenceError as exc:
+            if validation_mode != "dynamic_selection":
+                raise
+            return {"status": "ABSTAIN", "validation_mode": validation_mode,
+                    "model_validation": {"status": "NOT_REQUESTED", "reason": "evidence_unavailable"},
+                    "answer": "Não há evidência inequívoca e atual para certificar a resposta.",
+                    "plan_status": "ABSTAIN", "reason": str(exc)}
         if self.model_query is not None:
-            if validation_mode == "evidence_selection":
+            if validation_mode in ("evidence_selection", "dynamic_selection"):
                 # Tests can inject a mode-aware model transport.
                 verdict = self.model_query(question, evidence, validation_mode=validation_mode)
             else:
                 verdict = self.model_query(question, evidence)
         elif self.endpoint:
             verdict = query_lmstudio(self.endpoint, self.model, question, evidence,
-                                     validation_mode=validation_mode)
+                                     validation_mode=validation_mode, plan=plan)
         else:
             verdict = {"status": "NOT_REQUESTED", "reason": "deterministic_mode", "checks": []}
         # Recheck all source evidence after the model call: the files might
@@ -157,6 +177,35 @@ class Gateway:
         refreshed = build_evidence(self.root, symbol)
         if refreshed != evidence:
             raise EvidenceError("Evidence changed during model evaluation")
+        if validation_mode == "dynamic_selection":
+            if verdict.get("status") != "VERIFIED":
+                return {"status": "ABSTAIN", "validation_mode": validation_mode,
+                        "model_validation": verdict,
+                        "answer": "A seleção de evidências não foi validada.",
+                        "plan_status": "PLANNED"}
+            selected = verdict["resolved_facts"]
+            lines = [f"Definição: {evidence['symbol']}"]
+            if "signature" in selected:
+                lines.append("Assinatura: " + selected["signature"])
+            if "path" in selected:
+                lines.append("Arquivo: " + selected["path"])
+            if "line" in selected:
+                lines.append("Linha: " + str(selected["line"]))
+            if "direct_call_count" in selected:
+                lines.append("Chamadas diretas verificadas: " + str(selected["direct_call_count"]))
+            if "direct_call_sites" in selected:
+                for call in selected["direct_call_sites"]:
+                    lines.append("- {}:{} ({})".format(
+                        call["path"], call["line"], call["consumer_symbol"]))
+                if evidence["direct_call_sites_omitted"]:
+                    lines.append("Há chamadas omitidas pelo limite da busca.")
+            lines.append("Evidência: " + evidence["evidence_id"])
+            return {"status": "CERTIFIED_FACTS", "validation_mode": validation_mode,
+                    "model_validation": verdict, "answer": "\\n".join(lines),
+                    "selected_facts": selected,
+                    "evidence_id": evidence["evidence_id"],
+                    "coverage_note": evidence["coverage_note"],
+                    "plan_status": "PLANNED"}
         # The renderer NEVER incorporates model-generated text, even on success.
         return {
             "status": "CERTIFIED_FACTS",
