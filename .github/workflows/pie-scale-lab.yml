@@ -1,0 +1,31 @@
+name: PIE - source retrieval scale lab
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/pie_context_scale_lab.py'
+      - '.github/workflows/pie-scale-lab.yml'
+permissions:
+  contents: read
+jobs:
+  scale:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        files: [1000, 5000]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Benchmark high-volume local index and retrieval
+        run: python tools/pie_context_scale_lab.py --files ${{ matrix.files }} --repeats 5 --max-chars 200000 --output scale-${{ matrix.files }}.json
+      - name: Publish measured source scale results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pie-context-scale-${{ matrix.files }}
+          path: scale-${{ matrix.files }}.json

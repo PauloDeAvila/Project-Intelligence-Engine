@@ -1,0 +1,225 @@
+"""Regression tests for PIE context intelligence, impact and persistent glossary."""
+import json
+from pathlib import Path
+import tempfile
+import unittest
+
+from pie.indexing.indexer import index_project
+from pie.retrieval.intelligence import smart_context, impact
+from pie.retrieval.glossary import remember, recall
+
+
+class ContextIntelligenceTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        (self.root / "cache_manager.py").write_text(
+            'def refresh_cache(value):\n'
+            '    """Refresh the cached value after an update."""\n'
+            '    return value + 1\n',
+            encoding="utf-8")
+        (self.root / "consumer.py").write_text(
+            'from cache_manager import refresh_cache\n'
+            'def run():\n'
+            '    return refresh_cache(2)\n',
+            encoding="utf-8")
+        indexed = index_project(self.root)
+        self.assertEqual(indexed["index_state"], "CURRENT")
+
+    def test_responsibility_query_returns_source_provenance(self):
+        result = smart_context(self.root, "Which function refreshes cached values?")
+        self.assertEqual(result["context_state"], "CURRENT")
+        self.assertTrue(any(e["symbol"] == "refresh_cache" and
+                            e["path"] == "cache_manager.py" for e in result["evidence"]))
+
+    def test_context_budget_is_strict(self):
+        result = smart_context(self.root, "refresh cache", max_chars=500)
+        self.assertLessEqual(len(json.dumps(result, ensure_ascii=False)), 500)
+
+    def test_changed_source_never_returned(self):
+        (self.root / "cache_manager.py").write_text("def refresh_cache():\n    pass\n",encoding="utf-8")
+        result = smart_context(self.root, "refresh cache")
+        self.assertEqual(result["context_state"], "STALE")
+        self.assertFalse(any(e["path"] == "cache_manager.py" for e in result["evidence"]))
+
+    def test_glossary_is_hash_bound_to_evidence(self):
+        remember(self.root, "cache", "Cache refresh responsibility", "cache_manager.py")
+        self.assertEqual(recall(self.root, "cache")["entries"][0]["state"], "CURRENT")
+        (self.root / "cache_manager.py").write_text("print('changed')\n",encoding="utf-8")
+        entry = recall(self.root, "cache")["entries"][0]
+        self.assertEqual(entry["state"], "STALE")
+        self.assertIsNone(entry["description"])
+
+    def test_glossary_rejects_escape(self):
+        with self.assertRaises(ValueError):
+            remember(self.root, "secret", "outside", "../outside.txt")
+
+    def test_incremental_docs_rebuild_without_reparsing_unchanged_files(self):
+        unchanged=index_project(self.root)
+        self.assertEqual(unchanged["changed_files"], [])
+        self.assertEqual(unchanged["removed_files"], [])
+        (self.root / "cache_manager.py").write_text(
+            'def refresh_cache(value):\n'
+            '    """Recompute cached snapshots after mutations."""\n'
+            '    return value + 3\n', encoding="utf-8")
+        updated=index_project(self.root)
+        self.assertEqual(updated["changed_files"], ["cache_manager.py"])
+        result=smart_context(self.root, "Recompute cached snapshots")
+        self.assertEqual(result["context_state"], "CURRENT")
+        self.assertTrue(any("Recompute cached snapshots" in e["description"] for e in result["evidence"]))
+
+    def test_auto_glossary_from_indexed_docstrings(self):
+        result=recall(self.root,"Refresh the cached")
+        self.assertTrue(any(e.get("kind")=="indexed_symbol" and e["state"]=="CURRENT"
+                            for e in result["entries"]))
+
+    def test_incremental_deletion_invalidates_docs(self):
+        (self.root / "cache_manager.py").unlink()
+        updated=index_project(self.root)
+        self.assertIn("cache_manager.py",updated["removed_files"])
+        result=smart_context(self.root,"refresh_cache")
+        self.assertFalse(any(e["path"]=="cache_manager.py" for e in result["evidence"]))
+
+    def test_build_context_production_smart_strategy(self):
+        from pie.retrieval.context import build_context
+        response=build_context(self.root,"refresh cache",strategy="smart",limit=4)
+        self.assertIn(response["method"],("sqlite_ast_hybrid_fts5_graph_v3","sqlite_ast_summary_rank_v2"))
+        self.assertTrue(response["evidence"])
+
+    def test_backfill_docs_without_reindexing_unchanged_symbols(self):
+        from pie.storage.database import connect
+        conn=connect(self.root/".pie"/"index.sqlite3")
+        with conn:
+            conn.execute("DELETE FROM symbol_docs")
+        conn.close()
+        updated=index_project(self.root)
+        self.assertEqual(updated["changed_files"],[])
+        response=smart_context(self.root,"Refresh the cached value")
+        self.assertTrue(any("cached value" in e["description"] for e in response["evidence"]))
+
+    def test_watch_single_iteration_emits_parseable_record(self):
+        import contextlib
+        import io
+        from pie.interfaces.cli import main
+        stdout=io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            exit_code=main(["watch","--root",str(self.root),"--iterations","1","--interval",".1"])
+        self.assertEqual(exit_code,0)
+        event=json.loads(stdout.getvalue().strip())
+        self.assertEqual(event["event"],"index_update")
+        self.assertEqual(event["index_state"],"CURRENT")
+
+    def test_glossary_treats_sql_wildcards_literally(self):
+        remember(self.root, "literal%_key", "strange descriptor", "cache_manager.py")
+        remember(self.root, "literalXYZkey", "another descriptor", "cache_manager.py")
+        output=recall(self.root,"literal%_key")
+        self.assertEqual([x["key"] for x in output["entries"] if "kind" not in x],["literal%_key"])
+
+    def test_glossary_requires_prior_index(self):
+        with tempfile.TemporaryDirectory() as directory:
+            outside=Path(directory)
+            (outside/"sample.py").write_text("VALUE = 1\n",encoding="utf8")
+            with self.assertRaises(ValueError):
+                remember(outside,"sample","something","sample.py")
+            with self.assertRaises(ValueError):
+                recall(outside,"sample")
+
+    def test_adaptive_small_project_never_more_source_chars_than_full(self):
+        from pie.retrieval.adaptive import adaptive_context
+        result=adaptive_context(self.root,"refresh_cache",mode="edit",
+                                full_source_path="cache_manager.py")
+        self.assertEqual(result["context_state"],"CURRENT")
+        self.assertLessEqual(result["context_characters"],
+                             len((self.root/"cache_manager.py").read_text(encoding="utf8")))
+
+    def test_adaptive_crlf_source_uses_normalized_character_budget(self):
+        from pie.retrieval.adaptive import adaptive_context
+        source = self.root / "cache_manager.py"
+        source.write_bytes(source.read_bytes().replace(b"\n", b"\r\n"))
+        index_project(self.root)
+        result = adaptive_context(self.root, "refresh_cache", mode="edit",
+                                  full_source_path="cache_manager.py")
+        self.assertEqual(result["context_state"], "CURRENT")
+        self.assertLessEqual(result["context_characters"],
+                             len(source.read_text(encoding="utf8")))
+        if result["representation"] == "full_source":
+            self.assertNotIn("\r", result["content"])
+
+    def test_adaptive_navigation_is_compact_and_cited(self):
+        from pie.retrieval.adaptive import adaptive_context
+        result=adaptive_context(self.root,"refresh cache",mode="navigation")
+        self.assertEqual(result["representation"],"compact")
+        self.assertIn("cache_manager.py:",result["content"])
+        self.assertNotIn("description",result["content"])
+
+    def test_adaptive_full_source_hash_mismatch_rejected(self):
+        from pie.retrieval.adaptive import adaptive_context
+        (self.root/"cache_manager.py").write_text("def refresh_cache(): pass\n",encoding="utf8")
+        with self.assertRaises(ValueError):
+            adaptive_context(self.root,"refresh_cache",mode="edit",
+                             full_source_path="cache_manager.py")
+
+    def test_fts_matches_responsibility_without_exact_symbol_name(self):
+        from pie.storage.database import connect
+        from pie.retrieval.fts import search_fts
+        db=connect(self.root/".pie"/"index.sqlite3")
+        try:
+            hits=search_fts(db,"cached value")
+            self.assertTrue(hits)
+        finally:
+            db.close()
+
+    def test_fts_incremental_update_and_delete(self):
+        from pie.storage.database import connect
+        from pie.retrieval.fts import search_fts
+        source=self.root/"cache_manager.py"
+        source.write_text('def refresh_cache(value):\n    """Synchronize distributed snapshots."""\n    return value\n',encoding="utf8")
+        index_project(self.root)
+        db=connect(self.root/".pie"/"index.sqlite3")
+        try:
+            self.assertTrue(search_fts(db,"distributed snapshots"))
+            self.assertFalse(search_fts(db,"cached"))
+        finally:
+            db.close()
+        source.unlink()
+        index_project(self.root)
+        db=connect(self.root/".pie"/"index.sqlite3")
+        try:
+            self.assertFalse(search_fts(db,"distributed snapshots"))
+        finally:
+            db.close()
+
+    def test_fts_query_operators_are_not_executed(self):
+        from pie.storage.database import connect
+        from pie.retrieval.fts import search_fts
+        db=connect(self.root/".pie"/"index.sqlite3")
+        try:
+            self.assertIsInstance(search_fts(db,'cache OR "broken"* NOT'),list)
+        finally:
+            db.close()
+
+    def test_task_context_contains_verified_source_and_budget(self):
+        from pie.retrieval.task import task_context
+        output=task_context(self.root,"refresh cache",max_chars=12000)
+        self.assertIn("cache_manager.py:",output["content"])
+        self.assertLessEqual(output["context_characters"],12000)
+        self.assertIn("verified_impact_hints",output)
+
+    def test_task_context_rejects_invalid_budget(self):
+        from pie.retrieval.task import task_context
+        with self.assertRaises(ValueError):
+            task_context(self.root,"refresh cache",max_chars=100)
+
+    def test_impact_depth_validation(self):
+        with self.assertRaises(ValueError):
+            impact(self.root,"refresh_cache",depth=6)
+
+    def test_impact_is_bounded_and_has_provenance(self):
+        result=impact(self.root,"refresh_cache")
+        self.assertIn("affected_files",result)
+        self.assertIn("verified_references",result)
+
+
+if __name__ == "__main__":
+    unittest.main()

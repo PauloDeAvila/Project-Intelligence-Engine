@@ -1,0 +1,49 @@
+name: PIE - 9Router agent navigation
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/pie_agent_9router_lab.py'
+      - 'tools/pie_agent_report.py'
+      - 'tests/test_pie_agent_reporting.py'
+      - '.github/workflows/pie-agent-9router.yml'
+concurrency:
+  group: pie-agent-navigation-${{ github.ref }}
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: Textualize/rich
+          path: rich-corpus
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install project
+        run: python -m pip install -e .
+      - name: Verify report generation contract
+        run: python -m unittest discover -s tests -p "test_pie_agent_reporting.py" -v
+      - name: Agent locates implementations through PIE
+        run: python -u tools/pie_agent_9router_lab.py --corpus rich-corpus --models qd/qfmodel --count 30 --cooldown-seconds 15 --output pie-agent-9router-results.json
+        env:
+          PIE_API_BASE_URL: ${{ secrets.PIE_API_BASE_URL }}
+          PIE_API_KEY: ${{ secrets.PIE_API_KEY }}
+      - name: Generate auditable CSV JSON and Excel
+        if: always()
+        run: python tools/pie_agent_report.py --input pie-agent-9router-results.json --out pie-agent-report
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pie-agent-navigation
+          path: |
+            pie-agent-9router-results.json
+            pie-agent-report/
+          if-no-files-found: warn

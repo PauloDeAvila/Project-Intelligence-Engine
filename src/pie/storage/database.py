@@ -14,6 +14,11 @@ CREATE TABLE IF NOT EXISTS symbols (
     start_line INTEGER NOT NULL, end_line INTEGER NOT NULL, start_col INTEGER NOT NULL, end_col INTEGER NOT NULL,
     UNIQUE(file_id, qualified_name, kind, start_line, start_col)
 );
+CREATE TABLE IF NOT EXISTS symbol_docs (
+    symbol_id INTEGER PRIMARY KEY REFERENCES symbols(id) ON DELETE CASCADE,
+    summary TEXT NOT NULL DEFAULT '',
+    signature TEXT NOT NULL DEFAULT ''
+);
 CREATE TABLE IF NOT EXISTS imports (
     id INTEGER PRIMARY KEY, file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
     module TEXT NOT NULL, imported_name TEXT, alias TEXT, line INTEGER NOT NULL
@@ -128,5 +133,7 @@ def connect(path: Path) -> sqlite3.Connection:
     connection.execute("PRAGMA foreign_keys = ON")
     connection.executescript(SCHEMA)
     _migrate_symbol_locations(connection)
+    from pie.retrieval.fts import ensure_fts
+    ensure_fts(connection)
     return connection
 

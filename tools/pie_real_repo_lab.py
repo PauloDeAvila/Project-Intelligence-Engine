@@ -21,6 +21,7 @@ import urllib.request
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"src"))
 from pie.indexing.indexer import index_project
 from pie.graph.relationships import build_relationships
+from pie.retrieval.context import build_context
 
 STOP=set("the a an and of to with for in on is are from this that it which by as into at can be use using given when where how what returns return function method data value values object objects code class this will you not".split())
 
@@ -129,11 +130,12 @@ def infer(base,key,model,query,context,output_tokens):
 def run():
     p=argparse.ArgumentParser()
     p.add_argument("--corpus",default="rich-corpus")
-    p.add_argument("--models",default="gh/gpt-4o-mini;nvidia/nvidia/nemotron-3-ultra-550b-a55b")
+    p.add_argument("--models",default="gh/gpt-4o-mini;nvidia/nemotron-3-ultra-550b-a55b")
     p.add_argument("--count",type=int,default=12)
     p.add_argument("--seed",type=int,default=20261102)
     p.add_argument("--max-baseline-chars",type=int,default=60000)
     p.add_argument("--output",default="rich-results")
+    p.add_argument("--pie-production",action="store_true")
     p.add_argument("--dry-run",action="store_true")
     a=p.parse_args()
     root=Path(a.corpus).resolve()
@@ -150,6 +152,10 @@ def run():
     for task in tasks:
         start=time.perf_counter()
         baseline,pie,files,selected=search(task["question"],modules,rows,a.max_baseline_chars)
+        if a.pie_production:
+            resolved=build_context(root,task["question"],max_chars=12000,limit=4,strategy="smart")
+            pie=json.dumps(resolved,ensure_ascii=False)
+            selected=[{"path":e["path"],"symbol":e["symbol"]} for e in resolved["evidence"]]
         retrieval=time.perf_counter()-start
         present_baseline=task["oracle"]["path"] in files
         present_pie=any(x["path"]==task["oracle"]["path"] and x["symbol"]==task["oracle"]["symbol"] for x in selected)

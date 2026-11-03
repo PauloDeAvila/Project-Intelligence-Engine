@@ -1,0 +1,53 @@
+name: PIE - production context lab
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/pie/retrieval/intelligence.py'
+      - 'tools/pie_real_repo_lab.py'
+      - 'tools/pie_local_latency.py'
+      - '.github/workflows/pie-production-context-lab.yml'
+permissions:
+  contents: read
+jobs:
+  local-latency:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Measure local source retrieval and warm index cost
+        run: python tools/pie_local_latency.py --root . --output pie-local-latency.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pie-local-latency
+          path: pie-local-latency.json
+  production-rich:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      PIE_API_BASE_URL: ${{ secrets.PIE_API_BASE_URL }}
+      PIE_API_KEY: ${{ secrets.PIE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: Textualize/rich
+          ref: main
+          path: rich-corpus
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compare production PIE with file-level navigation
+        run: python -u tools/pie_real_repo_lab.py --pie-production --output production-rich-results --models "gh/gpt-4o-mini;nvidia/nemotron-3-ultra-550b-a55b"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pie-production-rich
+          path: production-rich-results/

@@ -1,5 +1,6 @@
 import argparse
 import json
+import time
 from pathlib import Path
 
 from pie import __version__
@@ -7,6 +8,11 @@ from pie.core.errors import ProjectNotInitializedError
 from pie.indexing.indexer import index_project
 from pie.retrieval.symbols import analysis_summary, find_definitions, find_references
 from pie.storage.database import connect
+from pie.retrieval.intelligence import impact
+from pie.retrieval.context import build_context
+from pie.retrieval.adaptive import adaptive_context
+from pie.retrieval.task import task_context
+from pie.retrieval.glossary import remember, recall
 
 
 def project_root(value: str | None) -> Path:
@@ -96,6 +102,43 @@ def main(argv: list[str] | None = None) -> int:
         command.add_argument("name")
         command.add_argument("--root", default=".")
     subparsers.add_parser("analysis").add_argument("--root", default=".")
+    smart = subparsers.add_parser("context")
+    smart.add_argument("query")
+    smart.add_argument("--root", default=".")
+    smart.add_argument("--max-chars", type=int, default=12000)
+    smart.add_argument("--limit", type=int, default=8)
+    smart.add_argument("--include-body", action="store_true")
+    warm_cmd = subparsers.add_parser("serve-warm")
+    warm_cmd.add_argument("--root", default=".")
+    watch_cmd = subparsers.add_parser("watch")
+    watch_cmd.add_argument("--root", default=".")
+    watch_cmd.add_argument("--interval", type=float, default=5.0)
+    watch_cmd.add_argument("--iterations", type=int, default=0,
+                           help="0 means run until Ctrl+C")
+    adaptive = subparsers.add_parser("adaptive")
+    adaptive.add_argument("query")
+    adaptive.add_argument("--root", default=".")
+    adaptive.add_argument("--mode", choices=["navigation","edit"],default="navigation")
+    adaptive.add_argument("--full-source-path")
+    adaptive.add_argument("--max-chars", type=int, default=12000)
+    adaptive.add_argument("--limit", type=int, default=8)
+    task = subparsers.add_parser("task-context")
+    task.add_argument("query")
+    task.add_argument("--root", default=".")
+    task.add_argument("--max-chars", type=int, default=12000)
+    task.add_argument("--limit", type=int, default=8)
+    impacts = subparsers.add_parser("impact")
+    impacts.add_argument("name")
+    impacts.add_argument("--root", default=".")
+    impacts.add_argument("--depth", type=int, default=2)
+    memory = subparsers.add_parser("remember")
+    memory.add_argument("key")
+    memory.add_argument("description")
+    memory.add_argument("--source", required=True)
+    memory.add_argument("--root", default=".")
+    recall_cmd = subparsers.add_parser("recall")
+    recall_cmd.add_argument("query", nargs="?", default="")
+    recall_cmd.add_argument("--root", default=".")
     args = parser.parse_args(argv)
     root = project_root(args.root)
     try:
@@ -106,6 +149,30 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "definitions": result = command_definitions(root, args.name)
         elif args.command == "references": result = command_references(root, args.name)
         elif args.command == "analysis": result = command_analysis(root)
+        elif args.command == "context": result = build_context(root, args.query, max_chars=args.max_chars, limit=args.limit, strategy="smart", include_body=args.include_body)
+        elif args.command == "serve-warm":
+            from pie.retrieval.warm import serve
+            serve(root)
+            return 0
+        elif args.command == "watch":
+            if args.interval < 0.1 or args.iterations < 0:
+                parser.error("watch interval must be >=0.1 and iterations >=0")
+            checks=0
+            try:
+                while not args.iterations or checks < args.iterations:
+                    update=index_project(root)
+                    if checks == 0 or update.get("changed_files") or update.get("removed_files") or update["index_state"] != "CURRENT":
+                        print(json.dumps({"event":"index_update","iteration":checks,**update},
+                                         ensure_ascii=False),flush=True)
+                    checks += 1
+                    if not args.iterations or checks < args.iterations:
+                        time.sleep(args.interval)
+            except KeyboardInterrupt:
+                pass
+            return 0
+        elif args.command == "impact": result = impact(root, args.name, depth=args.depth)
+        elif args.command == "remember": result = remember(root, args.key, args.description, args.source)
+        elif args.command == "recall": result = recall(root, args.query)
         else: result = command_symbol(root, args.name)
     except ProjectNotInitializedError as exc:
         parser.error(str(exc))

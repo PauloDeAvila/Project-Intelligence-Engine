@@ -1,0 +1,24 @@
+name: PIE - retrieval relevance gate
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/pie/retrieval/**'
+      - 'src/pie/indexing/**'
+      - 'src/pie/storage/**'
+      - 'tools/pie_retrieval_quality_lab.py'
+      - '.github/workflows/pie-retrieval-quality.yml'
+permissions:
+  contents: read
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify relevance and no-match cases
+        run: python tools/pie_retrieval_quality_lab.py
