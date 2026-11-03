@@ -14,7 +14,8 @@ from urllib.request import Request, build_opener, ProxyHandler
 from urllib.error import URLError
 
 from pie.retrieval.evidence import build_evidence, EvidenceError
-from pie.retrieval.guard import (parse_model_proposal, render_certified, validate_claims,\n                                 validate_selection, SELECTION_FIELDS)
+from pie.retrieval.guard import (parse_model_proposal, render_certified, validate_claims,
+                                 validate_selection, SELECTION_FIELDS)
 
 MAX_REQUEST_BYTES = 8192
 MAX_RESPONSE_BYTES = 32768
