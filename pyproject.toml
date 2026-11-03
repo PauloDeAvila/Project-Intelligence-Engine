@@ -10,6 +10,8 @@ requires-python = ">=3.12"
 
 [project.scripts]
 pie = "pie.interfaces.cli:main"
+pie-setup = "pie.interfaces.setup:main"
+pie-mcp = "pie.interfaces.mcp_server:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
