@@ -41,7 +41,12 @@ def build_context(root: Path, query: str, max_chars: int = 12000, limit: int = 1
         for row in rows:
             p = root / row['path']
             try:
-                data = p.read_bytes()
+                resolved = p.resolve()
+                if not resolved.is_relative_to(root) or p.is_symlink():
+                    omitted += 1
+                    diagnostics.append({'code': 'source_path_outside_root', 'path': row['path']})
+                    continue
+                data = resolved.read_bytes()
             except OSError:
                 omitted += 1
                 diagnostics.append({'code': 'file_unreadable', 'path': row['path']})
