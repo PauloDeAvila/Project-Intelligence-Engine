@@ -160,3 +160,74 @@ LM Studio structured JSON may not work reliably with all small local models.
 The point of this experiment is to measure that compatibility **without
 weakening the downstream guard**, not to declare success in advance. Abstention
 cases are screened by deterministic rules and may never call the model.
+
+## DES-03: independently audited sufficiency, certification, and holdout
+
+The DES-02 result (19/20 with schema) used a strict exact-match oracle.
+Case #2, `Em qual arquivo analyze_mesh está definida?`, only requires
+`path`. The old oracle also required `line`. DES-03 **does not rewrite
+historical scores**: it adds an independently authored audit policy in
+`tests/fixtures/dynamic_selection_gold_v3.json`, with three disjoint fields
+for each question: `required`, `optional`, `forbidden`.
+
+For #2 the policy is `required=["path"]`, `optional=["line"]`,
+and the other field types are forbidden. The planner now distinguishes
+file-only questions from line and general-location questions. The Gateway
+only certifies a selection that satisfies the independently derived rule
+plan; a benchmark score **never upgrades a rejected response**.
+
+The DES-03 benchmark separately reports:
+- `positive_semantically_sufficient`: required evidence present, forbidden
+  absent (can be true even when the Gateway refused certification).
+- `positive_exact`: selection matches required fields with no optional fields.
+- `positive_gateway_certified`: Gateway returned CERTIFIED_FACTS and
+  validator returned VERIFIED.
+- `planner_not_requested`: deterministic abstentions that did not call Qwen.
+- `model_rejected_after_call`: refusals after a model proposal/attempt.
+- Separate latency for inferenced requests and pre-model abstentions.
+- Precision/recall treat optional fields as acceptable but not required.
+- Tokens are **not measured**.
+
+The JSON gold policy is checked against every original question string and
+the complete partition of allowed field types; stale/reordered fixtures are
+rejected instead of silently changing the test.
+
+Update the **isolated** `pie-dynamic-evidence-planner` checkout, reinstall
+it in its own venv, and run the full unit suite as previously documented.
+
+With the experimental Gateway running at 8766 (and with your original
+Gateway restored afterwards):
+
+~~~powershell
+$Base = Join-Path $env:USERPROFILE "pie-dynamic-evidence-planner"
+$Py = Join-Path $Base ".venv\Scripts\python.exe"
+$Src = Join-Path $Base "source"
+git -C $Src pull --ff-only origin feat/dynamic-evidence-planner-benchmark
+& $Py -m pip install --upgrade --no-deps $Src
+& $Py -m unittest discover -s (Join-Path $Src "tests") -v
+& $Py (Join-Path $Src "tools\benchmark_dynamic_selection.py") --mode dynamic_selection_schema --output (Join-Path $Base "des03-schema.json")
+~~~
+
+### Held-out, separate indexed projects — no port swap required
+
+DES-03 also supplies `tools/benchmark_dynamic_holdout.py`. It creates
+**two new synthetic Python projects** in a temporary directory, indexes each
+separately and tests new symbols (`calculate_total`, `parse_flags`) using
+actual ephemeral loopback HTTP Gateway servers. No changes are made to the
+main project indexes or the service on port 8766.
+
+~~~powershell
+& $Py (Join-Path $Src "tools\benchmark_dynamic_holdout.py") --output (Join-Path $Base "des03-holdout.json")
+~~~
+
+LM Studio must be running locally with the exact Qwen model ID. The holdout
+fixture includes 8 answerable questions and 2 unsupported/impact questions.
+It measures cross-project isolation and exact field selection, **not proof
+of performance on arbitrary repositories**. The fixture should not be tuned
+against; if rules are changed in response to it, create a new unseen holdout
+rather than reporting the tuned results as out-of-sample.
+
+A nonzero benchmark exit means the scoring gate failed, not necessarily that
+requests failed. Review the emitted JSON. Do not declare DES-03 certified
+until real-model results on both the revised 30-question suite and the holdout
+are reported and CI is green.
