@@ -37,7 +37,7 @@ def dispatch(request: dict, root: Path, engine: MCPContextEngine | None = None) 
     if rid is None and isinstance(method, str) and method.startswith('notifications/'):
         return None
     try:
-        if request.get("jsonrpc") != "2.0":
+        if "jsonrpc" in request and request["jsonrpc"] != "2.0":
             raise ValueError("jsonrpc must be 2.0")
         if method == 'initialize':
             result = {'protocolVersion':'2025-03-26','capabilities':{'tools':{}},'serverInfo':{'name':'pie','version':'0.2.0-preview'}}
@@ -112,7 +112,11 @@ def main(argv=None):
       for line in sys.stdin:
         try:
             request = json.loads(line)
-            reply = dispatch(request,root,engine)
+            if isinstance(request, dict) and request.get("jsonrpc") != "2.0":
+                reply = {"jsonrpc": "2.0", "id": request.get("id"),
+                         "error": {"code": -32600, "message": "Missing or invalid jsonrpc version"}}
+            else:
+                reply = dispatch(request,root,engine)
         except Exception as exc:
             reply = {'jsonrpc':'2.0','id':None,'error':{'code':-32700,'message':str(exc)}}
         if reply is not None:
