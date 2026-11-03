@@ -92,10 +92,10 @@ class IndependentPlannerGoldTests(unittest.TestCase):
               "direct_call_sites": []}
         plan = plan_evidence("Onde analyze_mesh está definida?")
         valid = validate_dynamic_selection(ev, {
-            "evidence_id": "pie:one", "selected_fields": ["path", "line"]}, plan)
+            "selected_fields": ["path", "line"]}, plan)
         self.assertEqual(valid["status"], "VERIFIED")
         wrong = validate_dynamic_selection(ev, {
-            "evidence_id": "pie:one", "selected_fields": ["signature"]}, plan)
+            "selected_fields": ["signature"]}, plan)
         self.assertEqual(wrong["status"], "REJECTED")
         self.assertEqual(wrong["missing_required"], ["path", "line"])
         self.assertEqual(wrong["unexpected_fields"], ["signature"])
