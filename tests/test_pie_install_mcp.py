@@ -36,8 +36,10 @@ class ProvisionTests(unittest.TestCase):
         name = _identifier(self.one)
         vscode = json.loads((self.one / ".vscode" / "mcp.json").read_text())
         portable = json.loads((self.one / ".mcp.json").read_text())
+        cursor = json.loads((self.one / ".cursor" / "mcp.json").read_text())
         codex = tomllib.loads((self.one / ".codex" / "config.toml").read_text())
         self.assertEqual(vscode["servers"][name]["type"], "stdio")
+        self.assertEqual(cursor["mcpServers"][name]["command"], str(Path(sys.executable).resolve()))
         self.assertIn("--root", vscode["servers"][name]["args"])
         self.assertEqual(portable["mcpServers"][name]["command"], str(Path(sys.executable).resolve()))
         self.assertEqual(codex["mcp_servers"][name]["command"], str(Path(sys.executable).resolve()))
@@ -84,6 +86,7 @@ class ProvisionTests(unittest.TestCase):
         self.assertTrue((self.one / ".codex" / "config.toml").is_file())
         self.assertFalse((self.one / ".vscode" / "mcp.json").exists())
         self.assertFalse((self.one / ".mcp.json").exists())
+        self.assertFalse((self.one / ".cursor" / "mcp.json").exists())
 
     def test_real_stdio_server_for_two_workspaces(self):
         for root, symbol in ((self.one, "Model"), (self.two, "process")):
