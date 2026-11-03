@@ -1,8 +1,10 @@
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from pie.retrieval.snapshot import SnapshotVerifier, SnapshotError
+import pie.retrieval.snapshot as snapshot_module
 from pie.scanning.discovery import iter_files
 
 
@@ -26,6 +28,11 @@ class SnapshotVerifierTests(unittest.TestCase):
         (self.root / "large.py").write_bytes(b"x" * (5_000_001))
         with self.assertRaisesRegex(SnapshotError, "PARTIAL_PROJECT"):
             SnapshotVerifier(self.root, self.manifest).verify()
+
+    def test_discovery_oserror_is_fail_closed(self):
+        with patch.object(snapshot_module, "iter_files", side_effect=OSError("simulated discovery failure")):
+            with self.assertRaisesRegex(SnapshotError, "discovery failed"):
+                SnapshotVerifier(self.root, self.manifest).verify()
 
     def test_same_size_content_change_is_stale(self):
         (self.root / "a.py").write_text("value = 2\n", encoding="utf-8")

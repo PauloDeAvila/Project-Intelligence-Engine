@@ -41,13 +41,18 @@ def _verify_project_snapshot(root: Path) -> dict:
     db_seconds = time.perf_counter() - db_started
     scan_started = time.perf_counter()
     try:
-        result = SnapshotVerifier(root, indexed).verify()
+        verifier = SnapshotVerifier(root, indexed)
+        result = verifier.verify()
     except SnapshotError as exc:
         raise EvidenceError(str(exc)) from exc
     scan_seconds = time.perf_counter() - scan_started
+    metrics = getattr(verifier, "last_metrics", {})
     return {"db_seconds": round(db_seconds, 6), "discovery_hash_seconds": round(scan_seconds, 6),
             "files_checked": result.files_checked, "bytes_hashed": result.bytes_hashed,
-            "total_seconds": round(time.perf_counter() - started, 6)}
+            "total_seconds": round(time.perf_counter() - started, 6),
+            "read_seconds": round(metrics.get("read_seconds", 0.0), 6),
+            "hash_seconds": round(metrics.get("hash_seconds", 0.0), 6),
+            "enumeration_seconds": round(metrics.get("enumeration_seconds", scan_seconds), 6)}
 
 
 def _source_snapshot(root: Path, path: str) -> tuple[str, str]:
