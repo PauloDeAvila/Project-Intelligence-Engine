@@ -69,6 +69,47 @@ def validate_claims(evidence: dict, proposed: object) -> dict:
             "reason": reason, "checks": checks, "missing_required": missing}
 
 
+
+SELECTION_FIELDS = ("signature", "path", "direct_call_count")
+
+
+def validate_selection(evidence: dict, proposed: object,
+                       required_fields: tuple[str, ...] = SELECTION_FIELDS) -> dict:
+    """Validate model-chosen references; the model never supplies fact values.
+
+    Required fields are determined by the gateway contract, not model output.
+    A missing or invented field is rejected instead of silently completed.
+    """
+    if not isinstance(proposed, dict) or set(proposed) != {"evidence_id", "selected_fields"}:
+        return {"status": "REJECTED", "reason": "invalid_selection_shape",
+                "selected_fields": [], "missing_required": list(required_fields)}
+    if proposed["evidence_id"] != evidence["evidence_id"]:
+        return {"status": "REJECTED", "reason": "evidence_id_mismatch",
+                "selected_fields": [], "missing_required": list(required_fields)}
+    fields = proposed["selected_fields"]
+    if not isinstance(fields, list) or not 1 <= len(fields) <= len(ALLOWED_FACTS):
+        return {"status": "REJECTED", "reason": "invalid_selected_fields",
+                "selected_fields": [], "missing_required": list(required_fields)}
+    if any(not isinstance(field, str) or field not in ALLOWED_FACTS for field in fields):
+        return {"status": "REJECTED", "reason": "unknown_field",
+                "selected_fields": [], "missing_required": list(required_fields)}
+    if len(fields) != len(set(fields)):
+        return {"status": "REJECTED", "reason": "duplicate_field",
+                "selected_fields": [], "missing_required": list(required_fields)}
+    if any(field not in evidence for field in fields):
+        return {"status": "REJECTED", "reason": "unsupported_evidence_field",
+                "selected_fields": [], "missing_required": list(required_fields)}
+    missing = [field for field in required_fields if field not in fields]
+    extra = [field for field in fields if field not in required_fields]
+    if missing or extra:
+        return {"status": "REJECTED",
+                "reason": "missing_required_fields" if missing else "unexpected_fields",
+                "selected_fields": fields, "missing_required": missing}
+    return {"status": "VERIFIED", "reason": "evidence_fields_selected",
+            "selected_fields": fields, "missing_required": [],
+            "resolved_facts": {field: evidence[field] for field in fields}}
+
+
 def render_certified(evidence: dict) -> str:
     """Template-based answer with no model-generated factual text."""
     if evidence.get("status") != "VERIFIED":
