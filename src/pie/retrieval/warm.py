@@ -12,6 +12,7 @@ import threading
 import json
 from pathlib import Path
 import sys
+import time
 from typing import TextIO
 
 from pie.indexing.indexer import index_project
@@ -43,6 +44,7 @@ class WarmContextService:
         self._generation = self._snapshot()
         self._verified_graph = VerifiedGraph([])
         self._warm()
+        self._filesystem_snapshot = self._file_snapshot()
         if background_interval is not None:
             self._worker = threading.Thread(target=self._background_loop, args=(background_interval,), daemon=True)
             self._worker.start()
@@ -72,9 +74,33 @@ class WarmContextService:
     def _warm(self) -> None:
         self._verified_graph = VerifiedGraph.from_connection(self._connection)
 
+    def _file_snapshot(self):
+        """Cheap metadata check: never read source contents or build an index."""
+        excluded = {".pie", ".git", ".venv", "venv", "__pycache__", "node_modules", ".tox"}
+        snapshot = {}
+        for path in self.root.rglob("*.py"):
+            if any(part in excluded for part in path.relative_to(self.root).parts[:-1]):
+                continue
+            try:
+                stat = path.stat()
+            except OSError:
+                snapshot[path.relative_to(self.root).as_posix()] = None
+                continue
+            snapshot[path.relative_to(self.root).as_posix()] = (stat.st_size, stat.st_mtime_ns)
+        return snapshot
+
+    def _refresh_if_changed(self):
+        snapshot = self._file_snapshot()
+        if snapshot == self._filesystem_snapshot:
+            return False
+        self.refresh()
+        self._filesystem_snapshot = self._file_snapshot()
+        return True
+
     def refresh(self) -> dict:
         """Reindex changed files and invalidate dependent cached responses."""
         report = index_project(self.root)
+        self._filesystem_snapshot = self._file_snapshot()
         generation = self._snapshot()
         if generation != self._generation:
             self._cache.clear()
@@ -106,7 +132,9 @@ class WarmContextService:
         if not isinstance(question, str) or not question.strip():
             raise ValueError("Nonempty query required")
         with self._lock:
-            self.refresh()
+            refresh_start = time.perf_counter()
+            refreshed = self._refresh_if_changed()
+            refresh_ms = round((time.perf_counter() - refresh_start) * 1000, 3)
             if self._refresh_error:
                 raise RuntimeError("Background indexer failed: " + self._refresh_error)
             key = (question, limit, max_chars, include_body)
@@ -114,16 +142,18 @@ class WarmContextService:
                 value = self._cache[key]
                 if self._source_valid(value):
                     self._cache.move_to_end(key)
-                    return {"cache_hit": True, "result": value}
+                    return {"cache_hit": True, "result": value, "refresh_ms": refresh_ms, "search_ms": 0.0, "reindexed": refreshed}
                 self._cache.clear()
                 self.refresh()
+            search_start = time.perf_counter()
             value = smart_context(self.root, question, limit=limit,
                                   max_chars=max_chars, include_body=include_body)
+            search_ms = round((time.perf_counter() - search_start) * 1000, 3)
             if value["context_state"] == "CURRENT" and not value["diagnostics"]:
                 self._cache[key] = value
                 if len(self._cache) > self.cache_size:
                     self._cache.popitem(last=False)
-            return {"cache_hit": False, "result": value}
+            return {"cache_hit": False, "result": value, "refresh_ms": refresh_ms, "search_ms": search_ms, "reindexed": refreshed}
 
     def task_pack(self, question: str, limit: int = 5, max_chars: int = 12000) -> dict:
         """Return a fully budgeted, strictly source-verified responsibility pack."""
