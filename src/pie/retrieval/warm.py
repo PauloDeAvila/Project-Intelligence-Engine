@@ -155,14 +155,25 @@ class WarmContextService:
                     self._cache.popitem(last=False)
             return {"cache_hit": False, "result": value, "refresh_ms": refresh_ms, "search_ms": search_ms, "reindexed": refreshed}
 
-    def task_pack(self, question: str, limit: int = 5, max_chars: int = 12000) -> dict:
+    def task_pack(self, question: str, limit: int = 5, max_chars: int = 12000, *, with_metrics: bool = False) -> dict:
         """Return a fully budgeted, strictly source-verified responsibility pack."""
         with self._lock:
-            result = self.query(question, limit=limit, max_chars=max_chars,
-                                include_body=True)["result"]
-            return build_responsibility_pack(
-                self.root, question, result, self._verified_graph,
+            lookup = self.query(question, limit=limit, max_chars=max_chars,
+                                include_body=True)
+            start = time.perf_counter()
+            pack = build_responsibility_pack(
+                self.root, question, lookup["result"], self._verified_graph,
                 self._connection, max_chars=max_chars)
+            graph_ms = round((time.perf_counter() - start) * 1000, 3)
+            if with_metrics:
+                return {"pack": pack, "metrics": {
+                    "cache_hit": lookup["cache_hit"],
+                    "reindexed": lookup["reindexed"],
+                    "refresh_ms": lookup["refresh_ms"],
+                    "search_ms": lookup["search_ms"],
+                    "graph_ms": graph_ms,
+                }}
+            return pack
 
     def prefetch(self, queries: list[str]) -> dict:
         if not isinstance(queries, list) or len(queries) > 20 or any(
