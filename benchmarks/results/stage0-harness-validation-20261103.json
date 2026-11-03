@@ -1,0 +1,86 @@
+{
+  "schema": "pie-codex-paired-benchmark-v1",
+  "project": "C:\\Users\\phsra\\OneDrive\\Documents\\Doctor Mesh",
+  "snapshot_sha256": "b734528e19da0c9ba864c2f199eff75ba10830b1d8501b47205b9b0a502e35cf",
+  "project_git_commit": "4fc86c3f18fa8e0424d3360ed669cfcdb95e5ac0",
+  "codex_version": "codex-cli 0.166.0-alpha.5.1",
+  "model": null,
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python": "3.13.17",
+  "prompt_sha256": {
+    "without_pie": "bbacb1fe34bd023030a50af478c0b2322f38653c35abe6134b210727da68f854",
+    "with_pie": "a1b564045107e135143b4086eb723cdecaa00b3e34c7009e64f31da5c62fdd4e"
+  },
+  "files": 45,
+  "repetitions": 1,
+  "executed": true,
+  "records": [
+    {
+      "repeat": 1,
+      "mode": "without_pie",
+      "returncode": 0,
+      "seconds": 61.9705,
+      "quality_passed": true,
+      "required_evidence": [
+        "quality.py",
+        "158",
+        "capture.py",
+        "115",
+        "ui.py",
+        "627"
+      ],
+      "usage": {
+        "input_tokens": 157091,
+        "cached_input_tokens": 117888,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1039,
+        "reasoning_output_tokens": 37
+      },
+      "pie_mcp_executed": false,
+      "mcp_calls": [],
+      "final": "{\n  \"definition\": {\n    \"file\": \"ai_mesh_doctor/quality.py\",\n    \"line\": 158,\n    \"signature\": \"audit_component(obj, constraints=(), policy=None)\",\n    \"body\": \"return audit_mesh(obj.data,obj.matrix_world,constraints,policy)\",\n    \"description\": \"Audits an object's mesh using its world transform, optional measured-surface constraints, and optional quality policy.\",\n    \"returns\": \"The audit_mesh report, including accepted, reasons, fingerprint, analysis_matrix, geometry, surfaces, coincident_faces, elapsed_seconds, visual_approval, and coverage.\"\n  },\n  \"callers\": [\n    {\n      \"file\": \"ai_mesh_doctor/batch.py\",\n      \"line\": 62,\n      \"caller\": \"ComponentBatch.stage\",\n      \"call\": \"audit_component(obj,constraints)\",\n      \"purpose\": \"Checks the staged candidate; rejection records the failure, discards the batch, and raises an error.\"\n    },\n    {\n      \"file\": \"ai_mesh_doctor/capture.py\",\n      \"line\": 115,\n      \"caller\": \"CaptureSession.__init__\",\n      \"call\": \"[audit_component(obj) for obj in self.targets]\",\n      \"condition\": \"require_quality is truthy\",\n      \"purpose\": \"Checks every capture target; rejection aborts preparation. Successful reports are summarized in the manifest.\"\n    },\n    {\n      \"file\": \"ai_mesh_doctor/ui.py\",\n      \"line\": 627,\n      \"caller\": \"MD_OT_accept_component.execute\",\n      \"call\": \"audit_component(data['candidate'])\",\n      \"purpose\": \"Blocks acceptance when the reconstruction candidate fails quality checks.\"\n    },\n    {\n      \"file\": \"tests/test_efficiency.py\",\n      \"caller\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\",\n      \"calls\": [\n        {\n          \"line\": 118,\n          \"call\": \"audit_component(self.cube)\",\n          \"expectation\": \"accepted is true\"\n        },\n        {\n          \"line\": 119,\n          \"call\": \"audit_component(self.cube,policy=QualityPolicy(max_triangles=1))\",\n          \"expectation\": \"accepted is false\"\n        },\n        {\n          \"line\": 122,\n          \"call\": \"audit_component(obj)\",\n          \"expectation\": \"accepted is false for an open triangle mesh\"\n        }\n      ]\n    }\n  ],\n  \"method\": \"Static inspection through direct file reading; no code executed or files edited.\"\n}",
+      "raw_sha256": "9dfdbad53a690a2cca5fcf60dd7ef384929a94b229b68f3d18116da10273e946",
+      "sanitized_sha256": "d3414632d17d8cdd5841e79a463e8ddaffcc9993a98828026976e7f3d493a8d2"
+    },
+    {
+      "repeat": 1,
+      "mode": "with_pie",
+      "returncode": 0,
+      "seconds": 30.1109,
+      "quality_passed": true,
+      "required_evidence": [
+        "quality.py",
+        "158",
+        "capture.py",
+        "115",
+        "ui.py",
+        "627"
+      ],
+      "usage": {
+        "input_tokens": 80420,
+        "cached_input_tokens": 65792,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 781,
+        "reasoning_output_tokens": 0
+      },
+      "pie_mcp_executed": true,
+      "mcp_calls": [
+        {
+          "server": "pie-doctor-mesh",
+          "tool": "pie_build_context_pack",
+          "status": "in_progress",
+          "error": ""
+        },
+        {
+          "server": "pie-doctor-mesh",
+          "tool": "pie_build_context_pack",
+          "status": "completed",
+          "error": ""
+        }
+      ],
+      "final": "{\n  \"status\": \"VERIFIED_STATIC_CONTEXT\",\n  \"source_evidence_id\": \"pie:9069b70e218cbbafa7f6\",\n  \"definition\": {\n    \"symbol\": \"audit_component\",\n    \"binding\": \"ai_mesh_doctor/quality.py::module::audit_component\",\n    \"path\": \"ai_mesh_doctor/quality.py\",\n    \"line\": 158,\n    \"end_line\": 159,\n    \"signature\": \"def audit_component(obj, constraints=(), policy=None):\",\n    \"source\": \"def audit_component(obj, constraints=(), policy=None):\\n    return audit_mesh(obj.data,obj.matrix_world,constraints,policy)\"\n  },\n  \"callers\": [\n    {\n      \"path\": \"ai_mesh_doctor/batch.py\",\n      \"line\": 62,\n      \"consumer_symbol\": \"ComponentBatch.stage\",\n      \"resolution\": \"verified\",\n      \"source\": \"item['quality']=audit_component(obj,constraints)\"\n    },\n    {\n      \"path\": \"ai_mesh_doctor/capture.py\",\n      \"line\": 115,\n      \"consumer_symbol\": \"CaptureSession.__init__\",\n      \"resolution\": \"verified\",\n      \"source\": \"reports = [audit_component(obj) for obj in self.targets]\"\n    },\n    {\n      \"path\": \"ai_mesh_doctor/ui.py\",\n      \"line\": 627,\n      \"consumer_symbol\": \"MD_OT_accept_component.execute\",\n      \"resolution\": \"verified\",\n      \"source\": \"quality = audit_component(data['candidate'])\"\n    },\n    {\n      \"path\": \"tests/test_efficiency.py\",\n      \"line\": 118,\n      \"consumer_symbol\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\",\n      \"resolution\": \"verified\",\n      \"source\": \"self.assertTrue(audit_component(self.cube)['accepted'])\"\n    },\n    {\n      \"path\": \"tests/test_efficiency.py\",\n      \"line\": 119,\n      \"consumer_symbol\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\",\n      \"resolution\": \"verified\",\n      \"source\": \"self.assertFalse(audit_component(self.cube,policy=QualityPolicy(max_triangles=1))['accepted'])\"\n    },\n    {\n      \"path\": \"tests/test_efficiency.py\",\n      \"line\": 122,\n      \"consumer_symbol\": \"EfficiencyTests.test_closed_cube_passes_open_and_budget_cases_do_not\",\n      \"resolution\": \"verified\",\n      \"source\": \"self.assertFalse(audit_component(obj)['accepted'])\"\n    }\n  ],\n  \"coverage\": {\n    \"verified_direct_call_count\": 6,\n    \"returned_direct_call_count\": 6,\n    \"returned_verified_call_list_complete\": true,\n    \"static_analysis_coverage\": \"PARTIAL\",\n    \"exhaustive\": false,\n    \"limitations\": [\n      \"Static direct calls only; dynamic dispatch and indirect aliases may be missed\",\n      \"Unindexed and external consumers are outside the indexed project\",\n      \"Runtime breakage and behavioral impact are not established\"\n    ]\n  }\n}",
+      "raw_sha256": "a0d398c12b3d8854b3f17c341d3797d824f77aaafe60e7d680bf1a7ed0419469",
+      "sanitized_sha256": "4d8420fe06be203a0ffb5fa3eeca5f59ee7822378e03d02d26af9f2308e53313"
+    }
+  ]
+}
