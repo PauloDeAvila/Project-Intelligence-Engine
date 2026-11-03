@@ -119,3 +119,44 @@ No model-supplied identifier is accepted. The old `claims` and fixed
 This should be retested in the **isolated** environment before replacing the
 existing gateway. This is a contract correction, not proof of an improved
 selection score until a new real-model benchmark is run.
+
+## DES-02: grammar-constrained dynamic selection (experimental A/B)
+
+The second local Qwen benchmark measured **8/20** positive exact selections
+and 10/10 deterministic safe abstentions. Ten positive failures had
+`invalid_selection_shape`, and one additional response failed parsing.
+The prior benchmark had 12/20 and is **not** evidence of semantic regression
+until the raw shape differences are diagnosed. These statuses do not by
+themselves reveal the original model text.
+
+The new **opt-in** `dynamic_selection_schema` mode uses LM Studio's documented
+`response_format.type=json_schema` to constrain generation to an object
+containing exactly one key, `selected_fields`, whose array entries are enum
+names from the catalog. It **does not** include the answer key (required fields),
+source values, or any `evidence_id` in the model prompt or JSON Schema. PIE
+continues to enforce the independent relevance plan and source verification.
+The original `dynamic_selection`, `evidence_selection`, and `claims`
+contracts are retained unchanged.
+
+After updating the isolated candidate and restarting its Gateway in port 8766,
+run both conditions against the same 30-case fixture:
+
+~~~powershell
+$Base = Join-Path $env:USERPROFILE "pie-dynamic-evidence-planner"
+$Py = Join-Path $Base ".venv\\Scripts\\python.exe"
+$Tool = Join-Path $Base "source\\tools\\benchmark_dynamic_selection.py"
+& $Py $Tool --mode dynamic_selection --output (Join-Path $Base "des02-unconstrained.json")
+& $Py $Tool --mode dynamic_selection_schema --output (Join-Path $Base "des02-schema.json")
+~~~
+
+Both commands write JSON reports even when their final exit status is nonzero
+because some cases fail. Check the output files rather than interpreting a
+nonzero benchmark exit as an HTTP transport failure. For model proposals that
+fail structural validation, `model_validation.received_keys` lists only the
+property names, not their untrusted values. This allows us to check whether
+unexpected `evidence_id` fields are a frequent cause without leaking content.
+
+LM Studio structured JSON may not work reliably with all small local models.
+The point of this experiment is to measure that compatibility **without
+weakening the downstream guard**, not to declare success in advance. Abstention
+cases are screened by deterministic rules and may never call the model.
