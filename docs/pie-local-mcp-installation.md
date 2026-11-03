@@ -36,10 +36,11 @@ Um identificador `pie-<hash-da-raiz>` é estável por pasta de projeto, evitando
 | VS Code / agentes locais | `.vscode/mcp.json` | `{"servers": {...}}` |
 | Codex CLI ou extensão, escopo do projeto | `.codex/config.toml` | `[mcp_servers.pie-XXXXXXXXXX]` |
 | Claude Code (CLI e Code no desktop) | `.mcp.json` | `{"mcpServers": {...}}` |
+| Cursor | `.cursor/mcp.json` | `{"mcpServers": {...}}` |
 
 O executável configurado é o caminho absoluto do Python que executou `pie-setup`; os argumentos são `-m pie.interfaces.mcp_server --root <projeto>`. O servidor utiliza stdio local, não uma porta HTTP. Se houver uma entrada do PIE com o mesmo nome mas comando diferente, o instalador **não sobrescreve silenciosamente**: falha e pede revisão. Entradas de terceiros são preservadas.
 
-A configuração `.mcp.json` também usa o formato portátil compatível com alguns clientes Copilot; a estrutura de `.vscode/mcp.json` é diferente. VS Code pode descobrir os dois formatos: se mostrar duas instâncias do mesmo servidor, use apenas uma fonte de configuração. Em VS Code, abra **MCP: List Servers** e confira o registro; em Codex, use `codex mcp list`; em Claude Code, use `/mcp` ou `claude mcp list`. O cliente pode solicitar aprovação/confiança do servidor. Estar registrado não garante que um agente escolha automaticamente `pie_query`: configure instruções do agente para priorizá-lo.
+A configuração `.mcp.json` também usa o formato portátil compatível com alguns clientes Copilot; a estrutura de `.vscode/mcp.json` é diferente. VS Code pode descobrir os dois formatos: se mostrar duas instâncias do mesmo servidor, use apenas uma fonte de configuração. No Cursor, abra as configurações MCP e confira o registro do workspace. Em VS Code, abra **MCP: List Servers** e confira o registro; em Codex, use `codex mcp list`; em Claude Code, use `/mcp` ou `claude mcp list`. O cliente pode solicitar aprovação/confiança do servidor. Estar registrado não garante que um agente escolha automaticamente `pie_query`: configure instruções do agente para priorizá-lo.
 
 **Claude Desktop chat** (aplicação de conversas) possui configuração MCP diferente de **Claude Code**. O instalador atua em Claude Code. Não altera configurações globais nem o `claude_desktop_config.json`.
 
