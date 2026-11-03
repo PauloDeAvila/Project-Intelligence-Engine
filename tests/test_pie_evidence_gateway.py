@@ -90,6 +90,13 @@ class CertifiedGatewayTests(unittest.TestCase):
         with self.assertRaises(EvidenceError):
             build_evidence(self.root, "analyze_mesh")
 
+    def test_new_unindexed_caller_invalidates_global_coverage(self):
+        (self.root / "new_caller.py").write_text(
+            "from geometry import analyze_mesh\\ndef run():\\n"
+            "    return analyze_mesh(1, 2, 3)\\n", encoding="utf-8")
+        with self.assertRaisesRegex(EvidenceError, "STALE_PROJECT"):
+            build_evidence(self.root, "analyze_mesh")
+
     def test_ambiguous_symbol_rejected(self):
         (self.root / "second.py").write_text("def analyze_mesh(other):\n    return other\n", encoding="utf-8")
         index_project(self.root)
