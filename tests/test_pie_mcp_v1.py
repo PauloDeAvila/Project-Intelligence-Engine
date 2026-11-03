@@ -152,9 +152,8 @@ class MCPQueryTests(unittest.TestCase):
             except (OSError, NotImplementedError):
                 self.skipTest("Symlinks unavailable on this runner")
             with MCPContextEngine(self.root) as engine:
-                result = engine.query("Model", mode="navigation")
-                self.assertFalse(any("Secret outside root" in str(x)
-                                     for x in result.get("result", {}).get("evidence", [])))
+                with self.assertRaises(ValueError):
+                    engine.query("Model", mode="navigation")
 
     def test_changed_source_same_size_rejected_from_cache(self):
         with MCPContextEngine(self.root) as engine:
