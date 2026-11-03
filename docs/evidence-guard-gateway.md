@@ -101,8 +101,7 @@ above. Do not misrepresent MCP output as end-to-end supervision.
 & $Python -m unittest discover -s tests -v
 ```
 
-The test suite uses disposable Python fixtures and a fake model; it requires
-neither Blender nor LM Studio. The real Doctor Mesh/Qwen benchmark, Windows
+Run these test commands from a checkout of the repository branch, not from an arbitrary directory after a pip-only install. For example:\n\n\`\`\`powershell\ngit clone --branch feat/v1-evidence-guard-gateway --single-branch https://github.com/PauloDeAvila/Project-Intelligence-Engine.git PIE-Evidence-Gateway\ncd PIE-Evidence-Gateway\n& $Python -m unittest discover -s tests -v\n\`\`\`\n\nThe test suite uses disposable Python fixtures and a fake model; it requires\nneither Blender nor LM Studio. The real Doctor Mesh/Qwen benchmark, Windows
 compatibility and security review are separate release gates.
 
 ## Model-facing correction semantics
