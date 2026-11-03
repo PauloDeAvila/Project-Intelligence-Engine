@@ -58,6 +58,8 @@ def load_policy(path: Path, cases: list) -> dict:
             sum(len(section) for section in sections) != len(ALLOWED_FIELDS)
         ):
             raise ValueError(f"Gold field partition overlaps or omits fields: {case_id}")
+        if entry.get("question") != cases[case_id - 1][1]:
+            raise ValueError(f"Gold question drift detected: {case_id}")
         expected_abstain = cases[case_id - 1][2] is None
         if type(entry.get("abstain")) is not bool or entry["abstain"] != expected_abstain:
             raise ValueError(f"Gold abstention mismatch: {case_id}")
