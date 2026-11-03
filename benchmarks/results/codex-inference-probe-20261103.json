@@ -1,0 +1,22 @@
+{
+  "schema": "codex-token-run-v1",
+  "status": "probe_not_comparable",
+  "task": "audit_component",
+  "runs": [
+    {
+      "condition": "without_pie",
+      "duration_seconds": 19.8,
+      "usage": {"input_tokens": 168384, "cached_input_tokens": 132992, "output_tokens": 291, "reasoning_output_tokens": 20},
+      "mcp_executed": false,
+      "result": "unverified: terminal execution was blocked by policy"
+    },
+    {
+      "condition": "with_pie",
+      "duration_seconds": 27.78,
+      "usage": {"input_tokens": 79287, "cached_input_tokens": 65920, "output_tokens": 288, "reasoning_output_tokens": 75},
+      "mcp_executed": false,
+      "result": "unverified: pie_build_context_pack required approval and was blocked"
+    }
+  ],
+  "interpretation": "Token telemetry is real, but this is not a quality or PIE-vs-direct comparison because the MCP call did not execute in the with_pie run."
+}

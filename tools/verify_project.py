@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Fail-closed, standard-library CI validation runner. Configure ci/checks.json per project."""
 import json
+import os
 import pathlib
+import re
 import subprocess
 import sys
 import time
@@ -9,6 +11,31 @@ import time
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "ci" / "checks.json"
 TIERS = ("unit", "component", "integration", "e2e", "regression", "build")
+OUTPUT_LIMIT = 16_384
+_SECRET_NAME = re.compile(r"token|secret|password|passwd|api[_-]?key|authorization|credential|cookie", re.I)
+
+def redact(value):
+    """Best-effort credential redaction for diagnostic artifacts, not a DLP claim."""
+    if isinstance(value, bytes):
+        value = value.decode("utf-8", errors="replace")
+    text = str(value or "")
+    # Redact known environment credentials before applying format-based rules.
+    secrets = {v for k, v in os.environ.items() if _SECRET_NAME.search(k) and len(v) >= 4}
+    for secret in sorted(secrets, key=len, reverse=True):
+        text = text.replace(secret, "[REDACTED]")
+    text = re.sub(r"(?i)(bearer\s+)[A-Za-z0-9._~+/=-]+", r"\1[REDACTED]", text)
+    text = re.sub(r"(?i)((?:token|secret|password|passwd|api[_-]?key|authorization|credential|cookie)[\w-]*[\"']?\s*[:=]\s*[\"']?)[^\s,;\"']+", r"\1[REDACTED]", text)
+    text = re.sub(r"(https?://)[^\s/@]+:[^\s/@]+@", r"\1[REDACTED]@", text)
+    text = re.sub(r"-----BEGIN [^-]*PRIVATE KEY-----.*?-----END [^-]*PRIVATE KEY-----", "[REDACTED PRIVATE KEY]", text, flags=re.S)
+    return text
+
+def diagnostic_output(value):
+    text = redact(value)
+    encoded = text.encode("utf-8")
+    truncated = len(encoded) > OUTPUT_LIMIT
+    # Keep the tail: tracebacks and test failure summaries usually end there.
+    tail = encoded[-OUTPUT_LIMIT:].decode("utf-8", errors="ignore")
+    return {"text": tail, "truncated": truncated, "limit_bytes": OUTPUT_LIMIT}
 
 def validate_config(config):
     checks = config.get("checks")
@@ -38,14 +65,23 @@ def run(config):
             results.append({"tier": tier, "status": "not-applicable", "reason": entry["reason"]})
             continue
         start = time.monotonic()
+        command = list(entry["command"])
+        if command and command[0].lower() in {"python", "python3", "py"}:
+            command[0] = sys.executable
         try:
-            p = subprocess.run(entry["command"], cwd=ROOT, timeout=entry.get("timeout_seconds", 1200), check=False)
+            p = subprocess.run(command, cwd=ROOT, timeout=entry.get("timeout_seconds", 1200), check=False,
+                               capture_output=True, text=True, encoding="utf-8", errors="replace")
             code = p.returncode
             status = "passed" if code == 0 else "failed"
         except (OSError, subprocess.TimeoutExpired) as exc:
-            code, status = None, "blocked"
-            print(f"{tier}: {exc}", file=sys.stderr)
-        results.append({"tier": tier, "status": status, "returncode": code, "seconds": round(time.monotonic()-start, 2), "command": entry["command"]})
+            code, status, error = None, "blocked", str(exc)
+            stdout, stderr = getattr(exc, "stdout", None), getattr(exc, "stderr", None)
+        else:
+            error = None
+            stdout, stderr = p.stdout, p.stderr
+        results.append({"tier": tier, "status": status, "returncode": code, "seconds": round(time.monotonic()-start, 2), "command": [redact(arg) for arg in command],
+                        **({"error": redact(error)} if error is not None else {}),
+                        **({"stdout": diagnostic_output(stdout), "stderr": diagnostic_output(stderr)} if status != "passed" else {})})
         failure |= status != "passed"
     out = ROOT / "verification-results.json"
     out.write_text(json.dumps({"results": results}, indent=2) + "\n", encoding="utf-8")
