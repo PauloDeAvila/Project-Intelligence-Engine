@@ -106,6 +106,66 @@ class MCPQueryTests(unittest.TestCase):
             self.assertLessEqual(len(json.dumps(result, ensure_ascii=False,
                                                separators=(",", ":"))), 700)
 
+    def test_ambiguous_and_missing_symbols(self):
+        (self.root / "other.py").write_text(
+            'class Model:\n    """Alternate domain model."""\n    pass\n',
+            encoding="utf8")
+        index_project(self.root)
+        with MCPContextEngine(self.root) as engine:
+            ambiguous = engine.query("Model", mode="navigation")
+            self.assertEqual(ambiguous["lookup_status"], "AMBIGUOUS")
+            self.assertEqual(ambiguous["exact_match_count"], 2)
+            missing = engine.query("UnfindableUniqueClass999", mode="navigation")
+            self.assertEqual(missing["lookup_status"], "NOT_FOUND")
+            self.assertEqual(missing["relation_classes"]["inferred"], 0)
+
+    def test_mcp_bad_payloads_fail_closed(self):
+        with MCPContextEngine(self.root) as engine:
+            bad = [
+                [],
+                {"jsonrpc": "1.0", "id": 1, "method": "tools/list"},
+                {"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                 "params": []},
+                {"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                 "params": {"name": "pie_query", "arguments": {"query": "Model", "root": ".."}}},
+                {"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                 "params": {"name": "pie_query", "arguments": {"query": "Model", "limit": True}}},
+                {"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                 "params": {"name": "pie_query", "arguments": {"query": "X" * 4097}}},
+            ]
+            for request in bad:
+                result = dispatch(request, self.root, engine)
+                self.assertTrue("error" in result or
+                                result.get("result", {}).get("isError"), request)
+
+    def test_source_symlink_outside_root_not_disclosed(self):
+        with tempfile.TemporaryDirectory() as outside:
+            external = Path(outside) / "external.py"
+            external.write_text(
+                'class Model:\n    """Secret outside root."""\n    pass\n', encoding="utf8")
+            original = self.root / "models.py"
+            original.unlink()
+            try:
+                original.symlink_to(external)
+            except (OSError, NotImplementedError):
+                self.skipTest("Symlinks unavailable on this runner")
+            with MCPContextEngine(self.root) as engine:
+                result = engine.query("Model", mode="navigation")
+                self.assertFalse(any("Secret outside root" in str(x)
+                                     for x in result.get("result", {}).get("evidence", [])))
+
+    def test_changed_source_same_size_rejected_from_cache(self):
+        with MCPContextEngine(self.root) as engine:
+            engine.query("Model", mode="navigation")
+            source = self.root / "models.py"
+            content = source.read_text(encoding="utf8")
+            new = content.replace("Store validated model state.", "Store validated model STATE.")
+            self.assertEqual(len(content), len(new))
+            source.write_text(new, encoding="utf8")
+            result = engine.query("Model", mode="navigation")
+            self.assertFalse(result["metrics"]["cache_hit"])
+            self.assertTrue(result["metrics"]["reindexed"])
+
     def test_real_process_stdio_client(self):
         requests = [
             {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {
