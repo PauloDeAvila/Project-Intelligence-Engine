@@ -1,0 +1,418 @@
+{
+  "version": "DES03-human-reviewed-v1",
+  "description": "Independent question scoring: mandatory, acceptable optional and forbidden. The model never receives this file.",
+  "items": [
+    {
+      "case_id": 1,
+      "required": [
+        "path",
+        "line"
+      ],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": false
+    },
+    {
+      "case_id": 2,
+      "required": [
+        "path"
+      ],
+      "optional": [
+        "line"
+      ],
+      "forbidden": [
+        "signature",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": false
+    },
+    {
+      "case_id": 3,
+      "required": [
+        "path",
+        "line"
+      ],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": false
+    },
+    {
+      "case_id": 4,
+      "required": [
+        "line"
+      ],
+      "optional": [
+        "path"
+      ],
+      "forbidden": [
+        "signature",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": false
+    },
+    {
+      "case_id": 5,
+      "required": [
+        "path",
+        "line"
+      ],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": false
+    },
+    {
+      "case_id": 6,
+      "required": [
+        "signature"
+      ],
+      "optional": [],
+      "forbidden": [
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": false
+    },
+    {
+      "case_id": 7,
+      "required": [
+        "signature"
+      ],
+      "optional": [],
+      "forbidden": [
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": false
+    },
+    {
+      "case_id": 8,
+      "required": [
+        "signature"
+      ],
+      "optional": [],
+      "forbidden": [
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": false
+    },
+    {
+      "case_id": 9,
+      "required": [
+        "signature"
+      ],
+      "optional": [],
+      "forbidden": [
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": false
+    },
+    {
+      "case_id": 10,
+      "required": [
+        "signature"
+      ],
+      "optional": [],
+      "forbidden": [
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": false
+    },
+    {
+      "case_id": 11,
+      "required": [
+        "direct_call_count"
+      ],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_sites"
+      ],
+      "abstain": false
+    },
+    {
+      "case_id": 12,
+      "required": [
+        "direct_call_count"
+      ],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_sites"
+      ],
+      "abstain": false
+    },
+    {
+      "case_id": 13,
+      "required": [
+        "direct_call_count"
+      ],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_sites"
+      ],
+      "abstain": false
+    },
+    {
+      "case_id": 14,
+      "required": [
+        "direct_call_sites"
+      ],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_count"
+      ],
+      "abstain": false
+    },
+    {
+      "case_id": 15,
+      "required": [
+        "direct_call_sites"
+      ],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_count"
+      ],
+      "abstain": false
+    },
+    {
+      "case_id": 16,
+      "required": [
+        "signature",
+        "path",
+        "line"
+      ],
+      "optional": [],
+      "forbidden": [
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": false
+    },
+    {
+      "case_id": 17,
+      "required": [
+        "signature",
+        "path",
+        "line"
+      ],
+      "optional": [],
+      "forbidden": [
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": false
+    },
+    {
+      "case_id": 18,
+      "required": [
+        "signature",
+        "direct_call_count"
+      ],
+      "optional": [],
+      "forbidden": [
+        "path",
+        "line",
+        "direct_call_sites"
+      ],
+      "abstain": false
+    },
+    {
+      "case_id": 19,
+      "required": [
+        "signature",
+        "direct_call_sites"
+      ],
+      "optional": [],
+      "forbidden": [
+        "path",
+        "line",
+        "direct_call_count"
+      ],
+      "abstain": false
+    },
+    {
+      "case_id": 20,
+      "required": [
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line"
+      ],
+      "abstain": false
+    },
+    {
+      "case_id": 21,
+      "required": [],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": true
+    },
+    {
+      "case_id": 22,
+      "required": [],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": true
+    },
+    {
+      "case_id": 23,
+      "required": [],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": true
+    },
+    {
+      "case_id": 24,
+      "required": [],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": true
+    },
+    {
+      "case_id": 25,
+      "required": [],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": true
+    },
+    {
+      "case_id": 26,
+      "required": [],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": true
+    },
+    {
+      "case_id": 27,
+      "required": [],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": true
+    },
+    {
+      "case_id": 28,
+      "required": [],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": true
+    },
+    {
+      "case_id": 29,
+      "required": [],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": true
+    },
+    {
+      "case_id": 30,
+      "required": [],
+      "optional": [],
+      "forbidden": [
+        "signature",
+        "path",
+        "line",
+        "direct_call_count",
+        "direct_call_sites"
+      ],
+      "abstain": true
+    }
+  ]
+}
