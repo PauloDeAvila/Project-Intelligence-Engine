@@ -4,6 +4,7 @@ import time
 from pathlib import Path
 
 from pie import __version__
+from pie.telemetry.tokens import estimate, compare
 from pie.core.errors import ProjectNotInitializedError
 from pie.indexing.indexer import index_project
 from pie.retrieval.symbols import analysis_summary, find_definitions, find_references
@@ -146,10 +147,21 @@ def main(argv: list[str] | None = None) -> int:
     recall_cmd = subparsers.add_parser("recall")
     recall_cmd.add_argument("query", nargs="?", default="")
     recall_cmd.add_argument("--root", default=".")
+    tokens = subparsers.add_parser("tokens", help="Estimate text-only tokens")
+    source = tokens.add_mutually_exclusive_group(required=True)
+    source.add_argument("--text")
+    source.add_argument("--file", type=Path)
+    tokens.add_argument("--compare-file", type=Path)
+    tokens.add_argument("--model", default="unknown")
+    tokens.add_argument("--root", default=".")
     args = parser.parse_args(argv)
     root = project_root(args.root)
     try:
-        if args.command == "init": result = command_init(root)
+        if args.command == "tokens":
+            content = args.file.read_text(encoding="utf-8") if args.file else args.text
+            result = (compare(content, args.compare_file.read_text(encoding="utf-8"), args.model)
+                      if args.compare_file else estimate(content, args.model))
+        elif args.command == "init": result = command_init(root)
         elif args.command == "index": result = index_project(root) if (root / ".pie" / "index.sqlite3").exists() else command_init(root) | index_project(root)
         elif args.command == "status": result = command_status(root)
         elif args.command == "search": result = command_search(root, args.query)
