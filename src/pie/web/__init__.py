@@ -75,6 +75,19 @@ _INDEXING_EXPORTS = frozenset(
         "tokenize",
     }
 )
+_RELEVANCE_EXPORTS = frozenset(
+    {
+        "CandidateRanker",
+        "DecisionThresholdController",
+        "OmissionRecord",
+        "QuantifiedWebContext",
+        "RedundancyReducer",
+        "ReductionResult",
+        "RelevanceScorer",
+        "ScoredCandidate",
+        "WebRelevanceGate",
+    }
+)
 
 
 def __getattr__(name: str):
@@ -90,6 +103,10 @@ def __getattr__(name: str):
         from . import indexing
 
         value = getattr(indexing, name)
+    elif name in _RELEVANCE_EXPORTS:
+        from . import relevance
+
+        value = getattr(relevance, name)
     else:
         raise AttributeError(name)
     globals()[name] = value
@@ -136,6 +153,17 @@ if TYPE_CHECKING:
         SearchResponse,
         SemanticRoleMatcher,
         tokenize,
+    )
+    from .relevance import (
+        CandidateRanker,
+        DecisionThresholdController,
+        OmissionRecord,
+        QuantifiedWebContext,
+        RedundancyReducer,
+        ReductionResult,
+        RelevanceScorer,
+        ScoredCandidate,
+        WebRelevanceGate,
     )
 
 __all__ = [
@@ -192,4 +220,13 @@ __all__ = [
     "SearchResponse",
     "SemanticRoleMatcher",
     "tokenize",
+    "CandidateRanker",
+    "DecisionThresholdController",
+    "OmissionRecord",
+    "QuantifiedWebContext",
+    "RedundancyReducer",
+    "ReductionResult",
+    "RelevanceScorer",
+    "ScoredCandidate",
+    "WebRelevanceGate",
 ]
