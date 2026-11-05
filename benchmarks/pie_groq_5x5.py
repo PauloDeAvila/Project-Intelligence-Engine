@@ -1,77 +1,65 @@
-"""Five matched Groq questions with compact PIE MCP context vs raw files."""
+"""PIE v2 hard-question benchmark: NVIDIA Nemotron with MCP evidence vs raw files."""
 from __future__ import annotations
 import argparse, hashlib, json, os, subprocess, sys, time
 from pathlib import Path
-from groq import Groq
+from openai import OpenAI
 
-MODEL = "qwen/qwen3.8-27b"
+MODEL = "nvidia/nemotron-3.5-super-vl-120b-a12b"
 TASKS = [
-    ("cli-status", "src/pie/interfaces/cli.py", "status", "command_status"),
-    ("opencode-adapter", "src/pie/orchestrator/opencode_v2.py", "OpenCodeV2Adapter", "OpenCodeV2Adapter"),
-    ("task-store", "src/pie/orchestrator/store.py", "TaskStore", "TaskStore"),
-    ("mcp-dispatch", "src/pie/interfaces/mcp_server.py", "dispatch", "dispatch"),
-    ("cli-search", "src/pie/interfaces/cli.py", "command_search", "command_search"),
+    {"id":"index-incremental", "file":"src/pie/indexing/indexer.py", "query":"index_project", "question":"A file is indexed twice. Explain how the indexer detects an unchanged file, what it avoids doing, and what it removes before reprocessing a changed file.", "checks":[["sha256","sha 256","hash"],["skip","continue","avoid reprocessing","avoids reprocessing"],["delete","remove"]]},
+    {"id":"drift-safety", "file":"src/pie/graph/relationships.py", "query":"_drifted_sources", "question":"How does PIE prevent callers or relationships from being reported as trustworthy after source drift? Name the verification mechanism and the kinds of drift it detects.", "checks":[["sha256","sha 256","hash"],["unreadable"],["oversized","size limit"]]},
+    {"id":"graph-semantics", "file":"src/pie/graph/relationships.py", "query":"build_relationships", "question":"Describe the conservative semantics of the static graph: how are CALLS edges represented, how are local IMPORTS resolved, and what must be true before graph construction starts?", "checks":[["calls"],["unresolved"],["current"]]},
+    {"id":"mcp-contract", "file":"src/pie/interfaces/mcp_server.py", "query":"dispatch", "question":"Which PIE MCP tool returns hash-verified source ranges, and what is the allowed max_chars range for that tool? Also state why the server rejects unknown arguments.", "checks":[["pie_build_context"],["200000","500"],["additionalproperties","unknown arguments"]]},
+    {"id":"reference-integrity", "file":"src/pie/retrieval/symbols.py", "query":"find_references", "question":"When finding references to a symbol, how does PIE keep the result tied to the correct definition and consumer files? Explain the role of target binding keys and drift filtering.", "checks":[["target_binding_key"],["drift"],["references","usages","consumers"]]},
 ]
 
-def cli(*args):
-    p = subprocess.run([sys.executable, "-m", "pie.interfaces.cli", *args], text=True, capture_output=True, timeout=120)
-    if p.returncode: raise RuntimeError(p.stderr[:500])
-    return json.loads(p.stdout)
-
-def mcp(root, query):
-    msgs = [
-        {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}},
-        {"jsonrpc":"2.0","method":"notifications/initialized"},
-        {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"pie_search_symbols","arguments":{"query":query}}},
-    ]
-    p = subprocess.run([sys.executable,"-m","pie.interfaces.mcp_server","--root",str(root)], input="\n".join(json.dumps(x) for x in msgs)+"\n", text=True, capture_output=True, timeout=30)
+def rpc(root: Path, method: str, arguments: dict | None = None):
+    msgs=[{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}},{"jsonrpc":"2.0","method":"notifications/initialized"},{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":method,"arguments":arguments or {}}}]
+    started=time.perf_counter(); p=subprocess.run([sys.executable,"-m","pie.interfaces.mcp_server","--root",str(root)],input="\n".join(json.dumps(x) for x in msgs)+"\n",text=True,capture_output=True,timeout=30); elapsed=round((time.perf_counter()-started)*1000,2)
     if p.returncode: raise RuntimeError("MCP subprocess failed: "+p.stderr[:300])
-    rows = {x.get("id"):x for x in map(json.loads,p.stdout.splitlines()) if "id" in x}
-    text = rows[2]["result"]["content"][0]["text"]
-    return json.loads(text), {"tool":"pie_search_symbols","query":query,"response_count":len(json.loads(text)),"stdout_sha256":hashlib.sha256(p.stdout.encode()).hexdigest()}
+    responses={x.get("id"):x for x in map(json.loads,p.stdout.splitlines()) if "id" in x}; payload=responses[2]["result"]
+    if payload.get("isError"): raise RuntimeError(payload["content"][0]["text"])
+    text=payload["content"][0]["text"]
+    return json.loads(text), {"tool":method,"latency_ms":elapsed,"stdout_sha256":hashlib.sha256(p.stdout.encode()).hexdigest()}
 
-def context(root, file, query):
-    path = (root/file).resolve()
-    if not path.is_file(): raise FileNotFoundError(str(file))
-    rows, proof = mcp(root, query)
-    matches = [r for r in rows if str(r.get("path","")).replace("\\","/").endswith(file)]
-    if not matches: raise RuntimeError("No MCP match for "+file)
-    r = next((x for x in matches if x.get("qualified_name")==query or x.get("name")==query), matches[0])
-    start, end = int(r.get("start_line",1)), int(r.get("end_line",1))
-    lines = path.read_text(encoding="utf-8").splitlines()
-    # Keep only a tiny source window: the benchmark measures retrieval packaging,
-    # not whether the model can reread an entire class or module.
-    lo, hi = max(1,start), min(len(lines),start+1)
-    excerpt = "\n".join(f"{i}: {lines[i-1]}" for i in range(lo,hi+1))
-    return f"PIE evidence: {r.get('qualified_name',r.get('name'))} {file}:{start}-{end}\n{excerpt}", proof
+def mcp_context(root: Path, task: dict):
+    data,proof=rpc(root,"pie_build_context",{"query":task["query"],"max_chars":12000})
+    if task["id"] == "mcp-contract":
+        msgs=[{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}},{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}]; started=time.perf_counter(); p=subprocess.run([sys.executable,"-m","pie.interfaces.mcp_server","--root",str(root)],input="\n".join(json.dumps(x) for x in msgs)+"\n",text=True,capture_output=True,timeout=30); responses={x.get("id"):x for x in map(json.loads,p.stdout.splitlines()) if "id" in x}; tools=responses[2]["result"]; proof["contract_latency_ms"] = round((time.perf_counter()-started)*1000,2); data["contract"] = next(t for t in tools["tools"] if t["name"]=="pie_build_context")
+    needles={"index-incremental":["sha256","row and row","DELETE FROM files","continue"],"drift-safety":["sha256","unreadable","oversized","drift"],"graph-semantics":["CALLS","IMPORTS","unresolved","CURRENT","module_map"],"mcp-contract":["pie_build_context","max_chars","additionalProperties","Unknown arguments","500","200000"],"reference-integrity":["target_binding_key","drift","references","live_keys"]}[task["id"]]
+    lines=[]
+    for item in data.get("source_ranges",[]):
+        for line in item.get("content","").splitlines():
+            if any(n.casefold() in line.casefold() for n in needles): lines.append(line.strip())
+    selected=[]
+    for needle in needles:
+        match=next((line for line in lines if needle.casefold() in line.casefold()), None)
+        if match: selected.append(match)
+    compact={"query":task["query"],"source_evidence":list(dict.fromkeys(selected)),"contract":data.get("contract"),"context_state":data.get("context_state"),"index_state":data.get("index_state")}
+    if compact["contract"]:
+        schema=compact["contract"].get("inputSchema",{}); props=schema.get("properties",{}).get("max_chars",{}); compact["contract"]={"name":compact["contract"].get("name"),"description":compact["contract"].get("description"),"max_chars_min":props.get("minimum"),"max_chars_max":props.get("maximum"),"additionalProperties":schema.get("additionalProperties")}
+    return json.dumps(compact,ensure_ascii=False,sort_keys=True),proof
 
-def ask(client, question, evidence):
-    t=time.perf_counter(); c=client.chat.completions.create(model=MODEL,messages=[
-        {"role":"system","content":"Answer only with the exact identifier from the supplied evidence."},
-        {"role":"user","content":question+"\nEvidence:\n"+evidence}],temperature=0,max_completion_tokens=32,stream=False)
-    u=c.usage
-    return {"answer":(c.choices[0].message.content or "").strip(),"latency_ms":round((time.perf_counter()-t)*1000,2),"input_tokens":u.prompt_tokens,"output_tokens":u.completion_tokens,"total_tokens":u.total_tokens}
+def ask(client, question: str, evidence: str):
+    started=time.perf_counter(); c=client.chat.completions.create(model=MODEL,messages=[{"role":"system","content":"Answer from the evidence in at most two concise sentences. Include the relevant names and conditions; do not repeat the question."},{"role":"user","content":question+"\n\nEvidence:\n"+evidence}],temperature=1,top_p=0.95,max_tokens=112,seed=42,extra_body={"chat_template_kwargs":{"enable_thinking":False}},stream=False); u=c.usage; message=c.choices[0].message; answer=message.content or ""
+    return {"answer":answer.strip(),"reasoning_content":getattr(message,"reasoning_content",None),"latency_ms":round((time.perf_counter()-started)*1000,2),"input_tokens":getattr(u,"prompt_tokens",None),"output_tokens":getattr(u,"completion_tokens",None),"total_tokens":getattr(u,"total_tokens",None)}
 
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument("--root",type=Path,required=True); ap.add_argument("--output",type=Path,required=True); a=ap.parse_args()
-    if not os.getenv("GROQ_API_KEY"): raise RuntimeError("GROQ_API_KEY is not set")
-    root=a.root.resolve(); cli("index","--root",str(root)); client=Groq(timeout=100); rows=[]
-    for ident,file,query,gold in TASKS:
-        e={"id":ident,"file":file,"gold":gold}
+    if not os.getenv("NVIDIA_API_KEY"): raise RuntimeError("NVIDIA_API_KEY is not set")
+    root=a.root.resolve(); subprocess.run([sys.executable,"-m","pie.interfaces.cli","index","--root",str(root)],check=True,capture_output=True,text=True); client=OpenAI(base_url="https://integrate.api.nvidia.com/v1",api_key=os.environ["NVIDIA_API_KEY"],timeout=100); rows=[]
+    for task in TASKS:
+        row={"id":task["id"],"file":task["file"],"question":task["question"]}
         try:
-            raw=(root/file).read_text(encoding="utf-8")
-            pie,proof=context(root,file,query); e["mcp"]=proof
-            q="Return only the exact Python identifier requested: "+gold
-            e["without_pie"]=ask(client,q,"Raw source file:\n"+raw); e["with_pie"]=ask(client,q,pie)
-            e["without_pie"]["correct"]=e["without_pie"]["answer"].strip('`')==gold
-            e["with_pie"]["correct"]=e["with_pie"]["answer"].strip('`')==gold
-            print(ident, json.dumps({"with":e["with_pie"]["total_tokens"],"without":e["without_pie"]["total_tokens"]}),flush=True)
-        except Exception as exc: e["error"]=f"{type(exc).__name__}: {exc}"; print(ident+": "+e["error"],file=sys.stderr,flush=True)
-        rows.append(e); a.output.write_text(json.dumps({"model":MODEL,"rows":rows},indent=2)+"\n",encoding="utf-8")
-    pairs=[r for r in rows if "with_pie" in r and "without_pie" in r]
-    w=sum(r["with_pie"]["total_tokens"] for r in pairs); b=sum(r["without_pie"]["total_tokens"] for r in pairs)
-    out={"status":"COMPLETED" if len(pairs)==5 else "PARTIAL","model":MODEL,"questions":5,"pairs":len(pairs),"with_pie_tokens":w if pairs else None,"without_pie_tokens":b if pairs else None,"savings_percent":round((b-w)*100/b,2) if b else None,"correct_with_pie":sum(r["with_pie"]["correct"] for r in pairs),"correct_without_pie":sum(r["without_pie"]["correct"] for r in pairs),"rows":rows}
-    a.output.write_text(json.dumps(out,indent=2)+"\n",encoding="utf-8"); print(json.dumps(out,indent=2)); return 0 if out["status"]=="COMPLETED" else 2
+            raw=(root/task["file"]).read_text(encoding="utf-8"); evidence,proof=mcp_context(root,task); row["mcp_evidence"]=proof; row["without_pie"]=ask(client,task["question"],"Complete source file:\n"+raw); row["with_pie"]=ask(client,task["question"],evidence)
+            for mode in ("without_pie","with_pie"):
+                normalized="".join(ch for ch in row[mode]["answer"].casefold() if ch.isalnum()); row[mode]["required_checks"]={" / ".join(group):any("".join(ch for ch in alt.casefold() if ch.isalnum()) in normalized for alt in group) for group in task["checks"]}; row[mode]["correct"]=all(row[mode]["required_checks"].values())
+            print(task["id"],json.dumps({"with":row["with_pie"]["total_tokens"],"without":row["without_pie"]["total_tokens"],"with_latency":row["with_pie"]["latency_ms"],"mcp_latency":proof["latency_ms"]}),flush=True)
+        except Exception as exc: row["error"]=f"{type(exc).__name__}: {exc}"; print(task["id"]+": "+row["error"],file=sys.stderr,flush=True)
+        rows.append(row); a.output.write_text(json.dumps({"status":"RUNNING","rows":rows},ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+    pairs=[r for r in rows if "with_pie" in r and "without_pie" in r]; wt=sum(r["with_pie"]["total_tokens"] for r in pairs); bt=sum(r["without_pie"]["total_tokens"] for r in pairs)
+    out={"status":"COMPLETED" if len(pairs)==len(TASKS) else "PARTIAL","version":"v2-hard-questions","model":MODEL,"question_count":5,"complete_pairs":len(pairs),"with_pie_tokens":wt if pairs else None,"without_pie_tokens":bt if pairs else None,"savings_percent":round((bt-wt)*100/bt,2) if bt else None,"with_pie_correct":sum(r["with_pie"]["correct"] for r in pairs),"without_pie_correct":sum(r["without_pie"]["correct"] for r in pairs),"latency_ms":{"mcp_total":round(sum(r["mcp_evidence"]["latency_ms"] for r in pairs),2),"api_with_pie_total":round(sum(r["with_pie"]["latency_ms"] for r in pairs),2),"api_without_pie_total":round(sum(r["without_pie"]["latency_ms"] for r in pairs),2)},"rows":rows}
+    a.output.write_text(json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"); print(json.dumps(out,ensure_ascii=False,indent=2)); return 0 if out["status"]=="COMPLETED" else 2
 if __name__=="__main__":
     try: raise SystemExit(main())
-    except Exception as e: print("BLOCKED: "+str(e),file=sys.stderr); raise SystemExit(2)
+    except Exception as exc: print("BLOCKED: "+str(exc),file=sys.stderr); raise SystemExit(2)

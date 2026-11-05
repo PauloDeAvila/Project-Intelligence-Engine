@@ -1,0 +1,210 @@
+{
+  "status": "COMPLETED",
+  "version": "v2-hard-questions",
+  "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+  "question_count": 5,
+  "complete_pairs": 5,
+  "with_pie_tokens": 4176,
+  "without_pie_tokens": 13552,
+  "savings_percent": 69.19,
+  "with_pie_correct": 1,
+  "without_pie_correct": 2,
+  "latency_ms": {
+    "mcp_total": 607.76,
+    "api_with_pie_total": 15118.42,
+    "api_without_pie_total": 15833.33
+  },
+  "rows": [
+    {
+      "id": "index-incremental",
+      "file": "src/pie/indexing/indexer.py",
+      "question": "A file is indexed twice. Explain how the indexer detects an unchanged file, what it avoids doing, and what it removes before reprocessing a changed file.",
+      "mcp_evidence": {
+        "tool": "pie_build_context",
+        "latency_ms": 105.67,
+        "stdout_sha256": "5214e12264d3042fe94dad2375ca3a8ef1235feb1b40c176ae8a6de55db0f4a5"
+      },
+      "without_pie": {
+        "answer": "",
+        "reasoning_content": "The user wants me to answer based on the provided code evidence. I need to explain:\n1. How the indexer detects an unchanged file\n2. What it avoids doing (for unchanged files)\n3. What it removes before reprocessing a changed file\n\nConstraints:\n- At most two concise sentences\n- Include relevant names and conditions\n- Do not repeat the question\n\nLet me analyze the code:\n\n1. Unchanged file detection:\n   - It queries `SELECT id, sha256 FROM files WHERE path = ?`\n   - If `row` exists AND `row[\"sha256\"] == record.sha256`, it `continue`s (skips processing)\n\n2. What it avoids doing:\n   - For unchanged files, it avoids reprocessing/parsing/inserting symbols/imports (skips via `continue`)\n   - Specifically avoids deleting and reinserting the file row and its related data\n\n3. What it removes before reprocessing a changed file:\n   - If row exists but sha256 differs: `DELETE FROM files WHERE id = ?` \n   - The comment says: \"Deleting the file row cascades to definitions, usages, star imports and analysis state\"\n   - So it deletes the file row by id, which cascades to related tables\n\nLet me draft two concise sentences:\n\nSentence 1: The indexer detects an unchanged file when a `files` row exists for the path and the stored `sha256` matches `record.sha256`, in which case it `continue`s and avoids re-parsing, deleting, or reinserting the file and its symbols/imports.\n\nSentence 2: For a changed file (matching path but differing sha256), it first `DELETE FROM files WHERE id = ?`, which cascades to definitions, usages, star imports, and analysis state before reprocessing.\n\nWait, I need to check: does it delete before reprocessing? Yes:\n```python\nif row:\n    connection.execute(\"DELETE FROM files WHERE id = ?\", (row[\"id\"],))\nchanged.add(relative)\nsymbols, imports, parse_error = parse_python_content(...)\ncursor = connection.execute(\"INSERT INTO files...\")\n```\n\nSo it deletes the old row first, then parses and inserts new.\n\nLet me make it concise and include relevant names/conditions.\n\nDraft:\nAn unchanged file is detected when `SELECT id, sha256",
+        "latency_ms": 3455.93,
+        "input_tokens": 1812,
+        "output_tokens": 512,
+        "total_tokens": 2324,
+        "required_checks": {
+          "sha256 / sha 256 / hash": false,
+          "skip / avoid reprocessing / avoids reprocessing": false,
+          "delete / remove": false
+        },
+        "correct": false
+      },
+      "with_pie": {
+        "answer": "It detects an unchanged file when the stored SHA256 hash in `files` matches `record.sha256`, then skips reprocessing with `continue`. Before reprocessing a changed file, it deletes the existing row from `files` by",
+        "reasoning_content": "The user wants me to answer based on the provided evidence in at most two concise sentences. I need to explain:\n1. How the indexer detects an unchanged file\n2. What it avoids doing\n3. What it removes before reprocessing a changed file\n\nFrom evidence:\n- `row = connection.execute(\"SELECT id, sha256 FROM files WHERE path = ?\", (relative,)).fetchone()`\n- `if row and row[\"sha256\"] == record.sha256: continue` -> detects unchanged by comparing SHA256 hashes; avoids reprocessing (continues/skips)\n- `connection.execute(\"DELETE FROM files WHERE id = ?\", (row[\"id\"],))` -> removes the old row by ID before reprocessing a changed file\n\nAlso there's `connection.execute(\"DELETE FROM files WHERE path = ?\", (old_path,))` which might be for renames, but the question specifically asks about unchanged vs changed file.\n\nLet me draft:\n\"The indexer compares the stored SHA256 hash with the file's current hash; if they match, it skips reprocessing. For changed files, it deletes the existing row by ID before reinserting the updated record.\"\n\nThat's two sentences, concise, includes relevant names (SHA256, id, files table). Let me check constraints: at most two concise sentences. Include relevant names and conditions. Do not repeat question.\n\nSentence 1: \"It detects an unchanged file by comparing the stored SHA256 hash in the files table with the current record's hash and skips further processing if they match.\"\nSentence 2: \"For a changed file, it removes the existing row by its id before reprocessing and reinserting the record.\"\n\nWait, does it avoid doing something? Yes, it avoids reprocessing/continuing. Mention \"continue\".\n\nLet's refine:\n\"The indexer detects an unchanged file when the SHA256 hash in the files table equals the current record's hash, then skips reprocessing via continue. Before reprocessing a changed file, it deletes the existing row from files by id.\"\n\nTwo sentences. Good.",
+        "latency_ms": 2575.39,
+        "input_tokens": 268,
+        "output_tokens": 512,
+        "total_tokens": 780,
+        "required_checks": {
+          "sha256 / sha 256 / hash": true,
+          "skip / avoid reprocessing / avoids reprocessing": true,
+          "delete / remove": true
+        },
+        "correct": true
+      }
+    },
+    {
+      "id": "drift-safety",
+      "file": "src/pie/graph/relationships.py",
+      "question": "How does PIE prevent callers or relationships from being reported as trustworthy after source drift? Name the verification mechanism and the kinds of drift it detects.",
+      "mcp_evidence": {
+        "tool": "pie_build_context",
+        "latency_ms": 121.8,
+        "stdout_sha256": "139cf035bc1cf7329e52774d1867e8e37b5c7446c21765edc7bf0f75b511bfda"
+      },
+      "without_pie": {
+        "answer": "PIE verifies trustworthiness by comparing the stored `relations_fingerprint` against a freshly computed SHA-256 index fingerprint and by running `_drifted_sources`; if `index_state` or `relations_source_state` is not `CURRENT`, the fingerprints mismatch, or",
+        "reasoning_content": "The user wants to know how PIE prevents callers or relationships from being reported as trustworthy after source drift. I need to name the verification mechanism and the kinds of drift it detects, based on the provided evidence.\n\nKey evidence:\n- `get_relationships` checks `index_state`, `relations_source_state`, and `relations_fingerprint`.\n- It computes `fresh` by comparing `saved` fingerprint to `_index_fingerprint(conn)` and checks `not drifted`.\n- `drifted = _drifted_sources(conn, root)`.\n- `_drifted_sources` verifies all indexed files by comparing sha256 hashes, detects additions, deletions, unreadable files/directories, oversized files, and path/content mismatches.\n- If drift exists or fingerprint doesn't match, `relations_state` becomes 'STALE', so relationships are not reported as CURRENT/trustworthy.\n\nThe verification mechanism: source fingerprinting via SHA-256 hash comparison of indexed files against current filesystem state, plus checking `relations_source_state` == 'CURRENT' and `relations_fingerprint` matching `_index_fingerprint`.\n\nKinds of drift detected: file content changes (sha256 mismatch), file additions, deletions, unreadable files, unreadable directories, oversized files.\n\nNeed at most two concise sentences. Include relevant names and conditions. Do not repeat the question.\n\nDraft:\nPIE recomputes a SHA-256 index fingerprint (`relations_fingerprint`) and runs `_drifted_sources` to compare every indexed path/hash against the current filesystem; if the index is not CURRENT, the fingerprint mismatches, or any drift is found, `relations_state` is set to STALE so edges are not trusted. `_drifted_sources` detects content changes, additions, deletions, unreadable files or directories, and oversized files.\n\nThat's two sentences. Let me check conciseness and relevance. It names `relations_fingerprint`, `_drifted_sources`, `relations_state`, and conditions. It names drift kinds. Good.\n\nMake sure not to repeat the question. Done.",
+        "latency_ms": 2900.46,
+        "input_tokens": 2059,
+        "output_tokens": 512,
+        "total_tokens": 2571,
+        "required_checks": {
+          "sha256 / sha 256 / hash": true,
+          "unreadable": false,
+          "oversized / size limit": false
+        },
+        "correct": false
+      },
+      "with_pie": {
+        "answer": "PIE runs `_drifted_sources` to re-index paths and compare observed SHA256 digests against stored index entries, invalidating trust when `context_state` is `STALE` while `index_state` is `C",
+        "reasoning_content": "The user wants to know how PIE prevents callers or relationships from being reported as trustworthy after source drift. They want the verification mechanism and kinds of drift it detects, based on the provided evidence. Answer in at most two concise sentences. Include relevant names and conditions; do not repeat the question.\n\nEvidence: `_drifted_sources` function verifies indexed files and discovers additions, deletions, unreadable paths, oversized paths. It compares indexed SHA256 hashes to observed hashes. Drift types include: missing_from_index, file_unreadable, source_hash_mismatch, unreadable-directory, oversized. Context state STALE, index state CURRENT.\n\nMechanism: `_drifted_sources` re-indexes files and compares SHA256 digests against the index. Kinds of drift: additions, deletions, hash mismatches (source_hash_mismatch), unreadable files/directories (file_unreadable, <unreadable-directory>), oversized files.\n\nNeed to be concise, max two sentences. Mention relevant names and conditions.\n\nDraft:\nPIE uses `_drifted_sources` to re-scan files and compare current SHA256 digests to the stored index, marking drift when context_state is STALE while index_state is CURRENT. It detects added, deleted, missing_from_index, source_hash_mismatch, file_unreadable, oversized, and <unreadable-directory> drift conditions.\n\nThat's two sentences. Need to ensure it answers how it prevents callers/relationships from being reported as trustworthy: by detecting drift and presumably invalidating trust. But evidence only shows detection. We can say it flags drift so stale callers/relationships aren't trusted.\n\nLet's refine:\n\nPIE runs `_drifted_sources` to re-index paths and compare observed SHA256 hashes against stored index entries, invalidating trust when context_state is STALE and index_state is CURRENT. It detects additions, deletions, `missing_from_index`, `source_hash_mismatch`, `file_unreadable`, oversized files, and `<unreadable-directory>` drift.\n\nThat's two sentences. Good.",
+        "latency_ms": 2823.49,
+        "input_tokens": 492,
+        "output_tokens": 512,
+        "total_tokens": 1004,
+        "required_checks": {
+          "sha256 / sha 256 / hash": true,
+          "unreadable": false,
+          "oversized / size limit": false
+        },
+        "correct": false
+      }
+    },
+    {
+      "id": "graph-semantics",
+      "file": "src/pie/graph/relationships.py",
+      "question": "Describe the conservative semantics of the static graph: how are CALLS edges represented, how are local IMPORTS resolved, and what must be true before graph construction starts?",
+      "mcp_evidence": {
+        "tool": "pie_build_context",
+        "latency_ms": 143.05,
+        "stdout_sha256": "a6b88a967ce9f6bfb77e6ccf80006dd7ea5285ea183bd396e8ae43e360345493"
+      },
+      "without_pie": {
+        "answer": "",
+        "reasoning_content": "The user wants me to describe the conservative semantics of the static graph based on the provided code evidence. Specifically:\n1. How are CALLS edges represented?\n2. How are local IMPORTS resolved?\n3. What must be true before graph construction starts?\n\nConstraints: Answer from evidence in at most two concise sentences. Include relevant names and conditions; do not repeat the question.\n\nLet me extract the relevant evidence:\n\n1. CALLS edges: From the code:\n```python\nelif isinstance(node, ast.Call):\n    expr = _expression(node.func)\n    if not expr:\n        continue\n    sym = _enclosing_symbol(conn, file['id'], node.lineno)\n    conn.execute('INSERT OR IGNORE INTO relations(...) VALUES (?,?,?,?,?,?,?)',\n        (file['id'], sym['id'] if sym else None, 'CALLS', expr, None, node.lineno, 'unresolved'))\n    count += 1\n```\nSo CALLS edges are recorded as syntactic evidence with target_expression = the callee expression (Name or Attribute dotted string), target_file_id = None, resolution_status = 'unresolved', source_symbol_id = enclosing symbol id or None.\n\n2. Local IMPORTS resolved: From code:\n```python\nmodule_map = {row['path'][:-3].replace('/', '.'): row['id'] for row in files if row['path'].endswith('.py')}\n...\nfor name, level in names:\n    # Relative imports require package semantics and stay unresolved.\n    target = module_map.get(name) if not level else None\n    ...\n    resolution_status = 'verified' if target is not None else 'unresolved'\n```\nSo local imports are resolved by exact module path match against a module_map built from indexed .py files (path sans .py, slashes replaced with dots). Relative imports (level set) stay unresolved. Status is 'verified' if target found, else 'unresolved'.\n\n3. What must be true before graph construction starts:\n```python\ndef build_relationships(root: Path) -> dict[str, object]:\n    root = Path(root).resolve()\n    db = root / '.pie' / 'index.sqlite3'\n    if not db.is_file():\n        raise ValueError('Run pie index first')\n    conn = connect(db)\n    try:\n        state = conn.execute(\"SELECT value FROM metadata WHERE key='index_state'\").fetchone()\n        if not state or state[0] !=",
+        "latency_ms": 3299.33,
+        "input_tokens": 2063,
+        "output_tokens": 512,
+        "total_tokens": 2575,
+        "required_checks": {
+          "calls": false,
+          "unresolved": false,
+          "current": false
+        },
+        "correct": false
+      },
+      "with_pie": {
+        "answer": "",
+        "reasoning_content": "The user wants me to answer based on the provided evidence (a JSON containing code snippets and comments). The question asks about conservative semantics of the static graph:\n1. How are CALLS edges represented?\n2. How are local IMPORTS resolved?\n3. What must be true before graph construction starts?\n\nI need to answer in at most two concise sentences. Include relevant names and conditions. Do not repeat the question.\n\nLet's extract from evidence:\n- `if not state or state[0] != 'CURRENT': raise ValueError('Index must be CURRENT before building relationships')` -> Index state must be CURRENT before building relationships.\n- `module_map = {row['path'][:-3].replace('/', '.'): row['id'] for row in files if row['path'].endswith('.py')}` -> maps module paths to ids.\n- `# Relative imports require package semantics and stay unresolved.` -> local/relative imports stay unresolved.\n- `target = module_map.get(name) if not level else None` -> if level (relative import), target is None. Otherwise look up in module_map.\n- `(file['id'], None, 'IMPORTS', ('.' * (level or 0)) + name, target, node.lineno, 'verified' if target is not None else 'unresolved'))` -> IMPORTS edges have target None for relative imports, marked unresolved.\n- `(file['id'], sym['id'] if sym else None, 'CALLS', expr, None, node.lineno, 'unresolved'))` -> CALLS edges are represented as tuples with file id, symbol id (or None), 'CALLS', expr, None, lineno, 'unresolved'. They are unresolved.\n- `conn.execute(\"INSERT INTO metadata(key,value) VALUES ('relations_source_state','CURRENT') ON CONFLICT(key) DO UPDATE SET value=excluded.value\")` -> sets relations_source_state to CURRENT.\n\nSo answer:\nCALLS edges are stored as (file id, symbol id or None, 'CALLS', expression, None, line number, 'unresolved'), remaining unresolved. Local/relative IMPORTS (level > 0) are left unresolved with target None; absolute imports resolve via module_map to a verified target when found. Graph construction requires the index state to be CURRENT before build_relationships runs.\n\nNeed to be at most two concise sentences. Let's combine.\n\nSentence",
+        "latency_ms": 2964.27,
+        "input_tokens": 318,
+        "output_tokens": 512,
+        "total_tokens": 830,
+        "required_checks": {
+          "calls": false,
+          "unresolved": false,
+          "current": false
+        },
+        "correct": false
+      }
+    },
+    {
+      "id": "mcp-contract",
+      "file": "src/pie/interfaces/mcp_server.py",
+      "question": "Which PIE MCP tool returns hash-verified source ranges, and what is the allowed max_chars range for that tool? Also state why the server rejects unknown arguments.",
+      "mcp_evidence": {
+        "tool": "pie_build_context",
+        "latency_ms": 111.07,
+        "stdout_sha256": "4f865414be7966611b4831a3ba75cf32c2f4a67213477290da1a01731b02a6fc",
+        "contract_latency_ms": 115.61
+      },
+      "without_pie": {
+        "answer": "`pie_build_context` returns hash-verified source ranges and allows `max_chars` from 500 to 200000 inclusive. The server rejects unknown arguments because every tool schema sets `additionalProperties: False`, causing dispatch to raise `ValueError('Unknown arguments')` for any key not listed in `inputSchema.properties`.",
+        "reasoning_content": "The user is asking about a specific PIE MCP tool that returns hash-verified source ranges, and its max_chars range. They also want to know why the server rejects unknown arguments.\n\nFrom the evidence:\n- `pie_build_context` has description \"Retrieve hash-verified source ranges for a task/symbol.\"\n- Its inputSchema: `max_chars` has `minimum: 500`, `maximum: 200000`.\n- Unknown arguments are rejected because `additionalProperties: False` in the inputSchema, and dispatch checks `if set(args) - set(allowed['inputSchema']['properties']): raise ValueError('Unknown arguments')`.\n\nNeed answer in at most two concise sentences. Include relevant names and conditions; do not repeat the question.\n\nDraft:\n`pie_build_context` returns hash-verified source ranges and allows `max_chars` between 500 and 200000 inclusive. The server rejects unknown arguments because every tool schema sets `additionalProperties: False`, so dispatch raises `ValueError('Unknown arguments')` for any key not in `inputSchema.properties`.\n\nThat's two sentences. Good.",
+        "latency_ms": 3001.51,
+        "input_tokens": 1650,
+        "output_tokens": 312,
+        "total_tokens": 1962,
+        "required_checks": {
+          "pie_build_context": true,
+          "200000 / 500": true,
+          "additionalproperties / unknown arguments": true
+        },
+        "correct": true
+      },
+      "with_pie": {
+        "answer": "",
+        "reasoning_content": "The user is asking about a PIE MCP tool that returns hash-verified source ranges, and the allowed max_chars range for that tool. Also why the server rejects unknown arguments.\n\nLooking at the evidence:\n- \"pie_build_context\":lambda:build_context(root,args['query'],args.get('max_chars',12000)),\n- self.assertIn('pie_build_context',[x['name'] for x in dispatch({'id':2,'method':'tools/list'},self.root)['result']['tools']])\n- reply=dispatch({'id':3,'method':'tools/call','params':{'name':'pie_build_context','arguments':{'query':'greet'}}},self.root)\n- raise ValueError('Unknown arguments')\n\nThe tool name is `pie_build_context`. The max_chars default is 12000. But the question asks for \"allowed max_chars range\". The evidence only shows `args.get('max_chars',12000)`, which is a default of 12000. It doesn't explicitly state a range. Hmm.\n\nWait, the question mentions \"hash-verified source ranges\". The evidence provided doesn't explicitly mention hash-verified source ranges. But among the evidence, the only tool named is `pie_build_context`. The question presupposes that this tool returns hash-verified source ranges. We need to answer based on evidence.\n\nThe allowed max_chars range: evidence shows default 12000. It doesn't give a min/max range explicitly. But maybe the answer expected is that max_chars defaults to 12000. The question says \"what is the allowed max_chars range for that tool?\" Perhaps from the evidence, max_chars is optional with default 12000. There's no explicit range in the evidence. But maybe the answer is just 12000? Or maybe the range is something like up to 12000? Let's be careful.\n\nThe evidence: `args.get('max_chars',12000)` means if not provided, default is 12000. No range specified. The question might be from a larger context where max_chars range is known, but we only have this evidence. We must answer from evidence in at most two concise sentences. Include relevant names and conditions; do not repeat the question.\n\nWe can say: `pie_build_context` is the tool; `max_chars`",
+        "latency_ms": 2596.72,
+        "input_tokens": 218,
+        "output_tokens": 512,
+        "total_tokens": 730,
+        "required_checks": {
+          "pie_build_context": false,
+          "200000 / 500": false,
+          "additionalproperties / unknown arguments": false
+        },
+        "correct": false
+      }
+    },
+    {
+      "id": "reference-integrity",
+      "file": "src/pie/retrieval/symbols.py",
+      "question": "When finding references to a symbol, how does PIE keep the result tied to the correct definition and consumer files? Explain the role of target binding keys and drift filtering.",
+      "mcp_evidence": {
+        "tool": "pie_build_context",
+        "latency_ms": 126.17,
+        "stdout_sha256": "569e1d596689766fb83e8d3e2d4dd3cd1d1a72610a151c37b3690658f9a3af59"
+      },
+      "without_pie": {
+        "answer": "PIE binds references to definitions by matching `usages.target_binding_key` to the `binding_key` of live symbol definitions, then keeps only rows whose consumer file and target definition file both survive `_drifted_sources` verification. Drift",
+        "reasoning_content": "The user is asking about how PIE keeps symbol references tied to correct definitions and consumer files, specifically the role of target binding keys and drift filtering. I need to answer based on the evidence provided, in at most two concise sentences, including relevant names and conditions, without repeating the question.\n\nKey evidence:\n- `find_references` queries `usages` where `u.target_binding_key IN (keys of matching definitions)`.\n- Definitions are identified by `binding_key`.\n- Drift filtering: `_drifted_sources` compares current file SHA-256 hashes against stored hashes for both target definition files and consumer usage files.\n- Rows are kept only if neither side drifted: `kept_rows` requires `row[\"path\"] not in drift and row[\"target_binding_key\"] in live_keys` where `live_keys` excludes drifted target definitions.\n- Results report `excluded_stale` and `state` (CURRENT/STALE).\n\nSo answer should mention:\n1. References are matched to definitions via `target_binding_key` (binding key from `definitions` table), and consumers are tied via usage rows referencing that key; only rows where both the consumer file and target definition file pass hash verification are kept.\n2. Drift filtering recomputes SHA-256 of involved source files (definitions and consumers) and excludes any row whose path drifted (hash mismatch/missing/unreadable), marking state STALE and listing excluded_stale paths.\n\nNeed at most two concise sentences. Let's craft:\n\nPIE locates a symbol’s definitions by `binding_key`, then selects `usages` whose `target_binding_key` matches one of those live keys, so each reference is bound to a specific definition and its consumer file. Before returning results, `_drifted_sources` re-hashes every source backing the answer and drops any row whose consumer path or target definition path has changed, is missing, or is unreadable, reporting them as `excluded_stale` with a `STALE` state.\n\nThat's two sentences. It includes relevant names (binding_key, target_binding_key, _drifted_sources, excluded_stale, STALE). It explains conditions. Good.",
+        "latency_ms": 3176.1,
+        "input_tokens": 3608,
+        "output_tokens": 512,
+        "total_tokens": 4120,
+        "required_checks": {
+          "target_binding_key": true,
+          "drift": true,
+          "references": true
+        },
+        "correct": true
+      },
+      "with_pie": {
+        "answer": "",
+        "reasoning_content": "The user is asking about how PIE keeps find_references results tied to the correct definition and consumer files, specifically about target binding keys and drift filtering.\n\nFrom the evidence:\n1. `find_references` returns references with query, references, definitions, warning\n2. SQL query uses `WHERE u.target_binding_key IN ({placeholders})` - so target binding keys are used to match usage rows to targets/definitions\n3. `drift = _drifted_sources(` - detects stale/drifted sources\n4. `live_keys = {row[\"binding_key\"] for row in targets if row[\"path\"] not in drift}` - live binding keys exclude drifted paths\n5. `kept_targets = [row for row in targets if row[\"path\"] not in drift]` - filter targets by drift\n6. `if row[\"path\"] not in drift and row[\"target_binding_key\"] in live_keys` - condition to keep references\n7. References include \"target\": row[\"target_binding_key\"]\n8. If drift, result includes \"excluded_stale\": _excluded(drift)\n\nSo the mechanism:\n- Target binding keys uniquely tie usage rows to specific symbol definitions (targets), ensuring references point to the correct definition rather than just matching names.\n- Drift filtering identifies stale context sources (STALE context_state vs CURRENT index_state) and excludes their paths from live_keys and kept_targets, filtering out references from drifted/stale files so results stay consistent with the current index.\n\nI need to answer in at most two concise sentences. Include relevant names and conditions. Do not repeat the question.\n\nLet me draft:\n\nPIE matches usage rows to symbol definitions using target_binding_key in the USAGE_SELECT WHERE clause, so each reference carries its target key and stays tied to the correct definition. It computes drift via _drifted_sources, builds live_keys and kept_targets from targets whose path is not in drift, and only retains rows where path is not in drift and target_binding_key is in live_keys, excluding stale paths as excluded_stale.\n\nThat's two sentences. Concise enough. Includes names: target_binding_key, USAGE_SELECT, _drifted_sources, live_keys, kept_targets, drift, excluded_stale, path. Conditions: row[\"path\"] not in drift and row[\"target_binding_key\"] in live_keys.\n\nLet me check against constraints: at most two concise sentences. Yes. Include relevant names",
+        "latency_ms": 4158.55,
+        "input_tokens": 320,
+        "output_tokens": 512,
+        "total_tokens": 832,
+        "required_checks": {
+          "target_binding_key": false,
+          "drift": false,
+          "references": false
+        },
+        "correct": false
+      }
+    }
+  ]
+}
