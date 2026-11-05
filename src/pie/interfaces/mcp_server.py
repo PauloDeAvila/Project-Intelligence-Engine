@@ -11,6 +11,7 @@ from pathlib import Path
 
 from pie.graph.relationships import build_relationships, get_relationships
 from pie.retrieval.task_memory import start_task, record_task, resume_task
+from pie.retrieval.task_search import search_tasks
 from pie.interfaces.mcp_context import MCPContextEngine
 from pie.retrieval.context import build_context
 from pie.interfaces.cli import command_status, command_search, command_symbol
@@ -19,6 +20,7 @@ from pie.retrieval.evidence import build_evidence
 from pie.retrieval.context_pack import build_context_pack
 
 TOOLS = [
+    {'name':'pie_task_search', 'description':'Search project-local task memories by lexical terms; all entries are agent-supplied unverified claims, with source references.', 'inputSchema':{'type':'object','properties':{'query':{'type':'string'},'limit':{'type':'integer','minimum':1,'maximum':20},'max_chars':{'type':'integer','minimum':1000,'maximum':64000}},'required':['query'],'additionalProperties':False}},
     {'name':'pie_task_start', 'description':'Start an explicit project-scoped persistent task; records only the supplied objective.', 'inputSchema':{'type':'object','properties':{'objective':{'type':'string'}},'required':['objective'],'additionalProperties':False}},
     {'name':'pie_task_record', 'description':'Atomically append an explicit action, decision, result, checkpoint or note; optionally change task status.', 'inputSchema':{'type':'object','properties':{'task_id':{'type':'string'},'kind':{'type':'string','enum':['action','decision','result','checkpoint','note']},'text':{'type':'string'},'reference':{'type':'string'},'status':{'type':'string','enum':['in_progress','blocked','completed']}},'required':['task_id','kind','text'],'additionalProperties':False}},
     {'name':'pie_task_resume', 'description':'Recover latest unfinished or blocked task, or one by ID, from project-local SQLite; bounded event history.', 'inputSchema':{'type':'object','properties':{'task_id':{'type':'string'},'limit':{'type':'integer','minimum':1,'maximum':100}},'additionalProperties':False}},
@@ -84,6 +86,7 @@ def dispatch(request: dict, root: Path, engine: MCPContextEngine | None = None) 
             if 'mode' in args and args['mode'] not in ('responsibility','navigation','impact'):
                 raise ValueError('Invalid mode')
             functions = {
+                'pie_task_search':lambda:search_tasks(root,args['query'],limit=args.get('limit',10),max_chars=args.get('max_chars',12000)),
                 'pie_task_start':lambda:start_task(root,args['objective']),
                 'pie_task_record':lambda:record_task(root,args['task_id'],args['kind'],args['text'],reference=args.get('reference'),status=args.get('status')),
                 'pie_task_resume':lambda:resume_task(root,args.get('task_id'),args.get('limit',30)),
