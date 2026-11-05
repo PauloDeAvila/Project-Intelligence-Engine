@@ -110,6 +110,8 @@ def run_once(
     config: dict[str, Any],
     api: GitLabClient,
     orchestrator: Orchestrator,
+    *,
+    execute: bool = False,
 ) -> dict[str, int]:
     setting = safe_poll_config(config)
     permitted = set(setting["allowed_author_ids"])
@@ -126,7 +128,8 @@ def run_once(
                 issue.get("project_id") != setting["project_id"] or
                 not isinstance(author, dict) or
                 author.get("id") not in permitted or
-                setting["label"] not in issue.get("labels", [])):
+                not isinstance(issue.get("labels"), list) or
+                setting["label"] not in issue["labels"]):
             stats["rejected"] += 1
             continue
         task_payload = dict(setting["task"])
@@ -134,7 +137,7 @@ def run_once(
         task, created = orchestrator.submit("gitlab_poll", task_payload)
         if created:
             stats["created"] += 1
-        if task.status == TaskStatus.PENDING:
+        if execute and task.status == TaskStatus.PENDING:
             task = orchestrator.run(task.id)
             stats["executed"] += 1
         if task.status in TERMINAL:
@@ -149,6 +152,8 @@ def run_once(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="GitLab issue polling via outbound HTTPS only")
     parser.add_argument("--config", type=Path, required=True)
+    parser.add_argument("--execute", action="store_true",
+                        help="Explicitly enable local OpenCode execution; default queues tasks only")
     parser.add_argument("--interval", type=int, default=0,
                         help="0 = one scan; >=30 = keep polling at this interval")
     args = parser.parse_args(argv)
@@ -181,7 +186,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         api = GitLabClient(token, setting["project_id"])
         while True:
-            stats = run_once(config, api, orchestrator)
+            stats = run_once(config, api, orchestrator, execute=args.execute)
             print(json.dumps(stats, sort_keys=True), flush=True)
             if not args.interval:
                 return 0

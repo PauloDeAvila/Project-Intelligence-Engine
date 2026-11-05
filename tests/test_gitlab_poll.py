@@ -71,8 +71,8 @@ class GitLabPollTests(unittest.TestCase):
 
     def test_one_execution_and_one_notification_across_scans(self):
         api = FakeGitLab([self.issue])
-        first = run_once(self.config, api, self.orchestrator)
-        second = run_once(self.config, api, self.orchestrator)
+        first = run_once(self.config, api, self.orchestrator, execute=True)
+        second = run_once(self.config, api, self.orchestrator, execute=True)
         self.assertEqual(first, {"seen": 1, "rejected": 0, "created": 1, "executed": 1, "notified": 1})
         self.assertEqual(second, {"seen": 1, "rejected": 0, "created": 0, "executed": 0, "notified": 0})
         self.assertEqual(self.adapter.executions, 1)
@@ -80,6 +80,14 @@ class GitLabPollTests(unittest.TestCase):
         self.assertNotIn("arbitrary commands", body)
         self.assertNotIn("internal", body)
         self.assertIn("input_tokens", body)
+
+    def test_default_mode_only_queues_and_does_not_contact_model(self):
+        api = FakeGitLab([self.issue])
+        first = run_once(self.config, api, self.orchestrator)
+        self.assertEqual(first["created"], 1)
+        self.assertEqual(first["executed"], 0)
+        self.assertEqual(first["notified"], 0)
+        self.assertEqual(self.adapter.executions, 0)
 
     def test_unauthorized_authors_and_different_projects_ignored(self):
         api = FakeGitLab([{**self.issue, "author": {"id": 99}},

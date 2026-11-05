@@ -68,3 +68,15 @@ public HTTP ingress. Retain PR as experimental until an end-to-end run
 and host-level permission checks are observed. For true push delivery
 later, use Cloudflare remotely managed token+Access with authenticated
 ingress and a separately authenticated GitLab dispatcher.
+
+## Explicit execution gate
+
+The polling bridge **queues only by default**. It does not automatically
+contact the model, and this queue-only mode can safely verify GitLab API
+access, filtering and persistence. When a human has independently verified
+read-only tool restrictions in their local OpenCode version, they may opt in
+with `pie-orchestrator-gitlab-poll --config C:\\private\\orchestrator.json --execute`
+(for continuous operation append `--interval 60`). This is a local operator
+choice, never a field accepted from a GitLab issue. Without tested permissions,
+do not use `--execute`: the existing OpenCode adapter does not yet enforce
+read-only via tool-level deny rules.
