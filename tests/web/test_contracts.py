@@ -2,6 +2,8 @@ import pathlib
 import sys
 import unittest
 import math
+import os
+import subprocess
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
@@ -54,6 +56,24 @@ class WebContractTests(unittest.TestCase):
         self.assertEqual(session.state, SessionState.NEW)
         self.assertTrue(session.allows("https://example.test/path"))
         self.assertFalse(session.allows("https://other.test/path"))
+
+    def test_web_import_keeps_browser_subsystem_lazy(self):
+        environment = dict(os.environ)
+        environment["PYTHONPATH"] = str(ROOT / "src")
+        probe = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import sys; import pie.web; print('pie.web.browser' in sys.modules); print('playwright' in sys.modules)",
+            ],
+            cwd=ROOT,
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(probe.returncode, 0, probe.stderr)
+        self.assertEqual(probe.stdout.splitlines(), ["False", "False"])
 
     def test_origin_policy_is_exact_and_rejects_credentials(self):
         self.assertEqual(normalize_origin("HTTPS://Example.test:443/path"), "https://example.test")
