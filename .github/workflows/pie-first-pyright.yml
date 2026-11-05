@@ -1,0 +1,36 @@
+name: PIE First navigation experimental - Pyright and offline replay
+on:
+  push:
+    branches: [feat/pie-first-navigation-pyright]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pyright-and-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Pyright
+        run: python -m pip install --disable-pip-version-check pyright==1.1.407
+      - name: Check isolated policy types
+        run: pyright src/pie/retrieval/pie_first_policy.py
+      - name: Test policy and safety
+        run: PYTHONPATH=src python -m unittest discover -s tests -p test_pie_first_policy.py -v
+      - name: Replay decisions (zero model calls)
+        run: PYTHONPATH=src python tools/benchmark_pie_first_policy.py --out benchmark-results/pie-first-policy.json
+      - name: Compile entire source
+        run: python -m compileall -q src tools tests
+      - name: Run complete regression suite
+        run: PYTHONPATH=src python -m unittest discover -s tests -v
+      - name: Upload experiment
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pie-first-policy-${{ github.run_id }}
+          path: benchmark-results/pie-first-policy.json
+          if-no-files-found: warn
