@@ -20,12 +20,12 @@ class OpenCodePieConfigTests(unittest.TestCase):
 
     def test_root_binds_to_pie_not_doctor_mesh(self):
         config = make_config(self.root, self.python)
-        mcp = config["mcp"]
+        mcp = config["mcp"]["servers"]
         self.assertEqual(set(mcp), {"pie"})
         self.assertEqual(mcp["pie"]["command"][-1], str(self.root.resolve()))
         self.assertEqual(mcp["pie"]["command"][1:4],
                          ["-m", "pie.interfaces.mcp_server", "--root"])
-        self.assertEqual(config["permission"]["bash"], "deny")
+        self.assertIn({"action": "shell", "resource": "*", "effect": "deny"}, config["permissions"])
 
     def test_requires_real_explicit_paths(self):
         with self.assertRaises(ValueError):
@@ -39,7 +39,7 @@ class OpenCodePieConfigTests(unittest.TestCase):
                 "--output", str(target)]
         self.assertEqual(main(args), 0)
         data = json.loads(target.read_text("utf-8"))
-        self.assertEqual(data["mcp"]["pie"]["command"][-1], str(self.root))
+        self.assertEqual(data["mcp"]["servers"]["pie"]["command"][-1], str(self.root))
         with self.assertRaises(SystemExit):
             main(args)
 

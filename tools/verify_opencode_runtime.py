@@ -1,89 +1,82 @@
-"""Fail-closed OpenCode runtime preflight for the isolated PIE MCP workspace.
-
-No inference, session creation, file edits or remote gateway calls.
-"""
+"""Read-only OpenCode 2.x preflight. Never creates a session or triggers inference."""
 from __future__ import annotations
 
 import argparse
-import base64
 import json
 import os
 from pathlib import Path
 from typing import Any
-from urllib.parse import quote, urlparse
-from urllib.request import Request, urlopen
+
+from pie.orchestrator.opencode_v2 import OpenCodeV2Adapter
 
 
-def check_contract(config: Any, status: Any, sessions: Any, tools: Any,
-                   expected_root: Path) -> dict[str, Any]:
+def check_contract(
+    config: Any, info: Any, mcp: Any, active: Any, root: Path
+) -> dict[str, str]:
     if not isinstance(config, dict):
-        raise ValueError("OpenCode /config did not return an object")
-    mcp = config.get("mcp")
-    pie = mcp.get("pie") if isinstance(mcp, dict) else None
-    expected = ["-m", "pie.interfaces.mcp_server", "--root", str(expected_root)]
-    if (not isinstance(pie, dict) or pie.get("enabled") is not True
-            or pie.get("type") != "local"
-            or not isinstance(pie.get("command"), list)
-            or pie["command"][1:] != expected):
-        raise ValueError("Effective PIE MCP command/root mismatch")
-    if (not isinstance(status, dict)
-            or not isinstance(status.get("pie"), dict)
-            or status["pie"].get("status") != "connected"):
-        raise ValueError("PIE MCP is not connected")
-    if not isinstance(sessions, dict):
-        raise ValueError("OpenCode /session/status contract mismatch")
-    if not isinstance(tools, list) or not any(
-            name in {"pie_project_status", "pie_pie_project_status",
-                     "mcp__pie__pie_project_status"}
-            for name in tools if isinstance(name, str)):
-        raise ValueError("PIE status tool is not available in effective runtime")
-    permissions = config.get("permission", {})
-    if (not isinstance(permissions, dict)
-            or any(permissions.get(name) != "deny" for name in
-                   ("bash", "edit", "webfetch", "external_directory"))):
-        raise ValueError("Effective OpenCode read-only permission policy missing")
-    return {"pie_mcp": "connected", "root": str(expected_root),
-            "status_tool": "available", "session_api": "compatible",
-            "permissions": "configured"}
-
-
-def probe(base_url: str, password: str, root: Path) -> dict[str, Any]:
-    url = urlparse(base_url)
-    if (url.scheme != "http" or url.hostname not in
-            ("127.0.0.1", "::1", "localhost") or
-            url.path not in ("", "/") or url.username or url.password
-            or url.query or url.fragment):
-        raise ValueError("Preflight requires HTTP loopback URL")
-    if not password:
-        raise ValueError("OpenCode server password required")
-    if not root.is_absolute() or not root.is_dir():
-        raise ValueError("Existing absolute PIE root required")
-    root = root.resolve(strict=True)
-    token = base64.b64encode(("opencode:" + password).encode()).decode("ascii")
-    headers = {"Authorization": "Basic " + token,
-               "X-OpenCode-Directory": quote(str(root), safe="")}
-    def get(path: str) -> Any:
-        req = Request(base_url.rstrip("/") + path, headers=headers)
-        with urlopen(req, timeout=10) as response:
-            return json.load(response)
-    return check_contract(get("/config"), get("/mcp"), get("/session/status"),
-                          get("/experimental/tool/ids"), root)
+        raise ValueError("Expected local OpenCode v2 config object")
+    servers = config.get("mcp", {}).get("servers", {})
+    entry = servers.get("pie") if isinstance(servers, dict) else None
+    expected = ["-m", "pie.interfaces.mcp_server", "--root", str(root)]
+    if (not isinstance(entry, dict) or entry.get("type") != "local"
+            or not isinstance(entry.get("command"), list)
+            or entry["command"][1:] != expected
+            or entry.get("codemode") is not False):
+        raise ValueError("PIE MCP v2 command/root mismatch")
+    permissions = config.get("permissions", [])
+    def denied(action: str) -> bool:
+        return isinstance(permissions, list) and any(
+            isinstance(rule, dict) and rule.get("action") == action
+            and rule.get("resource") == "*" and rule.get("effect") == "deny"
+            for rule in permissions
+        )
+    if not all(denied(x) for x in
+               ("shell", "edit", "subagent", "webfetch",
+                "websearch", "external_directory", "execute")):
+        raise ValueError("OpenCode v2 safety permissions not configured")
+    if not isinstance(info, dict):
+        raise ValueError("OpenCode /api/info invalid")
+    if (not isinstance(mcp, dict)
+            or not OpenCodeV2Adapter._location_matches(mcp, root)):
+        raise ValueError("PIE MCP response points to another directory")
+    servers_response = OpenCodeV2Adapter._data(mcp)
+    if (not isinstance(servers_response, list) or
+            not any(isinstance(s, dict) and s.get("name") == "pie"
+                    and s.get("status") == "connected"
+                    for s in servers_response)):
+        raise ValueError("PIE MCP not connected in OpenCode v2")
+    data = OpenCodeV2Adapter._data(active)
+    if not isinstance(data, dict):
+        raise ValueError("OpenCode v2 active session contract invalid")
+    return {"pie_mcp": "connected", "root": str(root),
+            "session_api": "v2", "permissions": "configured"}
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--url", default="http://127.0.0.1:4097")
     parser.add_argument("--root", type=Path, required=True)
+    parser.add_argument("--config", type=Path,
+                        default=os.environ.get("OPENCODE_CONFIG"))
+    parser.add_argument("--url", default="http://127.0.0.1:4097")
     args = parser.parse_args(argv)
-    password = os.environ.get("OPENCODE_SERVER_PASSWORD", "")
     try:
-        result = probe(args.url, password, args.root)
+        if args.config is None:
+            raise ValueError("Explicit isolated config file required")
+        root = args.root.resolve(strict=True)
+        config = json.loads(args.config.read_text(encoding="utf-8"))
+        password = os.environ["OPENCODE_PASSWORD"]
+        adapter = OpenCodeV2Adapter(args.url, password)
+        result = check_contract(
+            config, adapter._request("GET", "/info"),
+            adapter._request("GET", "/mcp"),
+            adapter._request("GET", "/session/active"), root
+        )
+        print(json.dumps({"ready": True, **result}, ensure_ascii=False))
+        return 0
     except Exception as exc:
         print(json.dumps({"ready": False, "error": type(exc).__name__,
                           "reason": str(exc)}, ensure_ascii=False))
         return 1
-    print(json.dumps({"ready": True, **result}, ensure_ascii=False))
-    return 0
 
 
 if __name__ == "__main__":

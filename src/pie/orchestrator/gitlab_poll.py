@@ -19,6 +19,7 @@ from urllib.request import Request, urlopen
 from .__main__ import PieFreshness
 from .models import TERMINAL, TaskStatus
 from .opencode import OpenCodeHttpAdapter
+from .opencode_v2 import OpenCodeV2Adapter
 from .service import Orchestrator, ProjectPolicy
 from .store import TaskStore
 
@@ -181,7 +182,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         orchestrator = Orchestrator(
             store, projects,
-            OpenCodeHttpAdapter(config["opencode_url"], password),
+            (OpenCodeV2Adapter if config.get("opencode_api_version", 2) == 2 else OpenCodeHttpAdapter)(config["opencode_url"], password),
             PieFreshness(),
         )
         api = GitLabClient(token, setting["project_id"])

@@ -1,9 +1,10 @@
+from pathlib import Path
 import sys
 import tempfile
 import unittest
-from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "tools"))
 from verify_opencode_runtime import check_contract
 
@@ -14,42 +15,50 @@ class OpenCodeRuntimeContractTests(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name).resolve()
         self.config = {
-            "mcp": {"pie": {"type": "local", "enabled": True,
-                "command": ["C:/Python312/python.exe", "-m",
-                    "pie.interfaces.mcp_server", "--root", str(self.root)]}},
-            "permission": {"bash": "deny", "edit": "deny",
-                "webfetch": "deny", "external_directory": "deny"},
+            "mcp": {"servers": {"pie": {
+                "type": "local", "codemode": False,
+                "command": ["C:/Python/python.exe", "-m",
+                            "pie.interfaces.mcp_server", "--root", str(self.root)]
+            }}},
+            "permissions": [
+                {"action": x, "resource": "*", "effect": "deny"}
+                for x in ("shell", "edit", "subagent", "webfetch",
+                          "websearch", "external_directory", "execute")
+            ]
         }
-        self.status = {"pie": {"status": "connected"}}
-        self.tools = ["pie_project_status", "pie_query"]
+        self.info = {"name": "opencode"}
+        self.mcp = {"location": {"directory": str(self.root)},
+                    "data": [{"name": "pie", "status": "connected"}]}
+        self.active = {"data": {}}
 
-    def test_22_compatible_shape(self):
-        result = check_contract(self.config, self.status, {}, self.tools, self.root)
-        self.assertEqual(result["pie_mcp"], "connected")
+    def check(self):
+        return check_contract(self.config, self.info, self.mcp,
+                              self.active, self.root)
 
-    def test_wrong_workspace_fails_closed(self):
-        self.config["mcp"]["pie"]["command"][-1] = "C:/DoctorMesh"
+    def test_v2_schema_connects(self):
+        self.assertEqual(self.check()["session_api"], "v2")
+
+    def test_wrong_pie_root_fails(self):
+        self.config["mcp"]["servers"]["pie"]["command"][-1] = "C:/DoctorMesh"
         with self.assertRaisesRegex(ValueError, "root mismatch"):
-            check_contract(self.config, self.status, {}, self.tools, self.root)
+            self.check()
 
-    def test_unconnected_pie_fails(self):
+    def test_doctor_mesh_is_not_pie(self):
+        self.mcp["data"] = [{"name": "pie-doctor-mesh", "status": "connected"}]
         with self.assertRaisesRegex(ValueError, "not connected"):
-            check_contract(self.config, {"pie-doctor-mesh": {"status": "connected"}},
-                           {}, self.tools, self.root)
+            self.check()
 
-    def test_missing_tool_fails(self):
-        with self.assertRaisesRegex(ValueError, "not available"):
-            check_contract(self.config, self.status, {}, ["read"], self.root)
+    def test_missing_permission_fails(self):
+        self.config["permissions"] = []
+        with self.assertRaisesRegex(ValueError, "permissions"):
+            self.check()
 
-    def test_missing_denial_fails(self):
-        self.config["permission"]["bash"] = "allow"
-        with self.assertRaisesRegex(ValueError, "permission"):
-            check_contract(self.config, self.status, {}, self.tools, self.root)
+    def test_wrong_location_fails(self):
+        self.mcp["location"]["directory"] = "C:/DoctorMesh"
+        with self.assertRaisesRegex(ValueError, "another directory"):
+            self.check()
 
-    def test_unexpected_session_contract_fails(self):
-        with self.assertRaisesRegex(ValueError, "contract mismatch"):
-            check_contract(self.config, self.status, [], self.tools, self.root)
-
-
-if __name__ == "__main__":
-    unittest.main()
+    def test_v1_data_shape_rejected(self):
+        self.mcp = {"pie": {"status": "connected"}}
+        with self.assertRaises(ValueError):
+            self.check()

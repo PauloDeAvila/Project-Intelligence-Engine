@@ -20,19 +20,22 @@ $generator = Join-Path $PSScriptRoot "create_opencode_pie_config.py"
 if ($LASTEXITCODE -ne 0) { throw "Failed to generate isolated MCP configuration" }
 $existing = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
 if ($existing) { throw "Port $Port is already in use; refusing to attach to another process" }
-$cmd = Get-Command "opencode" -CommandType Application -ErrorAction Stop
+$commands = @(Get-Command "opencode" -All -ErrorAction Stop | Where-Object {
+    $_.CommandType -eq "Application" -and (Test-Path -LiteralPath $_.Source)
+})
+if ($commands.Count -lt 1) { throw "No executable OpenCode binary found" }
+$cmd = $commands[0]
 $previousConfig = [Environment]::GetEnvironmentVariable("OPENCODE_CONFIG", "Process")
-$previousPassword = [Environment]::GetEnvironmentVariable("OPENCODE_SERVER_PASSWORD", "Process")
-$previousUsername = [Environment]::GetEnvironmentVariable("OPENCODE_SERVER_USERNAME", "Process")
+$previousPassword = [Environment]::GetEnvironmentVariable("OPENCODE_PASSWORD", "Process")
+$previousUsername = [Environment]::GetEnvironmentVariable("OPENCODE_USERNAME", "Process")
 $server = $null
 try {
     $randomBytes = New-Object byte[] 32
     $random = [Security.Cryptography.RandomNumberGenerator]::Create()
     try { $random.GetBytes($randomBytes) } finally { $random.Dispose() }
-    $env:OPENCODE_SERVER_PASSWORD = [BitConverter]::ToString($randomBytes).Replace("-", "")
-    $env:OPENCODE_SERVER_USERNAME = "opencode"
+    $env:OPENCODE_PASSWORD = [BitConverter]::ToString($randomBytes).Replace("-", "")
     $env:OPENCODE_CONFIG = $config
-    $server = Start-Process -FilePath $cmd.Source -WorkingDirectory $root -ArgumentList @("serve", "--hostname", "127.0.0.1", "--port", "$Port") -PassThru
+    $server = Start-Process -FilePath $cmd.Source -WorkingDirectory $root -ArgumentList @("serve", "--hostname", "127.0.0.1", "--port", "$Port") -WindowStyle Hidden -PassThru
     $preflight = Join-Path $PSScriptRoot "verify_opencode_runtime.py"
     $url = "http://127.0.0.1:$Port"
     $ready = $false
@@ -57,6 +60,6 @@ finally {
         Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue
     }
     [Environment]::SetEnvironmentVariable("OPENCODE_CONFIG", $previousConfig, "Process")
-    [Environment]::SetEnvironmentVariable("OPENCODE_SERVER_PASSWORD", $previousPassword, "Process")
-    [Environment]::SetEnvironmentVariable("OPENCODE_SERVER_USERNAME", $previousUsername, "Process")
+    [Environment]::SetEnvironmentVariable("OPENCODE_PASSWORD", $previousPassword, "Process")
+    [Environment]::SetEnvironmentVariable("OPENCODE_USERNAME", $previousUsername, "Process")
 }
