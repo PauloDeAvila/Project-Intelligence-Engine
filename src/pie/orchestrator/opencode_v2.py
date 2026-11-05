@@ -138,7 +138,7 @@ class OpenCodeV2Adapter:
         created = self._request("POST", "/session",
                                 {"title": "orchestrator-" + task.id,
                                  "location": {"directory": str(root)},
-                                 "model": {"providerID": provider, "modelID": model}})
+                                 "model": {"id": model, "providerID": provider}})
         session = self._data(created)
         if not isinstance(session, dict) or not isinstance(session.get("id"), str):
             raise RuntimeError("OpenCode v2 did not return session ID")
@@ -170,8 +170,6 @@ class OpenCodeV2Adapter:
                 if not isinstance(messages_response, dict):
                     raise ValueError("OpenCode v2 message response invalid")
                 cursor = messages_response.get("cursor")
-                if isinstance(cursor, dict) and cursor.get("next"):
-                    raise RuntimeError("OpenCode v2 transcript paginated; not certified")
                 messages = self._data(messages_response)
                 try:
                     result, metrics = self._evidence(messages, project.pie_mcp_name)

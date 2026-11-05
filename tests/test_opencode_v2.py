@@ -111,7 +111,9 @@ class OpenCodeV2Tests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "unsuccessfully"):
             OpenCodeV2Adapter._evidence(data, "pie")
 
-    def test_pagination_is_not_certified(self):
+    def test_pagination_with_evidence_is_certified(self):
+        """Real OpenCode v2 always returns a cursor.next, even for a single page.
+        Evidence-based certification must succeed when the proof is present."""
         class Paginated(FakeV2):
             def _request(self, method, path, body=None):
                 answer = super()._request(method, path, body)
@@ -119,4 +121,8 @@ class OpenCodeV2Tests(unittest.TestCase):
                     answer["cursor"]["next"] = "next"
                 return answer
         service, task = self.make_task(Paginated(self.root, messages()))
-        self.assertEqual(service.run(task.id).status, TaskStatus.FAILED)
+        done = service.run(task.id)
+        self.assertEqual(done.status, TaskStatus.COMPLETED)
+        self.assertEqual(done.session_id, "ses_v2")
+        proof = done.result["pie_mcp_evidence"][0]
+        self.assertEqual(proof["tool"], "pie_project_status")

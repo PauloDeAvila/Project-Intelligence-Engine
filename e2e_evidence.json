@@ -1,0 +1,83 @@
+{
+  "integration": "PIE + OpenCode 2.2.5 + Nemotron + MCP do PIE",
+  "status": "COMPLETED",
+  "commit_tested": "0d5348b5cd4ba957ad11f714e859d9e1439d9b0e",
+  "branch": "exp/opencode-remote-orchestrator",
+  "repository": "https://github.com/PauloDeAvila/Project-Intelligence-Engine",
+  "pull_request": "https://github.com/PauloDeAvila/Project-Intelligence-Engine/pull/39",
+  "environment": {
+    "platform": "Windows",
+    "python": "3.13.17",
+    "opencode_version": "2.2.5",
+    "model": "opencode/nemotron-3.5-super-vl-free",
+    "provider_id": "opencode",
+    "pie_mcp_name": "pie",
+    "pie_root": "C:/Users/phsra/pi-pie-opencode-integration",
+    "opencode_url": "http://127.0.0.1:4097",
+    "opencode_api_version": 2
+  },
+  "execution": {
+    "task_id": "5b52dff3-5f1f-491e-a239-1eef425ad356",
+    "session_id": "ses_e55f28fabffeXnDCJeIj3OKuUw",
+    "task_type": "read_only_review",
+    "idempotency_key": "e2e-test-<timestamp>",
+    "final_status": "COMPLETED",
+    "assistant_message_id": "msg_1aa0d7a26001IncWfVOhaXxdna",
+    "finish_reason": "stop",
+    "message_count": 4,
+    "state_transitions": [
+      "PENDING",
+      "VALIDATING",
+      "QUEUED",
+      "RUNNING",
+      "VERIFYING",
+      "COMPLETED"
+    ],
+    "session_bound": true,
+    "execution_recorded": true,
+    "metrics_available": true
+  },
+  "mcp_evidence": {
+    "tool": "pie_pie_project_status",
+    "tool_call_id": "call-3314d3c3-69a4-41a9-9808-e648d07ded5c",
+    "status": "completed",
+    "output_sha256": "dd736202fe4c20a7fb3b1c57092de2a2de622661744949f294af405ce547687f",
+    "output_bytes": 202,
+    "index_state": "CURRENT",
+    "files": 59,
+    "symbols": 504
+  },
+  "provider_metrics": {
+    "input_tokens": 8137,
+    "output_tokens": 151,
+    "reasoning_tokens": 142,
+    "cache_read": 0,
+    "cache_write": 0
+  },
+  "index_validation": {
+    "index_state": "CURRENT",
+    "files": 59,
+    "symbols": 504
+  },
+  "tests": {
+    "total": 131,
+    "passed": 131,
+    "failed": 0,
+    "skipped": 0,
+    "suite": "python -m unittest discover -s tests -v",
+    "build_check": "python tools/check_install.py -> PASS"
+  },
+  "corrections": [
+    "src/pie/orchestrator/opencode_v2.py: model field uses 'id' instead of 'modelID' per OpenCode v2 Model.Ref schema",
+    "src/pie/orchestrator/opencode_v2.py: removed overly strict pagination gate (OpenCode v2 always returns cursor.next); _evidence method independently guards against false COMPLETED",
+    "src/pie/orchestrator/service.py: orchestrator prompt explicitly restricts to authorized pie MCP only",
+    "tests/test_opencode_v2.py: pagination test updated to reflect evidence-based certification"
+  ],
+  "security_notes": [
+    "No credentials, passwords, API keys, or bearer tokens included in this evidence",
+    "No local SQLite databases, personal configs, or private data committed",
+    "OpenCode isolated instance on loopback only; no remote gateway exposure",
+    "Doctor Mesh and 9remote MCP servers present but not used as evidence"
+  ],
+  "evidence_sanitized": true
+}

@@ -68,9 +68,11 @@ class Orchestrator:
             execution = self.adapter.execute(
                 task, self.projects[task.project_id],
                 "Execute a read-only review of the authorized PIE project. "
-                f"Call the connected {self.projects[task.project_id].pie_mcp_name} MCP "
-                "to obtain project index status and freshness; do not claim a "
-                "successful review without a real MCP tool response. "
+                f"Call ONLY the connected {self.projects[task.project_id].pie_mcp_name} MCP "
+                "(tool name starts with '{self.projects[task.project_id].pie_mcp_name}_') "
+                "to obtain project index status and freshness. Do NOT use any other MCP "
+                "server (e.g. pie-doctor-mesh, 9remote). Do not claim a successful "
+                "review without a real MCP tool response from the authorized PIE MCP. "
                 "Do not alter files or invoke shell/web tools.",
                 on_session=lambda sid: self.store.bind_session(task_id, sid),
             )
