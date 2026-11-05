@@ -1,4 +1,5 @@
 import json
+import hmac
 from pathlib import Path
 import sys
 import tempfile
@@ -61,6 +62,17 @@ class OrchestratorTests(unittest.TestCase):
         self.assertEqual(denied.exception.code, 401)
         with urlopen(Request(base + "/v1/tasks/" + created["id"] + "/cancel", data=b"", headers={"Authorization": "Bearer token"}, method="POST")) as response: self.assertEqual(json.load(response)["status"], "CANCELLED")
         with urlopen(Request(base + "/v1/tasks/" + created["id"] + "/events", headers={"Authorization": "Bearer token"})) as response: self.assertIn("event: created", response.read().decode())
+
+    def test_gitlab_webhook_is_signed_mapped_and_idempotent(self):
+        server = Gateway(("127.0.0.1", 0), self.service, "token", "secret", {"Issue Hook": self.payload | {"idempotency_key": "ignored"}})
+        thread = threading.Thread(target=server.serve_forever, daemon=True); thread.start(); self.addCleanup(server.server_close); self.addCleanup(server.shutdown)
+        raw, timestamp = b'{"untrusted":"content"}', str(int(__import__("time").time()))
+        signature = hmac.new(b"secret", timestamp.encode() + b"." + raw, "sha256").hexdigest()
+        headers = {"X-Gitlab-Event": "Issue Hook", "X-Gitlab-Event-UUID": "event-1", "X-Orchestrator-Timestamp": timestamp, "X-Orchestrator-Signature": signature}
+        request = Request(f"http://127.0.0.1:{server.server_port}/v1/webhooks/gitlab", data=raw, headers=headers, method="POST")
+        with urlopen(request) as response: first = json.load(response)
+        with urlopen(request) as response: second = json.load(response)
+        self.assertEqual(first["id"], second["id"])
 
 
 if __name__ == "__main__": unittest.main()

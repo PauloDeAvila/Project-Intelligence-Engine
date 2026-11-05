@@ -10,9 +10,9 @@ from .service import Orchestrator
 
 
 class Gateway(ThreadingHTTPServer):
-    def __init__(self, address: tuple[str, int], orchestrator: Orchestrator, admin_token: str, gitlab_secret: str):
+    def __init__(self, address: tuple[str, int], orchestrator: Orchestrator, admin_token: str, gitlab_secret: str, gitlab_map: dict[str, dict[str, Any]] | None = None):
         if address[0] not in {"127.0.0.1", "::1", "localhost"}: raise ValueError("Gateway must bind to loopback")
-        self.orchestrator, self.admin_token, self.gitlab_secret = orchestrator, admin_token, gitlab_secret
+        self.orchestrator, self.admin_token, self.gitlab_secret, self.gitlab_map = orchestrator, admin_token, gitlab_secret, gitlab_map or {}
         super().__init__(address, Handler)
 
 
@@ -33,6 +33,13 @@ class Handler(BaseHTTPRequestHandler):
         return task.__dict__ | {"status": task.status} if task else None
     def do_POST(self) -> None:
         try:
+            if self.path == "/v1/webhooks/gitlab":
+                raw, _ = self._body(); event = self.headers.get("X-Gitlab-Event", ""); event_id = self.headers.get("X-Gitlab-Event-UUID", ""); timestamp = self.headers.get("X-Orchestrator-Timestamp", "")
+                if not event_id or event not in self.server.gitlab_map or not timestamp.isdigit() or abs(time.time() - int(timestamp)) > 300: self._json(401, {"error": "invalid_webhook"}); return
+                expected = hmac.new(self.server.gitlab_secret.encode(), timestamp.encode() + b"." + raw, "sha256").hexdigest()
+                if not hmac.compare_digest(self.headers.get("X-Orchestrator-Signature", ""), expected): self._json(401, {"error": "invalid_webhook"}); return
+                payload = self.server.gitlab_map[event] | {"idempotency_key": event_id}
+                task, created = self.server.orchestrator.submit("gitlab", payload); self._json(202 if created else 200, self._task(task.id)); return
             if self.path == "/v1/tasks":
                 if not self._admin(): self._json(401, {"error": "unauthorized"}); return
                 _, body = self._body(); task, created = self.server.orchestrator.submit("client", body); self._json(202 if created else 200, self._task(task.id)); return
