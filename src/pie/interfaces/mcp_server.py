@@ -16,6 +16,8 @@ from pie.interfaces.cli import command_status, command_search, command_symbol
 from pie.retrieval.symbols import analysis_summary, find_definitions, find_references
 from pie.retrieval.evidence import build_evidence
 from pie.retrieval.context_pack import build_context_pack
+from pie.retrieval.evidence_atoms import build_proof_context
+from pie.retrieval.context_mesh import build_context_mesh
 
 TOOLS = [
     {'name':'pie_query', 'description':'Preferred unified source-grounded lookup: responsibilities, symbol/file navigation and verified impact relationships. Use this before direct file browsing.', 'inputSchema':{'type':'object','properties':{'query':{'type':'string'},'mode':{'type':'string','enum':['responsibility','navigation','impact']},'limit':{'type':'integer','minimum':1,'maximum':20},'max_chars':{'type':'integer','minimum':500,'maximum':200000}},'required':['query'],'additionalProperties':False}},
@@ -27,6 +29,8 @@ TOOLS = [
     {'name':'pie_build_graph', 'description':'Rebuild static Python call/import edges from CURRENT indexed files.', 'inputSchema':{'type':'object','properties':{},'additionalProperties':False}},
     {'name':'pie_relationships', 'description':'Read evidence-based relationships for a symbol or file.', 'inputSchema':{'type':'object','properties':{'name':{'type':'string'}},'required':['name'],'additionalProperties':False}},
     {'name':'pie_build_context', 'description':'Retrieve hash-verified source ranges for a task/symbol.', 'inputSchema':{'type':'object','properties':{'query':{'type':'string'},'max_chars':{'type':'integer','minimum':500,'maximum':200000}},'required':['query'],'additionalProperties':False}},
+    {'name':'pie_build_proof_context', 'description':'Build the smallest hash-verified structural proof pack for a query. Compact mode returns sources, facts, coverage and a fail-closed fallback signal; full mode is for diagnostics.', 'inputSchema':{'type':'object','properties':{'query':{'type':'string'},'requirements':{'type':'array','items':{'type':'string'},'maxItems':32},'limit':{'type':'integer','minimum':1,'maximum':100},'max_chars':{'type':'integer','minimum':500,'maximum':200000},'detail':{'type':'string','enum':['compact','full']}},'required':['query'],'additionalProperties':False}},
+    {'name':'pie_build_context_mesh', 'description':'Distribute verified PIE context across cooperating agents. Deduplicates facts, returns isolated assignments, graph edges and a fail-closed delivery status for visualization or orchestration.', 'inputSchema':{'type':'object','properties':{'agents':{'type':'array','items':{'type':'object'},'maxItems':32}},'required':['agents'],'additionalProperties':False}},
     {'name':'pie_find_definitions', 'description':'Locate every definition site of a variable, parameter, class or function, with scope and inferred type.', 'inputSchema':{'type':'object','properties':{'name':{'type':'string'},'limit':{'type':'integer','minimum':1,'maximum':500}},'required':['name'],'additionalProperties':False}},
     {'name':'pie_find_references', 'description':'Reverse lookup: who reads, writes or imports a symbol. Returns consumers with evidence.', 'inputSchema':{'type':'object','properties':{'name':{'type':'string'},'limit':{'type':'integer','minimum':1,'maximum':500}},'required':['name'],'additionalProperties':False}},
     {'name':'pie_analysis_summary', 'description':'Counts of definitions and references by kind, context and resolution verdict.', 'inputSchema':{'type':'object','properties':{},'additionalProperties':False}},
@@ -73,8 +77,18 @@ def dispatch(request: dict, root: Path, engine: MCPContextEngine | None = None) 
                         raise ValueError(f'{key} must be a nonempty safe string <= 4096 chars')
                     if spec.get('type') == 'integer' and (type(value) is not int or not spec.get('minimum', -10**30) <= value <= spec.get('maximum', 10**30)):
                         raise ValueError(f'{key} must be an integer within range')
+                    if spec.get('type') == 'array':
+                        if not isinstance(value, list) or len(value) > spec.get('maxItems', 10**6):
+                            raise ValueError(f'{key} must be a bounded list')
+                        if name == 'pie_build_context_mesh' and key == 'agents':
+                            if any(not isinstance(item, dict) for item in value):
+                                raise ValueError('agents must be a list of objects')
+                        elif any(not isinstance(item, str) or len(item) > 128 or not item.strip() for item in value):
+                            raise ValueError(f'{key} must be a bounded list of nonempty strings')
             if 'mode' in args and args['mode'] not in ('responsibility','navigation','impact'):
                 raise ValueError('Invalid mode')
+            if 'detail' in args and args['detail'] not in ('compact', 'full'):
+                raise ValueError('Invalid detail')
             functions = {
                 'pie_query':lambda:engine.query(args['query'],mode=args.get('mode','responsibility'),limit=args.get('limit',5),max_chars=args.get('max_chars',12000)) if engine is not None else _standalone_query(root,args),
                 'pie_verified_evidence':lambda:build_evidence(root,args['symbol']),
@@ -85,6 +99,8 @@ def dispatch(request: dict, root: Path, engine: MCPContextEngine | None = None) 
                 'pie_build_graph':lambda:build_relationships(root),
                 'pie_relationships':lambda:get_relationships(root,args['name']),
                 'pie_build_context':lambda:build_context(root,args['query'],args.get('max_chars',12000)),
+                'pie_build_proof_context':lambda:build_proof_context(root,args['query'],max_chars=args.get('max_chars',4000),limit=args.get('limit',12),requirements=args.get('requirements'),detail=args.get('detail','compact')),
+                'pie_build_context_mesh':lambda:build_context_mesh(root,args['agents']),
                 'pie_find_definitions':lambda:find_definitions(root,args['name'],args.get('limit',100)),
                 'pie_find_references':lambda:find_references(root,args['name'],args.get('limit',100)),
                 'pie_analysis_summary':lambda:analysis_summary(root),

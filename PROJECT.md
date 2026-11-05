@@ -1,7 +1,7 @@
 # Project Intelligence Engine — V0.1 project brief
 
 ## Purpose and supported functionality
-PIE V0.1 is an offline, local and persistent index of Python repositories. It discovers eligible Python files, records content hashes, extracts classes/functions/methods/imports, persists the result in SQLite and exposes basic CLI queries.
+PIE is an offline, local and persistent index of Python repositories. It discovers eligible Python files, records content hashes, extracts classes/functions/methods/imports, persists the result in SQLite and exposes CLI/MCP queries. The current preview adds hash-backed Evidence Atoms and a Context Mesh for distributing verified context to cooperating agents.
 
 Supported journey: `pie init` → `pie index` → `pie status` / `pie search` / `pie symbol`.
 
@@ -11,11 +11,13 @@ Supported journey: `pie init` → `pie index` → `pie status` / `pie search` / 
 - SHA-256 change detection and removal of deleted files from the index.
 - AST-based Python symbols and imports with source line/column evidence.
 - Reopenable SQLite persistence and JSON CLI output.
+- Hash-verified compact proof context with explicit coverage and fail-closed fallback states.
+- Persistent Evidence Atom caching and deduplication across proof queries.
+- Structured Context Mesh assignments for agent-specific context, graph visualization and local search.
 
 ## Explicitly out of scope
-- Semantic reference/call resolution, Tree-sitter, LSP and SCIP.
-- Graph traversal, FTS5 ranking, Context Builder, glossary generation and MCP.
-- Automatic code modification, network access and LLM dependencies.
+- Automatic code modification, browser/site execution, network access and LLM dependencies.
+- Exhaustive runtime or behavioral impact certification; static evidence remains bounded and conservative.
 
 ## Stack and environments
 - Python 3.12+, standard library only at runtime, SQLite, `unittest`, argparse and `ast`.
@@ -56,6 +58,8 @@ An implementation is NOT VERIFIED until the complete applicable matrix passes an
 ## Known risks and unresolved questions
 - AST parsing is intentionally less language-general than the planned Tree-sitter adapter.
 - Dynamic imports and semantic references remain unresolved by design.
+- Evidence Atom caches are derived artifacts in `.pie/`; source files and the authoritative index remain the source of truth.
+- Context Mesh graph edges describe static evidence and agent routing; they do not prove runtime behavior or execute actions.
 - GitHub branch protection is a remote governance control; the active `Protect main` ruleset currently requires pull requests and the `Project Verification` check.
 - The benchmark accepts `--source` for a copied real project or `--files` for a synthetic tree, reports Python traced peak memory, process peak RSS, repeated search time, and does not impose universal performance targets. Filesystem/path enumeration and SQLite's seen-path set still scale with project size.
 

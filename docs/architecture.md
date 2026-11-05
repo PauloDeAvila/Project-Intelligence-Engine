@@ -9,11 +9,16 @@ Record architecture as observed in the actual project. Avoid inventing aspiratio
 | `pie.indexing` | Parse Python AST, reconcile index rows and persist freshness metadata/diagnostics | Symbols/imports with source ranges; scan state and structured diagnostics | scanning, storage |
 | `pie.storage` | Create SQLite schema and connections | Durable files/symbols/imports tables | SQLite |
 | `pie.interfaces.cli` | Expose init/index/status/search/symbol | JSON on stdout, errors on stderr | indexing, storage |
+| `pie.retrieval.evidence_atoms` | Convert verified source ranges into compact, clause-selected proof atoms and maintain a persistent derived cache | Proof payloads expose provenance, obligations, delivery state and structured facts | retrieval/context, SQLite |
+| `pie.retrieval.context_mesh` | Route verified facts to isolated agent assignments and expose a deduplicated graph/search representation | `pie-context-mesh-v1` with assignments, facts, sources and graph edges | evidence_atoms |
+| `pie.interfaces.mcp_server` | Publish strict JSON-RPC tools for retrieval, proof context and context mesh orchestration | Tool schemas reject unknown arguments and invalid shapes | retrieval, graph, CLI |
 
 ## Dependency rules
 - CLI depends on orchestration and storage; scanning does not depend on CLI.
 - Source paths are relative POSIX-style strings; symbol ranges are one-based lines and zero-based columns from Python AST.
 - SQLite is the only persisted artifact in `.pie/`; the source repository is read-only to PIE.
+- `.pie/evidence_atoms.sqlite3` is a derived cache only; every proof hit is invalidated by the indexed generation and verified against its source SHA-256 manifest.
+- Agent context packs contain only verified facts. The Context Mesh deduplicates shared facts and sources but keeps assignments isolated by agent objective.
 - Hashing and parsing consume the same per-file in-memory bytes from discovery, preventing hash/content drift while avoiding retention of every file's contents.
 - Index reconciliation preserves indexed rows for paths that failed to read during the current scan; confirmed absent paths are removed after scanning. The scanner yields paths incrementally, while the indexer keeps an O(n) set of observed paths for reconciliation.
 - The latest indexing state is persisted in `metadata` and surfaced by `index_project` and `command_status`: `CURRENT` means a complete scan with no parser omissions, `STALE` means one or more prior rows were preserved after a file read/size failure, `PARTIAL` means files or directories were omitted or parsing failed, `ERROR` means the indexing transaction failed, and `UNINDEXED` means the project has not completed an index run. Diagnostics identify skipped paths, aggregate file omission counts and preserved stale row counts.

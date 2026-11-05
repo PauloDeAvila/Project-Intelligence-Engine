@@ -11,6 +11,7 @@ from pie.storage.database import connect
 from pie.retrieval.intelligence import impact
 from pie.retrieval.context import build_context
 from pie.retrieval.context_pack import build_context_pack
+from pie.retrieval.evidence_atoms import build_proof_context
 from pie.retrieval.adaptive import adaptive_context
 from pie.retrieval.task import task_context
 from pie.retrieval.glossary import remember, recall
@@ -115,6 +116,12 @@ def main(argv: list[str] | None = None) -> int:
     pack_cmd.add_argument("--max-chars", type=int, default=12000)
     pack_cmd.add_argument("--max-calls", type=int, default=100)
     pack_cmd.add_argument("--no-snippets", action="store_true")
+    proof_cmd = subparsers.add_parser("proof-context")
+    proof_cmd.add_argument("query")
+    proof_cmd.add_argument("--root", default=".")
+    proof_cmd.add_argument("--max-chars", type=int, default=4000)
+    proof_cmd.add_argument("--limit", type=int, default=12)
+    proof_cmd.add_argument("--requirement", action="append", default=[])
     warm_cmd = subparsers.add_parser("serve-warm")
     warm_cmd.add_argument("--root", default=".")
     watch_cmd = subparsers.add_parser("watch")
@@ -160,6 +167,10 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "context-pack": result = build_context_pack(
             root, args.symbol, max_chars=args.max_chars,
             max_calls=args.max_calls, include_snippets=not args.no_snippets,
+        )
+        elif args.command == "proof-context": result = build_proof_context(
+            root, args.query, max_chars=args.max_chars,
+            limit=args.limit, requirements=args.requirement,
         )
         elif args.command == "serve-warm":
             from pie.retrieval.warm import serve

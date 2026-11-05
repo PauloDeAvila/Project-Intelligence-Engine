@@ -62,7 +62,8 @@ def build_context(root: Path, query: str, max_chars: int = 12000, limit: int = 1
                 diagnostics.append({'code': 'budget_exceeded', 'path': row['path']})
                 continue
             snippets.append({'symbol': row['qualified_name'], 'kind': row['kind'], 'path':row['path'],
-                'start_line':row['start_line'], 'end_line':row['end_line'], 'content':snippet})
+                'start_line':row['start_line'], 'end_line':row['end_line'],
+                'sha256':row['sha256'], 'content':snippet})
             used += len(snippet)
         context_state = 'STALE' if any(d['code'] in ('source_hash_mismatch','file_unreadable') for d in diagnostics) else ('PARTIAL' if omitted else meta.get('index_state','UNINDEXED'))
         rels = []
