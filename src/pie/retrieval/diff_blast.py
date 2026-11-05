@@ -21,7 +21,7 @@ def parse_hunks(diff):
             m=HUNK.match(line)
             if m:
                 a=int(m.group(1)); length=int(m.group(2) or "1")
-                changed.setdefault(path,[]).append((max(1,a),max(1,a+length-1)))
+                changed.setdefault(path,[]).append((max(1,a),max(1,a+max(1,length)-1)))
     return changed
 
 def blast_diff(root, *, depth=2, limit=50, max_chars=16000):

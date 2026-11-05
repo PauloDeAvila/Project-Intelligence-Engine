@@ -11,8 +11,9 @@ def pagerank(nodes, edges, seeds, alpha=0.25, iterations=20):
     nodes=sorted(set(nodes))
     if not nodes: return {}
     if len(nodes)>1000 or not 0<alpha<=1 or not 1<=iterations<=50: raise ValueError("invalid graph")
-    restart={n:max(0.0,float(seeds.get(n,0))) for n in nodes}
+    restart={n:float(seeds.get(n,0)) for n in nodes}
     if not all(math.isfinite(x) for x in restart.values()): raise ValueError("nonfinite seeds")
+    restart={n:max(0.0,x) for n,x in restart.items()}
     total=sum(restart.values())
     if not total: return {n:0.0 for n in nodes}
     restart={n:x/total for n,x in restart.items()}
