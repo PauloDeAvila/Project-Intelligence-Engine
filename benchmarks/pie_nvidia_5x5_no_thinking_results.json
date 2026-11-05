@@ -1,0 +1,214 @@
+{
+  "status": "COMPLETED",
+  "version": "v2-hard-questions",
+  "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+  "question_count": 5,
+  "complete_pairs": 5,
+  "with_pie_tokens": 1783,
+  "without_pie_tokens": 13893,
+  "savings_percent": 87.17,
+  "with_pie_correct": 5,
+  "without_pie_correct": 5,
+  "latency_ms": {
+    "mcp_total": 576.28,
+    "api_with_pie_total": 5605.14,
+    "api_without_pie_total": 11292.15
+  },
+  "rows": [
+    {
+      "id": "index-incremental",
+      "file": "src/pie/indexing/indexer.py",
+      "question": "A file is indexed twice. Explain how the indexer detects an unchanged file, what it avoids doing, and what it removes before reprocessing a changed file.",
+      "mcp_evidence": {
+        "tool": "pie_build_context",
+        "latency_ms": 112.92,
+        "stdout_sha256": "986dd3ef653533011fa0001beb4c03f679ba60fddff1191bfcedee8d457273ab"
+      },
+      "without_pie": {
+        "answer": "If a stored row matches the file's path and sha256, the indexer detects it as unchanged. It skips parsing, inserting, and refreshing symbol documents, avoiding reprocessing; if symbol docs are missing, it still refreshes them without reprocessing the whole file. For a changed file, it deletes the existing file row first, cascading removal of definitions, usages, star imports, and analysis state so nothing stale survives reprocessing.",
+        "reasoning_content": null,
+        "latency_ms": 1481.41,
+        "input_tokens": 2235,
+        "output_tokens": 96,
+        "total_tokens": 2331,
+        "fact_checks": {
+          "sha256 / sha 256 / hash": true,
+          "skip / continue / avoid reprocessing / avoids reprocessing": true,
+          "delete / remove": true
+        },
+        "correct": true
+      },
+      "with_pie": {
+        "answer": "The indexer detects an unchanged file by fetching its stored sha256 via `SELECT id, sha256 FROM files WHERE path = ?` and comparing it to the current record's sha256. If they match, the code hits the `continue` statement, avoiding reprocessing and reindexing. For a changed file, it removes the old row by executing `DELETE FROM files WHERE id = ?` before reprocessing.",
+        "reasoning_content": null,
+        "latency_ms": 892.5,
+        "input_tokens": 208,
+        "output_tokens": 93,
+        "total_tokens": 301,
+        "fact_checks": {
+          "sha256 / sha 256 / hash": true,
+          "skip / continue / avoid reprocessing / avoids reprocessing": true,
+          "delete / remove": true
+        },
+        "correct": true
+      }
+    },
+    {
+      "id": "drift-safety",
+      "file": "src/pie/graph/relationships.py",
+      "question": "How does PIE prevent callers or relationships from being reported as trustworthy after source drift? Explain the hash comparison mechanism and enumerate every drift category shown in the evidence, including size-related failures.",
+      "mcp_evidence": {
+        "tool": "pie_build_context",
+        "latency_ms": 120.77,
+        "stdout_sha256": "689f6ac085887a27e0091c8b49f43c45397cfe77fc80fdb68e35455bc38083bb"
+      },
+      "without_pie": {
+        "answer": "PIE refuses to label call edges as verified during build, storing them as 'unresolved' unless an import target exists in the module map. On retrieval, _drifted_sources compares each indexed file's path and sha256 against the current file set, flagging modifications, additions, deletions, unreadable files, unreadable directories, and oversized files as drift. If the relations_source_state is not CURRENT, the stored relations_fingerprint does not equal the live index fingerprint, or any drift is detected, relations_state becomes STALE instead of CURRENT.",
+        "reasoning_content": null,
+        "latency_ms": 2169.79,
+        "input_tokens": 2092,
+        "output_tokens": 122,
+        "total_tokens": 2214,
+        "fact_checks": {
+          "sha256 / sha 256 / hash": true,
+          "unreadable": true,
+          "oversized / size limit": true
+        },
+        "correct": true
+      },
+      "with_pie": {
+        "answer": "PIE re-computes each indexed source's sha256 hash and compares it against the stored indexed value to identify source drift, thereby preventing callers or relationships from being reported as trustworthy when files have changed. The drift categories are: additions, deletions, unreadable paths (\"file_unreadable\"), and oversized paths. Size-related failures are represented by the oversized set, which excludes files that exceed size limits from indexing.",
+        "reasoning_content": null,
+        "latency_ms": 1160.13,
+        "input_tokens": 298,
+        "output_tokens": 91,
+        "total_tokens": 389,
+        "fact_checks": {
+          "sha256 / sha 256 / hash": true,
+          "unreadable": true,
+          "oversized / size limit": true
+        },
+        "correct": true
+      }
+    },
+    {
+      "id": "graph-semantics",
+      "file": "src/pie/graph/relationships.py",
+      "question": "Describe the conservative semantics of the static graph: how are CALLS edges represented, how are absolute local IMPORTS resolved through module_map, how are relative imports handled, and what must be true before graph construction starts?",
+      "mcp_evidence": {
+        "tool": "pie_build_context",
+        "latency_ms": 106.75,
+        "stdout_sha256": "a6b88a967ce9f6bfb77e6ccf80006dd7ea5285ea183bd396e8ae43e360345493"
+      },
+      "without_pie": {
+        "answer": "CALLS edges store the callee expression as target_expression, leave target_file_id NULL, and mark resolution_status 'unresolved'. Absolute local IMPORTS are resolved through module_map, which maps file paths without the .py suffix (with '/' replaced by '.') to file ids; a match yields target_file_id and status 'verified', otherwise status remains 'unresolved'. Relative imports (level set) skip module_map lookup and remain unresolved. Before construction starts, the index sqlite file must exist, index_state must be 'CURRENT', and every indexed file's sha256 must match its current source file.",
+        "reasoning_content": null,
+        "latency_ms": 1894.32,
+        "input_tokens": 2098,
+        "output_tokens": 128,
+        "total_tokens": 2226,
+        "fact_checks": {
+          "calls": true,
+          "unresolved": true,
+          "module_map / module map / absolute import / exact module": true,
+          "current": true
+        },
+        "correct": true
+      },
+      "with_pie": {
+        "answer": "CALLS edges are represented as (file_id, sym_id or None, 'CALLS', expr, None, node.lineno, 'unresolved'). Absolute local imports resolve through module_map mapping stripped .py paths as dotted names to file ids. Relative imports require package semantics and stay unresolved. Before graph construction starts, state must exist with state[0] == 'CURRENT'.",
+        "reasoning_content": null,
+        "latency_ms": 947.31,
+        "input_tokens": 258,
+        "output_tokens": 82,
+        "total_tokens": 340,
+        "fact_checks": {
+          "calls": true,
+          "unresolved": true,
+          "module_map / module map / absolute import / exact module": true,
+          "current": true
+        },
+        "correct": true
+      }
+    },
+    {
+      "id": "mcp-contract",
+      "file": "src/pie/interfaces/mcp_server.py",
+      "question": "Which PIE MCP tool returns hash-verified source ranges, and what is the allowed max_chars range for that tool? Also state why the server rejects unknown arguments.",
+      "mcp_evidence": {
+        "tool": "pie_build_context",
+        "latency_ms": 128.48,
+        "stdout_sha256": "a23d83335f7c5841f4190f4b495667efbb76ec2d04441117d5abb2f0665332dd",
+        "contract_latency_ms": 113.28
+      },
+      "without_pie": {
+        "answer": "The PIE MCP tool that returns hash-verified source ranges is `pie_build_context`, with an allowed `max_chars` range of minimum 500 to maximum 200000, as specified in its inputSchema. The server rejects unknown arguments because any argument key not present in the tool's `inputSchema.properties` triggers a `ValueError('Unknown arguments')`, enforcing `additionalProperties: False`.",
+        "reasoning_content": null,
+        "latency_ms": 3752.89,
+        "input_tokens": 2581,
+        "output_tokens": 89,
+        "total_tokens": 2670,
+        "fact_checks": {
+          "pie_build_context": true,
+          "200000 / 500": true,
+          "additionalproperties / unknown arguments": true
+        },
+        "correct": true
+      },
+      "with_pie": {
+        "answer": "The PIE MCP tool **pie_build_context** returns hash-verified source ranges for a task/symbol. Its `max_chars` parameter ranges from **500** to **200000**. The server rejects unknown arguments because the contract sets `additionalProperties` to false and raises `ValueError('Unknown arguments')`.",
+        "reasoning_content": null,
+        "latency_ms": 951.44,
+        "input_tokens": 344,
+        "output_tokens": 71,
+        "total_tokens": 415,
+        "fact_checks": {
+          "pie_build_context": true,
+          "200000 / 500": true,
+          "additionalproperties / unknown arguments": true
+        },
+        "correct": true
+      }
+    },
+    {
+      "id": "reference-integrity",
+      "file": "src/pie/retrieval/symbols.py",
+      "question": "When finding references to a symbol, how does PIE keep the result tied to the correct definition and consumer files? Explain the role of target binding keys and drift filtering.",
+      "mcp_evidence": {
+        "tool": "pie_build_context",
+        "latency_ms": 107.36,
+        "stdout_sha256": "c96b451365314b7db75ba54978b9df8bb78c357d0d4c4dc67e5f9c5b1a1ee74f"
+      },
+      "without_pie": {
+        "answer": "find_references locates a symbol’s definitions, then reverses lookups on usages.target_binding_key, so each consumer row is tied back to its exact definition (USAGE_SELECT). PIE hash-verifies every source backing the answer via _drifted_sources and excludes any changed file plus targets whose binding_key is no longer live (_verification reports STALE). This binding-key and drift filtering keeps references linked to the correct definition and valid consumer files, dropping stale evidence instead of mislabeling it.",
+        "reasoning_content": null,
+        "latency_ms": 1993.74,
+        "input_tokens": 4347,
+        "output_tokens": 105,
+        "total_tokens": 4452,
+        "fact_checks": {
+          "target_binding_key": true,
+          "drift": true,
+          "references / usages / consumers": true,
+          "definition / target": true
+        },
+        "correct": true
+      },
+      "with_pie": {
+        "answer": "PIE runs `find_references` to enumerate symbol usages by targeting `USAGE_SELECT` rows filtered by `target_binding_key` placeholders, tying results to a specific definition and its consuming files via those keys. `target binding key` identifies the consumer file and target binding, ensuring results stay bound to the correct symbol definition and source. Drift filtering builds a `drift` set from `_drifted_sources` and computes `live_keys` from target rows whose `path` is excluded from drift, dropping stale bindings to prevent mismatched or outdated references.",
+        "reasoning_content": null,
+        "latency_ms": 1653.76,
+        "input_tokens": 220,
+        "output_tokens": 118,
+        "total_tokens": 338,
+        "fact_checks": {
+          "target_binding_key": true,
+          "drift": true,
+          "references / usages / consumers": true,
+          "definition / target": true
+        },
+        "correct": true
+      }
+    }
+  ]
+}
