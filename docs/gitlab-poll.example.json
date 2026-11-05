@@ -1,0 +1,13 @@
+{
+  "gitlab_poll": {
+    "project_id": 12345,
+    "label": "pie-agent-ready",
+    "allowed_author_ids": [123456],
+    "token_env": "PIE_GITLAB_API_TOKEN",
+    "task": {
+      "project_id": "pie",
+      "task_type": "read_only_review",
+      "model": "nvidia/nemotron-3-super-120b-a12b"
+    }
+  }
+}

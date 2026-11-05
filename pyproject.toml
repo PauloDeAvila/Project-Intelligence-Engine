@@ -11,6 +11,7 @@ requires-python = ">=3.12"
 [project.scripts]
 pie = "pie.interfaces.cli:main"
 pie-orchestrator = "pie.orchestrator.__main__:main"
+pie-orchestrator-gitlab-poll = "pie.orchestrator.gitlab_poll:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
