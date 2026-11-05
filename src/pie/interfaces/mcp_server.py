@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 from pie.graph.relationships import build_relationships, get_relationships
+from pie.retrieval.task_memory import start_task, record_task, resume_task
 from pie.interfaces.mcp_context import MCPContextEngine
 from pie.retrieval.context import build_context
 from pie.interfaces.cli import command_status, command_search, command_symbol
@@ -18,6 +19,9 @@ from pie.retrieval.evidence import build_evidence
 from pie.retrieval.context_pack import build_context_pack
 
 TOOLS = [
+    {'name':'pie_task_start', 'description':'Start an explicit project-scoped persistent task; records only the supplied objective.', 'inputSchema':{'type':'object','properties':{'objective':{'type':'string'}},'required':['objective'],'additionalProperties':False}},
+    {'name':'pie_task_record', 'description':'Atomically append an explicit action, decision, result, checkpoint or note; optionally change task status.', 'inputSchema':{'type':'object','properties':{'task_id':{'type':'string'},'kind':{'type':'string','enum':['action','decision','result','checkpoint','note']},'text':{'type':'string'},'reference':{'type':'string'},'status':{'type':'string','enum':['in_progress','blocked','completed']}},'required':['task_id','kind','text'],'additionalProperties':False}},
+    {'name':'pie_task_resume', 'description':'Recover latest unfinished or blocked task, or one by ID, from project-local SQLite; bounded event history.', 'inputSchema':{'type':'object','properties':{'task_id':{'type':'string'},'limit':{'type':'integer','minimum':1,'maximum':100}},'additionalProperties':False}},
     {'name':'pie_query', 'description':'Preferred unified source-grounded lookup: responsibilities, symbol/file navigation and verified impact relationships. Use this before direct file browsing.', 'inputSchema':{'type':'object','properties':{'query':{'type':'string'},'mode':{'type':'string','enum':['responsibility','navigation','impact']},'limit':{'type':'integer','minimum':1,'maximum':20},'max_chars':{'type':'integer','minimum':500,'maximum':200000}},'required':['query'],'additionalProperties':False}},
     {'name':'pie_verified_evidence', 'description':'Canonical hash-verified function or qualified method signature (e.g. MeasurementCache.get) and bounded verified direct call sites; rejects ambiguous or stale evidence.', 'inputSchema':{'type':'object','properties':{'symbol':{'type':'string'}},'required':['symbol'],'additionalProperties':False}},
     {'name':'pie_build_context_pack', 'description':'Deterministic v2 Context Pack for an exact function or qualified method (e.g. MeasurementCache.get); separates returned verified-call completeness from partial static coverage; never certifies exhaustive callers or runtime breakage.', 'inputSchema':{'type':'object','properties':{'symbol':{'type':'string'},'max_chars':{'type':'integer','minimum':1500,'maximum':64000},'max_calls':{'type':'integer','minimum':1,'maximum':100}},'required':['symbol'],'additionalProperties':False}},
@@ -73,9 +77,16 @@ def dispatch(request: dict, root: Path, engine: MCPContextEngine | None = None) 
                         raise ValueError(f'{key} must be a nonempty safe string <= 4096 chars')
                     if spec.get('type') == 'integer' and (type(value) is not int or not spec.get('minimum', -10**30) <= value <= spec.get('maximum', 10**30)):
                         raise ValueError(f'{key} must be an integer within range')
+            if 'kind' in args and args['kind'] not in ('action','decision','result','checkpoint','note'):
+                raise ValueError('Invalid event kind')
+            if 'status' in args and args['status'] not in ('in_progress','blocked','completed'):
+                raise ValueError('Invalid task status')
             if 'mode' in args and args['mode'] not in ('responsibility','navigation','impact'):
                 raise ValueError('Invalid mode')
             functions = {
+                'pie_task_start':lambda:start_task(root,args['objective']),
+                'pie_task_record':lambda:record_task(root,args['task_id'],args['kind'],args['text'],reference=args.get('reference'),status=args.get('status')),
+                'pie_task_resume':lambda:resume_task(root,args.get('task_id'),args.get('limit',30)),
                 'pie_query':lambda:engine.query(args['query'],mode=args.get('mode','responsibility'),limit=args.get('limit',5),max_chars=args.get('max_chars',12000)) if engine is not None else _standalone_query(root,args),
                 'pie_verified_evidence':lambda:build_evidence(root,args['symbol']),
                 'pie_build_context_pack':lambda:build_context_pack(root,args['symbol'],max_chars=args.get('max_chars',12000),max_calls=args.get('max_calls',100)),
