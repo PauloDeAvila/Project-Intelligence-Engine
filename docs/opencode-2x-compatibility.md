@@ -25,7 +25,7 @@ https://opencode.ai/docs/config
 In a clean copy of PR #39, run:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File tools/start_opencode_pie_smoke.ps1 -PieRoot (Resolve-Path .).Path
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/start_opencode_pie_smoke.ps1 -PieRoot "$((Resolve-Path .).Path)"
 ```
 
 The script creates a unique private config, starts an isolated OpenCode
