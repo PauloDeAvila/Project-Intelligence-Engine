@@ -1,1 +1,1 @@
-One bounded A/B using the 9Router native combo Leve; preflight first, no automatic retries. Revision 2.
+One bounded A/B using exact native combo ID pie-benchmark-fallback; catalog preflight and four-request cap; no retries. Revision 3.
