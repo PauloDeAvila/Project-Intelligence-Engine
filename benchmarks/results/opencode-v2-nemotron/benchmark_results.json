@@ -1,0 +1,95 @@
+{
+  "benchmark": "opencode-v2-nemotron",
+  "commit": "0d5348b5cd4ba957ad11f714e859d9e1439d9b0e",
+  "blocked": true,
+  "block_reason": "OpenCode 2.2.5 binary not installed; no Nemotron model available locally; public gateway bearer disclosed and must not be used; installing unknown tools prohibited by security constraints.",
+  "test_suite": {
+    "command": "python -m unittest discover -s tests -v",
+    "total_tests": 131,
+    "passed": 131,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "exit_code": 0,
+    "duration_seconds": 6.945,
+    "result": "PASSED"
+  },
+  "check_install": {
+    "command": "python tools/check_install.py",
+    "exit_code": 0,
+    "result": "PASSED",
+    "pie_version": "0.1.0",
+    "cli_commands_verified": [
+      "--version",
+      "init",
+      "index",
+      "status",
+      "search",
+      "symbol",
+      "definitions",
+      "references",
+      "analysis"
+    ]
+  },
+  "pyright": {
+    "command": "npx pyright src",
+    "pyright_version": "1.1.414",
+    "exit_code": 1,
+    "errors": 21,
+    "warnings": 0,
+    "informations": 0,
+    "result": "TYPE_ERRORS",
+    "note": "Pyright reports 21 type errors in src/. The documentation notes a prior 120/120 Pyright-clean result on commit c59071bc; this branch's code is not yet Pyright-clean on this environment."
+  },
+  "pie_mcp_tools_available": [
+    "pie_project_status",
+    "pie_search_symbols",
+    "pie_inspect_symbol",
+    "pie_build_graph",
+    "pie_relationships",
+    "pie_build_context",
+    "pie_find_definitions",
+    "pie_find_references",
+    "pie_analysis_summary"
+  ],
+  "with_pie": {
+    "executed": false,
+    "reason": "OpenCode binary not installed; no model endpoint; no OPENCODE_PASSWORD; cannot connect MCP",
+    "questions_evaluated": 0,
+    "correct": 0,
+    "incorrect": 0,
+    "tokens_input": null,
+    "tokens_output": null,
+    "latency_seconds": null,
+    "mcp_calls": [],
+    "session_ids": [],
+    "failures": ["open_code_binary_missing", "model_unavailable", "mcp_cannot_connect"]
+  },
+  "without_pie": {
+    "executed": false,
+    "reason": "OpenCode binary not installed; no model endpoint; no OPENCODE_PASSWORD",
+    "questions_evaluated": 0,
+    "correct": 0,
+    "incorrect": 0,
+    "tokens_input": null,
+    "tokens_output": null,
+    "latency_seconds": null,
+    "mcp_calls": [],
+    "session_ids": [],
+    "failures": ["open_code_binary_missing", "model_unavailable"]
+  },
+  "comparison": {
+    "with_pie_correct": null,
+    "without_pie_correct": null,
+    "difference": null,
+    "verdict": "BLOCKED - no real model execution possible",
+    "evidence_hash": null
+  },
+  "sanitization_notes": [
+    "No tokens, passwords, or secrets included",
+    "No private configuration included",
+    "No personal data included",
+    "All file paths are within the isolated test copy",
+    "No bearer token or gateway credential included"
+  ]
+}

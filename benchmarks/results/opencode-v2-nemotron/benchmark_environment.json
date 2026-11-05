@@ -1,0 +1,21 @@
+{
+  "benchmark": "opencode-v2-nemotron",
+  "repository": "https://github.com/PauloDeAvila/Project-Intelligence-Engine",
+  "branch": "exp/opencode-remote-orchestrator",
+  "commit": "0d5348b5cd4ba957ad11f714e859d9e1439d9b0e",
+  "commit_message": "fix(orchestrator): decode nested OpenCode v2 MCP status response correctly",
+  "execution_date_utc": "2026-11-05T00:00:00Z",
+  "platform": "win32",
+  "python_version": "3.13.17",
+  "git_version": "2.55.0.windows.5",
+  "opencode_installed": false,
+  "opencode_binary_found": false,
+  "opencode_version": null,
+  "npm_available": false,
+  "npx_available": false,
+  "nemotron_model_available": false,
+  "openai_python_available": false,
+  "open_environment_variable": "not set (sanitized)",
+  "open_environment_password": "not set (sanitized)",
+  "note": "OpenCode 2.2.5 is not installed on this machine. No Nemotron model is available locally. The public gateway bearer was disclosed and must not be used. Benchmark WITH_PIE/WITHOUT_PIE cannot be executed against a real model. Only unit tests, integration tests, and static checks were executed."
+}
