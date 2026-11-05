@@ -1,1 +1,1 @@
-Trigger exactly one controlled PIE minimal-context A/B on gh/gpt-4o-mini. Four calls maximum, 10-second cooldown, no retries.
+One bounded A/B using the 9Router native combo Leve; preflight first, no automatic retries. Revision 2.
