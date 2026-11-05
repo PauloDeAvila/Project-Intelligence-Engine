@@ -15,7 +15,7 @@ This benchmark is manually triggered only, not an automated recurring task.
 - The zero-call dry run checks indexed test fixtures and evidence before live
   inference, producing a local context audit.
 - Results use provider-returned `usage` when present; missing provider token
-  counts remain unknown. Correctness is scored using the deterministic fixture.
+  counts remain `null` (unknown), never fabricated as zero. Correctness is scored using the deterministic fixture.
 - Early stop on first failure; no extra 'connectivity probe' request is made.
 
 ## GitHub Actions setup

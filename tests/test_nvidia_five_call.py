@@ -48,6 +48,14 @@ class FiveCallBudgetTests(unittest.TestCase):
                         "--modes","baseline,pie_rtk")
         self.assertEqual(err.exception.code,2)
 
+    def test_usage_missing_does_not_become_fake_zero(self):
+        one={"usage":{"prompt_tokens":7,"completion_tokens":2,"total_tokens":9}}
+        missing={"usage":{}}
+        self.assertEqual(bench.sum_reported_usage([one],"total_tokens"),9)
+        self.assertIsNone(bench.sum_reported_usage([one,missing],"total_tokens"))
+        self.assertIsNone(bench.sum_reported_usage([],"total_tokens"))
+        self.assertIsNone(bench.sum_reported_usage([{"usage":None}],"total_tokens"))
+
     def test_four_call_preflight_makes_zero_requests(self):
         with patch.object(bench,"call",side_effect=AssertionError("API should not be called")):
             self.invoke("--cases","MAX_RETRIES,release","--modes","baseline,pie_rtk",

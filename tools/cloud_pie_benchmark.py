@@ -181,6 +181,20 @@ def call(endpoint,key,model,prompt,max_tokens):
     except Exception as e:
         return {"ok":False,"seconds":round(time.perf_counter()-start,3),"error_category":type(e).__name__}
 
+def sum_reported_usage(rows, field):
+    """Return None unless every successful call reports this exact token field."""
+    if not rows:
+        return None
+    values=[]
+    for row in rows:
+        usage=row.get("usage")
+        value=usage.get(field) if isinstance(usage,dict) else None
+        if type(value) is not int or value < 0:
+            return None
+        values.append(value)
+    return sum(values)
+
+
 def run():
     parser=argparse.ArgumentParser()
     parser.add_argument('--model',default='gh/gpt-4o-mini')
@@ -302,7 +316,7 @@ def run():
     summary={}
     for mode in selected_modes:
         vals=[r for r in results if r["mode"]==mode and r["ok"]]
-        summary[mode]={"n":len(vals),"median_latency_s":round(statistics.median([x["seconds"] for x in vals]),3) if vals else None,"total_tokens":sum(x.get("usage",{}).get("total_tokens",0) for x in vals),"prompt_tokens":sum(x.get("usage",{}).get("prompt_tokens",0) for x in vals),"completion_tokens":sum(x.get("usage",{}).get("completion_tokens",0) for x in vals),"nonstop":sum(x.get("finish_reason")!="stop" for x in vals),"correct_fields":sum(x.get("semantic_grade",{}).get("passed",0) for x in vals),"total_fields":sum(x.get("semantic_grade",{}).get("total",0) for x in vals),"certified_answers":sum(x.get("certification",{}).get("approved",False) for x in vals)}
+        summary[mode]={"n":len(vals),"median_latency_s":round(statistics.median([x["seconds"] for x in vals]),3) if vals else None,"total_tokens":sum_reported_usage(vals,"total_tokens"),"prompt_tokens":sum_reported_usage(vals,"prompt_tokens"),"completion_tokens":sum_reported_usage(vals,"completion_tokens"),"nonstop":sum(x.get("finish_reason")!="stop" for x in vals),"correct_fields":sum(x.get("semantic_grade",{}).get("passed",0) for x in vals),"total_fields":sum(x.get("semantic_grade",{}).get("total",0) for x in vals),"certified_answers":sum(x.get("certification",{}).get("approved",False) for x in vals)}
     (out/"summary.json").write_text(json.dumps({"model":args.model,"scale_modules":args.scale_modules,"modes":selected_modes,"cases":selected_cases,"attempts":len(results),"hard_call_limit":args.max_calls,"summary":summary,"verification_mode":"post-mutation isolated execution observations are included identically for both observed variants; this is not a blind LLM test","index_seconds_one_time":index_seconds,"retrieval_seconds_all_contexts":retrieval_seconds,"causal_retrieval_seconds_by_question":causal_retrieval_seconds,"grading":"Deterministic JSON-field scoring against known behavior of the synthetic mini-order lab; not a general code-correctness metric.","caveat":"The curated reference uses case-specific source selection; it is NOT a general-purpose PIE algorithm. One small lab, no automated semantic grading, and no established speedup."},ensure_ascii=False,indent=2),encoding='utf-8')
     print("SUMMARY",json.dumps(summary))
     if len(results)!=len(jobs) or any(not r["ok"] for r in results):sys.exit(1)
