@@ -151,9 +151,20 @@ def bench(args:argparse.Namespace) -> dict[str,Any]:
                            "full_answers_correct":sum(r["semantic_grade"]["passed"]==r["semantic_grade"]["total"] for r in vals),
                            "median_latency_seconds":statistics.median(r["seconds"] for r in vals) if vals else None}
         paired=len(results)==len(jobs) and all(r["ok"] for r in results)
+        # Combos may fall back to different providers. Compare only when the
+        # effective model is reported for every request and is identical.
+        actual_models=sorted({r["actual_model"] for r in results
+                              if r.get("ok") and isinstance(r.get("actual_model"),str)
+                              and r["actual_model"].strip()})
+        model_identity_complete=(paired and len(actual_models)==1 and
+                                 all(isinstance(r.get("actual_model"),str)
+                                     and r["actual_model"]==actual_models[0] for r in results))
         b=summary["pie_rtk"];m=summary["pie_minimal"]
-        comparable=paired and b["total_tokens"] is not None and m["total_tokens"] is not None and b["calls"]==m["calls"]
-        report={"model":args.model,"cases":cases,"paired":paired,
+        comparable=paired and model_identity_complete and b["total_tokens"] is not None and m["total_tokens"] is not None and b["calls"]==m["calls"]
+        report={"model":args.model,"effective_models":actual_models,
+                "model_identity_complete":model_identity_complete,
+                "model_mismatch_or_unknown":paired and not model_identity_complete,
+                "cases":cases,"paired":paired,
                 "provider_usage_complete":comparable,"summary":summary,
                 "saved_tokens":b["total_tokens"]-m["total_tokens"] if comparable else None,
                 "total_reduction_percent":round(100*(b["total_tokens"]-m["total_tokens"])/b["total_tokens"],3) if comparable and b["total_tokens"] else None,
@@ -168,7 +179,7 @@ def bench(args:argparse.Namespace) -> dict[str,Any]:
 
 def main():
     p=argparse.ArgumentParser()
-    p.add_argument("--model",default="gh/gpt-4o-mini")
+    p.add_argument("--model",default="Leve")
     p.add_argument("--cases",default="MAX_RETRIES,release")
     p.add_argument("--repeats",type=int,default=1)
     p.add_argument("--max-calls",type=int,default=4)

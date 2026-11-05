@@ -31,3 +31,15 @@ Acceptance: valid current source, minimal payload strictly smaller, 4/4 API
 requests and complete reported usage; nondegraded correctness and meaningful
 paired token savings required before any promotion. Main branch remains
 unchanged. Sources, graph, MCP, warm context and gateway are untouched.
+
+## Native 9Router fallback combo
+
+The requested model is now `Leve`, the locally configured 9Router combo.
+A non-inference `/v1/models` preflight must return HTTP 200 before any model
+call. The existing Cloudflare tunnel URL is temporary; `404` from a stale
+tunnel is a transport failure, not evidence of a model failure. Keep the
+hard cap of four requests and no retries. Actual-model names reported by
+the provider must match across both variants; an unknown or differing model
+makes the token-savings comparison **incomparable**. A combo name returned as
+`model` may not identify the underlying backend, so treat it as provider-
+reported identity, not independently verified backend provenance.

@@ -30,10 +30,33 @@ jobs:
           PYTHONPATH=src python tools/benchmark_minimal_context.py \
             --dry-run --cases MAX_RETRIES,release --max-calls 4 \
             --out benchmark-results/minimal-context
-      - name: Exactly four mini inference requests, no retries
+      - name: Check 9Router endpoint without inference calls
+        run: |
+          python - <<'PY'
+          import os
+          import urllib.request
+          import urllib.error
+          from urllib.parse import urlsplit
+          url=os.getenv("PIE_API_BASE_URL","").rstrip("/")
+          key=os.getenv("PIE_API_KEY","")
+          if not url.startswith("https://") or not key:
+              raise SystemExit("BLOCKED: HTTPS endpoint/key missing")
+          # Endpoint validation only: never reveal the full URL or credentials.
+          suffix="/models" if urlsplit(url).path.rstrip("/").endswith("/v1") else "/v1/models"
+          req=urllib.request.Request(url+suffix,headers={"Authorization":"Bearer "+key})
+          try:
+              with urllib.request.urlopen(req,timeout=12) as response:
+                  status=response.status
+              print("9Router model-catalog HTTP:",status)
+          except urllib.error.HTTPError as exc:
+              raise SystemExit("BLOCKED: 9Router catalog HTTP "+str(exc.code))
+          except Exception as exc:
+              raise SystemExit("BLOCKED: 9Router endpoint unavailable: "+type(exc).__name__)
+          PY
+      - name: Exactly four combo inference requests, no retries
         run: |
           PYTHONPATH=src python tools/benchmark_minimal_context.py \
-            --model gh/gpt-4o-mini --cases MAX_RETRIES,release \
+            --model Leve --cases MAX_RETRIES,release \
             --repeats 1 --max-calls 4 --cooldown 10 \
             --out benchmark-results/minimal-context
       - name: Preserve result artifacts
