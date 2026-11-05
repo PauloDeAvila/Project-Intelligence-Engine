@@ -21,6 +21,7 @@ from pie.retrieval.context import build_context
 MAX_REQUIREMENTS = 32
 MAX_REQUIREMENT_CHARS = 128
 MAX_ATOMS = 96
+CACHE_SCHEMA_VERSION = "evidence-cache-v2"
 _TOKEN_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*|\d+")
 
 
@@ -350,11 +351,19 @@ def _source_atoms(
         end_line = int(item.get("end_line", base_line + len(str(item.get("content", "")).splitlines()) - 1))
         cached_atoms = cache.get_atoms(path, source_hash, base_line, end_line) if cache else None
         if cached_atoms is not None:
+            # Older cache rows stored only a requirement-dependent excerpt.
+            # They cannot safely serve a different clause, so rebuild them.
+            cache_usable = all(isinstance(cached, dict) and cached.get("source_text") for cached in cached_atoms)
+            if not cache_usable:
+                cached_atoms = None
+        if cached_atoms is not None:
             for cached in cached_atoms:
-                raw_text = str(cached.get("raw_text", ""))
+                source_text = str(cached.get("source_text", ""))
                 kind = str(cached.get("kind", "detail"))
                 base_score = int(cached.get("score", 0))
-                normalized_line = _normalize(raw_text)
+                raw_text = _compact_text(source_text, requirements)
+                semantic_text = _semantic_text(raw_text, kind)
+                normalized_line = _normalize(source_text)
                 matches = sum(
                     1 for requirement in normalized_requirements
                     if requirement and requirement in normalized_line
@@ -363,7 +372,7 @@ def _source_atoms(
                     source_index,
                     int(cached.get("line", base_line)),
                     kind,
-                    str(cached.get("text", raw_text)),
+                    semantic_text,
                     base_score + matches * 100,
                     raw_text,
                 ))
@@ -387,7 +396,7 @@ def _source_atoms(
                 "line": line_number,
                 "kind": kind,
                 "text": semantic_text,
-                "raw_text": raw_text,
+                "source_text": text,
                 "score": base_score,
             })
         if cache and persisted_atoms:
@@ -457,6 +466,7 @@ def _cache_key(
 ) -> str:
     value = json.dumps(
         {
+            "cache_schema": CACHE_SCHEMA_VERSION,
             "query": query,
             "max_chars": max_chars,
             "limit": limit,
@@ -490,6 +500,9 @@ def _delivery_status(
     sources: list[dict],
     atoms: list[dict],
     coverage: dict[str, object],
+    *,
+    index_state: object,
+    context_state: object,
 ) -> dict[str, object]:
     source_verified = all(
         str(source.get("path", "")) and len(str(source.get("sha256", ""))) == 64
@@ -499,20 +512,28 @@ def _delivery_status(
         int(atom.get("line", 0)) > 0 and bool(str(atom.get("text", "")).strip())
         for atom in atoms
     )
-    if not sources:
+    if index_state != "CURRENT" or context_state != "CURRENT":
+        status = "BLOCKED"
+        reason = "source_or_index_state_not_current"
+    elif not sources:
         status = "NOT_FOUND"
+        reason = "no_verified_sources"
     elif not source_verified or not atoms_well_formed:
         status = "BLOCKED"
+        reason = "invalid_source_or_atom_provenance"
     elif not coverage.get("complete", False):
         status = "FALLBACK_REQUIRED"
+        reason = "proof_obligation_missing"
     else:
         status = "READY"
+        reason = "all_obligations_verified"
     return {
         "status": status,
         "can_deliver_atoms": status == "READY",
         "source_verified": source_verified,
         "atoms_well_formed": atoms_well_formed,
         "fallback_required": status == "FALLBACK_REQUIRED",
+        "reason": reason,
     }
 
 
@@ -592,7 +613,13 @@ def build_proof_context(
         coverage = _coverage(checked_requirements, atoms)
         relations = _relationship_atoms(context, {})
         proof_state = context.get("index_state", "UNINDEXED")
-        delivery = _delivery_status(sources, atoms, coverage)
+        delivery = _delivery_status(
+            sources,
+            atoms,
+            coverage,
+            index_state=proof_state,
+            context_state=context.get("context_state"),
+        )
         result: dict[str, object] = {
             "schema_version": "pie-proof-context-v1",
             "status": "VERIFIED_STATIC_PROOF" if proof_state == "CURRENT" else "PARTIAL_STATIC_PROOF",
@@ -642,7 +669,13 @@ def build_proof_context(
         result["used_chars"] = len(json.dumps(result, ensure_ascii=False, separators=(",", ":")))
         result["coverage"] = _coverage(checked_requirements, result["atoms"])
         result["obligations"] = _obligations(checked_requirements, result["coverage"])
-        result["delivery"] = _delivery_status(sources, result["atoms"], result["coverage"])
+        result["delivery"] = _delivery_status(
+            sources,
+            result["atoms"],
+            result["coverage"],
+            index_state=result["index_state"],
+            context_state=result["relationship_state"],
+        )
         result["structured_facts"] = _structured_facts(sources, result["atoms"])
         if not result["coverage"]["complete"]:
             result["fallback"] = {

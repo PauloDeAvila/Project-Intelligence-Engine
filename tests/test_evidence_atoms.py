@@ -81,7 +81,9 @@ class EvidenceAtomTests(unittest.TestCase):
 
     def test_different_questions_share_the_same_atom_catalog(self):
         build_proof_context(self.root, "greet", requirements=["raise"])
-        build_proof_context(self.root, "greet", requirements=["return"])
+        second = build_proof_context(self.root, "greet", requirements=["return"])
+        self.assertTrue(second["coverage"]["ok"])
+        self.assertEqual(second["delivery"]["status"], "READY")
         connection = sqlite3.connect(self.root / ".pie" / "evidence_atoms.sqlite3")
         try:
             atom_ranges = connection.execute("SELECT COUNT(*) FROM atom_cache").fetchone()[0]

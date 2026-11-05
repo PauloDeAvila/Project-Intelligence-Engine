@@ -1,6 +1,8 @@
 import tempfile
 import unittest
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 from pie.graph.relationships import build_relationships
@@ -58,6 +60,16 @@ class ContextMeshTests(unittest.TestCase):
         self.assertFalse(result["assignments"][0]["can_deliver"])
         self.assertEqual(result["assignments"][0]["status"], "FALLBACK_REQUIRED")
 
+    def test_partial_index_is_blocked_from_agent_delivery(self):
+        (self.root / "broken.py").write_text("def broken(:\n    pass\n", encoding="utf-8")
+        index_project(self.root)
+        result = ContextMesh(self.root).build([
+            {"id": "reader", "objective": "read current code", "query": "greet", "requirements": ["return"]},
+        ])
+        self.assertEqual(result["status"], "PARTIAL")
+        self.assertFalse(result["assignments"][0]["can_deliver"])
+        self.assertEqual(result["assignments"][0]["status"], "BLOCKED")
+
     def test_mcp_exposes_context_mesh_for_coordinators(self):
         listed = dispatch({"jsonrpc": "2.0", "id": 1, "method": "tools/list"}, self.root)
         names = {item["name"] for item in listed["result"]["tools"]}
@@ -79,6 +91,36 @@ class ContextMeshTests(unittest.TestCase):
         self.assertFalse(response["result"].get("isError", False))
         payload = json.loads(response["result"]["content"][0]["text"])
         self.assertEqual(payload["schema"], "pie-context-mesh-v1")
+        self.assertEqual(payload["status"], "READY")
+
+    def test_mcp_stdio_serves_context_mesh_tool(self):
+        messages = [
+            {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
+            {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {
+                "name": "pie_build_context_mesh",
+                "arguments": {"agents": [{
+                    "id": "reader",
+                    "objective": "understand greet",
+                    "query": "greet",
+                    "requirements": ["return"],
+                }]},
+            }},
+        ]
+        process = subprocess.run(
+            [sys.executable, "-m", "pie.interfaces.mcp_server", "--root", str(self.root)],
+            input="\n".join(json.dumps(message) for message in messages) + "\n",
+            text=True,
+            capture_output=True,
+            check=True,
+            timeout=30,
+        )
+        responses = {
+            item.get("id"): item
+            for item in map(json.loads, process.stdout.splitlines())
+            if "id" in item
+        }
+        self.assertFalse(responses[2]["result"].get("isError", False))
+        payload = json.loads(responses[2]["result"]["content"][0]["text"])
         self.assertEqual(payload["status"], "READY")
 
 
