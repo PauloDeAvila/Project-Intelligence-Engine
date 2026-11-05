@@ -1,0 +1,46 @@
+name: PIE minimal sufficient context - four-call mini A-B
+on:
+  push:
+    branches: [exp/minimal-sufficient-context-mini]
+    paths: [benchmarks/trigger-minimal-context-mini.txt]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: minimal-context-mini-one-run
+  cancel-in-progress: false
+jobs:
+  ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PIE_API_BASE_URL: ${{ secrets.PIE_API_BASE_URL || vars.PIE_API_BASE_URL }}
+      PIE_API_KEY: ${{ secrets.PIE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile and full regressions
+        run: |
+          python -m compileall -q src tools tests
+          PYTHONPATH=src python -m unittest discover -s tests -v
+      - name: Offline evidence A-B preflight (zero inference)
+        run: |
+          PYTHONPATH=src python tools/benchmark_minimal_context.py \
+            --dry-run --cases MAX_RETRIES,release --max-calls 4 \
+            --out benchmark-results/minimal-context
+      - name: Exactly four mini inference requests, no retries
+        run: |
+          PYTHONPATH=src python tools/benchmark_minimal_context.py \
+            --model gh/gpt-4o-mini --cases MAX_RETRIES,release \
+            --repeats 1 --max-calls 4 --cooldown 10 \
+            --out benchmark-results/minimal-context
+      - name: Preserve result artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pie-minimal-context-${{ github.run_id }}
+          path: benchmark-results/minimal-context
+          retention-days: 30
+          if-no-files-found: warn
