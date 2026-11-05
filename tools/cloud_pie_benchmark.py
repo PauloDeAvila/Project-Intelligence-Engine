@@ -274,7 +274,7 @@ def run():
         if any(audit["pie_rtk_flow"][q]["missing"] for q in QUESTIONS):raise RuntimeError("RTK + AST context insufficient; no inference will run")
         if any(audit["pie_observed"][q]["missing"] for q in QUESTIONS):raise RuntimeError("PIE runtime-evidence context insufficient")
         if args.dry_run:
-            print('DRY RUN PASSED:,json.dumps({q:{m:audit[m][q]['chars'] for m in contexts} for q in QUESTIONS}));return
+            print('DRY RUN PASSED:',json.dumps({q:{m:audit[m][q]['chars'] for m in contexts} for q in QUESTIONS}));return
         if not (endpoint.startswith('https://') and key):raise RuntimeError('Missing HTTPS endpoint or inference secret')
         jobs=[]
         for rep in range(args.repeats):
