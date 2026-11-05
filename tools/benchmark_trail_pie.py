@@ -29,6 +29,7 @@ def run(repeats=5):
         (root/"service.py").write_text(
             "from core import process_order\n"
             "def checkout():\n    return process_order(3)\n",encoding="utf-8")
+        (root/"logger.py").write_text("from core import process_logs\n"+"def report():\n"+"    return process_logs(7)\n",encoding="utf-8")
         (root/"noise.py").write_text(
             "def process_debug(value):\n    return value + 2\n",encoding="utf-8")
         def git(*args):

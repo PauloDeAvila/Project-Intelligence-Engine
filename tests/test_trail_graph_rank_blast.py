@@ -40,6 +40,8 @@ class GraphRankBlastTests(unittest.TestCase):
         self.assertTrue(all(r["runs"]==2 for r in report["ranking"]))
         self.assertIn("process_order",report["blast"]["changed_symbols"])
         self.assertNotIn("unrelated",report["blast"]["changed_symbols"])
+        self.assertGreater(report["blast"]["coarse_file_level_consumers"],report["blast"]["diff_symbol_consumers"])
+        self.assertGreater(report["blast"]["precision_refinement"],0)
 
     def test_end_to_end_local_repository(self):
         if not shutil.which("git"): self.skipTest("git unavailable")
