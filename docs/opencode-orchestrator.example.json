@@ -1,0 +1,15 @@
+{
+  "host": "127.0.0.1",
+  "port": 8472,
+  "state_db": "C:/Users/you/.pie-orchestrator/orchestrator.sqlite3",
+  "admin_token_env": "PIE_ORCHESTRATOR_ADMIN_TOKEN",
+  "opencode_password_env": "OPENCODE_SERVER_PASSWORD",
+  "opencode_url": "http://127.0.0.1:4096",
+  "projects": [
+    {
+      "id": "pie",
+      "root": "C:/absolute/path/to/Project-Intelligence-Engine/Start-Project",
+      "models": ["nvidia/nemotron-3-super-120b-a12b"]
+    }
+  ]
+}
