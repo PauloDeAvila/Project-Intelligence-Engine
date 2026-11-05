@@ -20,6 +20,25 @@ https://opencode.ai/docs/mcp-servers ,
 https://opencode.ai/docs/server ,
 https://opencode.ai/docs/config
 
+## One-command Windows contract test (recommended)
+
+In a clean copy of PR #39, run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/start_opencode_pie_smoke.ps1 -PieRoot (Resolve-Path .).Path
+```
+
+The script creates a unique private config, starts an isolated OpenCode
+on localhost port 4097 with a new random temporary password, checks
+effective configuration/MCP/tool API, then **stops the temporary process**
+and restores environment variables. No Nemotron inference, gateway
+restart, tunnel change or remote task is performed.
+
+If it reports `ready:false`, the effective OpenCode runtime contract
+does not match the documented API. Keep the PR as Draft and inspect
+the actual binary's `opencode serve --help` and localhost `/doc`.
+Do not bypass failed checks to force a COMPLETED status.
+
 ## Windows procedure — no personal service restart, no external gateway
 
 1. Open a **new PowerShell** in the clean PR #39 checkout, with
