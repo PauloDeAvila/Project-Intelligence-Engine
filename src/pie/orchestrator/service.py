@@ -35,9 +35,10 @@ class Freshness(Protocol):
 
 class Orchestrator:
     """Single-worker controller. Payloads select policy IDs, never commands or paths."""
-    def __init__(self, store: TaskStore, projects: dict[str, ProjectPolicy], adapter: Adapter, freshness: Freshness):
+    def __init__(self, store: TaskStore, projects: dict[str, ProjectPolicy], adapter: Adapter, freshness: Freshness, *, recover: bool = True):
         self.store, self.projects, self.adapter, self.freshness = store, projects, adapter, freshness
-        self.store.recover_interrupted()
+        if recover:
+            self.store.recover_interrupted()
 
     def submit(self, source: str, body: dict[str, Any]) -> tuple[Task, bool]:
         allowed = {"project_id", "task_type", "model", "idempotency_key", "priority", "timeout_seconds", "token_limit", "cost_limit"}
@@ -67,8 +68,10 @@ class Orchestrator:
             execution = self.adapter.execute(
                 task, self.projects[task.project_id],
                 "Execute a read-only review of the authorized PIE project. "
-                "Use PIE MCP if configured for this project. "
-                "Identify the project and index freshness; do not alter files or use shell/web tools.",
+                f"Call the connected {self.projects[task.project_id].pie_mcp_name} MCP "
+                "to obtain project index status and freshness; do not claim a "
+                "successful review without a real MCP tool response. "
+                "Do not alter files or invoke shell/web tools.",
                 on_session=lambda sid: self.store.bind_session(task_id, sid),
             )
             current = self.store.get(task_id)
@@ -76,7 +79,15 @@ class Orchestrator:
                 raise RuntimeError("Task is no longer running")
             if not execution.session_id or current.session_id != execution.session_id:
                 raise RuntimeError("OpenCode session binding mismatch")
-            self.store.record_execution(task_id, session_id=execution.session_id, result=execution.result, metrics=execution.metrics)
+            if not isinstance(execution.result, dict):
+                raise ValueError("Execution result must be structured")
+            # A real OpenCode adapter includes the recorded PIE tool-call proofs.
+            # Synthetic test adapters remain test-only; never infer proof from prose.
+            report = execution.result | {
+                "project_id": task.project_id,
+                "index_validation": evidence,
+            }
+            self.store.record_execution(task_id, session_id=execution.session_id, result=report, metrics=execution.metrics)
             self.store.transition(task_id, TaskStatus.VERIFYING)
             return self.store.transition(task_id, TaskStatus.COMPLETED)
         except Exception as exc:

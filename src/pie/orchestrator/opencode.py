@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import time
 from pathlib import Path
@@ -38,34 +39,71 @@ class OpenCodeHttpAdapter:
             return json.loads(raw)
 
     @staticmethod
-    def _finished(messages: Any) -> tuple[bool, dict[str, Any] | None, dict[str, Any] | None]:
-        """Require a final assistant message rather than guessing from session metadata."""
+    def _finished(
+        messages: Any, pie_mcp_name: str = "pie"
+    ) -> tuple[bool, dict[str, Any] | None, dict[str, Any] | None]:
+        """Trust recorded tool events, not assistant prose claiming MCP usage."""
         if not isinstance(messages, list):
             raise ValueError("OpenCode message listing is not an array")
-        for item in reversed(messages):
-            if not isinstance(item, dict):
+        evidence: list[dict[str, Any]] = []
+        final: dict[str, Any] | None = None
+        metrics: dict[str, Any] | None = None
+        prohibited = {"bash", "edit", "write", "apply_patch",
+                      "webfetch", "websearch", "task"}
+        for message in messages:
+            if not isinstance(message, dict):
                 continue
-            info = item.get("info")
+            info = message.get("info")
             if not isinstance(info, dict) or info.get("role") != "assistant":
                 continue
-            error = info.get("error")
-            if error:
+            if info.get("error"):
                 raise RuntimeError("OpenCode assistant reported execution error")
+            for part in message.get("parts", []):
+                if not isinstance(part, dict) or part.get("type") != "tool":
+                    continue
+                name = part.get("tool", part.get("name"))
+                if not isinstance(name, str):
+                    continue
+                if name in prohibited:
+                    raise RuntimeError("Forbidden tool invocation reported by OpenCode")
+                state = part.get("state")
+                if not isinstance(state, dict) or state.get("status") != "completed":
+                    continue
+                prefix = f"{pie_mcp_name}_"
+                mcp_prefix = f"mcp__{pie_mcp_name}__"
+                if not (name.startswith(prefix) or name.startswith(mcp_prefix)):
+                    continue
+                output = state.get("output", state.get("content"))
+                if output is None:
+                    continue
+                raw = (output.encode("utf-8") if isinstance(output, str)
+                       else json.dumps(output, sort_keys=True, ensure_ascii=False).encode("utf-8"))
+                if not raw or len(raw) > 1_000_000:
+                    raise RuntimeError("PIE MCP tool output missing or exceeds proof bound")
+                evidence.append({
+                    "tool": name,
+                    "tool_call_id": part.get("callID", part.get("id")),
+                    "status": "completed",
+                    "output_sha256": hashlib.sha256(raw).hexdigest(),
+                    "output_bytes": len(raw),
+                })
             finish = info.get("finish")
-            if finish is None:
-                continue
-            if not isinstance(finish, str) or finish in ("tool-calls", "tool_calls", "unknown"):
-                continue
-            if finish not in ("stop", "end_turn", "complete"):
-                # May indicate token ceiling or interrupted generation; never certify.
-                raise RuntimeError("OpenCode generation did not finish normally")
-            tokens = info.get("tokens")
-            metrics = tokens if isinstance(tokens, dict) else None
-            # Return metadata only: raw message content and MCP output are not exposed.
-            return True, {"assistant_message_id": info.get("id"),
-                          "finish_reason": finish,
-                          "message_count": len(messages)}, metrics
-        return False, None, None
+            if finish is not None:
+                if finish not in ("stop", "end_turn", "complete"):
+                    if finish not in ("tool-calls", "tool_calls", "unknown"):
+                        raise RuntimeError("OpenCode generation did not finish normally")
+                    continue
+                final = {"assistant_message_id": info.get("id"),
+                         "finish_reason": finish,
+                         "message_count": len(messages)}
+                tokens = info.get("tokens")
+                metrics = tokens if isinstance(tokens, dict) else None
+        if final is None:
+            return False, None, None
+        if not evidence:
+            raise RuntimeError("No completed PIE MCP tool output in OpenCode session")
+        final["pie_mcp_evidence"] = evidence
+        return True, final, metrics
 
     def execute(self, task: Task, project: ProjectPolicy, prompt: str,
                 on_session: Callable[[str], None] | None = None) -> Execution:
@@ -117,7 +155,7 @@ class OpenCodeHttpAdapter:
             # Absence in status map commonly means idle. Require terminal
             # assistant message nonetheless to avoid false positives.
             messages = self._request("GET", f"/session/{sid}/message", directory=project.root)
-            done, result, metrics = self._finished(messages)
+            done, result, metrics = self._finished(messages, project.pie_mcp_name)
             if done and result is not None:
                 return Execution(session_id, result, metrics)
             time.sleep(0.5)

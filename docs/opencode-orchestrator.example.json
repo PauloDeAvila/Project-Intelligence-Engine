@@ -1,6 +1,7 @@
 {
   "host": "127.0.0.1",
   "port": 8472,
+  "auto_execute": false,
   "state_db": "C:/Users/you/.pie-orchestrator/orchestrator.sqlite3",
   "admin_token_env": "PIE_ORCHESTRATOR_ADMIN_TOKEN",
   "opencode_password_env": "OPENCODE_SERVER_PASSWORD",

@@ -60,7 +60,9 @@ class OpenCodeCompletionTests(unittest.TestCase):
             {"ses_new":{"type":"busy"}},
             {"ses_new":{"type":"idle"}},
             [{"info":{"role":"user","id":"usr"}},{"info":{"role":"assistant","id":"a1",
-                  "finish":"stop","tokens":{"input":19,"output":4}},"parts":[{"type":"text","text":"internal"}]}],
+                  "finish":"stop","tokens":{"input":19,"output":4}},"parts":[{"type":"text","text":"internal"},
+                  {"type":"tool","tool":"pie_project_status","callID":"call_pie_1",
+                   "state":{"status":"completed","output":"CURRENT"}}]}],
         ])
         service,task=self.make(adapter)
         with patch("pie.orchestrator.opencode.time.sleep"):
@@ -69,6 +71,9 @@ class OpenCodeCompletionTests(unittest.TestCase):
         self.assertEqual(result.session_id,"ses_new")
         self.assertEqual(result.metrics,{"input":19,"output":4})
         self.assertNotIn("internal",json.dumps(result.result))
+        self.assertEqual(result.result["pie_mcp_evidence"][0]["tool"], "pie_project_status")
+        self.assertEqual(len(result.result["pie_mcp_evidence"][0]["output_sha256"]), 64)
+        self.assertEqual(result.result["index_validation"]["index_state"], "CURRENT")
         self.assertIn("session_bound",[event["kind"] for event in self.store.events(task.id)])
         self.assertEqual(adapter.calls[2][1],"/session/ses_new/prompt_async")
         self.assertEqual(adapter.calls[2][2]["tools"]["bash"],False)
@@ -93,8 +98,29 @@ class OpenCodeCompletionTests(unittest.TestCase):
         self.assertEqual(end.session_id,"ses_bound")
         self.assertNotIn("remote prompt failed",str(end.error))
 
+    def test_model_finish_without_pie_tool_is_not_a_certified_completion(self):
+        adapter=FakeOpenCode([{"id":"ses_bound"},None,{},[{"info":{"role":"assistant","finish":"stop"},
+                                                            "parts":[{"type":"text","text":"PIE CURRENT"}]}]])
+        service,task=self.make(adapter)
+        end=service.run(task.id)
+        self.assertEqual(end.status,TaskStatus.FAILED)
+        self.assertEqual(end.session_id,"ses_bound")
+        self.assertIsNone(end.result)
+
+    def test_non_pie_mcp_tool_is_not_proof(self):
+        with self.assertRaisesRegex(RuntimeError, "No completed PIE MCP"):
+            OpenCodeHttpAdapter._finished([{"info":{"role":"assistant","finish":"stop"},
+                "parts":[{"type":"tool","tool":"doctor_mesh_status",
+                          "state":{"status":"completed","output":"CURRENT"}}]}])
+
+    def test_errored_pie_tool_is_not_proof(self):
+        with self.assertRaisesRegex(RuntimeError, "No completed PIE MCP"):
+            OpenCodeHttpAdapter._finished([{"info":{"role":"assistant","finish":"stop"},
+                "parts":[{"type":"tool","tool":"pie_project_status",
+                          "state":{"status":"error","output":"failed"}}]}])
+
     def test_session_binding_cannot_change(self):
-        adapter=FakeOpenCode([{"id":"ses_bound"},None,{},[{"info":{"role":"assistant","finish":"stop"}}]])
+        adapter=FakeOpenCode([{"id":"ses_bound"},None,{},[{"info":{"role":"assistant","finish":"stop"},"parts":[{"type":"tool","tool":"pie_project_status","state":{"status":"completed","output":"CURRENT"}}]}]])
         service,task=self.make(adapter)
         end=service.run(task.id)
         self.assertEqual(end.status,TaskStatus.COMPLETED)
