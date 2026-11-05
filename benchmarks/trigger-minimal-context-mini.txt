@@ -1,0 +1,1 @@
+Trigger exactly one controlled PIE minimal-context A/B on gh/gpt-4o-mini. Four calls maximum, 10-second cooldown, no retries.
