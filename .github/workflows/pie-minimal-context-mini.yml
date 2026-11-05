@@ -36,6 +36,7 @@ jobs:
           import os
           import urllib.request
           import urllib.error
+          import json
           from urllib.parse import urlsplit
           url=os.getenv("PIE_API_BASE_URL","").rstrip("/")
           key=os.getenv("PIE_API_KEY","")
@@ -47,7 +48,12 @@ jobs:
           try:
               with urllib.request.urlopen(req,timeout=12) as response:
                   status=response.status
+                  catalog=json.load(response)
               print("9Router model-catalog HTTP:",status)
+              models=catalog.get("data",[]) if isinstance(catalog,dict) else []
+              names=[m.get("id") for m in models if isinstance(m,dict)]
+              print("Exact combo ID in catalog:", "pie-benchmark-fallback" in names)
+              print("Catalog entry count:",len(names))
           except urllib.error.HTTPError as exc:
               raise SystemExit("BLOCKED: 9Router catalog HTTP "+str(exc.code))
           except Exception as exc:
@@ -56,7 +62,7 @@ jobs:
       - name: Exactly four combo inference requests, no retries
         run: |
           PYTHONPATH=src python tools/benchmark_minimal_context.py \
-            --model Leve --cases MAX_RETRIES,release \
+            --model pie-benchmark-fallback --cases MAX_RETRIES,release \
             --repeats 1 --max-calls 4 --cooldown 10 \
             --out benchmark-results/minimal-context
       - name: Preserve result artifacts

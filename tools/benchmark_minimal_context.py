@@ -179,7 +179,7 @@ def bench(args:argparse.Namespace) -> dict[str,Any]:
 
 def main():
     p=argparse.ArgumentParser()
-    p.add_argument("--model",default="Leve")
+    p.add_argument("--model",default="pie-benchmark-fallback")
     p.add_argument("--cases",default="MAX_RETRIES,release")
     p.add_argument("--repeats",type=int,default=1)
     p.add_argument("--max-calls",type=int,default=4)

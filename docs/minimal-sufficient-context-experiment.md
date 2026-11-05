@@ -43,3 +43,7 @@ the provider must match across both variants; an unknown or differing model
 makes the token-savings comparison **incomparable**. A combo name returned as
 `model` may not identify the underlying backend, so treat it as provider-
 reported identity, not independently verified backend provenance.
+
+## Active Combo ID
+
+The user renamed the local fallback combo to `pie-benchmark-fallback`. The workflow requests exactly this identifier. The `/v1/models` preflight logs only whether the exact ID appears and the count of catalog entries; absence from the catalog alone does not prove the combo is invalid because router combo metadata may be exposed separately. Any failed inference stops all following calls. If model identity is absent or varies, do not report comparable savings.
