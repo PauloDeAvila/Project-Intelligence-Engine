@@ -114,6 +114,32 @@ jobs:
           path: web-page-intelligence-evidence.json
           if-no-files-found: error
 
+  web-search-index:
+    name: Web Search Index (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run deterministic local search tests
+        run: python -m unittest discover -s tests/web -p "test_indexing.py" -v
+      - name: Run local search benchmark
+        run: python tools/benchmark_web_search.py --repetitions 100 --output web-search-benchmark.json
+      - name: Upload search benchmark evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-search-index-evidence-${{ matrix.os }}
+          path: web-search-benchmark.json
+          if-no-files-found: error
+      - name: Compile web subsystem
+        run: python -m compileall -q src/pie/web tests/web tools/benchmark_web_search.py
+
   project-verification:
     name: Project Verification
     runs-on: ubuntu-latest
