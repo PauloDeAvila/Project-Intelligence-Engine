@@ -5,6 +5,10 @@
   "admin_token_env": "PIE_ORCHESTRATOR_ADMIN_TOKEN",
   "opencode_password_env": "OPENCODE_SERVER_PASSWORD",
   "opencode_url": "http://127.0.0.1:4096",
+  "gitlab_secret_env": "PIE_GITLAB_WEBHOOK_SECRET",
+  "gitlab_event_map": {
+    "Issue Hook": {"project_id": "pie", "task_type": "read_only_review", "model": "nvidia/nemotron-3-super-120b-a12b"}
+  },
   "projects": [
     {
       "id": "pie",

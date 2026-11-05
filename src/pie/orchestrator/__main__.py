@@ -33,7 +33,7 @@ def main(argv: list[str] | None = None) -> int:
     admin = os.environ[config["admin_token_env"]]; password = os.environ[config["opencode_password_env"]]
     store = TaskStore(Path(config["state_db"]).expanduser())
     adapter = OpenCodeHttpAdapter(config["opencode_url"], password)
-    server = Gateway((config["host"], int(config["port"])), Orchestrator(store, projects, adapter, PieFreshness()), admin, os.environ.get(config.get("gitlab_secret_env", ""), ""))
+    server = Gateway((config["host"], int(config["port"])), Orchestrator(store, projects, adapter, PieFreshness()), admin, os.environ.get(config.get("gitlab_secret_env", ""), ""), config.get("gitlab_event_map", {}))
     try: server.serve_forever()
     finally: store.close()
     return 0

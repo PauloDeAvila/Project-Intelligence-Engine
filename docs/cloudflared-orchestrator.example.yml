@@ -1,0 +1,8 @@
+# Save outside the repository after creating the named tunnel with cloudflared.
+# Keep the credentials JSON path and tunnel UUID private.
+tunnel: REPLACE_WITH_TUNNEL_UUID
+credentials-file: C:/Users/you/.cloudflared/REPLACE_WITH_TUNNEL_UUID.json
+ingress:
+  - hostname: pie-orchestrator.example.com
+    service: http://127.0.0.1:8472
+  - service: http_status:404
