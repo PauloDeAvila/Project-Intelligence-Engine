@@ -1,5 +1,6 @@
 """Git diff to symbol blast radius, using verified PIE graph."""
 import json
+from contextlib import closing
 import re
 import subprocess
 from pathlib import Path
@@ -39,7 +40,7 @@ def blast_diff(root, *, depth=2, limit=50, max_chars=16000):
     raw=git("diff","HEAD","--no-ext-diff","--no-renames","--unified=0","--",".")
     if len(raw)>1000000: raise ValueError("diff too large")
     changes=parse_hunks(raw)
-    with connect(root/".pie"/"index.sqlite3") as db:
+    with closing(connect(root/".pie"/"index.sqlite3")) as db:
         state=db.execute("SELECT value FROM metadata WHERE key='index_state'").fetchone()
         if not state or state[0]!="CURRENT": raise ValueError("index not current")
         if _drifted_sources(db,root): raise ValueError("index stale; run pie index")

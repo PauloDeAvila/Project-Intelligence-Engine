@@ -1,6 +1,7 @@
 """Deterministic verified-edge PageRank retrieval, adapted from Trail-Code principles."""
 import math
 import json
+from contextlib import closing
 from pathlib import Path
 from pie.retrieval.intelligence import smart_context
 from pie.graph.verified import VerifiedGraph
@@ -40,7 +41,7 @@ def rank_context(root, query, *, limit=5, max_chars=12000, candidates=40):
     root=Path(root).resolve(strict=True)
     base=smart_context(root,query,limit=candidates,max_chars=200000,include_body=False)
     if base["context_state"]!="CURRENT" or base["diagnostics"]: raise ValueError("stale context")
-    with connect(root/".pie"/"index.sqlite3") as db:
+    with closing(connect(root/".pie"/"index.sqlite3")) as db:
         if _drifted_sources(db,root): raise ValueError("stale graph")
         graph=VerifiedGraph.from_connection(db)
     evidence=base["evidence"]
