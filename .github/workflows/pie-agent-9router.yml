@@ -1,13 +1,6 @@
 name: PIE - 9Router agent navigation
 on:
   workflow_dispatch:
-  pull_request:
-    branches: [main]
-    paths:
-      - 'tools/pie_agent_9router_lab.py'
-      - 'tools/pie_agent_report.py'
-      - 'tests/test_pie_agent_reporting.py'
-      - '.github/workflows/pie-agent-9router.yml'
 concurrency:
   group: pie-agent-navigation-${{ github.ref }}
   cancel-in-progress: false

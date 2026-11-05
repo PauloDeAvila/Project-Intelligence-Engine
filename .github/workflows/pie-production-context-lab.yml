@@ -1,13 +1,6 @@
 name: PIE - production context lab
 on:
   workflow_dispatch:
-  pull_request:
-    branches: [main]
-    paths:
-      - 'src/pie/retrieval/intelligence.py'
-      - 'tools/pie_real_repo_lab.py'
-      - 'tools/pie_local_latency.py'
-      - '.github/workflows/pie-production-context-lab.yml'
 permissions:
   contents: read
 jobs:

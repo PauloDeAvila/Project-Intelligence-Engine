@@ -1,10 +1,5 @@
 name: PIE - two-model architecture discovery laboratory
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - '.github/workflows/pie-discovery-lab.yml'
-      - 'tools/pie_discovery_benchmark.py'
   workflow_dispatch:
 permissions:
   contents: read
