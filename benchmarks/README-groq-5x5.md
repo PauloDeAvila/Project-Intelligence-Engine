@@ -9,7 +9,7 @@ Run locally:
 ```powershell
 py -3 -m pip install openai
 $env:NVIDIA_API_KEY = "<local secret>"
-py -3 .\benchmarks\pie_groq_5x5.py --root . --output .\benchmarks\pie_nvidia_5x5_no_thinking_results.json
+py -3 .\benchmarks\pie_nvidia_5x5.py --root . --output .\benchmarks\pie_nvidia_5x5_no_thinking_results.json
 Remove-Item Env:NVIDIA_API_KEY
 ```
 
