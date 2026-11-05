@@ -42,7 +42,8 @@ def check_contract(
     servers_response = OpenCodeV2Adapter._data(mcp)
     if (not isinstance(servers_response, list) or
             not any(isinstance(s, dict) and s.get("name") == "pie"
-                    and s.get("status") == "connected"
+                    and isinstance(s.get("status"), dict)
+                    and s["status"].get("status") == "connected"
                     for s in servers_response)):
         raise ValueError("PIE MCP not connected in OpenCode v2")
     data = OpenCodeV2Adapter._data(active)

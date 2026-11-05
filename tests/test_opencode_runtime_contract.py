@@ -28,7 +28,7 @@ class OpenCodeRuntimeContractTests(unittest.TestCase):
         }
         self.info = {"name": "opencode"}
         self.mcp = {"location": {"directory": str(self.root)},
-                    "data": [{"name": "pie", "status": "connected"}]}
+                    "data": [{"name": "pie", "status": {"status": "connected"}}]}
         self.active = {"data": {}}
 
     def check(self):
@@ -44,7 +44,7 @@ class OpenCodeRuntimeContractTests(unittest.TestCase):
             self.check()
 
     def test_doctor_mesh_is_not_pie(self):
-        self.mcp["data"] = [{"name": "pie-doctor-mesh", "status": "connected"}]
+        self.mcp["data"] = [{"name": "pie-doctor-mesh", "status": {"status": "connected"}}]
         with self.assertRaisesRegex(ValueError, "not connected"):
             self.check()
 

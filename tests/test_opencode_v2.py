@@ -40,7 +40,7 @@ class FakeV2(OpenCodeV2Adapter):
         self.calls.append((method, path, body))
         if path == "/mcp":
             return {"location": {"directory": str(self.root)},
-                    "data": [{"name": "pie", "status": "connected"}]}
+                    "data": [{"name": "pie", "status": {"status": "connected"}}]}
         if path == "/session" and method == "POST":
             return {"data": {"id": "ses_v2", "location": {"directory": str(self.root)}}}
         if path.endswith("/prompt"):

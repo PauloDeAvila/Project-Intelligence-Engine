@@ -128,7 +128,8 @@ class OpenCodeV2Adapter:
         servers = self._data(mcp)
         if not isinstance(servers, list) or not any(
             isinstance(item, dict) and item.get("name") == project.pie_mcp_name
-            and item.get("status") == "connected" for item in servers
+            and isinstance(item.get("status"), dict)
+            and item["status"].get("status") == "connected" for item in servers
         ):
             raise RuntimeError("PIE MCP is not connected in OpenCode v2")
         provider, slash, model = task.model.partition("/")
