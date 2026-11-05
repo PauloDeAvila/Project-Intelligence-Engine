@@ -14,6 +14,7 @@ class ProjectPolicy:
     root: Path
     models: frozenset[str]
     task_types: frozenset[str] = frozenset({"read_only_review"})
+    pie_mcp_name: str = "pie"
 
 
 @dataclass(frozen=True)

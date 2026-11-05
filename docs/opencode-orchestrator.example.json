@@ -13,6 +13,7 @@
     {
       "id": "pie",
       "root": "C:/absolute/path/to/Project-Intelligence-Engine/Start-Project",
+      "pie_mcp_name": "pie",
       "models": ["nvidia/nemotron-3-super-120b-a12b"]
     }
   ]

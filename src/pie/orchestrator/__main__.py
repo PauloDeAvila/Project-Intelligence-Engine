@@ -29,7 +29,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     config = json.loads(args.config.read_text(encoding="utf-8"))
     if config.get("host") not in {"127.0.0.1", "::1", "localhost"}: raise SystemExit("host must be loopback")
-    projects = {entry["id"]: ProjectPolicy(entry["id"], Path(entry["root"]).resolve(), frozenset(entry["models"])) for entry in config["projects"]}
+    projects = {entry["id"]: ProjectPolicy(entry["id"], Path(entry["root"]).resolve(), frozenset(entry["models"]), pie_mcp_name=entry.get("pie_mcp_name", "pie")) for entry in config["projects"]}
     admin = os.environ[config["admin_token_env"]]; password = os.environ[config["opencode_password_env"]]
     store = TaskStore(Path(config["state_db"]).expanduser())
     adapter = OpenCodeHttpAdapter(config["opencode_url"], password)

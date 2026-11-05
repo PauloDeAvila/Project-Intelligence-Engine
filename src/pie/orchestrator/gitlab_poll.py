@@ -166,7 +166,7 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("GitLab token missing from local environment")
     projects = {
         item["id"]: ProjectPolicy(item["id"], Path(item["root"]).resolve(),
-                                 frozenset(item["models"]))
+                                 frozenset(item["models"]), pie_mcp_name=item.get("pie_mcp_name", "pie"))
         for item in config["projects"]
     }
     target = setting["task"]

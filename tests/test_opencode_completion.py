@@ -28,6 +28,8 @@ class FakeOpenCode(OpenCodeHttpAdapter):
 
     def _request(self,method,path,body=None,directory=None):
         self.calls.append((method,path,body,directory))
+        if path=="/mcp":
+            return {"pie":{"status":"connected"}}
         result=next(self.responses)
         if isinstance(result,Exception):
             raise result
@@ -68,10 +70,11 @@ class OpenCodeCompletionTests(unittest.TestCase):
         self.assertEqual(result.metrics,{"input":19,"output":4})
         self.assertNotIn("internal",json.dumps(result.result))
         self.assertIn("session_bound",[event["kind"] for event in self.store.events(task.id)])
-        self.assertEqual(adapter.calls[1][1],"/session/ses_new/prompt_async")
-        self.assertEqual(adapter.calls[1][2]["tools"]["bash"],False)
-        self.assertEqual(adapter.calls[0][3],self.project.root)
+        self.assertEqual(adapter.calls[2][1],"/session/ses_new/prompt_async")
+        self.assertEqual(adapter.calls[2][2]["tools"]["bash"],False)
+        self.assertEqual(adapter.calls[0][1],"/mcp")
         self.assertEqual(adapter.calls[1][3],self.project.root)
+        self.assertEqual(adapter.calls[2][3],self.project.root)
         self.assertIn(("GET","/session/status",None,self.project.root),adapter.calls)
 
     def test_no_false_completion_without_assistant(self):

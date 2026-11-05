@@ -72,6 +72,12 @@ class OpenCodeHttpAdapter:
         provider, separator, model = task.model.partition("/")
         if not separator or not provider or not model:
             raise ValueError("Model must be provider/model")
+        mcp = self._request("GET", "/mcp", directory=project.root)
+        if not isinstance(mcp, dict):
+            raise RuntimeError("Invalid OpenCode MCP status")
+        pie_mcp = mcp.get(project.pie_mcp_name)
+        if not isinstance(pie_mcp, dict) or pie_mcp.get("status") != "connected":
+            raise RuntimeError("Required PIE MCP is not connected for the project")
         session = self._request("POST", "/session",
                                 {"title": f"orchestrator-{task.id}"}, project.root)
         if not isinstance(session, dict) or not isinstance(session.get("id"), str):
