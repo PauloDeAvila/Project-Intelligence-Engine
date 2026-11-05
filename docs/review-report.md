@@ -2,7 +2,7 @@
 
 ## Identificação
 
-- Repository / branch / base SHA / head SHA: `Project-Intelligence-Engine` / `feat/evidence-atoms-v3` / `01ddc506529d455c3e4fb7f4d3aec7622bf930d7` / `ad48fbb58efe052d083c0dd30bd20507581c3aa6`
+- Repository / branch / base SHA / head SHA: `Project-Intelligence-Engine` / `feat/evidence-atoms-v3` / `01ddc506529d455c3e4fb7f4d3aec7622bf930d7` / `5b5e2200b856e4bc63fdab128536c1b6a5f282fb`
 - Autor da implementação / revisor: Codex / separate read-only review pass
 - Objetivo: compactar evidências verificadas, reutilizá-las entre consultas e distribuir contexto por agente sem entregar fatos não comprovados.
 - Decisão: **APPROVE FOR PR**; merge em `main` depende do CI remoto exigido pelo ruleset.
@@ -65,7 +65,7 @@ Chamadas dinâmicas e comportamento de runtime não são certificados pelo grafo
 - PR obrigatória: confirmada via `gh api repos/.../rulesets/26297201`.
 - Check exigido: `Project Verification`.
 - Exclusão e non-fast-forward: bloqueados.
-- CI remoto para esta branch: ainda não executado; a branch precisa ser publicada e passar pelo GitHub Actions antes do merge.
+- CI remoto: a primeira execução encontrou apenas a necessidade de declarar `PYTHONPATH` no subprocesso MCP do teste; a correção está em `5b5e220` e deve ser validada pelo GitHub Actions antes do merge.
 
 ## Veredito
 
