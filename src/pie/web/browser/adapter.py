@@ -32,6 +32,7 @@ _ERROR_CODES = frozenset(
         "adapter_health_failed",
         "no_page",
         "invalid_page",
+        "origin_not_allowed",
     }
 )
 
@@ -193,6 +194,10 @@ class PlaywrightBrowserAdapter:
         self._playwright = None
         self._browser = None
         self._context = None
+        self._page_tokens: dict[int, str] = {}
+        self._frame_tokens: dict[int, str] = {}
+        self._next_page_token = 0
+        self._next_frame_token = 0
 
     def _require_browser(self):
         if self._browser is None:
@@ -203,11 +208,16 @@ class PlaywrightBrowserAdapter:
         browser = self._require_browser()
         values: list[BrowserPage] = []
         contexts = (self._context,) if self._context is not None else tuple(browser.contexts)
-        for context_index, context in enumerate(contexts):
-            for page_index, page in enumerate(context.pages):
+        live_pages = [page for context in contexts for page in context.pages]
+        live_ids = {id(page) for page in live_pages}
+        self._page_tokens = {
+            identity: token for identity, token in self._page_tokens.items() if identity in live_ids
+        }
+        for context in contexts:
+            for page in context.pages:
                 values.append(
                     BrowserPage(
-                        page_id=f"context-{context_index}-page-{page_index}",
+                        page_id=self._stable_page_id(page),
                         frame_id="main",
                         url=page.url or "about:blank",
                     )
@@ -218,18 +228,49 @@ class PlaywrightBrowserAdapter:
         browser = self._require_browser()
         values: list[BrowserFrame] = []
         contexts = (self._context,) if self._context is not None else tuple(browser.contexts)
-        for context_index, context in enumerate(contexts):
-            for page_index, page in enumerate(context.pages):
-                page_id = f"context-{context_index}-page-{page_index}"
-                for frame_index, frame in enumerate(page.frames):
+        live_frames = [frame for context in contexts for page in context.pages for frame in page.frames]
+        live_ids = {id(frame) for frame in live_frames}
+        self._frame_tokens = {
+            identity: token for identity, token in self._frame_tokens.items() if identity in live_ids
+        }
+        for context in contexts:
+            for page in context.pages:
+                page_id = self._stable_page_id(page)
+                for frame in page.frames:
                     values.append(
                         BrowserFrame(
-                            frame_id=f"{page_id}-frame-{frame_index}",
+                            frame_id=self._stable_frame_id(page_id, frame),
                             page_id=page_id,
                             url=frame.url or "about:blank",
                         )
                     )
         return tuple(values)
+
+    def _stable_page_id(self, page: object) -> str:
+        token = self._page_tokens.get(id(page))
+        if token is None:
+            token = f"page-{self._next_page_token}"
+            self._next_page_token += 1
+            self._page_tokens[id(page)] = token
+        return token
+
+    def _stable_frame_id(self, page_id: str, frame: object) -> str:
+        token = self._frame_tokens.get(id(frame))
+        if token is None:
+            token = f"{page_id}-frame-{self._next_frame_token}"
+            self._next_frame_token += 1
+            self._frame_tokens[id(frame)] = token
+        return token
+
+    def _resolve_page_by_id(self, page_id: str):
+        browser = self._require_browser()
+        self._page_values()
+        contexts = (self._context,) if self._context is not None else tuple(browser.contexts)
+        for context in contexts:
+            for page in context.pages:
+                if self._stable_page_id(page) == page_id:
+                    return page
+        raise BrowserAdapterError("invalid_page")
 
     def _resolve_page(self):
         browser = self._require_browser()
@@ -325,6 +366,35 @@ class PlaywrightBrowserAdapter:
             return bool(browser.is_connected())
         except BrowserAdapterError:
             raise
+        except Exception as exc:
+            raise BrowserAdapterError("adapter_health_failed") from exc
+
+    def extract_page_tree(
+        self,
+        *,
+        page_id: str,
+        frame_id: str,
+        allowed_origins: tuple[str, ...],
+        max_elements: int = 512,
+    ):
+        """Capture read-only DOM metadata without exposing a page handle."""
+
+        try:
+            from ..snapshots.playwright import PlaywrightDOMExtractor
+
+            if frame_id != "main":
+                raise BrowserAdapterError("invalid_page")
+            page = self._resolve_page_by_id(page_id)
+            observation = next(item for item in self._page_values() if item.page_id == page_id)
+            if observation.safe_origin is None or observation.safe_origin not in allowed_origins:
+                raise BrowserAdapterError("origin_not_allowed")
+            return PlaywrightDOMExtractor(max_elements=max_elements).extract(
+                page, frame_id=frame_id
+            )
+        except BrowserAdapterError:
+            raise
+        except StopIteration as exc:
+            raise BrowserAdapterError("invalid_page") from exc
         except Exception as exc:
             raise BrowserAdapterError("adapter_health_failed") from exc
 

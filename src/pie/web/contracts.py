@@ -53,6 +53,14 @@ _SAFE_ACTIONS = {
     "type",
     "wait",
 }
+_ROLE_ACTIONS = {
+    "button": frozenset({"click"}),
+    "checkbox": frozenset({"click"}),
+    "combobox": frozenset({"select"}),
+    "input": frozenset({"type"}),
+    "textarea": frozenset({"type"}),
+    "link": frozenset({"open"}),
+}
 _SAFE_METRIC_OPERATIONS = {
     "execute_action",
     "find_candidates",
@@ -62,22 +70,45 @@ _SAFE_METRIC_OPERATIONS = {
 }
 _SAFE_METRIC_STATUSES = {"blocked", "failed", "ok", "partial", "stale", "timeout"}
 _MAX_SAFE_INTEGER = 10**12
+MAX_PAGE_ELEMENTS = 512
 _SAFE_ROLES = {
+    "cell",
     "button",
     "checkbox",
     "combobox",
     "dialog",
     "form",
+    "grid",
+    "gridcell",
     "generic",
     "heading",
     "image",
     "input",
     "link",
+    "list",
+    "listitem",
     "main",
+    "menu",
+    "menuitem",
     "navigation",
+    "option",
+    "row",
+    "table",
+    "tab",
+    "tabpanel",
     "text",
+    "textarea",
+    "tree",
+    "treeitem",
 }
-_SAFE_SOURCES = {"accessibility_tree", "semantic_snapshot"}
+_SAFE_SOURCES = {"accessibility_tree", "dom_snapshot", "semantic_snapshot"}
+_SAFE_UNSUPPORTED_REASONS = {
+    "depth_limit",
+    "invalid_node",
+    "node_limit",
+    "unsupported_role",
+    "unsupported_source",
+}
 
 
 class WebStateError(ValueError):
@@ -108,6 +139,11 @@ class ReferenceState(str, Enum):
 
 class ContentTrust(str, Enum):
     UNTRUSTED_PAGE_DATA = "UNTRUSTED_PAGE_DATA"
+
+
+class ElementSupport(str, Enum):
+    SUPPORTED = "SUPPORTED"
+    UNSUPPORTED = "UNSUPPORTED"
 
 
 class ActionStatus(str, Enum):
@@ -513,6 +549,8 @@ class ElementCandidate(_Contract):
     source: str = "accessibility_tree"
     content_trust: ContentTrust = ContentTrust.UNTRUSTED_PAGE_DATA
     reference_state: ReferenceState = ReferenceState.CURRENT
+    support: ElementSupport = ElementSupport.SUPPORTED
+    unsupported_reason: str | None = None
 
     @property
     def reference(self) -> ElementReference:
@@ -553,6 +591,19 @@ class ElementCandidate(_Contract):
             raise WebStateError("page-derived elements must remain untrusted")
         if not isinstance(self.reference_state, ReferenceState):
             raise WebStateError("reference_state must be a ReferenceState")
+        if not isinstance(self.support, ElementSupport):
+            raise WebStateError("support must be an ElementSupport")
+        if self.support is ElementSupport.SUPPORTED and self.unsupported_reason is not None:
+            raise WebStateError("supported elements cannot have an unsupported reason")
+        if self.support is ElementSupport.UNSUPPORTED and self.unsupported_reason is None:
+            raise WebStateError("unsupported elements need an unsupported reason")
+        if self.support is ElementSupport.UNSUPPORTED and self.available_actions:
+            raise WebStateError("unsupported elements cannot expose actions")
+        if self.unsupported_reason is not None:
+            reason = _text(self.unsupported_reason, "unsupported_reason", maximum=64)
+            if reason not in _SAFE_UNSUPPORTED_REASONS:
+                raise WebStateError("unsupported_reason must be a known reason code")
+            object.__setattr__(self, "unsupported_reason", reason)
         if self.region is not None:
             object.__setattr__(self, "region", _text(self.region, "region", maximum=128))
         if not isinstance(self.visible, bool) or not isinstance(self.enabled, bool):
@@ -560,7 +611,11 @@ class ElementCandidate(_Contract):
         cleaned = tuple(_text(action, "action", maximum=64).casefold() for action in self.available_actions)
         if any(action not in _SAFE_ACTIONS for action in cleaned):
             raise WebStateError("available_actions must contain known declarative operations")
-        object.__setattr__(self, "available_actions", tuple(dict.fromkeys(cleaned)))
+        normalized_actions = tuple(dict.fromkeys(cleaned))
+        allowed_actions = _ROLE_ACTIONS.get(role, frozenset()) if self.enabled else frozenset()
+        if any(action not in allowed_actions for action in normalized_actions):
+            raise WebStateError("available_actions are not valid for this element")
+        object.__setattr__(self, "available_actions", normalized_actions)
 
 
 @dataclass(frozen=True, slots=True)
@@ -599,7 +654,11 @@ class PageSnapshot(_Contract):
             raise WebStateError("snapshot_sha256 must be a 64-character lowercase hex digest")
         object.__setattr__(self, "snapshot_sha256", snapshot_sha256)
         _nonnegative(self.omitted_count, "omitted_count", integer=True)
+        if self.state is SnapshotState.CURRENT and self.omitted_count:
+            raise WebStateError("CURRENT snapshots cannot contain omissions")
         elements = tuple(self.elements)
+        if len(elements) > MAX_PAGE_ELEMENTS:
+            raise WebStateError("snapshot contains too many elements")
         refs: set[str] = set()
         reference_state = (
             ReferenceState.CURRENT

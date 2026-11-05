@@ -14,11 +14,11 @@ Supported journey: `pie init` → `pie index` → `pie status` / `pie search` / 
 - Hash-verified compact proof context with explicit coverage and fail-closed fallback states.
 - Persistent Evidence Atom caching and deduplication across proof queries.
 - Structured Context Mesh assignments for agent-specific context, graph visualization and local search.
-- Phase 0 web contracts plus Phase 1 browser connection (`pie.web`) for isolated session lifecycle, exact-origin navigation, safe page/frame inventory and health state. Playwright is optional and lazily imported.
+- Phase 0 web contracts, Phase 1 browser connection and Phase 2 Page Intelligence (`pie.web`) for isolated lifecycle, exact-origin navigation, safe page/frame inventory, bounded accessibility/DOM normalization and snapshot freshness. Playwright remains optional and lazily imported.
 
 ## Explicitly out of scope
 - Automatic code modification, browser/site execution, network access and LLM dependencies.
-- Page extraction, local web search, relevance quantification, action execution and external semantic classification remain deferred to later web phases.
+- Local web search, relevance quantification, action execution and external semantic classification remain deferred to later web phases.
 - Exhaustive runtime or behavioral impact certification; static evidence remains bounded and conservative.
 
 ## Stack and environments

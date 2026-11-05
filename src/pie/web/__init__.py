@@ -12,6 +12,7 @@ from .contracts import (
     ActionStatus,
     BrowserSession,
     ContentTrust,
+    ElementSupport,
     ElementCandidate,
     ElementReference,
     ExecutionState,
@@ -24,6 +25,7 @@ from .contracts import (
     WEB_CONTRACT_SCHEMA,
     WebMetric,
     WebStateError,
+    MAX_PAGE_ELEMENTS,
     normalize_origin,
 )
 
@@ -45,14 +47,34 @@ _BROWSER_EXPORTS = frozenset(
         "SessionManager",
     }
 )
+_SNAPSHOT_EXPORTS = frozenset(
+    {
+        "AccessibilityExtractor",
+        "AccessibilityNode",
+        "ElementRecord",
+        "ElementRegistry",
+        "DOMExtractionResult",
+        "ExtractionResult",
+        "NormalizationResult",
+        "PageStateTracker",
+        "PlaywrightDOMExtractor",
+        "SnapshotNormalizer",
+        "TrackingResult",
+    }
+)
 
 
 def __getattr__(name: str):
-    if name not in _BROWSER_EXPORTS:
-        raise AttributeError(name)
-    from . import browser
+    if name in _BROWSER_EXPORTS:
+        from . import browser
 
-    value = getattr(browser, name)
+        value = getattr(browser, name)
+    elif name in _SNAPSHOT_EXPORTS:
+        from . import snapshots
+
+        value = getattr(snapshots, name)
+    else:
+        raise AttributeError(name)
     globals()[name] = value
     return value
 
@@ -74,12 +96,26 @@ if TYPE_CHECKING:
         PlaywrightBrowserAdapter,
         SessionManager,
     )
+    from .snapshots import (
+        AccessibilityExtractor,
+        AccessibilityNode,
+        ElementRecord,
+        ElementRegistry,
+        DOMExtractionResult,
+        ExtractionResult,
+        NormalizationResult,
+        PageStateTracker,
+        PlaywrightDOMExtractor,
+        SnapshotNormalizer,
+        TrackingResult,
+    )
 
 __all__ = [
     "ActionResult",
     "ActionStatus",
     "BrowserSession",
     "ContentTrust",
+    "ElementSupport",
     "ElementCandidate",
     "ElementReference",
     "ExecutionState",
@@ -92,6 +128,7 @@ __all__ = [
     "WEB_CONTRACT_SCHEMA",
     "WebMetric",
     "WebStateError",
+    "MAX_PAGE_ELEMENTS",
     "normalize_origin",
     "BrowserAdapter",
     "BrowserAdapterError",
@@ -107,4 +144,15 @@ __all__ = [
     "PageObservation",
     "PlaywrightBrowserAdapter",
     "SessionManager",
+    "AccessibilityExtractor",
+    "AccessibilityNode",
+    "ElementRecord",
+    "ElementRegistry",
+    "DOMExtractionResult",
+    "ExtractionResult",
+    "NormalizationResult",
+    "PageStateTracker",
+    "PlaywrightDOMExtractor",
+    "SnapshotNormalizer",
+    "TrackingResult",
 ]

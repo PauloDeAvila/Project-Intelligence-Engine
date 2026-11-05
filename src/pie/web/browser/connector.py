@@ -28,6 +28,7 @@ class BrowserConnectorError(RuntimeError):
             "invalid_page",
             "adapter_already_owned",
             "invalid_adapter",
+            "page_intelligence_unavailable",
         }
     )
 
@@ -395,6 +396,61 @@ class BrowserConnector:
             if healthy:
                 return True, session
             return False, self._mark_degraded_locked(session_id)
+
+    def extract_page_tree(
+        self,
+        session_id: str,
+        *,
+        page_id: str | None = None,
+        frame_id: str = "main",
+        max_elements: int = 512,
+    ):
+        """Extract bounded page metadata only through an authorized session."""
+
+        with self._lock:
+            session = self.manager.get(session_id)
+            if session.state is not SessionState.READY:
+                raise BrowserConnectorError("session_not_ready")
+            adapter = self._adapter(session_id)
+            try:
+                pages, observations, frames = self._inventory(
+                    adapter,
+                    session.generation,
+                    session.allowed_origins,
+                    ensure_page=False,
+                )
+            except BrowserConnectorError:
+                raise
+            target_id = page_id or session.current_page_id
+            if target_id is None or not any(item.page_id == target_id for item in pages):
+                raise BrowserConnectorError("invalid_page")
+            if frame_id == "main":
+                target_frame_allowed = any(
+                    item.page_id == target_id and item.origin in session.allowed_origins
+                    for item in observations
+                )
+            else:
+                target_frame = next(
+                    (item for item in frames if item.page_id == target_id and item.frame_id == frame_id),
+                    None,
+                )
+                target_frame_allowed = target_frame is not None and target_frame.allowed
+            if not target_frame_allowed:
+                raise BrowserConnectorError("origin_not_allowed")
+            extractor = getattr(adapter, "extract_page_tree", None)
+            if not callable(extractor):
+                raise BrowserConnectorError("page_intelligence_unavailable")
+            try:
+                return extractor(
+                    page_id=target_id,
+                    frame_id=frame_id,
+                    allowed_origins=session.allowed_origins,
+                    max_elements=max_elements,
+                )
+            except BrowserAdapterError as exc:
+                if exc.code == "origin_not_allowed":
+                    raise BrowserConnectorError("origin_not_allowed") from exc
+                raise BrowserConnectorError("invalid_page") from exc
 
 
 __all__ = [
