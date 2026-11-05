@@ -38,6 +38,24 @@ Record decisions that affect multiple components or have non-obvious tradeoffs. 
 - Consequences and compatibility: existing databases are migrated automatically and retain existing rows. Search can return multiple location-bearing rows for one name. Migration relies on SQLite transactional DDL; insufficient database permissions or a locked database prevents opening the index and surfaces the error.
 - Verification: integration tests construct the legacy schema, confirm data preservation and foreign-key integrity after migration, and index repeated property getter/setter definitions without dropping either location.
 
+## ADR-006 — Isolate Web Intelligence behind dependency-free phase-0 contracts
+- Date: 2026-11-05
+- Status: accepted
+- Problem and constraints: browser automation must not destabilize the existing offline Python indexer, and the first web phase must be testable without a browser, network, or external model.
+- Alternatives considered: embed Playwright/CDP in the core package immediately; add untyped dictionaries at the MCP boundary; postpone contracts until after adapter implementation.
+- Decision: add `pie.web` with immutable contracts for session, snapshot, element reference, intent, action result and operational metrics. Exact origin allowlists and snapshot-bound generations are validated in the contract layer; browser adapters and execution are deferred.
+- Consequences and compatibility: existing core imports and runtime dependencies remain unchanged. Later adapters must implement these contracts and preserve fail-closed reference and origin invariants.
+- Verification: dedicated web contract tests, full regression, compile and project verification are required before promotion.
+
+## ADR-007 — Keep secret-bearing laboratories out of pull-request execution
+- Date: 2026-11-05
+- Status: accepted
+- Problem and constraints: several experimental workflows invoke external APIs with repository secrets. Running them on pull requests would expose untrusted changes to a secret-bearing job.
+- Alternatives considered: keep automatic PR triggers; require reviewers to inspect every workflow manually; separate secret-bearing laboratories from the PR validation workflow.
+- Decision: secret-bearing benchmark and gateway laboratories run only through explicit `workflow_dispatch`. Pull-request validation remains limited to tests and checks that do not require secrets. Add `CODEOWNERS`, a security policy and Dependabot coverage for GitHub Actions.
+- Consequences and compatibility: external benchmarks require an explicit operator action, while ordinary CI remains automatic. This reduces automation exposure but does not replace least-privilege review of future workflows.
+- Verification: scan all workflows for the combination of `pull_request` and `secrets.*`; the scan must return no files. Confirm the main ruleset requires the deterministic validation checks.
+
 ## ADR-004 — Hash-backed Evidence Atoms are a derived retrieval layer
 - Date: 2026-11-05
 - Status: accepted

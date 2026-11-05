@@ -1,0 +1,5 @@
+# Security-sensitive project defaults require repository-owner review.
+* @PauloDeAvila
+.github/workflows/ @PauloDeAvila
+src/pie/web/ @PauloDeAvila
+tests/web/ @PauloDeAvila

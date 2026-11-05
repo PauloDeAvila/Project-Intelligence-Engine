@@ -21,6 +21,23 @@ jobs:
       - name: Run complete regression suite
         run: python -m unittest discover -s tests -v
 
+  web-contracts:
+    name: Web Contracts (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run dependency-free web contract tests
+        run: python -m unittest discover -s tests/web -v
+      - name: Compile web subsystem
+        run: python -m compileall -q src/pie/web tests/web
+
   project-verification:
     name: Project Verification
     runs-on: ubuntu-latest

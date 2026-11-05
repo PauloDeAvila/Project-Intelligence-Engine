@@ -26,6 +26,20 @@ def main() -> int:
             if install.stderr:
                 print(install.stderr, file=sys.stderr, end="")
             return install.returncode
+        web_import = subprocess.run(
+            [str(python), "-c", "import pie.web; print(pie.web.WEB_CONTRACT_SCHEMA)"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if web_import.stdout:
+            print(web_import.stdout, end="")
+        if web_import.returncode or web_import.stdout.strip() != "pie-web-contracts-v1":
+            if web_import.stderr:
+                print(web_import.stderr, file=sys.stderr, end="")
+            print("Installed package is missing the phase-0 web contract schema", file=sys.stderr)
+            return web_import.returncode or 1
         project_root.mkdir()
         (project_root / "app.py").write_text(
             "APP_NAME = \"app\"\n\nclass App:\n    def run(self):\n        return APP_NAME\n",

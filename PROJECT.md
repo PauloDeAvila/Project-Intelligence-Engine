@@ -14,9 +14,11 @@ Supported journey: `pie init` → `pie index` → `pie status` / `pie search` / 
 - Hash-verified compact proof context with explicit coverage and fail-closed fallback states.
 - Persistent Evidence Atom caching and deduplication across proof queries.
 - Structured Context Mesh assignments for agent-specific context, graph visualization and local search.
+- Phase 0 web contracts (`pie.web`) for isolated session, snapshot, reference, intent, result and metric state; no browser or network runtime.
 
 ## Explicitly out of scope
 - Automatic code modification, browser/site execution, network access and LLM dependencies.
+- Web browser connection, page extraction, action execution and external semantic classification remain deferred to later web phases.
 - Exhaustive runtime or behavioral impact certification; static evidence remains bounded and conservative.
 
 ## Stack and environments
@@ -38,6 +40,7 @@ Supported journey: `pie init` → `pie index` → `pie status` / `pie search` / 
 - Classes, methods, functions, nested functions and imports are extracted with verifiable source locations.
 - Changed and deleted files update the persistent index without a full manual reset.
 - Invalid Python is retained as a file with an error parse status rather than crashing the index operation.
+- `pie.web` imports without browser, network or optional dependencies; only declarative actions/transitions are executable fields, while goal and target text remain literal untrusted data.
 - All applicable CI matrix tiers and the complete regression suite pass.
 
 ## Mandatory verification matrix
@@ -46,7 +49,7 @@ Record actual commands and test coverage for every applicable tier. The agent mu
 | Layer | Commands / suite | Dependencies / prerequisites | Evidence expected |
 | --- | --- | --- | --- |
 | Basic functions / unit tests | `python -m unittest discover -s tests -p test_pie_unit.py -v` | Python 3.12+ | Pass/fail and counts |
-| Component and subsystem | Not applicable in V0.1 | No separate component boundary | Reason in `ci/checks.json` |
+| Component and subsystem | `python -m unittest discover -s tests -p test_pie_symbols.py -v` plus `python -m unittest discover -s tests/web -v` | Existing symbol component and dependency-free Phase 0 web contracts | `Project Verification` plus dedicated `Web Contracts` CI job on Ubuntu and Windows |
 | Integration and contracts | `python -m unittest discover -s tests -p test_pie_integration.py -v` | Python 3.12+ | Pass/fail and counts |
 | Full user-flow / E2E | `python -m unittest discover -s tests -p test_pie_e2e.py -v` | Python 3.12+ | Pass/fail and counts |
 | Full repository regression | `python -m unittest discover -s tests -v` | Python 3.12+ | All existing tests run |
