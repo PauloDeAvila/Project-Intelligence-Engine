@@ -1,4 +1,9 @@
 # Isolated Windows paired benchmark: no public tunnel, no personal OpenCode.
+# Executa duas instâncias isoladas do OpenCode 2.2.5 na mesma máquina:
+#   WITH_PIE   -> OpenCode + Nemotron + MCP do PIE (porta WithPort)
+#   WITHOUT_PIE -> OpenCode + Nemotron, sem MCP do PIE (porta WithoutPort)
+# Ambas usam o mesmo modelo, mesmo repositório e mesmas perguntas.
+# Nenhuma instância pessoal do OpenCode é modificada.
 [CmdletBinding()]
 param(
     [string]$PieRoot = ".",
@@ -35,21 +40,62 @@ function New-TestPassword {
     try { $rng.GetBytes($bytes) } finally { $rng.Dispose() }
     return [BitConverter]::ToString($bytes).Replace("-", "")
 }
-$oldConfig = $env:OPENCODE_CONFIG
-$oldPass = $env:OPENCODE_PASSWORD
-$oldWith = $env:OPENCODE_WITH_PASSWORD
-$oldWithout = $env:OPENCODE_WITHOUT_PASSWORD
+
+function Start-IsolatedOpenCode {
+    param(
+        [string]$Binary,
+        [string]$Config,
+        [string]$Password,
+        [int]$Port,
+        [string]$WorkingDir
+    )
+    # Cada processo OpenCode recebe seu próprio script .bat temporário que
+    # define OPENCODE_CONFIG e OPENCODE_PASSWORD antes de iniciar o servidor.
+    # Isso garante:
+    #  1. Isolamento de ambiente entre WITH_PIE e WITHOUT_PIE (sem vazamento
+    #     de configuração de uma instância para outra).
+    #  2. Que o OpenCode 2.2.5 leia as variáveis no bootstrap via .bat, que o
+    #     cmd.exe transmite corretamente ao processo filho Node.js.
+    $batPath = Join-Path $env:TEMP ("start-opencode-" + [guid]::NewGuid().ToString("N") + ".bat")
+    $escapedBinary = $Binary -replace '"', '""'
+    $batContent = "@echo off`r`nset OPENCODE_CONFIG=" + $Config + "`r`nset OPENCODE_PASSWORD=" + $Password + "`r`n""" + $escapedBinary + """ serve --hostname 127.0.0.1 --port " + $Port
+    $batContent | Out-File -FilePath $batPath -Encoding utf8
+    $proc = Start-Process -FilePath "cmd.exe" -ArgumentList @("/c", $batPath) -WorkingDirectory $WorkingDir -PassThru -WindowStyle Hidden
+    return @{ Process = $proc; BatPath = $batPath }
+}
+
 $procWith = $null
 $procWithout = $null
+$batWith = $null
+$batWithout = $null
 try {
-    $env:OPENCODE_WITH_PASSWORD = New-TestPassword
-    $env:OPENCODE_WITHOUT_PASSWORD = New-TestPassword
-    $env:OPENCODE_CONFIG = Join-Path $dir "with-pie.json"
-    $env:OPENCODE_PASSWORD = $env:OPENCODE_WITH_PASSWORD
-    $procWith = Start-Process -FilePath $binary -WorkingDirectory $root -ArgumentList @("serve", "--hostname", "127.0.0.1", "--port", "$WithPort") -PassThru -WindowStyle Hidden
-    $env:OPENCODE_CONFIG = Join-Path $dir "without-pie.json"
-    $env:OPENCODE_PASSWORD = $env:OPENCODE_WITHOUT_PASSWORD
-    $procWithout = Start-Process -FilePath $binary -WorkingDirectory $root -ArgumentList @("serve", "--hostname", "127.0.0.1", "--port", "$WithoutPort") -PassThru -WindowStyle Hidden
+    $withPassword = New-TestPassword
+    $withoutPassword = New-TestPassword
+    $withConfig = Join-Path $dir "with-pie.json"
+    $withoutConfig = Join-Path $dir "without-pie.json"
+
+    # Inicialização sequencial: cada instância recebe seu próprio .bat com
+    # variáveis de ambiente isoladas. Inicia-se uma por vez para evitar race
+    # condition entre as duas inicializações assíncronas.
+    $withResult = Start-IsolatedOpenCode -Binary $binary -Config $withConfig -Password $withPassword -Port $WithPort -WorkingDir $root
+    $procWith = $withResult.Process
+    $batWith = $withResult.BatPath
+
+    # Aguardar o primeiro servidor estar ouvindo antes de iniciar o segundo.
+    $deadline = (Get-Date).AddSeconds(15)
+    while ((Get-Date) -lt $deadline) {
+        if ($procWith.HasExited) { throw "WITH_PIE OpenCode exited during startup" }
+        try {
+            $socket = [Net.Sockets.TcpClient]::new()
+            $socket.Connect("127.0.0.1", $WithPort)
+            $socket.Close()
+            break
+        } catch { Start-Sleep -Milliseconds 400 }
+    }
+
+    $withoutResult = Start-IsolatedOpenCode -Binary $binary -Config $withoutConfig -Password $withoutPassword -Port $WithoutPort -WorkingDir $root
+    $procWithout = $withoutResult.Process
+    $batWithout = $withoutResult.BatPath
 
     $deadline = (Get-Date).AddSeconds(45)
     $ready = $false
@@ -74,6 +120,44 @@ try {
     }
     if (-not $ready) { throw "OpenCode servers did not become ready" }
 
+    # Aguardar que o MCP pie esteja conectado (WITH_PIE) e ausente (WITHOUT_PIE)
+    # antes de iniciar o benchmark. A mera abertura da porta TCP não garante que
+    # o servidor stdio MCP foi inicializado e registrado na API v2.
+    function Wait-McpState {
+        param([string]$Url, [string]$Password, [bool]$ExpectPie, [int]$TimeoutSeconds)
+        $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+        $auth = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes("opencode:" + $Password))
+        $headers = @{"Authorization" = "Basic " + $auth; "Accept" = "application/json"}
+        while ((Get-Date) -lt $deadline) {
+            try {
+                $resp = Invoke-WebRequest -Uri ($Url + "/api/mcp") -Method GET -Headers $headers -ErrorAction Stop -TimeoutSec 5
+                $body = $resp.Content | ConvertFrom-Json
+                $data = $body.data
+                if ($data -is [System.Array]) {
+                    $pie = $data | Where-Object { $_.name -eq "pie" }
+                    if ($ExpectPie) {
+                        if ($pie.Count -eq 1 -and $pie[0].status.status -eq "connected") {
+                            return $true
+                        }
+                    } else {
+                        if ($pie.Count -eq 0) {
+                            return $true
+                        }
+                    }
+                }
+            } catch {
+                # Servidor ainda inicializando; tenta novamente.
+            }
+            Start-Sleep -Milliseconds 500
+        }
+        return $false
+    }
+
+    $withPieReady = Wait-McpState -Url "http://127.0.0.1:$WithPort" -Password $withPassword -ExpectPie $true -TimeoutSeconds 30
+    $withoutPieReady = Wait-McpState -Url "http://127.0.0.1:$WithoutPort" -Password $withoutPassword -ExpectPie $false -TimeoutSeconds 30
+    if (-not $withPieReady) { throw "WITH_PIE server lacks connected pie MCP" }
+    if (-not $withoutPieReady) { throw "WITHOUT_PIE server still exposes pie MCP" }
+
     $questions = Join-Path (Split-Path $PSScriptRoot -Parent) "benchmarks\opencode-pair-questions.json"
     $output = Join-Path $dir "results.json"
     $runnerArgs = @(
@@ -97,8 +181,9 @@ try {
             Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
         }
     }
-    $env:OPENCODE_CONFIG = $oldConfig
-    $env:OPENCODE_PASSWORD = $oldPass
-    $env:OPENCODE_WITH_PASSWORD = $oldWith
-    $env:OPENCODE_WITHOUT_PASSWORD = $oldWithout
+    foreach ($bat in @($batWith, $batWithout)) {
+        if ($null -ne $bat -and (Test-Path -LiteralPath $bat)) {
+            Remove-Item -LiteralPath $bat -Force -ErrorAction SilentlyContinue
+        }
+    }
 }
