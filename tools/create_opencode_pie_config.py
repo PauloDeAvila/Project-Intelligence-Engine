@@ -1,4 +1,4 @@
-"""Generate an isolated OpenCode 1.x config for the PIE stdio MCP.
+"""Generate an isolated OpenCode runtime config (current 2.x schema) for the PIE stdio MCP.
 
 This tool never edits the user's OpenCode global configuration or workspace.
 """
