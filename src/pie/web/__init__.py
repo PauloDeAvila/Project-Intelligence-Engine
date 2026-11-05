@@ -62,6 +62,19 @@ _SNAPSHOT_EXPORTS = frozenset(
         "TrackingResult",
     }
 )
+_INDEXING_EXPORTS = frozenset(
+    {
+        "CandidateExtractor",
+        "LocalWebSearch",
+        "RegionIndex",
+        "RegionIndexer",
+        "SearchDocument",
+        "SearchMatch",
+        "SearchResponse",
+        "SemanticRoleMatcher",
+        "tokenize",
+    }
+)
 
 
 def __getattr__(name: str):
@@ -73,6 +86,10 @@ def __getattr__(name: str):
         from . import snapshots
 
         value = getattr(snapshots, name)
+    elif name in _INDEXING_EXPORTS:
+        from . import indexing
+
+        value = getattr(indexing, name)
     else:
         raise AttributeError(name)
     globals()[name] = value
@@ -108,6 +125,17 @@ if TYPE_CHECKING:
         PlaywrightDOMExtractor,
         SnapshotNormalizer,
         TrackingResult,
+    )
+    from .indexing import (
+        CandidateExtractor,
+        LocalWebSearch,
+        RegionIndex,
+        RegionIndexer,
+        SearchDocument,
+        SearchMatch,
+        SearchResponse,
+        SemanticRoleMatcher,
+        tokenize,
     )
 
 __all__ = [
@@ -155,4 +183,13 @@ __all__ = [
     "PlaywrightDOMExtractor",
     "SnapshotNormalizer",
     "TrackingResult",
+    "CandidateExtractor",
+    "LocalWebSearch",
+    "RegionIndex",
+    "RegionIndexer",
+    "SearchDocument",
+    "SearchMatch",
+    "SearchResponse",
+    "SemanticRoleMatcher",
+    "tokenize",
 ]

@@ -14,11 +14,11 @@ Supported journey: `pie init` → `pie index` → `pie status` / `pie search` / 
 - Hash-verified compact proof context with explicit coverage and fail-closed fallback states.
 - Persistent Evidence Atom caching and deduplication across proof queries.
 - Structured Context Mesh assignments for agent-specific context, graph visualization and local search.
-- Phase 0 web contracts, Phase 1 browser connection and Phase 2 Page Intelligence (`pie.web`) for isolated lifecycle, exact-origin navigation, safe page/frame inventory, bounded accessibility/DOM normalization and snapshot freshness. Playwright remains optional and lazily imported.
+- Phase 0 web contracts, Phase 1 browser connection, Phase 2 Page Intelligence and Phase 3 local Web Search Index (`pie.web`) for isolated lifecycle, exact-origin navigation, safe page/frame inventory, bounded accessibility/DOM normalization, snapshot freshness, literal term/role/region search and explicit ambiguity. Playwright remains optional and lazily imported.
 
 ## Explicitly out of scope
 - Automatic code modification, browser/site execution, network access and LLM dependencies.
-- Local web search, relevance quantification, action execution and external semantic classification remain deferred to later web phases.
+- Relevance quantification, action execution and external semantic classification remain deferred to later web phases.
 - Exhaustive runtime or behavioral impact certification; static evidence remains bounded and conservative.
 
 ## Stack and environments
@@ -63,7 +63,7 @@ An implementation is NOT VERIFIED until the complete applicable matrix passes an
 - Dynamic imports and semantic references remain unresolved by design.
 - Evidence Atom caches are derived artifacts in `.pie/`; source files and the authoritative index remain the source of truth.
 - Context Mesh graph edges describe static evidence and agent routing; they do not prove runtime behavior or execute actions.
-- GitHub branch protection is a remote governance control; the active `Protect main` ruleset requires pull requests plus `Project Verification`, `Windows Compatibility`, and both web matrix checks. Human approval remains a separate governance decision and is not inferred from automated agents.
+- GitHub branch protection is a remote governance control; the active `Protect main` ruleset requires pull requests plus Project Verification, Windows Compatibility, Web Contracts, Web Connector and Web Page Intelligence checks. The Phase 3 Web Search Index checks must be added after its PR exposes exact contexts. Human approval remains a separate governance decision and is not inferred from automated agents.
 - The benchmark accepts `--source` for a copied real project or `--files` for a synthetic tree, reports Python traced peak memory, process peak RSS, repeated search time, and does not impose universal performance targets. Filesystem/path enumeration and SQLite's seen-path set still scale with project size.
 
 ## Bootstrap gate (mandatory before feature work)
