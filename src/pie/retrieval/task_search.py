@@ -18,41 +18,48 @@ STOP = frozenset(("a o os as de da do das dos e em para por com que qual quais "
                   "como onde quando eu meu minha um uma uma the and for from with "
                   "what when why how did you was were").split())
 
-FTS_TRIGGERS = """
-CREATE TRIGGER IF NOT EXISTS pie_memory_task_insert AFTER INSERT ON pie_tasks BEGIN
-  INSERT INTO pie_memory_fts(task_id,event_seq,kind,objective,body,reference)
-  VALUES (NEW.task_id,'','objective',NEW.objective,'','');
-END;
-CREATE TRIGGER IF NOT EXISTS pie_memory_event_insert AFTER INSERT ON pie_task_events BEGIN
-  INSERT INTO pie_memory_fts(task_id,event_seq,kind,objective,body,reference)
-  VALUES (NEW.task_id,CAST(NEW.seq AS TEXT),NEW.kind,'',NEW.text,COALESCE(NEW.reference,''));
-END;
-"""
+FTS_TRIGGERS = (
+    """CREATE TRIGGER IF NOT EXISTS pie_memory_task_insert AFTER INSERT ON pie_tasks BEGIN
+       INSERT INTO pie_memory_fts(task_id,event_seq,kind,objective,body,reference)
+       VALUES (NEW.task_id,'','objective',NEW.objective,'','');
+       END""",
+    """CREATE TRIGGER IF NOT EXISTS pie_memory_event_insert AFTER INSERT ON pie_task_events BEGIN
+       INSERT INTO pie_memory_fts(task_id,event_seq,kind,objective,body,reference)
+       VALUES (NEW.task_id,CAST(NEW.seq AS TEXT),NEW.kind,'',NEW.text,COALESCE(NEW.reference,''));
+       END""",
+)
 
 
 def _ensure_fts(db: sqlite3.Connection) -> bool:
-    """Create FTS once, backfill pre-existing task data, maintain via triggers."""
+    """Serialize first-time schema creation/backfill between concurrent MCP clients."""
+    # Existing PIE connection setup may leave a transaction open after symbol FTS backfill.
+    db.commit()
     try:
+        db.execute("BEGIN IMMEDIATE")
         present = db.execute(
             "SELECT 1 FROM sqlite_master WHERE type='table' AND name='pie_memory_fts'"
         ).fetchone() is not None
         db.execute("""CREATE VIRTUAL TABLE IF NOT EXISTS pie_memory_fts USING fts5(
             task_id UNINDEXED, event_seq UNINDEXED, kind UNINDEXED,
             objective, body, reference, tokenize='unicode61')""")
-    except sqlite3.OperationalError as exc:
-        if "no such module" in str(exc).lower() or "fts5" in str(exc).lower():
-            return False
-        raise
-    db.executescript(FTS_TRIGGERS)
-    if not present:
-        # Stage 1 data may already exist. The FTS schema is new and empty here.
-        with db:
+        for statement in FTS_TRIGGERS:
+            db.execute(statement)
+        if not present:
             db.execute("""INSERT INTO pie_memory_fts(task_id,event_seq,kind,objective,body,reference)
                 SELECT task_id,'','objective',objective,'','' FROM pie_tasks""")
             db.execute("""INSERT INTO pie_memory_fts(task_id,event_seq,kind,objective,body,reference)
                 SELECT task_id,CAST(seq AS TEXT),kind,'',text,COALESCE(reference,'')
                 FROM pie_task_events""")
-    return True
+        db.commit()
+        return True
+    except sqlite3.OperationalError as exc:
+        db.rollback()
+        if "no such module" in str(exc).lower() or "fts5" in str(exc).lower():
+            return False
+        raise
+    except Exception:
+        db.rollback()
+        raise
 
 
 def _terms(query: str) -> list[str]:
@@ -129,6 +136,7 @@ def search_tasks(root: Path, query: str, *, limit: int = 10,
     result = {"query": query, "state": "FOUND" if items else "NOT_FOUND",
               "backend": "fts5" if fts else "lexical_fallback",
               "matches": items, "omitted": max(0, len(hits) - len(items)),
+              "omission_count_complete": len(hits) <= limit,
               "verification": "agent_supplied_unverified"}
     def length():
         return len(json.dumps(result, ensure_ascii=False, separators=(",", ":")))

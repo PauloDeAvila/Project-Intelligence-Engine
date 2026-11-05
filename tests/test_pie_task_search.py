@@ -1,5 +1,6 @@
 """Stage 2 retrieval verification: FTS5, upgrade, boundaries, MCP and CLI."""
 import contextlib
+from concurrent.futures import ThreadPoolExecutor
 import io
 import json
 from pathlib import Path
@@ -85,6 +86,26 @@ class TaskSearchTests(unittest.TestCase):
             result=search_tasks(self.root,"gateway")
         self.assertEqual(result["backend"],"lexical_fallback")
         self.assertEqual(result["matches"][0]["task_id"],a)
+
+    def test_concurrent_first_search_does_not_duplicate_backfill(self):
+        a=start_task(self.root,"Concurrent memory sentinel")["task_id"]
+        record_task(self.root,a,"decision","Keep bounded verified checks")
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            results=list(executor.map(
+                lambda _: search_tasks(self.root,"sentinel",limit=10),
+                range(4)))
+        for result in results:
+            self.assertEqual(len(result["matches"]),1)
+            self.assertEqual(result["matches"][0]["task_id"],a)
+        self.assertEqual(len(search_tasks(self.root,"sentinel")["matches"]),1)
+
+    def test_omitted_count_marks_lower_bound(self):
+        for n in range(15):
+            start_task(self.root,f"Repeatable search term job {n}")
+        result=search_tasks(self.root,"Repeatable",limit=3)
+        self.assertEqual(len(result["matches"]),3)
+        self.assertEqual(result["omitted"],1)
+        self.assertFalse(result["omission_count_complete"])
 
     def test_cli_and_mcp(self):
         task=start_task(self.root,"Investigate incremental indexing")["task_id"]

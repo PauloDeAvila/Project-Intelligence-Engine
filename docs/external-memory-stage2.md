@@ -19,8 +19,8 @@ event ID when relevant, status, recorded timestamps, reference, and
 `verification=agent_supplied_unverified`. The full event text is returned
 or the item is omitted; the system does not slice a fact mid-negation.
 
-First retrieval creates the local FTS index, backfills existing Stage 1 task
-records and installs triggers for subsequent task/event inserts. No third-party
+First retrieval creates the local FTS index transactionally, backfills existing Stage 1 task
+records and installs triggers for subsequent task/event inserts. Parallel clients\nserialize this first-time initialization to avoid duplicate backfills. No third-party
 model, account, remote transmission or new database is required.
 
 ## Security, freshness and accuracy
@@ -30,7 +30,7 @@ model, account, remote transmission or new database is required.
   Verify them against current source before relying on a remembered claim.
 - Queries use quoted tokens (no arbitrary FTS operators/SQL execution).
 - Each project retains its own SQLite database.
-- A max_chars budget can omit entire matches; omitted count is explicit.
+- A max_chars budget can omit entire matches; `omitted` is a **minimum known\n  count** when the result limit was reached. `omission_count_complete=false`\n  explicitly marks that the full omitted count was not enumerated.
 - Search is case/term-oriented, not a general memory understanding model.
 - No statement of token reduction or overall model accuracy is implied.
 
