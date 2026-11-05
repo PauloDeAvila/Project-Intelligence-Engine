@@ -17,8 +17,8 @@ class Gateway(ThreadingHTTPServer):
 
 
 class Handler(BaseHTTPRequestHandler):
-    server: Gateway
-    def log_message(self, _format: str, *_args: Any) -> None: pass
+    server: Gateway  # type: ignore[reportIncompatibleVariableOverride]
+    def log_message(self, format: str, *_args: Any) -> None: pass
     def _json(self, code: int, value: Any) -> None:
         raw = json.dumps(value, ensure_ascii=False).encode()
         self.send_response(code); self.send_header("Content-Type", "application/json"); self.send_header("Content-Length", str(len(raw))); self.end_headers(); self.wfile.write(raw)

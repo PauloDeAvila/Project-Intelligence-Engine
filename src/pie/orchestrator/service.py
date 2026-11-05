@@ -41,7 +41,9 @@ class Orchestrator:
     def submit(self, source: str, body: dict[str, Any]) -> tuple[Task, bool]:
         allowed = {"project_id", "task_type", "model", "idempotency_key", "priority", "timeout_seconds", "token_limit", "cost_limit"}
         if set(body) - allowed or not isinstance(body.get("idempotency_key"), str): raise ValueError("Invalid task payload")
-        project = self.projects.get(body.get("project_id"))
+        project_id = body.get("project_id")
+        if not isinstance(project_id, str): raise ValueError("Invalid project")
+        project = self.projects.get(project_id)
         if project is None or not project.root.is_absolute() or project.root.resolve() != project.root: raise PermissionError("Project is not authorized")
         if body.get("task_type") not in project.task_types or body.get("model") not in project.models: raise PermissionError("Task type or model is not authorized")
         return self.store.create(source=source, key=body["idempotency_key"], project_id=project.project_id, task_type=body["task_type"], model=body["model"], priority=int(body.get("priority", 0)), timeout_seconds=int(body.get("timeout_seconds", 600)), token_limit=body.get("token_limit"), cost_limit=body.get("cost_limit"))
