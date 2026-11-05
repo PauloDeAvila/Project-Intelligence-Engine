@@ -1,4 +1,5 @@
 import json
+import sqlite3
 import tempfile
 import unittest
 from hashlib import sha256
@@ -47,6 +48,46 @@ class EvidenceAtomTests(unittest.TestCase):
         self.assertFalse(result["coverage"]["complete"])
         self.assertEqual(result["coverage"]["missing"], ["not_present"])
         self.assertTrue(result["fallback"]["available"])
+        self.assertEqual(result["delivery"]["status"], "FALLBACK_REQUIRED")
+        self.assertFalse(result["delivery"]["can_deliver_atoms"])
+
+    def test_persistent_cache_reuses_and_invalidates_verified_evidence(self):
+        first = build_proof_context(self.root, "greet", requirements=["return"])
+        second = build_proof_context(self.root, "greet", requirements=["return"])
+        self.assertTrue(first["cache"]["persistent"])
+        self.assertFalse(first["cache"]["hit"])
+        self.assertTrue(second["cache"]["hit"])
+        self.assertTrue(second["structured_facts"][0]["verified"])
+
+        (self.root / "app.py").write_text(
+            "def greet(name):\n    return name.upper()\n",
+            encoding="utf-8",
+        )
+        index_project(self.root)
+        third = build_proof_context(self.root, "greet", requirements=["return"])
+        self.assertFalse(third["cache"]["hit"])
+        self.assertNotEqual(first["sources"][0][1], third["sources"][0][1])
+
+    def test_adaptive_selection_deduplicates_clauses(self):
+        result = build_proof_context(
+            self.root,
+            "greet",
+            requirements=["def greet", "return", "return"],
+        )
+        self.assertEqual(result["selection"]["strategy"], "adaptive_clause_set_cover")
+        self.assertLessEqual(result["selection"]["selected_count"], result["selection"]["candidate_count"])
+        self.assertEqual(result["delivery"]["status"], "READY")
+        self.assertTrue(result["structured_facts"])
+
+    def test_different_questions_share_the_same_atom_catalog(self):
+        build_proof_context(self.root, "greet", requirements=["raise"])
+        build_proof_context(self.root, "greet", requirements=["return"])
+        connection = sqlite3.connect(self.root / ".pie" / "evidence_atoms.sqlite3")
+        try:
+            atom_ranges = connection.execute("SELECT COUNT(*) FROM atom_cache").fetchone()[0]
+        finally:
+            connection.close()
+        self.assertEqual(atom_ranges, 1)
 
     def test_mcp_contract_exposes_proof_context(self):
         tools = dispatch({"jsonrpc": "2.0", "id": 1, "method": "tools/list"}, self.root)
