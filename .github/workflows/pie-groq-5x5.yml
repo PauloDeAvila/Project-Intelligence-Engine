@@ -1,5 +1,10 @@
 name: PIE Groq 5x5 (manual)
 on:
+  push:
+    branches: [test/groq-five-by-five]
+    paths:
+      - 'tools/groq_5x5.py'
+      - '.github/workflows/pie-groq-5x5.yml'
   workflow_dispatch:
     inputs:
       model:
@@ -40,7 +45,7 @@ jobs:
           python -m pie index --root .
           python -m pie status --root .
       - name: Compare exactly five questions in both conditions
-        run: python tools/groq_5x5.py --model "${{ inputs.model }}"
+        run: python tools/groq_5x5.py --model "${{ inputs.model || 'qwen/qwen3-32b' }}"
       - name: Upload result even when calls fail
         if: always()
         uses: actions/upload-artifact@v4
