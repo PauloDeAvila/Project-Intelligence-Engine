@@ -110,6 +110,10 @@ def bench(args:argparse.Namespace) -> dict[str,Any]:
             result={"status":"DRY_RUN_PASSED","audits":audits,"api_calls":0}
             print(json.dumps(result,ensure_ascii=False));return result
         url=os.getenv("PIE_API_BASE_URL","").rstrip("/")
+        # cloud_pie_benchmark.call appends /v1/chat/completions.
+        # Accept configured base URLs ending in /v1 without doubling that prefix.
+        if url.endswith("/v1"):
+            url=url[:-3]
         key=os.getenv("PIE_API_KEY","")
         if not url.startswith("https://") or not key: raise RuntimeError("Missing HTTPS tunnel or 9Router inference key")
         jobs=[]
