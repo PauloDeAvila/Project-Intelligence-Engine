@@ -43,8 +43,8 @@ class GitLabClient:
             method=method,
         )
         with urlopen(request, timeout=15) as response:
-            if method == "GET" and path.startswith("/issues?") and response.headers.get("X-Next-Page"):
-                raise RuntimeError("Issue list exceeds first page; refusing incomplete scan")
+            if method == "GET" and response.headers.get("X-Next-Page"):
+                raise RuntimeError("GitLab result exceeds first page; refusing incomplete scan")
             return json.load(response)
 
     def issues(self, label: str) -> list[dict[str, Any]]:
