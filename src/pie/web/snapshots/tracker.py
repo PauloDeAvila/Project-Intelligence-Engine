@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from threading import RLock
 
-from ..contracts import PageSnapshot, SnapshotState, WebStateError
+from ..contracts import PageSnapshot, ReferenceState, SnapshotState, WebStateError
 
 MAX_TRACKED_CONTEXTS = 1024
 
@@ -40,11 +40,11 @@ class PageStateTracker:
                 changed = True
                 stale = False
             elif snapshot.generation < previous.generation:
-                current = replace(snapshot, state=SnapshotState.STALE)
+                current = self._with_state(snapshot, SnapshotState.STALE)
                 changed = False
                 stale = True
             elif snapshot.generation == previous.generation and snapshot.snapshot_sha256 != previous.snapshot_sha256:
-                current = replace(snapshot, state=SnapshotState.PARTIAL)
+                current = self._with_state(snapshot, SnapshotState.PARTIAL)
                 changed = True
                 stale = False
             else:
@@ -55,6 +55,11 @@ class PageStateTracker:
                 self._current[key] = current
             return TrackingResult(current, changed, stale)
 
+    @staticmethod
+    def _with_state(snapshot: PageSnapshot, state: SnapshotState) -> PageSnapshot:
+        elements = tuple(replace(item, reference_state=ReferenceState.CURRENT) for item in snapshot.elements)
+        return replace(snapshot, elements=elements, state=state)
+
     def current(self, session_id: str, page_id: str, frame_id: str) -> PageSnapshot | None:
         with self._lock:
             return self._current.get((session_id, page_id, frame_id))
@@ -63,7 +68,7 @@ class PageStateTracker:
         key = (session_id, page_id, frame_id)
         with self._lock:
             previous = self._current.pop(key, None)
-            return replace(previous, state=SnapshotState.STALE) if previous is not None else None
+            return self._with_state(previous, SnapshotState.STALE) if previous is not None else None
 
 
 __all__ = ["PageStateTracker", "TrackingResult"]
