@@ -1,0 +1,22 @@
+{
+  "status": "BLOCKED",
+  "model": "opencode/nemotron-3.5-super-vl-free",
+  "with_pie": {
+    "tokens_in": null,
+    "tokens_out": null,
+    "accuracy": null,
+    "latency_seconds": null,
+    "questions_completed": 0,
+    "mcp_evidence": false
+  },
+  "without_pie": {
+    "tokens_in": null,
+    "tokens_out": null,
+    "accuracy": null,
+    "latency_seconds": null,
+    "questions_completed": 0,
+    "mcp_evidence": false
+  },
+  "savings_percent": null,
+  "execution_note": "Benchmark stopped before questions ran because the WITH_PIE server failed the connected PIE MCP validation."
+}

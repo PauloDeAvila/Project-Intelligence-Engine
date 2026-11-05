@@ -1,0 +1,17 @@
+{
+  "status": "BLOCKED",
+  "repository": "PauloDeAvila/Project-Intelligence-Engine",
+  "tested_branch": "exp/opencode-remote-orchestrator",
+  "tested_commit": "b87b6d9f0266830209ee106130ed7294f491aeb4",
+  "model": "opencode/nemotron-3.5-super-vl-free",
+  "opencode_version": "opencode v2.2.5",
+  "python_version": "Python 3.13.17",
+  "runner": "tools/run_pie_pair_windows.ps1",
+  "parameters": {
+    "with_port": 50001,
+    "without_port": 50002,
+    "timeout_seconds": 180
+  },
+  "execution_date": "2026-11-05",
+  "dependency_check": "python and opencode commands available; both requested ports were free before execution"
+}

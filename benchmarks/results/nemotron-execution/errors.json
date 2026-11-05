@@ -1,0 +1,12 @@
+{
+  "status": "BLOCKED",
+  "errors": [
+    {
+      "phase": "startup_validation",
+      "condition": "WITH_PIE",
+      "message": "WITH_PIE server lacks connected pie MCP",
+      "source": "tools/run_pie_pair_windows.ps1:158",
+      "questions_completed": 0
+    }
+  ]
+}
