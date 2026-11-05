@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from pie.retrieval.graph_rank import pagerank, rank_context
 from pie.retrieval.diff_blast import parse_hunks, blast_diff
+from pie.interfaces.tool_gateway import execute_gateway
 from pie.indexing.indexer import index_project
 
 def git(root,*args):
@@ -63,6 +64,9 @@ class GraphRankBlastTests(unittest.TestCase):
             self.assertEqual(ranked["context_state"],"CURRENT")
             self.assertTrue(any(e["symbol"]=="process" for e in ranked["evidence"]))
             self.assertEqual(ranked["method"],"verified_ppr_v1")
+            routed=execute_gateway(root,"graph_rank",{"query":"process"},max_chars=12000)
+            self.assertEqual(routed["operation"],"graph_rank")
+            self.assertEqual(json.loads(routed["result"])["method"],"verified_ppr_v1")
             (root/"core.py").write_text(
                 "def process(value):\n    return value + 2\n\n"
                 "def unrelated(value):\n    return value * 7\n",encoding="utf-8")
@@ -70,6 +74,8 @@ class GraphRankBlastTests(unittest.TestCase):
                 blast_diff(root)
             index_project(root)
             report=blast_diff(root)
+            routed=execute_gateway(root,"blast_diff",{"depth":1},max_chars=16000)
+            self.assertEqual(json.loads(routed["result"])["method"],"git_diff_verified_blast_v1")
             self.assertIn("core.py",report["changed_files"])
             self.assertTrue(any(s["symbol"]=="process" for s in report["seeds"]))
             self.assertFalse(any(s["symbol"]=="unrelated" for s in report["seeds"]))

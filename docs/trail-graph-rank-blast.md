@@ -17,7 +17,9 @@ adaptation of the *algorithms*, not a copy of the TypeScript implementation.
 - Both refuse stale full-source graph snapshots, operate locally, and have
   bounded JSON outputs. No network, provider token usage or LLM dependency.
 - CLI: pie graph-rank QUERY --root ROOT; pie blast-diff --root ROOT.
-- MCP: pie_graph_rank and pie_blast_diff. The default pie_query behavior is
+- MCP: pie_graph_rank and pie_blast_diff.
+- Tool Gateway: explicit operations graph_rank and blast_diff, with the same
+  recoverable, sanitized and bounded response contract. These are opt-in. The default pie_query behavior is
   not silently changed: callers can compare variants deliberately.
 
 ## Offline A/B benchmark
