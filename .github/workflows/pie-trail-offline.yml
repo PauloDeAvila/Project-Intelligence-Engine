@@ -1,0 +1,33 @@
+name: PIE Trail Inspired Offline A-B
+on:
+  pull_request:
+    paths:
+      - src/pie/retrieval/graph_rank.py
+      - src/pie/retrieval/diff_blast.py
+      - tools/benchmark_trail_pie.py
+      - tests/test_trail_graph_rank_blast.py
+      - .github/workflows/pie-trail-offline.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run deterministic no-inference A-B
+        shell: bash
+        run: |
+          PYTHONPATH=src python tools/benchmark_trail_pie.py \
+            --repeats 7 --out benchmark-results/trail-inspired.json
+      - name: Upload reproducible evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: trail-inspired-offline-${{ github.run_id }}
+          path: benchmark-results/trail-inspired.json
+          retention-days: 30
+          if-no-files-found: error
