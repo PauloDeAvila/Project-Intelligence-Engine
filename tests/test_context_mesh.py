@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -113,6 +114,12 @@ class ContextMeshTests(unittest.TestCase):
             capture_output=True,
             check=True,
             timeout=30,
+            env=dict(
+                os.environ,
+                PYTHONPATH=str(Path(__file__).resolve().parents[1] / "src")
+                + os.pathsep
+                + os.environ.get("PYTHONPATH", ""),
+            ),
         )
         responses = {
             item.get("id"): item
