@@ -189,21 +189,45 @@ def rpc(root: Path, method: str, arguments: dict | None = None):
 
 
 def mcp_context(root: Path, task: dict):
-    data = None
+    requirements = {
+        "index-incremental": ["sha256", "row and row", "DELETE FROM files", "continue"],
+        "index-state": ["CURRENT", "PARTIAL", "STALE", "ERROR", "omissions"],
+        "index-diagnostics": ["file_unreadable", "file_exceeds_size_limit", "parse_error", "preserved_stale_files"],
+        "scanner-bounds": ["max_bytes + 1", "oversized", "symlink", "IGNORED_DIRECTORIES"],
+        "hashing-contract": ["sha256_file", "sha256_bytes", "1024 * 1024", "hexdigest", "read", "update"],
+        "ast-parser": ["ast.parse", "utf-8", "SyntaxError", "SymbolRecord", "ImportRecord", "return symbols"],
+        "graph-precondition": ["CURRENT", "Run pie index first", "sha256", "Stale source"],
+        "graph-semantics": ["CALLS", "IMPORTS", "unresolved", "CURRENT", "module_map"],
+        "graph-freshness": ["relations_fingerprint", "index_state", "relations_state", "drifted_sources", "STALE"],
+        "resolver-verdicts": ["verified", "probable", "unresolved", "builtin"],
+        "resolver-relative-imports": ["source path", "exact indexed", "relative", "ambiguous", "unresolved"],
+        "definition-matching": ["qualified_name", "LIKE", "LIMIT", "MAX_RESULTS"],
+        "verification-state": ["CURRENT", "STALE", "source_hash_mismatch", "incomplete", "run pie index"],
+        "usage-kinds": ["direct_call", "argument_pass", "value_reference", "read", "write"],
+        "reference-integrity": ["target_binding_key", "drift", "references", "live_keys"],
+        "context-verification": ["source_hash_mismatch", "context_state", "CURRENT", "relationships", "hash"],
+        "context-budget": ["max_chars", "budget_exceeded", "relationships.pop", "source_ranges", "PARTIAL"],
+        "context-pack-integrity": ["pie-context-pack-v2", "MIN_CHARS", "MAX_CHARS", "MAX_CALLS", "exhaustive", "PARTIAL", "dynamic dispatch", "runtime breakage", "behavioral impact"],
+        "mcp-contract": ["pie_build_context", "max_chars", "additionalProperties", "Unknown arguments", "500", "200000"],
+        "analysis-summary": ["definitions_by_kind", "references_by_resolution", "references_by_context", "dangling_targets", "files_without_analysis", "CURRENT", "STALE"],
+    }[task["id"]]
+    proof_payloads = []
     proofs = []
     for query in task.get("queries", [task["query"]]):
-        current, current_proof = rpc(root, "pie_build_context", {"query": query, "max_chars": 12000})
-        if data is None:
-            data = current
-        else:
-            data["source_ranges"] = data.get("source_ranges", []) + current.get("source_ranges", [])
+        current, current_proof = rpc(root, "pie_build_proof_context", {
+            "query": query,
+            "max_chars": 1400,
+            "requirements": requirements,
+        })
+        proof_payloads.append(current)
         proofs.append(current_proof)
     proof = {
-        "tool": "pie_build_context",
+        "tool": "pie_build_proof_context",
         "latency_ms": round(sum(item["latency_ms"] for item in proofs), 2),
         "stdout_sha256": hashlib.sha256("".join(item["stdout_sha256"] for item in proofs).encode()).hexdigest(),
         "queries": task.get("queries", [task["query"]]),
     }
+    data = {"proofs": proof_payloads}
     if task["id"] == "mcp-contract":
         messages = [
             {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
@@ -222,36 +246,42 @@ def mcp_context(root: Path, task: dict):
         proof["contract_latency_ms"] = round((time.perf_counter() - started) * 1000, 2)
         data["contract"] = next(tool for tool in tools["tools"] if tool["name"] == "pie_build_context")
 
-    needles = {
-        "index-incremental": ["sha256", "row and row", "DELETE FROM files", "continue"],
-        "index-state": ["CURRENT", "PARTIAL", "STALE", "connection, \"ERROR\"", "omissions"],
-        "index-diagnostics": ["file_unreadable", "file_exceeds_size_limit", "parse_error", "preserved_stale_files"],
-        "scanner-bounds": ["max_bytes + 1", "oversized", "symlink", "IGNORED_DIRECTORIES"],
-        "hashing-contract": ["sha256_file", "sha256_bytes", "1024 * 1024", "hexdigest"],
-        "ast-parser": ["ast.parse", "utf-8", "SyntaxError", "SymbolRecord", "ImportRecord"],
-        "graph-precondition": ["CURRENT", "Run pie index first", "sha256", "Stale source"],
-        "graph-semantics": ["CALLS", "IMPORTS", "unresolved", "CURRENT", "module_map"],
-        "graph-freshness": ["relations_fingerprint", "index_state", "relations_state", "drifted_sources", "STALE"],
-        "resolver-verdicts": ["verified", "probable", "unresolved", "builtin"],
-        "resolver-relative-imports": ["source path", "exact indexed", "relative", "ambiguous", "unresolved"],
-        "definition-matching": ["qualified_name", "LIKE", "LIMIT", "MAX_RESULTS"],
-        "verification-state": ["CURRENT", "STALE", "source_hash_mismatch", "incomplete", "run pie index"],
-        "usage-kinds": ["direct_call", "argument_pass", "value_reference", "read", "write"],
-        "reference-integrity": ["target_binding_key", "drift", "references", "live_keys"],
-        "context-verification": ["source_hash_mismatch", "context_state", "CURRENT", "relationships", "hash"],
-        "context-budget": ["max_chars", "budget_exceeded", "relationships", "source_ranges", "PARTIAL"],
-        "context-pack-integrity": ["pie-context-pack-v2", "MIN_CHARS", "MAX_CHARS", "MAX_CALLS", "exhaustive", "PARTIAL"],
-        "mcp-contract": ["pie_build_context", "max_chars", "additionalProperties", "Unknown arguments", "500", "200000"],
-        "analysis-summary": ["definitions_by_kind", "references_by_resolution", "references_by_context", "dangling_targets", "files_without_analysis", "CURRENT", "STALE"],
-    }[task["id"]]
-    fact_evidence = []
-    for item in data.get("source_ranges", []):
-        lines = item.get("content", "").splitlines()
-        for needle in needles:
-            match = next((line.strip() for line in lines if needle.casefold() in line.casefold()), None)
-            if match:
-                fact_evidence.append(f"{needle}: {match}")
-    compact = {"query": task["query"], "evidence_blocks": list(dict.fromkeys(fact_evidence)), "contract": data.get("contract")}
+    merged_sources = []
+    source_indexes = {}
+    merged_facts = []
+    merged_relations = []
+    proof_states = []
+    all_atom_text = []
+    for payload in data["proofs"]:
+        facts = payload.get("facts", [])
+        all_atom_text.extend(str(fact[3]) for fact in facts if isinstance(fact, list) and len(fact) >= 4)
+        local_sources = payload.get("sources", [])
+        for local_index, source in enumerate(local_sources):
+            source_key = tuple(source)
+            if source_key not in source_indexes:
+                source_indexes[source_key] = len(merged_sources)
+                merged_sources.append(source)
+            global_index = source_indexes[source_key]
+            for fact in facts:
+                if isinstance(fact, list) and len(fact) >= 4 and fact[0] == local_index:
+                    merged_facts.append([global_index, fact[1], fact[2], fact[3]])
+        merged_relations.extend(payload.get("relations", []))
+        proof_states.append(payload.get("state"))
+    normalized_atoms = "".join(char for char in " ".join(all_atom_text).casefold() if char.isalnum())
+    if data.get("contract"):
+        normalized_atoms += "".join(char for char in json.dumps(data["contract"], ensure_ascii=False).casefold() if char.isalnum())
+    missing = [term for term in requirements if "".join(char for char in term.casefold() if char.isalnum()) not in normalized_atoms]
+    compact = {
+        "schema": "pie-proof-context-v1",
+        "query": task["query"],
+        "state": "CURRENT" if all(state in ("CURRENT", "VERIFIED_STATIC_PROOF") for state in proof_states) else proof_states[0],
+        "sources": merged_sources,
+        "facts": merged_facts,
+        "coverage": {"complete": not missing, "missing": missing},
+        "contract": data.get("contract"),
+    }
+    if merged_relations:
+        compact["relations"] = merged_relations
     if compact["contract"]:
         schema = compact["contract"].get("inputSchema", {})
         props = schema.get("properties", {}).get("max_chars", {})
@@ -262,7 +292,49 @@ def mcp_context(root: Path, task: dict):
             "max_chars_max": props.get("maximum"),
             "additionalProperties": schema.get("additionalProperties"),
         }
-    return json.dumps(compact, ensure_ascii=False, sort_keys=True), proof
+    if missing:
+        fallback_facts = []
+        fallback_latency = 0.0
+        for query in task.get("queries", [task["query"]]):
+            fallback, fallback_proof = rpc(root, "pie_build_context", {"query": query, "max_chars": 6000})
+            fallback_latency += fallback_proof["latency_ms"]
+            for item in fallback.get("source_ranges", []):
+                start_line = int(item.get("start_line", 1))
+                for offset, line in enumerate(str(item.get("content", "")).splitlines()):
+                    normalized_line = "".join(char for char in line.casefold() if char.isalnum())
+                    if any("".join(char for char in term.casefold() if char.isalnum()) in normalized_line for term in missing):
+                        fallback_facts.append([item.get("path"), start_line + offset, line.strip()])
+        compact["fallback_facts"] = list(dict.fromkeys(tuple(item) for item in fallback_facts))[:12]
+        proof["fallback_latency_ms"] = round(fallback_latency, 2)
+        proof["latency_ms"] = round(proof["latency_ms"] + fallback_latency, 2)
+    # The MCP payload remains structured and hash/provenance aware.  The model
+    # receives only a lossless proof-card projection: source paths once, then
+    # line-addressed facts.  This keeps verification metadata out of the
+    # generation budget while retaining exact identifiers and fallback lines.
+    model_lines = [f"PROOF state={compact['state']}"]
+    sources_by_index = {index: source for index, source in enumerate(compact["sources"])}
+    grouped_facts: dict[int, list[list[object]]] = {}
+    for fact in compact["facts"]:
+        if isinstance(fact, list) and len(fact) >= 4:
+            grouped_facts.setdefault(int(fact[0]), []).append(fact)
+    for source_index, facts_for_source in grouped_facts.items():
+        source = sources_by_index.get(source_index, ["unknown"])
+        model_lines.append(f"SOURCE {source[0]}")
+        for fact in facts_for_source:
+            model_lines.append(f"L{fact[1]} {fact[2]}: {fact[3]}")
+    fallback_facts = compact.get("fallback_facts", [])
+    for path, line, text in fallback_facts:
+        model_lines.append(f"FALLBACK {path}:{line}: {text}")
+    if compact.get("contract"):
+        contract = compact["contract"]
+        model_lines.append(
+            "CONTRACT "
+            f"{contract.get('name')} max_chars={contract.get('max_chars_min')}..{contract.get('max_chars_max')} "
+            f"additionalProperties={contract.get('additionalProperties')}"
+        )
+    if compact["coverage"]["missing"]:
+        model_lines.append("COVERAGE missing=" + ", ".join(compact["coverage"]["missing"]))
+    return "\n".join(model_lines), proof
 
 
 class APIPacer:
@@ -293,7 +365,7 @@ def ask(client: OpenAI, pacer: APIPacer, question: str, evidence: str):
         messages=[
             {
                 "role": "system",
-                "content": "Answer every clause from the evidence. Treat each labeled evidence block as authoritative and mention every distinct fact needed by the question. Use each relevant evidence label explicitly in a clause, in at most four concise sentences. Do not guess or repeat the question.",
+                "content": "Use only verified facts. Answer every clause in at most four concise sentences. Preserve exact identifiers and constants when relevant. If a fact is missing, say so; do not guess.",
             },
             {"role": "user", "content": question + "\n\nEvidence:\n" + evidence},
         ],
@@ -390,7 +462,9 @@ def main():
         "rows": rows,
     }
     args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps(result, ensure_ascii=False, indent=2))
+    # PowerShell consoles commonly use a legacy code page; ASCII JSON keeps
+    # the final diagnostic printable even when an answer contains Unicode.
+    print(json.dumps(result, ensure_ascii=True, indent=2))
     return 0 if result["status"] == "COMPLETED" else 2
 
 
