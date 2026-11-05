@@ -25,8 +25,10 @@ class FakeAdapter:
     def __init__(self):
         self.executions = 0
 
-    def execute(self, task, project, prompt):
+    def execute(self, task, project, prompt, on_session=None):
         self.executions += 1
+        if on_session is not None:
+            on_session("ses_test")
         return Execution("ses_test", {"safe": "internal"}, {"input_tokens": 5, "output_tokens": 2})
 
     def cancel(self, session_id):
@@ -76,6 +78,17 @@ class GitLabPollTests(unittest.TestCase):
         self.assertEqual(first, {"seen": 1, "rejected": 0, "created": 1, "executed": 1, "notified": 1})
         self.assertEqual(second, {"seen": 1, "rejected": 0, "created": 0, "executed": 0, "notified": 0})
         self.assertEqual(self.adapter.executions, 1)
+        row = self.store.connection.execute(
+            "SELECT task_id FROM idempotency_keys WHERE source=?",
+            ("gitlab_poll",),
+        ).fetchone()
+        self.assertIsNotNone(row)
+        stored = self.store.get(row["task_id"])
+        self.assertIsNotNone(stored)
+        self.assertEqual(stored.status, TaskStatus.COMPLETED)
+        self.assertEqual(stored.session_id, "ses_test")
+        self.assertEqual(stored.metrics["input_tokens"], 5)
+        self.assertIn("session_bound", [event["kind"] for event in self.store.events(stored.id)])
         body = api.saved[17][0]["body"]
         self.assertNotIn("arbitrary commands", body)
         self.assertNotIn("internal", body)
