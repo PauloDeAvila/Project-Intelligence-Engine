@@ -1,1 +1,1 @@
-One bounded A/B using exact native combo ID pie-benchmark-fallback; catalog preflight and four-request cap; no retries. Revision 3.
+Bounded A/B with pie-benchmark-fallback after /v1 URL normalization fix; stop on first inference error. Revision 4.
