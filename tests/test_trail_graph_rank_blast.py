@@ -29,6 +29,18 @@ class GraphRankBlastTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             parse_hunks("+++ b/../outside.py\n@@ -1 +1 @@")
 
+    def test_offline_benchmark_contract(self):
+        import sys
+        sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"tools"))
+        from benchmark_trail_pie import run
+        report=run(2)
+        self.assertEqual(report["external_inference_calls"],0)
+        self.assertIsNone(report["provider_tokens"])
+        self.assertEqual(len(report["ranking"]),4)
+        self.assertTrue(all(r["runs"]==2 for r in report["ranking"]))
+        self.assertIn("process_order",report["blast"]["changed_symbols"])
+        self.assertNotIn("unrelated",report["blast"]["changed_symbols"])
+
     def test_end_to_end_local_repository(self):
         if not shutil.which("git"): self.skipTest("git unavailable")
         with tempfile.TemporaryDirectory() as td:
