@@ -93,6 +93,28 @@ class TaskMemoryTests(unittest.TestCase):
         self.assertEqual([e["text"] for e in data["events"]],
                          ["Passo número 32", "Passo número 33", "Passo número 34"])
 
+    def test_rejects_redirected_storage_directory(self):
+        with tempfile.TemporaryDirectory() as outside:
+            with tempfile.TemporaryDirectory() as project:
+                root = Path(project)
+                target = Path(outside)
+                db = connect(target / "index.sqlite3")
+                db.close()
+                try:
+                    (root / ".pie").symlink_to(target, target_is_directory=True)
+                except (OSError, NotImplementedError):
+                    self.skipTest("Directory symlinks unavailable on this runner")
+                with self.assertRaisesRegex(ValueError, "storage"):
+                    start_task(root, "Must stay in project")
+
+    def test_sequential_completed_transition_disallows_followup_writes(self):
+        task = start_task(self.root, "Checkpoint state")["task_id"]
+        record_task(self.root, task, "result", "done", status="completed")
+        for kind in ("action", "decision", "result", "checkpoint", "note"):
+            with self.assertRaisesRegex(ValueError, "immutable"):
+                record_task(self.root, task, kind, "late update")
+        self.assertEqual(len(resume_task(self.root, task)["events"]), 1)
+
     def test_cli_end_to_end(self):
         def run(*args):
             output = io.StringIO()

@@ -46,7 +46,10 @@ def _open(root: Path) -> sqlite3.Connection:
     root = Path(root).resolve(strict=True)
     if not root.is_dir():
         raise ValueError("Project root must be a directory")
-    database = root / ".pie" / "index.sqlite3"
+    storage_dir = root / ".pie"
+    if storage_dir.is_symlink() or storage_dir.resolve() != root / ".pie":
+        raise ValueError("Project storage must not redirect outside the root")
+    database = storage_dir / "index.sqlite3"
     if not database.is_file() or database.is_symlink():
         raise ValueError("Run pie init/index first")
     connection = connect(database)
@@ -89,6 +92,8 @@ def record_task(root: Path, task_id: str, kind: str, text: str,
         raise ValueError("Unsupported task status")
     with closing(_open(root)) as db:
         with db:
+            # Serialize status validation and insertion across concurrent MCP clients.
+            db.execute("BEGIN IMMEDIATE")
             current = db.execute("SELECT status FROM pie_tasks WHERE task_id=?",
                                  (task_id,)).fetchone()
             if current is None:
