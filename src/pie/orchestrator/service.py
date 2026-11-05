@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Callable, Protocol
 
 from .models import Task, TaskStatus
 from .store import TaskStore
@@ -24,7 +24,7 @@ class Execution:
 
 
 class Adapter(Protocol):
-    def execute(self, task: Task, project: ProjectPolicy, prompt: str) -> Execution: ...
+    def execute(self, task: Task, project: ProjectPolicy, prompt: str, on_session: Callable[[str], None] | None = None) -> Execution: ...
     def cancel(self, session_id: str) -> None: ...
 
 
@@ -63,9 +63,27 @@ class Orchestrator:
             evidence = self.freshness.validate(self.projects[task.project_id])
             task = self.store.transition(task_id, TaskStatus.QUEUED, data={"pie": evidence})
             task = self.store.transition(task_id, TaskStatus.RUNNING)
-            execution = self.adapter.execute(task, self.projects[task.project_id], "Execute the server-defined read-only review. Do not alter files or invoke network/shell tools.")
+            execution = self.adapter.execute(
+                task, self.projects[task.project_id],
+                "Execute a read-only review of the authorized PIE project. "
+                "Use PIE MCP if configured for this project. "
+                "Identify the project and index freshness; do not alter files or use shell/web tools.",
+                on_session=lambda sid: self.store.bind_session(task_id, sid),
+            )
+            current = self.store.get(task_id)
+            if current is None or current.status != TaskStatus.RUNNING:
+                raise RuntimeError("Task is no longer running")
+            if not execution.session_id or current.session_id != execution.session_id:
+                raise RuntimeError("OpenCode session binding mismatch")
             self.store.record_execution(task_id, session_id=execution.session_id, result=execution.result, metrics=execution.metrics)
             self.store.transition(task_id, TaskStatus.VERIFYING)
             return self.store.transition(task_id, TaskStatus.COMPLETED)
         except Exception as exc:
-            return self.store.transition(task_id, TaskStatus.FAILED, error=str(exc))
+            current = self.store.get(task_id)
+            if current is None:
+                raise
+            if current.status == TaskStatus.CANCELLED:
+                return current
+            if current.status not in {TaskStatus.VALIDATING, TaskStatus.RUNNING, TaskStatus.VERIFYING}:
+                raise
+            return self.store.transition(task_id, TaskStatus.FAILED, error=type(exc).__name__)

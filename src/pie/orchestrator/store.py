@@ -74,7 +74,24 @@ class TaskStore:
     def events(self, task_id: str) -> list[dict[str, Any]]:
         return [{"id": r["id"], "created_at": r["created_at"], "kind": r["kind"], "data": json.loads(r["data_json"])} for r in self.connection.execute("SELECT * FROM events WHERE task_id=? ORDER BY id", (task_id,))]
 
+    def bind_session(self, task_id: str, session_id: str) -> None:
+        if not isinstance(session_id, str) or not session_id.strip():
+            raise ValueError('Invalid OpenCode session ID')
+        with self.connection:
+            task = self.get(task_id)
+            if task is None or task.status != TaskStatus.RUNNING:
+                raise ValueError('Cannot bind unless RUNNING')
+            if task.session_id is not None:
+                if task.session_id == session_id:
+                    return
+                raise ValueError('Session already bound')
+            self.connection.execute('UPDATE tasks SET session_id=?,updated_at=? WHERE id=? AND session_id IS NULL', (session_id,self._now(),task_id))
+            self._event(task_id,'session_bound', {'session_id':session_id})
+
     def record_execution(self, task_id: str, *, session_id: str | None, result: dict[str, Any] | None, metrics: dict[str, Any] | None) -> None:
         with self.connection:
-            self.connection.execute("UPDATE tasks SET session_id=?,result_json=?,metrics_json=?,updated_at=? WHERE id=?", (session_id, json.dumps(result) if result is not None else None, json.dumps(metrics) if metrics is not None else None, self._now(), task_id))
+            task=self.get(task_id)
+            if task is None or task.status != TaskStatus.RUNNING or task.session_id != session_id:
+                raise ValueError("Invalid execution state or session binding")
+            self.connection.execute("UPDATE tasks SET result_json=?,metrics_json=?,updated_at=? WHERE id=?", (json.dumps(result) if result is not None else None, json.dumps(metrics) if metrics is not None else None, self._now(), task_id))
             self._event(task_id, "execution_recorded", {"session_id": session_id, "metrics_available": metrics is not None})

@@ -23,7 +23,9 @@ class FakeFreshness:
 
 class FakeAdapter:
     def __init__(self): self.cancelled = []
-    def execute(self, task, project, prompt): return Execution("ses_test", {"answer": "ok"}, {"input_tokens": 4, "output_tokens": 2})
+    def execute(self, task, project, prompt, on_session=None):
+        if on_session: on_session("ses_test")
+        return Execution("ses_test", {"answer": "ok"}, {"input_tokens": 4, "output_tokens": 2})
     def cancel(self, session_id): self.cancelled.append(session_id)
 
 
@@ -41,7 +43,7 @@ class OrchestratorTests(unittest.TestCase):
         done = self.service.run(task.id)
         self.assertEqual(done.status, TaskStatus.COMPLETED)
         stored = self.store.get(task.id); self.assertEqual(stored.session_id, "ses_test"); self.assertEqual(stored.metrics["input_tokens"], 4)
-        self.assertEqual([e["kind"] for e in self.store.events(task.id)], ["created", "state", "state", "state", "execution_recorded", "state", "state"])
+        self.assertEqual([e["kind"] for e in self.store.events(task.id)], ["created", "state", "state", "state", "session_bound", "execution_recorded", "state", "state"])
 
     def test_recovery_blocks_interrupted_task(self):
         task, _ = self.service.submit("client", self.payload); self.store.transition(task.id, TaskStatus.VALIDATING); self.store.transition(task.id, TaskStatus.QUEUED); self.store.transition(task.id, TaskStatus.RUNNING)
