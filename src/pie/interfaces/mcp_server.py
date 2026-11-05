@@ -12,6 +12,8 @@ from pathlib import Path
 from pie.graph.relationships import build_relationships, get_relationships
 from pie.retrieval.task_memory import start_task, record_task, resume_task
 from pie.retrieval.task_search import search_tasks
+from pie.retrieval.graph_rank import rank_context
+from pie.retrieval.diff_blast import blast_diff
 from pie.retrieval.output_pipeline import compact_output, recover_output
 from pie.interfaces.tool_gateway import execute_gateway, OPERATIONS
 from pie.interfaces.mcp_context import MCPContextEngine
@@ -22,6 +24,9 @@ from pie.retrieval.evidence import build_evidence
 from pie.retrieval.context_pack import build_context_pack
 
 TOOLS = [
+    {'name':'pie_graph_rank','description':'Verified PPR re-ranking', 'inputSchema':{'type':'object','properties':{'query':{'type':'string'},'limit':{'type':'integer','minimum':1,'maximum':20},'max_chars':{'type':'integer','minimum':1000,'maximum':64000}},'required':['query'],'additionalProperties':False}},
+    {'name':'pie_blast_diff','description':'Git diff based potential impact using verified references', 'inputSchema':{'type':'object','properties':{'depth':{'type':'integer','minimum':0,'maximum':5},'limit':{'type':'integer','minimum':1,'maximum':100},'max_chars':{'type':'integer','minimum':1000,'maximum':64000}},'additionalProperties':False}},
+
     {'name':'pie_tool_gateway','description':'Single allowlisted local read-only gateway: project_status, source_query, task_search, task_resume, context_pack, output_compact, output_get. Stores sanitized results and returns bounded payloads/recovery IDs. Not a transparent external-tool interceptor.', 'inputSchema':{'type':'object','properties':{'operation':{'type':'string','enum':list(OPERATIONS)},'arguments':{'type':'object'},'max_chars':{'type':'integer','minimum':512,'maximum':64000}},'required':['operation'],'additionalProperties':False}},
 
     {'name':'pie_output_compact','description':'RTK-inspired: redact, deduplicate and bound a tool log; save the sanitized full output for recovery. Text is limited to 4096 chars via MCP.', 'inputSchema':{'type':'object','properties':{'text':{'type':'string'},'kind':{'type':'string','enum':['log','test','git','terminal','web','api']},'max_chars':{'type':'integer','minimum':256,'maximum':64000},'exit_code':{'type':'integer','minimum':-65535,'maximum':65535}},'required':['text'],'additionalProperties':False}},
@@ -92,6 +97,8 @@ def dispatch(request: dict, root: Path, engine: MCPContextEngine | None = None) 
             if 'mode' in args and args['mode'] not in ('responsibility','navigation','impact'):
                 raise ValueError('Invalid mode')
             functions = {
+                'pie_graph_rank':lambda:rank_context(root,args['query'],limit=args.get('limit',5),max_chars=args.get('max_chars',12000)),
+                'pie_blast_diff':lambda:blast_diff(root,depth=args.get('depth',2),limit=args.get('limit',50),max_chars=args.get('max_chars',16000)),
                 'pie_tool_gateway':lambda:execute_gateway(root,args['operation'],args.get('arguments'),max_chars=args.get('max_chars',4000),engine=engine),
                 'pie_output_compact':lambda:compact_output(root,args['text'],kind=args.get('kind','log'),max_chars=args.get('max_chars',4000),exit_code=args.get('exit_code')),
                 'pie_output_get':lambda:recover_output(root,args['output_id']),

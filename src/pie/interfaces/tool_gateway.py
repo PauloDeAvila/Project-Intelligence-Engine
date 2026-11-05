@@ -13,6 +13,8 @@ from pie.retrieval.output_pipeline import compact_output, recover_output
 
 OPERATIONS = {
     "project_status": {"required": (), "optional": ()},
+    "graph_rank": {"required": ("query",), "optional": ("limit", "max_chars", "candidates")},
+    "blast_diff": {"required": (), "optional": ("depth", "limit", "max_chars")},
     "source_query": {"required": ("query",), "optional": ("mode", "limit", "max_chars")},
     "task_search": {"required": ("query",), "optional": ("limit", "max_chars")},
     "task_resume": {"required": (), "optional": ("task_id", "limit")},
@@ -35,19 +37,25 @@ def _validate(op: str, arguments: dict, max_chars: int) -> None:
     if type(max_chars) is not int or not 512 <= max_chars <= MAX_INLINE:
         raise ValueError("max_chars must be 512..64000")
     for key,value in arguments.items():
-        if key in ("limit","max_chars","max_calls","exit_code"):
+        if key in ("limit","max_chars","max_calls","exit_code","depth","candidates"):
             if type(value) is not int:
                 raise ValueError(f"{key} must be an integer")
         elif not isinstance(value,str) or not value.strip() or "\x00" in value:
             raise ValueError(f"{key} must be a nonempty safe string")
         if isinstance(value,str) and len(value)>4096:
             raise ValueError(f"{key} is too long")
-    if "limit" in arguments and not 1 <= arguments["limit"] <= (100 if op=="task_resume" else 20):
+    if "limit" in arguments and not 1 <= arguments["limit"] <= (100 if op in ("task_resume","blast_diff") else 20):
         raise ValueError("limit out of range")
+    if "depth" in arguments and not 0<=arguments["depth"]<=5:
+        raise ValueError("depth out of range")
+    if "candidates" in arguments and not arguments.get("limit",5)<=arguments["candidates"]<=100:
+        raise ValueError("candidates out of range")
     if "max_calls" in arguments and not 1<=arguments["max_calls"]<=100:
         raise ValueError("max_calls out of range")
     if "max_chars" in arguments and not (256 if op=="output_compact" else 500) <= arguments["max_chars"] <= MAX_INLINE:
         raise ValueError("operation max_chars out of range")
+    if op in ("graph_rank","blast_diff") and "max_chars" in arguments and arguments["max_chars"] < 1000:
+        raise ValueError("ranking/impact max_chars must be >=1000")
     if op=="task_search" and "max_chars" in arguments and arguments["max_chars"] < 1000:
         raise ValueError("task_search max_chars must be >=1000")
     if op=="context_pack" and "max_chars" in arguments and arguments["max_chars"] < 1500:
@@ -78,7 +86,13 @@ def execute_gateway(root: Path, operation: str, arguments: dict | None = None,
                             max_chars=args.get("max_chars",max_chars),
                             exit_code=args.get("exit_code"))
         return {"operation":operation,"state":data["state"],"result":data}
-    if operation=="project_status":
+    if operation=="graph_rank":
+        from pie.retrieval.graph_rank import rank_context
+        result=rank_context(root,args["query"],limit=args.get("limit",5),max_chars=args.get("max_chars",12000),candidates=args.get("candidates",40))
+    elif operation=="blast_diff":
+        from pie.retrieval.diff_blast import blast_diff
+        result=blast_diff(root,depth=args.get("depth",2),limit=args.get("limit",50),max_chars=args.get("max_chars",16000))
+    elif operation=="project_status":
         from pie.interfaces.cli import command_status
         result=command_status(root)
     elif operation=="source_query":
