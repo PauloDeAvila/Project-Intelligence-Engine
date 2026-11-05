@@ -1,6 +1,7 @@
 # Latest Review Report
 
-The current Phase 1 evidence is in [review-report-phase1.md](review-report-phase1.md).
+The current Phase 2 evidence is in [review-report-phase2.md](review-report-phase2.md).
+The previous Phase 1 evidence is in [review-report-phase1.md](review-report-phase1.md).
 The previous Phase 0 evidence remains in `docs/web-phase0.md` and the Phase 0
 merge history below.
 
