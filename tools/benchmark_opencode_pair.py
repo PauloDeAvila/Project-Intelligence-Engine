@@ -10,6 +10,8 @@ import argparse
 import hashlib
 import json
 import os
+import platform
+import subprocess
 from pathlib import Path
 import re
 import sys
@@ -272,6 +274,25 @@ def main() -> int:
                OpenCodeV2Adapter(args.without_url, without_secret),
                args.root, args.model, load_questions(args.questions),
                args.timeout)
+    try:
+        revision = subprocess.run(
+            ["git", "-C", str(args.root.resolve()), "rev-parse", "HEAD"],
+            check=True, capture_output=True, text=True, timeout=10
+        ).stdout.strip()
+        dirty = bool(subprocess.run(
+            ["git", "-C", str(args.root.resolve()), "status", "--porcelain"],
+            check=True, capture_output=True, text=True, timeout=10
+        ).stdout.strip())
+    except (OSError, subprocess.SubprocessError):
+        revision, dirty = None, None
+    data["runtime"] = {
+        "git_commit": revision,
+        "git_dirty": dirty,
+        "python_version": platform.python_version(),
+        "with_url": args.with_url,
+        "without_url": args.without_url,
+        "questions_sha256": hashlib.sha256(args.questions.read_bytes()).hexdigest(),
+    }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     if args.output.exists():
         parser.error("Output already exists; use a fresh run-specific filename")
