@@ -1,0 +1,47 @@
+name: PIE Caveman vs PIE - GPT-4o mini 4-call experiment
+on:
+  push:
+    branches:
+      - feat/pie-caveman-testreport-experiment
+    paths:
+      - benchmarks/trigger-caveman-mini.txt
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: pie-caveman-mini-single-run
+  cancel-in-progress: false
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PIE_API_BASE_URL: ${{ secrets.PIE_API_BASE_URL || vars.PIE_API_BASE_URL }}
+      PIE_API_KEY: ${{ secrets.PIE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Preflight and local tests (zero inference)
+        run: |
+          python -m compileall -q src tools tests
+          PYTHONPATH=src python -m unittest discover -s tests -p 'test_caveman_testreport.py' -v
+          PYTHONPATH=src python tools/cloud_pie_benchmark.py --dry-run \
+            --model gh/gpt-4o-mini --cases MAX_RETRIES,release \
+            --modes pie_test_generic,pie_test_structured --repeats 1 \
+            --max-calls 4 --cooldown-seconds 10 --out benchmark-results
+      - name: Inference with hard 4-call cap and no retries
+        run: |
+          PYTHONPATH=src python tools/cloud_pie_benchmark.py \
+            --model gh/gpt-4o-mini --cases MAX_RETRIES,release \
+            --modes pie_test_generic,pie_test_structured --repeats 1 \
+            --max-calls 4 --cooldown-seconds 10 --out benchmark-results
+      - name: Upload evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pie-caveman-mini-${{ github.run_id }}
+          path: benchmark-results/
+          retention-days: 21
+          if-no-files-found: warn

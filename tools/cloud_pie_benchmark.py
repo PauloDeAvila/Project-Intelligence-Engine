@@ -22,7 +22,8 @@ from pie.indexing.indexer import index_project
 from pie.graph.relationships import build_relationships
 from pie.retrieval.context import build_context
 from pie_causal_selector import build_causal_context, render_control_flow
-from rtk_style_context import compact_source_evidence
+from rtk_style_context import compact_source_evidence, compress_tool_output
+from caveman_testreport_adapter import compact_unittest_success
 from pie_runtime_verifier import observe_case
 from semantic_gate import verify_fields
 
@@ -211,7 +212,7 @@ def run():
     if not (1 <= args.repeats <= 10): parser.error('repeats 1..10')
     if not (0 <= args.scale_modules <= 150): parser.error('scale-modules 0..150')
     selected_modes=[mode.strip() for mode in args.modes.split(',')]
-    valid_modes={'baseline','pie_raw','pie_auto','pie_compact','pie_flow','pie_rtk','pie_rtk_flow','curated_reference','baseline_observed','pie_observed'}
+    valid_modes={'pie_test_generic','pie_test_structured','baseline','pie_raw','pie_auto','pie_compact','pie_flow','pie_rtk','pie_rtk_flow','curated_reference','baseline_observed','pie_observed'}
     if len(selected_modes)!=len(set(selected_modes)) or not selected_modes or not set(selected_modes)<=valid_modes: parser.error('Invalid or duplicate modes')
     selected_cases=[case.strip() for case in args.cases.split(',')]
     if not selected_cases or len(selected_cases)!=len(set(selected_cases)) or not set(selected_cases)<=set(QUESTIONS):
@@ -234,9 +235,15 @@ def run():
         root=Path(temp)
         for p,s in list(LAB.items())+list(synthetic_modules(args.scale_modules)):
             target=root/p;target.parent.mkdir(parents=True,exist_ok=True);target.write_text(s,encoding='utf-8')
-        tests=subprocess.run([sys.executable,"-m","unittest","discover","-s","tests","-q"],cwd=root,env={**os.environ,"PYTHONPATH":str(root)},capture_output=True,text=True,timeout=30)
+        tests=subprocess.run([sys.executable,"-m","unittest","discover","-s","tests","-v"],cwd=root,env={**os.environ,"PYTHONPATH":str(root)},capture_output=True,text=True,timeout=30)
         if tests.returncode != 0: raise RuntimeError("Lab regression tests failed before model inference")
         print("Lab regression tests: PASS")
+        test_log=tests.stdout+tests.stderr
+        generic_report=compress_tool_output(test_log,kind="unittest",max_chars=12000)["output"]
+        structured_report=compact_unittest_success(test_log)
+        if structured_report["state"]!="COMPLETE": raise RuntimeError("Structured test report not applicable: "+structured_report["reason"])
+        if len(structured_report["text"])>=len(generic_report): raise RuntimeError("Structured report not smaller than existing PIE generic report")
+        print("TEST_REPORT_PRECHECK",json.dumps({"generic_chars":len(generic_report),"structured_chars":len(structured_report["text"]),"tests":structured_report["covered"]}))
         index_started=time.perf_counter()
         idx=index_project(root)
         index_seconds=round(time.perf_counter()-index_started,5)
@@ -258,6 +265,8 @@ def run():
             "pie_compact":{q:compact_evidence(causal_reports[q]) for q in QUESTIONS},
             "pie_flow":{q:compact_flow_evidence(causal_reports[q]) for q in QUESTIONS},
             "pie_rtk":{q:compact_source_evidence(causal_reports[q],max_chars=12000)["content"] for q in QUESTIONS},
+            "pie_test_generic":{q:compact_source_evidence(causal_reports[q],max_chars=12000)["content"]+"\n\nTEST REPORT (unmodified fixture):\n"+generic_report for q in QUESTIONS},
+            "pie_test_structured":{q:compact_source_evidence(causal_reports[q],max_chars=12000)["content"]+"\n\nTEST REPORT (unmodified fixture):\n"+structured_report["text"] for q in QUESTIONS},
             "pie_rtk_flow":{q:rtk_flow_evidence(causal_reports[q]) for q in QUESTIONS},
             "curated_reference":{q:curated_context(q) for q in QUESTIONS},
         }
@@ -287,6 +296,8 @@ def run():
         if any(audit["pie_rtk"][q]["missing"] for q in QUESTIONS):raise RuntimeError("RTK-style adapter context insufficient; no inference will run")
         if any(audit["pie_rtk_flow"][q]["missing"] for q in QUESTIONS):raise RuntimeError("RTK + AST context insufficient; no inference will run")
         if any(audit["pie_observed"][q]["missing"] for q in QUESTIONS):raise RuntimeError("PIE runtime-evidence context insufficient")
+        if any(audit["pie_test_structured"][q]["missing"] for q in selected_cases): raise RuntimeError("Structured adapter lost required source evidence")
+        if any(audit["pie_test_generic"][q]["missing"] for q in selected_cases): raise RuntimeError("Generic adapter lost required source evidence")
         if args.dry_run:
             print('DRY RUN PASSED:',json.dumps({q:{m:audit[m][q]['chars'] for m in contexts} for q in QUESTIONS}));return
         if not (endpoint.startswith('https://') and key):raise RuntimeError('Missing HTTPS endpoint or inference secret')
