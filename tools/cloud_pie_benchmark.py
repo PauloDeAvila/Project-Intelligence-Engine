@@ -14,6 +14,7 @@ import tempfile
 import time
 import urllib.request
 import urllib.error
+from urllib.parse import urlsplit
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'src'))
@@ -160,10 +161,19 @@ def sha(text):
 
 def call(endpoint,key,model,prompt,max_tokens):
     payload={"model":model,"messages":[{"role":"system","content":SYSTEM},{"role":"user","content":prompt}],"max_tokens":max_tokens,"stream":False}
-    req=urllib.request.Request(endpoint.rstrip('/')+"/v1/chat/completions",data=json.dumps(payload,ensure_ascii=False).encode(),headers={"Authorization":"Bearer "+key,"Content-Type":"application/json"})
+    base=endpoint.rstrip('/')
+    parsed=urlsplit(base)
+    if parsed.scheme!="https" or not parsed.netloc or parsed.username or parsed.password or parsed.query or parsed.fragment:
+        raise ValueError("HTTPS gateway URL without credentials or query required")
+    url=base+("/chat/completions" if parsed.path.rstrip("/").endswith("/v1") else "/v1/chat/completions")
+    req=urllib.request.Request(url,data=json.dumps(payload,ensure_ascii=False).encode(),headers={"Authorization":"Bearer "+key,"Content-Type":"application/json"})
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):
+            return None
+    opener=urllib.request.build_opener(NoRedirect)
     start=time.perf_counter()
     try:
-        with urllib.request.urlopen(req,timeout=90) as response: data=json.load(response)
+        with opener.open(req,timeout=90) as response: data=json.load(response)
         choice=(data.get('choices') or [{}])[0]
         return {"ok":True,"seconds":round(time.perf_counter()-start,3),"answer":(choice.get("message") or {}).get("content") or "","finish_reason":choice.get("finish_reason"),"usage":data.get("usage",{}),"actual_model":data.get("model")}
     except urllib.error.HTTPError as e:
@@ -179,6 +189,9 @@ def run():
     parser.add_argument('--out',default='benchmark-results')
     parser.add_argument('--dry-run',action='store_true')
     parser.add_argument('--scale-modules',type=int,default=0)
+    parser.add_argument('--cases',default='MAX_RETRIES,release,charge_with_retry',help='Comma-separated case keys')
+    parser.add_argument('--max-calls',type=int,default=5,help='Hard cap on inference HTTP attempts, maximum 5')
+    parser.add_argument('--cooldown-seconds',type=float,default=10.0,help='Delay between inference attempts, minimum 10 seconds')
     parser.add_argument('--modes',default='baseline,pie_raw,pie_auto,pie_compact,pie_flow,pie_rtk,pie_rtk_flow,curated_reference')
     args=parser.parse_args()
     if not (1 <= args.repeats <= 10): parser.error('repeats 1..10')
@@ -186,6 +199,19 @@ def run():
     selected_modes=[mode.strip() for mode in args.modes.split(',')]
     valid_modes={'baseline','pie_raw','pie_auto','pie_compact','pie_flow','pie_rtk','pie_rtk_flow','curated_reference','baseline_observed','pie_observed'}
     if len(selected_modes)!=len(set(selected_modes)) or not selected_modes or not set(selected_modes)<=valid_modes: parser.error('Invalid or duplicate modes')
+    selected_cases=[case.strip() for case in args.cases.split(',')]
+    if not selected_cases or len(selected_cases)!=len(set(selected_cases)) or not set(selected_cases)<=set(QUESTIONS):
+        parser.error('Invalid or duplicate cases')
+    if not 1<=args.max_calls<=5:
+        parser.error('max-calls must be 1..5')
+    if not 10<=args.cooldown_seconds<=120:
+        parser.error('cooldown-seconds must be 10..120')
+    planned_calls=args.repeats*len(selected_cases)*len(selected_modes)
+    if planned_calls>args.max_calls:
+        parser.error(f'Refusing {planned_calls} planned inference calls: maximum is {args.max_calls}')
+    print('INFERENCE_BUDGET',json.dumps({'planned':planned_calls,'maximum':args.max_calls,
+        'cases':selected_cases,'modes':selected_modes,'repeats':args.repeats,
+        'cooldown_seconds':args.cooldown_seconds,'retry_policy':'none'}),flush=True)
     endpoint=os.getenv('PIE_API_BASE_URL','').rstrip('/')
     key=os.getenv('PIE_API_KEY','')
     out=Path(args.out);out.mkdir(parents=True,exist_ok=True)
@@ -248,16 +274,20 @@ def run():
         if any(audit["pie_rtk_flow"][q]["missing"] for q in QUESTIONS):raise RuntimeError("RTK + AST context insufficient; no inference will run")
         if any(audit["pie_observed"][q]["missing"] for q in QUESTIONS):raise RuntimeError("PIE runtime-evidence context insufficient")
         if args.dry_run:
-            print('DRY RUN PASSED:',json.dumps({q:{m:audit[m][q]['chars'] for m in contexts} for q in QUESTIONS}));return
+            print('DRY RUN PASSED:,json.dumps({q:{m:audit[m][q]['chars'] for m in contexts} for q in QUESTIONS}));return
         if not (endpoint.startswith('https://') and key):raise RuntimeError('Missing HTTPS endpoint or inference secret')
         jobs=[]
         for rep in range(args.repeats):
-            cases=list(QUESTIONS);random.Random(101+rep).shuffle(cases)
+            cases=list(selected_cases);random.Random(101+rep).shuffle(cases)
             for q in cases:
                 modes=list(selected_modes)
                 random.Random(202+rep+len(q)).shuffle(modes)
                 jobs.extend((rep,q,m) for m in modes)
+        attempts=0
         for i,(rep,q,mode) in enumerate(jobs,1):
+            if attempts>=args.max_calls:
+                raise RuntimeError('Hard inference attempt ceiling reached; refusing network request')
+            attempts += 1
             context=contexts[mode][q]
             response=call(endpoint,key,args.model,"Pergunta: "+evaluation_prompt(q)+"\n\nCódigo e evidências:\n"+context,args.max_tokens)
             entry={"repeat":rep,"case":q,"mode":mode,"context_chars":len(context),"context_hash":sha(context),**response}
@@ -268,12 +298,12 @@ def run():
             (out/"results.json").write_text(json.dumps({"schema":1,"model":args.model,"results":results},ensure_ascii=False,indent=2),encoding="utf-8")
             print(f"{i}/{len(jobs)} {q} {mode} {'OK' if response['ok'] else 'FAIL'} {response['seconds']}s",flush=True)
             if not response["ok"]:break
-            time.sleep(.5)
+            if i < len(jobs): time.sleep(args.cooldown_seconds)
     summary={}
     for mode in selected_modes:
         vals=[r for r in results if r["mode"]==mode and r["ok"]]
         summary[mode]={"n":len(vals),"median_latency_s":round(statistics.median([x["seconds"] for x in vals]),3) if vals else None,"total_tokens":sum(x.get("usage",{}).get("total_tokens",0) for x in vals),"prompt_tokens":sum(x.get("usage",{}).get("prompt_tokens",0) for x in vals),"completion_tokens":sum(x.get("usage",{}).get("completion_tokens",0) for x in vals),"nonstop":sum(x.get("finish_reason")!="stop" for x in vals),"correct_fields":sum(x.get("semantic_grade",{}).get("passed",0) for x in vals),"total_fields":sum(x.get("semantic_grade",{}).get("total",0) for x in vals),"certified_answers":sum(x.get("certification",{}).get("approved",False) for x in vals)}
-    (out/"summary.json").write_text(json.dumps({"model":args.model,"scale_modules":args.scale_modules,"modes":selected_modes,"cases":list(QUESTIONS),"summary":summary,"verification_mode":"post-mutation isolated execution observations are included identically for both observed variants; this is not a blind LLM test","index_seconds_one_time":index_seconds,"retrieval_seconds_all_contexts":retrieval_seconds,"causal_retrieval_seconds_by_question":causal_retrieval_seconds,"grading":"Deterministic JSON-field scoring against known behavior of the synthetic mini-order lab; not a general code-correctness metric.","caveat":"The curated reference uses case-specific source selection; it is NOT a general-purpose PIE algorithm. One small lab, no automated semantic grading, and no established speedup."},ensure_ascii=False,indent=2),encoding='utf-8')
+    (out/"summary.json").write_text(json.dumps({"model":args.model,"scale_modules":args.scale_modules,"modes":selected_modes,"cases":selected_cases,"attempts":len(results),"hard_call_limit":args.max_calls,"summary":summary,"verification_mode":"post-mutation isolated execution observations are included identically for both observed variants; this is not a blind LLM test","index_seconds_one_time":index_seconds,"retrieval_seconds_all_contexts":retrieval_seconds,"causal_retrieval_seconds_by_question":causal_retrieval_seconds,"grading":"Deterministic JSON-field scoring against known behavior of the synthetic mini-order lab; not a general code-correctness metric.","caveat":"The curated reference uses case-specific source selection; it is NOT a general-purpose PIE algorithm. One small lab, no automated semantic grading, and no established speedup."},ensure_ascii=False,indent=2),encoding='utf-8')
     print("SUMMARY",json.dumps(summary))
     if len(results)!=len(jobs) or any(not r["ok"] for r in results):sys.exit(1)
     for verified_mode in ("baseline_observed","pie_observed"):
