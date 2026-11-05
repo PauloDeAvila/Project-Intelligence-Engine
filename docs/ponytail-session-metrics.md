@@ -39,6 +39,16 @@ Optionally supply all four USD/Mtoken rates:
 `--input-per-million`, `--output-per-million`,
 `--cache-read-per-million`, `--cache-write-per-million`.
 
+For existing Codex CLI JSONL (turn-level counters only):
+
+    PYTHONPATH=src python tools/pie_session_metrics.py codex-run.jsonl --codex-jsonl --out benchmark-results/codex-session.json
+
+Codex cached-input and reasoning-output counters are already subsets of
+input/output. They are not added again. Only counters from turn.completed
+are aggregated; no prompts, arguments or model outputs are copied to reports.
+Cost and whole-agent wall clock are unknown unless separately supplied by an
+authoritative source.
+
 No rates are baked in: models, provider billing, prompt-cache features and
 exchange rates differ. No independent proof of model correctness is inferred.
 The sample benchmark of two cases remains insufficient for general claims.

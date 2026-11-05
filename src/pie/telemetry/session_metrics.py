@@ -198,3 +198,64 @@ def analyze_file(source: Path, dest: Path, provider="openai", rates=None):
     dest.parent.mkdir(parents=True,exist_ok=True)
     dest.write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     return result
+
+def analyze_codex_events(events):
+    """Aggregate Codex JSONL turn.completed records without exposing prompt text.
+
+    Codex input_tokens includes cached_input_tokens. reasoning_output_tokens
+    is a subset of output_tokens, not additive. Unknown counters stay null.
+    """
+    if not isinstance(events,list):
+        raise ValueError("expected Codex JSONL events")
+    turns=[]
+    tool_calls=0
+    pie_calls=0
+    pie_ok=0
+    for event in events:
+        if not isinstance(event,dict):
+            raise ValueError("invalid event")
+        if event.get("type")=="turn.completed":
+            u=event.get("usage")
+            if not isinstance(u,dict):
+                turns.append(None)
+                continue
+            inp=_count(u.get("input_tokens"),"input_tokens")
+            out=_count(u.get("output_tokens"),"output_tokens")
+            cached=_count(u.get("cached_input_tokens"),"cached_input_tokens")
+            reasoning=_count(u.get("reasoning_output_tokens"),"reasoning_output_tokens")
+            if inp is not None and cached is not None and cached>inp:
+                raise ValueError("cached input exceeds total input")
+            if out is not None and reasoning is not None and reasoning>out:
+                raise ValueError("reasoning output exceeds total output")
+            turns.append({"input_tokens":inp,"output_tokens":out,
+                          "cached_input_tokens":cached,"reasoning_output_tokens":reasoning,
+                          "uncached_input_tokens":inp-cached if inp is not None and cached is not None else None,
+                          "total_tokens":inp+out if inp is not None and out is not None else None})
+        item=event.get("item")
+        if isinstance(item,dict) and item.get("type")=="mcp_tool_call":
+            tool_calls+=1
+            server=item.get("server")
+            if isinstance(server,str) and (server=="pie" or server.startswith("pie-")):
+                pie_calls+=1
+                pie_ok+=int(item.get("status")=="completed")
+    keys=("input_tokens","output_tokens","cached_input_tokens","reasoning_output_tokens",
+          "uncached_input_tokens","total_tokens")
+    values={}
+    for key in keys:
+        values[key]=sum(t[key] for t in turns) if turns and all(t is not None and t[key] is not None for t in turns) else None
+    return {"schema":"pie_codex_session_metrics_v1","source":"codex_turn_completed_jsonl",
+            "turns_completed":len(turns),"usage":values,
+            "usage_complete":values["total_tokens"] is not None,
+            "mcp_tool_events":tool_calls,"pie_tool_events":pie_calls,
+            "pie_tools_completed":pie_ok,
+            "cost_usd":None,"agent_wall_seconds":None,
+            "note":"Local per-turn counters; cached/reasoning subsets not double-counted. No prompts or tool arguments retained."}
+
+
+def analyze_codex_file(path: Path):
+    events=[]
+    for line in path.read_text(encoding="utf-8",errors="replace").splitlines():
+        try: event=json.loads(line)
+        except json.JSONDecodeError: continue
+        events.append(event)
+    return analyze_codex_events(events)

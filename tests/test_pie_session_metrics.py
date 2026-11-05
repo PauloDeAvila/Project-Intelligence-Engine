@@ -3,9 +3,38 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from pie.telemetry.session_metrics import canonical_usage, analyze_cloud_results, analyze_file
+from pie.telemetry.session_metrics import canonical_usage, analyze_cloud_results, analyze_file, analyze_codex_events
 
 class SessionMetricsTests(unittest.TestCase):
+    def test_codex_turns_no_double_count(self):
+        events=[
+            {"type":"turn.completed","usage":{"input_tokens":100,"cached_input_tokens":70,
+             "output_tokens":20,"reasoning_output_tokens":5}},
+            {"type":"item.completed","item":{"type":"mcp_tool_call","server":"pie-context",
+             "status":"completed","tool":"pie_query","arguments":{"secret":"not retained"}}},
+            {"type":"turn.completed","usage":{"input_tokens":80,"cached_input_tokens":30,
+             "output_tokens":15,"reasoning_output_tokens":6}},
+        ]
+        data=analyze_codex_events(events)
+        self.assertEqual(data["usage"]["total_tokens"],215)
+        self.assertEqual(data["usage"]["uncached_input_tokens"],80)
+        self.assertEqual(data["usage"]["cached_input_tokens"],100)
+        self.assertEqual(data["usage"]["reasoning_output_tokens"],11)
+        self.assertEqual(data["turns_completed"],2)
+        self.assertEqual(data["pie_tools_completed"],1)
+        self.assertNotIn("secret",json.dumps(data))
+        self.assertIsNone(data["cost_usd"])
+        self.assertIsNone(data["agent_wall_seconds"])
+
+    def test_codex_unknown_not_zero(self):
+        data=analyze_codex_events([{"type":"turn.completed","usage":{
+            "input_tokens":4,"output_tokens":2}}])
+        self.assertEqual(data["usage"]["total_tokens"],6)
+        self.assertIsNone(data["usage"]["uncached_input_tokens"])
+        with self.assertRaises(ValueError):
+            analyze_codex_events([{"type":"turn.completed","usage":{
+                "input_tokens":2,"output_tokens":1,"cached_input_tokens":4}}])
+
     def test_openai_cache_not_double_counted(self):
         u=canonical_usage({"usage":{"prompt_tokens":100,"completion_tokens":20,
                           "prompt_tokens_details":{"cached_tokens":60},
