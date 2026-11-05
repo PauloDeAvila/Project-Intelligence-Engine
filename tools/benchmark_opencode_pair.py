@@ -48,8 +48,18 @@ def _tool_proofs(messages: list[dict], pie_name: str) -> list[dict]:
             name, state = part.get("name"), part.get("state")
             if not isinstance(name, str) or not isinstance(state, dict):
                 continue
-            if not (name.startswith(pie_name + "_") or
-                    name.startswith("mcp__" + pie_name + "__")):
+            canonical = {
+                "pie_query", "pie_verified_evidence", "pie_build_context_pack",
+                "pie_project_status", "pie_search_symbols", "pie_inspect_symbol",
+                "pie_relationships", "pie_build_context", "pie_find_definitions",
+                "pie_find_references", "pie_analysis_summary"
+            }
+            recognized = {
+                variant for tool in canonical
+                for variant in (tool, pie_name + "_" + tool,
+                                "mcp__" + pie_name + "__" + tool)
+            }
+            if name not in recognized:
                 continue
             if state.get("status") != "completed":
                 raise RuntimeError("PIE tool call did not finish successfully")
@@ -77,6 +87,13 @@ def _parse_final(messages: list[dict], require_pie: bool,
     if any(m.get("error") for m in assistant):
         raise RuntimeError("Assistant reported error")
     proofs = _tool_proofs(messages, pie_name)
+    if not require_pie:
+        for msg in assistant:
+            for part in msg.get("content", []):
+                if (isinstance(part, dict) and part.get("type") == "tool"
+                        and part.get("name") not in
+                        {"read", "glob", "grep", "ls", "list"}):
+                    raise RuntimeError("WITHOUT_PIE used unapproved tool")
     if require_pie and not proofs:
         raise RuntimeError("WITH_PIE contains no completed PIE tool call")
     if not require_pie and proofs:

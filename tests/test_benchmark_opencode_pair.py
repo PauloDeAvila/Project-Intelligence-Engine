@@ -108,6 +108,21 @@ class PairedBenchmarkTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Invalid"):
             load_questions(file)
 
+    def test_doctor_mesh_cannot_spoof_pie_proof(self):
+        transcript = messages(True, "command_status")
+        transcript[1]["content"][0]["name"] = "pie_doctor_mesh_pie_project_status"
+        with self.assertRaisesRegex(RuntimeError, "PIE tool"):
+            _parse_final(transcript, True)
+
+    def test_baseline_using_another_mcp_is_rejected(self):
+        transcript = messages(False, "command_status")
+        transcript[1]["content"] = [{
+            "type": "tool", "name": "9remote_lookup",
+            "state": {"status": "completed", "content": ["x"]}
+        }]
+        with self.assertRaisesRegex(RuntimeError, "unapproved tool"):
+            _parse_final(transcript, False)
+
     def test_partial_transcript_is_not_completion(self):
         incomplete = messages(True, "command_status")[:-1]
         with self.assertRaisesRegex(RuntimeError, "idle"):
