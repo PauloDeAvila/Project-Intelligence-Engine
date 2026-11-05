@@ -86,7 +86,7 @@ def _parse_final(messages: list[dict], require_pie: bool,
              if isinstance(p, dict) and p.get("type") == "text"
              and isinstance(p.get("text"), str)]
     joined = "\n".join(texts)
-    matches = re.findall(r"(?im)^\\s*ANSWER:\\s*(.*?)\\s*$", joined)
+    matches = re.findall(r"(?im)^\s*ANSWER:\s*(.*?)\s*$", joined)
     if not matches or not matches[-1].strip() or len(matches[-1]) > 160:
         raise RuntimeError("Missing short ANSWER: line")
     metrics = assistant[-1].get("tokens")
