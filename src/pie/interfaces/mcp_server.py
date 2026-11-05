@@ -12,6 +12,7 @@ from pathlib import Path
 from pie.graph.relationships import build_relationships, get_relationships
 from pie.retrieval.task_memory import start_task, record_task, resume_task
 from pie.retrieval.task_search import search_tasks
+from pie.retrieval.output_pipeline import compact_output, recover_output
 from pie.interfaces.mcp_context import MCPContextEngine
 from pie.retrieval.context import build_context
 from pie.interfaces.cli import command_status, command_search, command_symbol
@@ -20,6 +21,8 @@ from pie.retrieval.evidence import build_evidence
 from pie.retrieval.context_pack import build_context_pack
 
 TOOLS = [
+    {'name':'pie_output_compact','description':'RTK-inspired: redact, deduplicate and bound a tool log; save the sanitized full output for recovery. Text is limited to 4096 chars via MCP.', 'inputSchema':{'type':'object','properties':{'text':{'type':'string'},'kind':{'type':'string','enum':['log','test','git','terminal','web','api']},'max_chars':{'type':'integer','minimum':256,'maximum':64000},'exit_code':{'type':'integer','minimum':-65535,'maximum':65535}},'required':['text'],'additionalProperties':False}},
+    {'name':'pie_output_get','description':'Recover the complete SANITIZED tool output by its opaque local ID.', 'inputSchema':{'type':'object','properties':{'output_id':{'type':'string'}},'required':['output_id'],'additionalProperties':False}},
     {'name':'pie_task_search', 'description':'Search project-local task memories by lexical terms; all entries are agent-supplied unverified claims, with source references.', 'inputSchema':{'type':'object','properties':{'query':{'type':'string'},'limit':{'type':'integer','minimum':1,'maximum':20},'max_chars':{'type':'integer','minimum':1000,'maximum':64000}},'required':['query'],'additionalProperties':False}},
     {'name':'pie_task_start', 'description':'Start an explicit project-scoped persistent task; records only the supplied objective.', 'inputSchema':{'type':'object','properties':{'objective':{'type':'string'}},'required':['objective'],'additionalProperties':False}},
     {'name':'pie_task_record', 'description':'Atomically append an explicit action, decision, result, checkpoint or note; optionally change task status.', 'inputSchema':{'type':'object','properties':{'task_id':{'type':'string'},'kind':{'type':'string','enum':['action','decision','result','checkpoint','note']},'text':{'type':'string'},'reference':{'type':'string'},'status':{'type':'string','enum':['in_progress','blocked','completed']}},'required':['task_id','kind','text'],'additionalProperties':False}},
@@ -79,13 +82,15 @@ def dispatch(request: dict, root: Path, engine: MCPContextEngine | None = None) 
                         raise ValueError(f'{key} must be a nonempty safe string <= 4096 chars')
                     if spec.get('type') == 'integer' and (type(value) is not int or not spec.get('minimum', -10**30) <= value <= spec.get('maximum', 10**30)):
                         raise ValueError(f'{key} must be an integer within range')
-            if 'kind' in args and args['kind'] not in ('action','decision','result','checkpoint','note'):
+            if name == 'pie_task_record' and 'kind' in args and args['kind'] not in ('action','decision','result','checkpoint','note'):
                 raise ValueError('Invalid event kind')
             if 'status' in args and args['status'] not in ('in_progress','blocked','completed'):
                 raise ValueError('Invalid task status')
             if 'mode' in args and args['mode'] not in ('responsibility','navigation','impact'):
                 raise ValueError('Invalid mode')
             functions = {
+                'pie_output_compact':lambda:compact_output(root,args['text'],kind=args.get('kind','log'),max_chars=args.get('max_chars',4000),exit_code=args.get('exit_code')),
+                'pie_output_get':lambda:recover_output(root,args['output_id']),
                 'pie_task_search':lambda:search_tasks(root,args['query'],limit=args.get('limit',10),max_chars=args.get('max_chars',12000)),
                 'pie_task_start':lambda:start_task(root,args['objective']),
                 'pie_task_record':lambda:record_task(root,args['task_id'],args['kind'],args['text'],reference=args.get('reference'),status=args.get('status')),
@@ -103,7 +108,7 @@ def dispatch(request: dict, root: Path, engine: MCPContextEngine | None = None) 
                 'pie_find_references':lambda:find_references(root,args['name'],args.get('limit',100)),
                 'pie_analysis_summary':lambda:analysis_summary(root),
             }
-            result = {'content':[{'type':'text','text':json.dumps(functions[name](),ensure_ascii=False)}]}
+            result = {'content':[{'type':'text','text':json.dumps(functions[name](),ensure_ascii=False,separators=(',',':'))}]}
         else:
             return {'jsonrpc':'2.0','id':rid,'error':{'code':-32601,'message':'Method not found'}}
         return {'jsonrpc':'2.0','id':rid,'result':result}
