@@ -412,6 +412,7 @@ class BrowserSession(_Contract):
                 SessionState.CLOSED,
             },
             SessionState.READY: {
+                SessionState.READY,
                 SessionState.DEGRADED,
                 SessionState.FAILED,
                 SessionState.CLOSED,
@@ -446,6 +447,13 @@ class BrowserSession(_Contract):
                 or normalized_generation <= self.generation
             ):
                 raise WebStateError("ready state needs a fresh page observation")
+        if self.state == SessionState.READY and state == SessionState.READY:
+            if (
+                normalized_page_id is None
+                or normalized_generation is None
+                or normalized_generation <= self.generation
+            ):
+                raise WebStateError("ready observation needs a fresh generation")
         next_generation = self.generation if normalized_generation is None else normalized_generation
         if next_generation < self.generation:
             raise WebStateError("session generation cannot move backwards")

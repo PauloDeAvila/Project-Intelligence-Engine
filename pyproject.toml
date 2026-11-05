@@ -8,6 +8,9 @@ version = "0.1.0"
 description = "Local, offline, persistent index of Python repositories"
 requires-python = ">=3.12"
 
+[project.optional-dependencies]
+web = ["playwright==1.64.1"]
+
 [project.scripts]
 pie = "pie.interfaces.cli:main"
 pie-setup = "pie.interfaces.setup:main"

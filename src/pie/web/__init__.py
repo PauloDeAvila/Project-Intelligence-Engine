@@ -1,9 +1,11 @@
-"""Contracts for the isolated PIE web subsystem.
+"""PIE Web Intelligence contracts and the optional browser connector.
 
-Phase 0 deliberately contains no browser, network, or third-party runtime
-dependency.  Adapters and execution are introduced only after these contracts
-are reviewed and verified.
+The browser package is intentionally lazy: importing ``pie.web`` loads only
+dependency-free contracts. Browser classes are loaded when one of their names
+is requested explicitly.
 """
+
+from typing import TYPE_CHECKING
 
 from .contracts import (
     ActionResult,
@@ -25,6 +27,54 @@ from .contracts import (
     normalize_origin,
 )
 
+_BROWSER_EXPORTS = frozenset(
+    {
+        "BrowserAdapter",
+        "BrowserAdapterError",
+        "BrowserConnector",
+        "BrowserConnectorError",
+        "BrowserHealthMonitor",
+        "BrowserPage",
+        "BrowserFrame",
+        "ConnectionResult",
+        "HealthResult",
+        "FrameObservation",
+        "NavigationController",
+        "PageObservation",
+        "PlaywrightBrowserAdapter",
+        "SessionManager",
+    }
+)
+
+
+def __getattr__(name: str):
+    if name not in _BROWSER_EXPORTS:
+        raise AttributeError(name)
+    from . import browser
+
+    value = getattr(browser, name)
+    globals()[name] = value
+    return value
+
+
+if TYPE_CHECKING:
+    from .browser import (
+        BrowserAdapter,
+        BrowserAdapterError,
+        BrowserConnector,
+        BrowserConnectorError,
+        BrowserHealthMonitor,
+        BrowserPage,
+        BrowserFrame,
+        ConnectionResult,
+        HealthResult,
+        FrameObservation,
+        NavigationController,
+        PageObservation,
+        PlaywrightBrowserAdapter,
+        SessionManager,
+    )
+
 __all__ = [
     "ActionResult",
     "ActionStatus",
@@ -43,4 +93,18 @@ __all__ = [
     "WebMetric",
     "WebStateError",
     "normalize_origin",
+    "BrowserAdapter",
+    "BrowserAdapterError",
+    "BrowserConnector",
+    "BrowserConnectorError",
+    "BrowserHealthMonitor",
+    "BrowserPage",
+    "BrowserFrame",
+    "ConnectionResult",
+    "HealthResult",
+    "FrameObservation",
+    "NavigationController",
+    "PageObservation",
+    "PlaywrightBrowserAdapter",
+    "SessionManager",
 ]

@@ -14,15 +14,15 @@ Supported journey: `pie init` → `pie index` → `pie status` / `pie search` / 
 - Hash-verified compact proof context with explicit coverage and fail-closed fallback states.
 - Persistent Evidence Atom caching and deduplication across proof queries.
 - Structured Context Mesh assignments for agent-specific context, graph visualization and local search.
-- Phase 0 web contracts (`pie.web`) for isolated session, snapshot, reference, intent, result and metric state; no browser or network runtime.
+- Phase 0 web contracts plus Phase 1 browser connection (`pie.web`) for isolated session lifecycle, exact-origin navigation, safe page/frame inventory and health state. Playwright is optional and lazily imported.
 
 ## Explicitly out of scope
 - Automatic code modification, browser/site execution, network access and LLM dependencies.
-- Web browser connection, page extraction, action execution and external semantic classification remain deferred to later web phases.
+- Page extraction, local web search, relevance quantification, action execution and external semantic classification remain deferred to later web phases.
 - Exhaustive runtime or behavioral impact certification; static evidence remains bounded and conservative.
 
 ## Stack and environments
-- Python 3.12+, standard library only at runtime, SQLite, `unittest`, argparse and `ast`.
+- Python 3.12+, standard library-only core runtime, optional pinned Playwright extra for browser connection, SQLite, `unittest`, argparse and `ast`.
 - CI runs the required verification check on Ubuntu and a compatibility job on Windows, both with Python 3.12. The code uses `pathlib` and avoids OS-specific path assumptions.
 
 ## Architecture and critical invariants
@@ -40,7 +40,7 @@ Supported journey: `pie init` → `pie index` → `pie status` / `pie search` / 
 - Classes, methods, functions, nested functions and imports are extracted with verifiable source locations.
 - Changed and deleted files update the persistent index without a full manual reset.
 - Invalid Python is retained as a file with an error parse status rather than crashing the index operation.
-- `pie.web` imports without browser, network or optional dependencies; only declarative actions/transitions are executable fields, while goal and target text remain literal untrusted data.
+- `pie.web` imports without starting a browser or making network requests; core installation remains browser-free, while the optional connector permits only owned-session lifecycle, inventory, health checks and exact-origin navigation.
 - All applicable CI matrix tiers and the complete regression suite pass.
 
 ## Mandatory verification matrix
@@ -49,7 +49,7 @@ Record actual commands and test coverage for every applicable tier. The agent mu
 | Layer | Commands / suite | Dependencies / prerequisites | Evidence expected |
 | --- | --- | --- | --- |
 | Basic functions / unit tests | `python -m unittest discover -s tests -p test_pie_unit.py -v` | Python 3.12+ | Pass/fail and counts |
-| Component and subsystem | `python -m unittest discover -s tests -p test_pie_symbols.py -v` plus `python -m unittest discover -s tests/web -v` | Existing symbol component and dependency-free Phase 0 web contracts | `Project Verification` plus dedicated `Web Contracts` CI job on Ubuntu and Windows |
+| Component and subsystem | `python -m unittest discover -s tests -p test_pie_symbols.py -v` plus `python -m unittest discover -s tests/web -v` | Existing symbol component and web contracts/connector tests | `Project Verification`, `Web Contracts` and `Web Connector` CI jobs on Ubuntu and Windows |
 | Integration and contracts | `python -m unittest discover -s tests -p test_pie_integration.py -v` | Python 3.12+ | Pass/fail and counts |
 | Full user-flow / E2E | `python -m unittest discover -s tests -p test_pie_e2e.py -v` | Python 3.12+ | Pass/fail and counts |
 | Full repository regression | `python -m unittest discover -s tests -v` | Python 3.12+ | All existing tests run |
@@ -63,7 +63,7 @@ An implementation is NOT VERIFIED until the complete applicable matrix passes an
 - Dynamic imports and semantic references remain unresolved by design.
 - Evidence Atom caches are derived artifacts in `.pie/`; source files and the authoritative index remain the source of truth.
 - Context Mesh graph edges describe static evidence and agent routing; they do not prove runtime behavior or execute actions.
-- GitHub branch protection is a remote governance control; the active `Protect main` ruleset currently requires pull requests and the `Project Verification` check.
+- GitHub branch protection is a remote governance control; the active `Protect main` ruleset requires pull requests plus `Project Verification`, `Windows Compatibility`, and both web matrix checks. Human approval remains a separate governance decision and is not inferred from automated agents.
 - The benchmark accepts `--source` for a copied real project or `--files` for a synthetic tree, reports Python traced peak memory, process peak RSS, repeated search time, and does not impose universal performance targets. Filesystem/path enumeration and SQLite's seen-path set still scale with project size.
 
 ## Bootstrap gate (mandatory before feature work)
