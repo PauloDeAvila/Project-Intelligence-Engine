@@ -20,24 +20,22 @@ ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
 
 
 def pie_context(root, symbol):
-    # Use the actual MCP tools/call handler; no OpenCode or external agent.
+    # Query the real PIE MCP handler using the indexed symbol inventory.
     from pie.interfaces.mcp_server import dispatch
     response = dispatch({
         "jsonrpc": "2.0", "id": 1, "method": "tools/call",
-        "params": {"name": "pie_build_context", "arguments": {"query": symbol, "max_chars": 6000}},
+        "params": {"name": "pie_search_symbols", "arguments": {"query": symbol}},
     }, root)
     if "error" in response:
         raise RuntimeError(f"MCP RPC failed for {symbol}: {response['error']}")
     result = response["result"]
     if result.get("isError"):
         raise RuntimeError(f"MCP lookup failed for {symbol}")
-    data = json.loads(result["content"][0]["text"])
-    if data.get("context_state") not in ("CURRENT", None):
-        raise RuntimeError(f"PIE context not CURRENT for {symbol}: {data.get('context_state')}")
-    snippets = data.get("snippets", [])
-    if not any(s.get("name") == symbol or s.get("symbol", "").split(".")[-1] == symbol for s in snippets):
+    records = json.loads(result["content"][0]["text"])
+    matches = [row for row in records if row.get("name") == symbol]
+    if not matches:
         raise RuntimeError(f"PIE returned no evidence for {symbol}")
-    return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+    return json.dumps(matches, ensure_ascii=False, separators=(",", ":"))
 
 
 def ask(key, model, question, context):
