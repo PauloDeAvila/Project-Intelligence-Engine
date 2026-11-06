@@ -32,7 +32,7 @@ jobs:
       - name: Generate auditable CSV JSON and Excel
         if: always()
         run: python tools/pie_agent_report.py --input pie-agent-9router-results.json --out pie-agent-report
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: pie-agent-navigation
