@@ -243,6 +243,23 @@ jobs:
       - name: Compile web optimization subsystem
         run: python -m compileall -q src/pie/web/optimization tests/web/test_optimization.py tools/benchmark_web_fast_path.py
 
+  web-semantic-decisions:
+    name: Web Semantic Decisions (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run deterministic semantic decision tests
+        run: python -m unittest tests.web.test_decisions -v
+      - name: Compile web decision subsystem
+        run: python -m compileall -q src/pie/web/decisions tests/web/test_decisions.py
+
   project-verification:
     name: Project Verification
     runs-on: ubuntu-latest

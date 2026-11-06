@@ -149,6 +149,19 @@ _OPTIMIZATION_EXPORTS = frozenset(
         "SnapshotDeltaEngine",
     }
 )
+_DECISIONS_EXPORTS = frozenset(
+    {
+        "ClassifierAdapter",
+        "DecisionBatch",
+        "DecisionBatcher",
+        "DecisionFeature",
+        "DecisionRoute",
+        "DecisionSource",
+        "FallbackRouter",
+        "SemanticDecision",
+        "UncertaintyEstimator",
+    }
+)
 
 
 def __getattr__(name: str):
@@ -184,6 +197,10 @@ def __getattr__(name: str):
         from . import optimization
 
         value = getattr(optimization, name)
+    elif name in _DECISIONS_EXPORTS:
+        from . import decisions
+
+        value = getattr(decisions, name)
     else:
         raise AttributeError(name)
     globals()[name] = value
@@ -295,6 +312,17 @@ if TYPE_CHECKING:
         SnapshotDelta,
         SnapshotDeltaEngine,
     )
+    from .decisions import (
+        ClassifierAdapter,
+        DecisionBatch,
+        DecisionBatcher,
+        DecisionFeature,
+        DecisionRoute,
+        DecisionSource,
+        FallbackRouter,
+        SemanticDecision,
+        UncertaintyEstimator,
+    )
 
 __all__ = [
     "ActionResult",
@@ -404,4 +432,13 @@ __all__ = [
     "RegionPrefetcher",
     "SnapshotDelta",
     "SnapshotDeltaEngine",
+    "ClassifierAdapter",
+    "DecisionBatch",
+    "DecisionBatcher",
+    "DecisionFeature",
+    "DecisionRoute",
+    "DecisionSource",
+    "FallbackRouter",
+    "SemanticDecision",
+    "UncertaintyEstimator",
 ]
