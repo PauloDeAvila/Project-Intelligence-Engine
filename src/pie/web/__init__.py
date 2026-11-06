@@ -107,6 +107,21 @@ _SECURITY_EXPORTS = frozenset(
         "SensitiveDataFilter",
     }
 )
+_EVIDENCE_EXPORTS = frozenset(
+    {
+        "BudgetAllocation",
+        "ContextBudgetController",
+        "ContextExpansionFallback",
+        "EvidenceItem",
+        "EvidenceOmission",
+        "EvidenceProvenance",
+        "ExpansionPlan",
+        "OmissionLedger",
+        "PermissionState",
+        "WebEvidencePack",
+        "WebEvidencePackBuilder",
+    }
+)
 
 
 def __getattr__(name: str):
@@ -130,6 +145,10 @@ def __getattr__(name: str):
         from . import security
 
         value = getattr(security, name)
+    elif name in _EVIDENCE_EXPORTS:
+        from . import evidence
+
+        value = getattr(evidence, name)
     else:
         raise AttributeError(name)
     globals()[name] = value
@@ -204,6 +223,19 @@ if TYPE_CHECKING:
         SecurityGate,
         SensitiveClassification,
         SensitiveDataFilter,
+    )
+    from .evidence import (
+        BudgetAllocation,
+        ContextBudgetController,
+        ContextExpansionFallback,
+        EvidenceItem,
+        EvidenceOmission,
+        EvidenceProvenance,
+        ExpansionPlan,
+        OmissionLedger,
+        PermissionState,
+        WebEvidencePack,
+        WebEvidencePackBuilder,
     )
 
 __all__ = [
@@ -284,4 +316,15 @@ __all__ = [
     "SecurityGate",
     "SensitiveClassification",
     "SensitiveDataFilter",
+    "BudgetAllocation",
+    "ContextBudgetController",
+    "ContextExpansionFallback",
+    "EvidenceItem",
+    "EvidenceOmission",
+    "EvidenceProvenance",
+    "ExpansionPlan",
+    "OmissionLedger",
+    "PermissionState",
+    "WebEvidencePack",
+    "WebEvidencePackBuilder",
 ]

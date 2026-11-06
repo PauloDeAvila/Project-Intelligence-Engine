@@ -183,6 +183,23 @@ jobs:
       - name: Compile web security subsystem
         run: python -m compileall -q src/pie/web/security tests/web/test_security.py
 
+  web-evidence-packs:
+    name: Web Evidence Packs (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run deterministic evidence pack tests
+        run: python -m unittest tests.web.test_evidence -v
+      - name: Compile web evidence subsystem
+        run: python -m compileall -q src/pie/web/evidence tests/web/test_evidence.py
+
   project-verification:
     name: Project Verification
     runs-on: ubuntu-latest
