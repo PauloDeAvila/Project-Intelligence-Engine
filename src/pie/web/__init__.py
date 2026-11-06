@@ -88,6 +88,25 @@ _RELEVANCE_EXPORTS = frozenset(
         "WebRelevanceGate",
     }
 )
+_SECURITY_EXPORTS = frozenset(
+    {
+        "ApprovalManager",
+        "ApprovalRequest",
+        "OriginCheck",
+        "OriginGuard",
+        "PolicyEngine",
+        "PolicyEvaluation",
+        "RiskAssessment",
+        "RiskCategory",
+        "RiskLevel",
+        "RiskScorer",
+        "SecurityDecision",
+        "SecurityDecisionStatus",
+        "SecurityGate",
+        "SensitiveClassification",
+        "SensitiveDataFilter",
+    }
+)
 
 
 def __getattr__(name: str):
@@ -107,6 +126,10 @@ def __getattr__(name: str):
         from . import relevance
 
         value = getattr(relevance, name)
+    elif name in _SECURITY_EXPORTS:
+        from . import security
+
+        value = getattr(security, name)
     else:
         raise AttributeError(name)
     globals()[name] = value
@@ -164,6 +187,23 @@ if TYPE_CHECKING:
         RelevanceScorer,
         ScoredCandidate,
         WebRelevanceGate,
+    )
+    from .security import (
+        ApprovalManager,
+        ApprovalRequest,
+        OriginCheck,
+        OriginGuard,
+        PolicyEngine,
+        PolicyEvaluation,
+        RiskAssessment,
+        RiskCategory,
+        RiskLevel,
+        RiskScorer,
+        SecurityDecision,
+        SecurityDecisionStatus,
+        SecurityGate,
+        SensitiveClassification,
+        SensitiveDataFilter,
     )
 
 __all__ = [
@@ -229,4 +269,19 @@ __all__ = [
     "RelevanceScorer",
     "ScoredCandidate",
     "WebRelevanceGate",
+    "ApprovalManager",
+    "ApprovalRequest",
+    "OriginCheck",
+    "OriginGuard",
+    "PolicyEngine",
+    "PolicyEvaluation",
+    "RiskAssessment",
+    "RiskCategory",
+    "RiskLevel",
+    "RiskScorer",
+    "SecurityDecision",
+    "SecurityDecisionStatus",
+    "SecurityGate",
+    "SensitiveClassification",
+    "SensitiveDataFilter",
 ]

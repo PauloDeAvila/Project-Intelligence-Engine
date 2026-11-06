@@ -14,11 +14,11 @@ Supported journey: `pie init` → `pie index` → `pie status` / `pie search` / 
 - Hash-verified compact proof context with explicit coverage and fail-closed fallback states.
 - Persistent Evidence Atom caching and deduplication across proof queries.
 - Structured Context Mesh assignments for agent-specific context, graph visualization and local search.
-- Phase 0 web contracts, Phase 1 browser connection, Phase 2 Page Intelligence, Phase 3 local Web Search Index and Phase 4 Quantified Web Context (`pie.web`) for isolated lifecycle, exact-origin navigation, safe page/frame inventory, bounded accessibility/DOM normalization, snapshot freshness, literal term/role/region search, explainable relevance scoring, redundancy reduction and explicit ambiguity/omission ledgers. Playwright remains optional and lazily imported.
+- Phase 0 web contracts, Phase 1 browser connection, Phase 2 Page Intelligence, Phase 3 local Web Search Index, Phase 4 Quantified Web Context and Phase 5 Security & Permission Gate (`pie.web`) for isolated lifecycle, exact-origin navigation, safe page/frame inventory, bounded accessibility/DOM normalization, snapshot freshness, literal term/role/region search, explainable relevance scoring, redundancy reduction, explicit ambiguity/omission ledgers, risk categories, fail-closed authorization, sensitive-data classification, one-time approvals and policy/origin/session rechecks. Playwright remains optional and lazily imported.
 
 ## Explicitly out of scope
 - Automatic code modification, browser/site execution, network access and LLM dependencies.
-- Security authorization, action execution, Evidence Packs, incremental cache and external semantic classification remain deferred to later web phases.
+- Action execution, Evidence Packs, incremental cache and external semantic classification remain deferred to later web phases. Phase 5 authorizes declarative intent but never invokes a browser action; high-impact, credential, payment, destructive, external-communication and page-instruction surfaces fail closed.
 - Exhaustive runtime or behavioral impact certification; static evidence remains bounded and conservative.
 
 ## Stack and environments
@@ -40,7 +40,7 @@ Supported journey: `pie init` → `pie index` → `pie status` / `pie search` / 
 - Classes, methods, functions, nested functions and imports are extracted with verifiable source locations.
 - Changed and deleted files update the persistent index without a full manual reset.
 - Invalid Python is retained as a file with an error parse status rather than crashing the index operation.
-- `pie.web` imports without starting a browser or making network requests; core installation remains browser-free, while the optional connector permits only owned-session lifecycle, inventory, health checks and exact-origin navigation.
+- `pie.web` imports without starting a browser or making network requests; core installation remains browser-free, while the optional connector permits only owned-session lifecycle, inventory, health checks and exact-origin navigation. Security authorization remains dependency-free and action-free.
 - All applicable CI matrix tiers and the complete regression suite pass.
 
 ## Mandatory verification matrix
@@ -63,7 +63,7 @@ An implementation is NOT VERIFIED until the complete applicable matrix passes an
 - Dynamic imports and semantic references remain unresolved by design.
 - Evidence Atom caches are derived artifacts in `.pie/`; source files and the authoritative index remain the source of truth.
 - Context Mesh graph edges describe static evidence and agent routing; they do not prove runtime behavior or execute actions.
-- GitHub branch protection is a remote governance control; the active `Protect main` ruleset requires pull requests plus Project Verification, Windows Compatibility, Web Contracts, Web Connector, Web Page Intelligence and Web Search Index checks. The Phase 4 Web Relevance Gate checks must be added after its PR exposes exact contexts. Human approval remains a separate governance decision and is not inferred from automated agents.
+- GitHub branch protection is a remote governance control; the active `Protect main` ruleset requires pull requests plus Project Verification, Windows Compatibility, Web Contracts, Web Connector, Web Page Intelligence, Web Search Index, Web Relevance Gate and Web Security Gate checks. Human approval remains a separate governance decision and is not inferred from automated agents.
 - The benchmark accepts `--source` for a copied real project or `--files` for a synthetic tree, reports Python traced peak memory, process peak RSS, repeated search time, and does not impose universal performance targets. Filesystem/path enumeration and SQLite's seen-path set still scale with project size.
 
 ## Bootstrap gate (mandatory before feature work)

@@ -166,6 +166,23 @@ jobs:
       - name: Compile web subsystem
         run: python -m compileall -q src/pie/web tests/web tools/benchmark_web_relevance.py
 
+  web-security-gate:
+    name: Web Security Gate (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run deterministic security gate tests
+        run: python -m unittest tests.web.test_security -v
+      - name: Compile web security subsystem
+        run: python -m compileall -q src/pie/web/security tests/web/test_security.py
+
   project-verification:
     name: Project Verification
     runs-on: ubuntu-latest
