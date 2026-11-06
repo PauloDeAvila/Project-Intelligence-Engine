@@ -122,6 +122,20 @@ _EVIDENCE_EXPORTS = frozenset(
         "WebEvidencePackBuilder",
     }
 )
+_ACTIONS_EXPORTS = frozenset(
+    {
+        "ActionDriver",
+        "ActionExecutor",
+        "ActionPlan",
+        "DriverOutcome",
+        "PostActionVerifier",
+        "PreflightValidator",
+        "RecoveryAction",
+        "RecoveryController",
+        "RecoveryPlan",
+        "ActionPlanner",
+    }
+)
 
 
 def __getattr__(name: str):
@@ -149,6 +163,10 @@ def __getattr__(name: str):
         from . import evidence
 
         value = getattr(evidence, name)
+    elif name in _ACTIONS_EXPORTS:
+        from . import actions
+
+        value = getattr(actions, name)
     else:
         raise AttributeError(name)
     globals()[name] = value
@@ -236,6 +254,18 @@ if TYPE_CHECKING:
         PermissionState,
         WebEvidencePack,
         WebEvidencePackBuilder,
+    )
+    from .actions import (
+        ActionDriver,
+        ActionExecutor,
+        ActionPlan,
+        ActionPlanner,
+        DriverOutcome,
+        PostActionVerifier,
+        PreflightValidator,
+        RecoveryAction,
+        RecoveryController,
+        RecoveryPlan,
     )
 
 __all__ = [
@@ -327,4 +357,14 @@ __all__ = [
     "PermissionState",
     "WebEvidencePack",
     "WebEvidencePackBuilder",
+    "ActionDriver",
+    "ActionExecutor",
+    "ActionPlan",
+    "ActionPlanner",
+    "DriverOutcome",
+    "PostActionVerifier",
+    "PreflightValidator",
+    "RecoveryAction",
+    "RecoveryController",
+    "RecoveryPlan",
 ]
