@@ -260,6 +260,32 @@ jobs:
       - name: Compile web decision subsystem
         run: python -m compileall -q src/pie/web/decisions tests/web/test_decisions.py
 
+  web-integration-certification:
+    name: Web Integration Certification (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run integration contract tests
+        run: python -m unittest tests.web.test_integration -v
+      - name: Run local integration benchmark
+        run: python tools/benchmark_web_integration.py --repetitions 100 --output web-integration-benchmark.json
+      - name: Upload integration evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-integration-certification-${{ matrix.os }}
+          path: web-integration-benchmark.json
+          if-no-files-found: error
+      - name: Compile web integration subsystem
+        run: python -m compileall -q src/pie/web/integration tests/web/test_integration.py tools/benchmark_web_integration.py
+
   project-verification:
     name: Project Verification
     runs-on: ubuntu-latest
