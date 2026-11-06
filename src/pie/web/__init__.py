@@ -162,6 +162,7 @@ _DECISIONS_EXPORTS = frozenset(
         "UncertaintyEstimator",
     }
 )
+_INTEGRATION_EXPORTS = frozenset({"WEB_MCP_TOOLS", "WebIntelligenceService"})
 
 
 def __getattr__(name: str):
@@ -201,6 +202,10 @@ def __getattr__(name: str):
         from . import decisions
 
         value = getattr(decisions, name)
+    elif name in _INTEGRATION_EXPORTS:
+        from . import integration
+
+        value = getattr(integration, name)
     else:
         raise AttributeError(name)
     globals()[name] = value
@@ -323,6 +328,7 @@ if TYPE_CHECKING:
         SemanticDecision,
         UncertaintyEstimator,
     )
+    from .integration import WEB_MCP_TOOLS, WebIntelligenceService
 
 __all__ = [
     "ActionResult",
@@ -441,4 +447,6 @@ __all__ = [
     "FallbackRouter",
     "SemanticDecision",
     "UncertaintyEstimator",
+    "WEB_MCP_TOOLS",
+    "WebIntelligenceService",
 ]
