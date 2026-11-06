@@ -217,6 +217,32 @@ jobs:
       - name: Compile web action subsystem
         run: python -m compileall -q src/pie/web/actions tests/web/test_actions.py
 
+  web-fast-path:
+    name: Web Fast Path (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run deterministic optimization tests
+        run: python -m unittest tests.web.test_optimization -v
+      - name: Run fast path benchmark
+        run: python tools/benchmark_web_fast_path.py --repetitions 1000 --output web-fast-path-benchmark.json
+      - name: Upload fast path evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-fast-path-evidence-${{ matrix.os }}
+          path: web-fast-path-benchmark.json
+          if-no-files-found: error
+      - name: Compile web optimization subsystem
+        run: python -m compileall -q src/pie/web/optimization tests/web/test_optimization.py tools/benchmark_web_fast_path.py
+
   project-verification:
     name: Project Verification
     runs-on: ubuntu-latest

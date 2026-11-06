@@ -136,6 +136,19 @@ _ACTIONS_EXPORTS = frozenset(
         "ActionPlanner",
     }
 )
+_OPTIMIZATION_EXPORTS = frozenset(
+    {
+        "BrowserFastPath",
+        "CacheKey",
+        "ElementReuseManager",
+        "FastPathResult",
+        "PageCache",
+        "PrefetchPlan",
+        "RegionPrefetcher",
+        "SnapshotDelta",
+        "SnapshotDeltaEngine",
+    }
+)
 
 
 def __getattr__(name: str):
@@ -167,6 +180,10 @@ def __getattr__(name: str):
         from . import actions
 
         value = getattr(actions, name)
+    elif name in _OPTIMIZATION_EXPORTS:
+        from . import optimization
+
+        value = getattr(optimization, name)
     else:
         raise AttributeError(name)
     globals()[name] = value
@@ -266,6 +283,17 @@ if TYPE_CHECKING:
         RecoveryAction,
         RecoveryController,
         RecoveryPlan,
+    )
+    from .optimization import (
+        BrowserFastPath,
+        CacheKey,
+        ElementReuseManager,
+        FastPathResult,
+        PageCache,
+        PrefetchPlan,
+        RegionPrefetcher,
+        SnapshotDelta,
+        SnapshotDeltaEngine,
     )
 
 __all__ = [
@@ -367,4 +395,13 @@ __all__ = [
     "RecoveryAction",
     "RecoveryController",
     "RecoveryPlan",
+    "BrowserFastPath",
+    "CacheKey",
+    "ElementReuseManager",
+    "FastPathResult",
+    "PageCache",
+    "PrefetchPlan",
+    "RegionPrefetcher",
+    "SnapshotDelta",
+    "SnapshotDeltaEngine",
 ]
