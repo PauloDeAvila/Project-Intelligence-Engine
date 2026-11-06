@@ -12,6 +12,6 @@ GitHub Actions workflows alone do not block direct pushes or merges. Branch rule
 
 If the account, GitHub plan, app permissions or API does not support enforcement, mark bootstrap BLOCKED. Do not claim protection is enabled.
 
-Current repository evidence (2026-11-05): the active `Protect main` ruleset requires a PR and the Phase 0/1/2/3/4/5 verification checks, blocks deletion and non-fast-forward updates, has no bypass actors, and requires **zero human approvals**. The Phase 4 contexts are `Web Relevance Gate (ubuntu-latest)` and `Web Relevance Gate (windows-latest)`; Phase 5 adds `Web Security Gate (ubuntu-latest)` and `Web Security Gate (windows-latest)`. A deliberately failing PR has not been used to prove merge enforcement; do not infer that result from the configuration alone.
+Current repository evidence (2026-11-05): the active `Protect main` ruleset requires a PR and the Phase 0/1/2/3/4/5/6 verification checks, blocks deletion and non-fast-forward updates, has no bypass actors, and requires **zero human approvals**. Phase 6 adds `Web Evidence Packs (ubuntu-latest)` and `Web Evidence Packs (windows-latest)`. A deliberately failing PR has not been used to prove merge enforcement; do not infer that result from the configuration alone.
 
 Security: never run secrets on untrusted pull requests. Prefer least privilege read-only workflow tokens.
