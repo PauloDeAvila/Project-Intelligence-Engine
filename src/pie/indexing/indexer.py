@@ -2,10 +2,20 @@ import ast
 import json
 from pathlib import Path
 
+from pie.indexing.multilang import ParseResult, parse_content
 from pie.indexing.python_ast import parse_python_content
 from pie.scanning.discovery import iter_files
 from pie.storage import analysis as symbol_store
 from pie.storage.database import connect
+
+
+def _parse_record(content: bytes, relative: str, language: str | None) -> ParseResult:
+    # Keep the Python parser name local for compatibility with existing tests
+    # and integrations that inject parser failures deterministically.
+    if language == "python":
+        symbols, imports, error = parse_python_content(content, relative)
+        return ParseResult(symbols, imports, "parse_error" if error else "parsed", [error] if error else [], ("symbols", "imports"))
+    return parse_content(content, relative, language)
 
 
 def _store_scan_result(connection, state: str, diagnostics: list[dict[str, str | int]]) -> None:
@@ -45,17 +55,32 @@ def index_project(root: Path) -> dict[str, object]:
                 seen.add(relative)
                 row = connection.execute("SELECT id, sha256 FROM files WHERE path = ?", (relative,)).fetchone()
                 if row and row["sha256"] == record.sha256:
+                    observation = connection.execute(
+                        "SELECT 1 FROM parse_observations WHERE file_id = ?", (row["id"],)
+                    ).fetchone()
+                    if observation:
+                        continue
+                    parsed = _parse_record(record.content, relative, record.language)
+                    connection.execute(
+                        "INSERT INTO parse_observations(file_id, adapter_id, adapter_version, status, column_encoding, capabilities_json, diagnostics_json, source_sha256) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                        (row["id"], record.language, "0.3.0", parsed.status, parsed.column_encoding, json.dumps(parsed.capabilities), json.dumps(parsed.diagnostics), record.sha256),
+                    )
                     continue
                 if row:
                     # Deleting the file row cascades to definitions, usages, star
                     # imports and analysis state; nothing stale can survive it.
                     connection.execute("DELETE FROM files WHERE id = ?", (row["id"],))
                 changed.add(relative)
-                symbols, imports, parse_error = parse_python_content(record.content, relative)
-                cursor = connection.execute("INSERT INTO files(path, sha256, size, language, parse_status) VALUES (?, ?, ?, ?, ?)", (relative, record.sha256, record.size, record.language, "error:" + parse_error if parse_error else "parsed"))
-                for symbol in symbols:
+                parsed = _parse_record(record.content, relative, record.language)
+                parse_status = "error:" + parsed.diagnostics[0] if parsed.status == "parse_error" and parsed.diagnostics else parsed.status if not parsed.diagnostics else parsed.status + ":" + "; ".join(parsed.diagnostics)
+                cursor = connection.execute("INSERT INTO files(path, sha256, size, language, parse_status) VALUES (?, ?, ?, ?, ?)", (relative, record.sha256, record.size, record.language, parse_status))
+                connection.execute(
+                    "INSERT INTO parse_observations(file_id, adapter_id, adapter_version, status, column_encoding, capabilities_json, diagnostics_json, source_sha256) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (cursor.lastrowid, record.language, "0.3.0", parsed.status, parsed.column_encoding, json.dumps(parsed.capabilities), json.dumps(parsed.diagnostics), record.sha256),
+                )
+                for symbol in parsed.symbols:
                     connection.execute("INSERT INTO symbols(file_id, qualified_name, name, kind, start_line, end_line, start_col, end_col) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (cursor.lastrowid, symbol.qualified_name, symbol.name, symbol.kind, symbol.start_line, symbol.end_line, symbol.start_col, symbol.end_col))
-                for item in imports:
+                for item in parsed.imports:
                     connection.execute("INSERT INTO imports(file_id, module, imported_name, alias, line) VALUES (?, ?, ?, ?, ?)", (cursor.lastrowid, item.module, item.imported_name, item.alias, item.line))
             failed_paths = unreadable_paths | oversized_paths
             failed_path_strings = {path.as_posix() for path in failed_paths}

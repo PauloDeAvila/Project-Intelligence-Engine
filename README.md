@@ -1,10 +1,10 @@
 # Project Intelligence Engine
 
-PIE V0.1 is a local, offline and persistent code index for Python repositories. It records source-file hashes, extracts Python symbols and imports, stores evidence in SQLite and exposes JSON CLI queries.
+PIE is a local, offline and persistent project index. Python repositories retain AST-based symbols, imports and relationships; the 3D ecosystem adapters also inventory and conservatively extract declarations/imports from C, C++, Objective-C, C#, Java, Kotlin, Haxe, GDScript, JavaScript, TypeScript and shader sources.
 
 ## Purpose
 
-The repository retains its engineering governance foundation while providing the first functional indexing slice. Semantic references, graph traversal, Context Builder and MCP are later milestones.
+The repository retains its engineering governance foundation while providing a multilanguage indexing slice. Godot, Unreal, ArmorPaint and Blender project/assets are recorded as typed files, while binary assets remain metadata-only. Non-Python observations are explicitly marked in SQLite and are never presented as Python call-graph evidence.
 
 ## Getting started
 
@@ -18,6 +18,10 @@ python -m pie search cache --root path/to/project
 ```
 
 `pie status` reports index freshness as `CURRENT`, `STALE`, `PARTIAL`, `ERROR`, or `UNINDEXED`, plus diagnostics from the latest indexing attempt. Review the state before relying on search results; an inaccessible file can leave previously indexed symbols available but marked `STALE`.
+
+### 3D ecosystem coverage
+
+The scanner recognizes engine and DCC files such as `.godot`, `.tscn`, `.tres`, `.uproject`, `.uplugin`, `.arm`, `.blend` and `.obj`, as well as common shader/configuration formats. Each indexed file receives a `parse_observations` record containing its adapter, status, capabilities, diagnostics, source hash and column encoding. This keeps the index useful for routing context without inventing unsupported semantic relationships.
 
 ## Repository layout
 

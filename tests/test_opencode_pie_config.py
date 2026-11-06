@@ -39,7 +39,7 @@ class OpenCodePieConfigTests(unittest.TestCase):
                 "--output", str(target)]
         self.assertEqual(main(args), 0)
         data = json.loads(target.read_text("utf-8"))
-        self.assertEqual(data["mcp"]["servers"]["pie"]["command"][-1], str(self.root))
+        self.assertEqual(data["mcp"]["servers"]["pie"]["command"][-1], str(self.root.resolve()))
         with self.assertRaises(SystemExit):
             main(args)
 
