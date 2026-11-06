@@ -32,7 +32,7 @@ jobs:
           python tools/pie_multi_repo_benchmark.py \
             --repos external/rich external/flask external/click \
             --questions 10 --repeats 7 --output pie-multi-repo-results.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: pie-external-repositories-results

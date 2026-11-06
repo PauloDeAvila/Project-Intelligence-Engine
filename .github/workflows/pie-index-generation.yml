@@ -29,7 +29,7 @@ jobs:
         run: python -m unittest discover -s tests -p "test_pie_warm_service.py" -v
       - name: Measure warm latency
         run: python tools/pie_warm_gate.py
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: index-generation-${{ matrix.os }}
