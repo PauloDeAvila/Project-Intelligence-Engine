@@ -4,13 +4,11 @@ from collections.abc import Iterator
 from pathlib import Path
 
 from pie.core.models import FileRecord
+from pie.indexing.multilang import LANGUAGES
 from pie.scanning.hashing import sha256_bytes
 from pie.scanning.ignore import IgnoreRules
 
 IGNORED_DIRECTORIES = {".git", ".pie", ".venv", "venv", "__pycache__", ".mypy_cache", ".pytest_cache", "node_modules"}
-LANGUAGES = {".py": "python"}
-
-
 def read_snapshot(path: Path, max_bytes: int) -> bytes | None:
     """Read at most the configured limit plus one byte to bound scanner memory."""
     with path.open("rb") as source:

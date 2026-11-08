@@ -1,0 +1,22 @@
+[
+  {
+    "id": "cli-index-status",
+    "question": "In src/pie/interfaces/cli.py, what is the exact Python function name that returns the current index state, file count and symbol count? Respond with the function name only.",
+    "gold": "command_status"
+  },
+  {
+    "id": "open-code-adapter",
+    "question": "In src/pie/orchestrator/opencode_v2.py, what is the exact class name of the OpenCode 2.x HTTP adapter? Respond with the class name only.",
+    "gold": "OpenCodeV2Adapter"
+  },
+  {
+    "id": "sqlite-task-store",
+    "question": "In src/pie/orchestrator/store.py, what is the exact class name representing the SQLite-backed task store? Respond with the class name only.",
+    "gold": "TaskStore"
+  },
+  {
+    "id": "status-mcp-tool",
+    "question": "In src/pie/interfaces/mcp_server.py, what is the exact registered MCP tool name whose description reads 'Read index freshness and inventory.'? Respond with the tool name only.",
+    "gold": "pie_project_status"
+  }
+]

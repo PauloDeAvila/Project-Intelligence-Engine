@@ -16,6 +16,8 @@ pie = "pie.interfaces.cli:main"
 pie-setup = "pie.interfaces.setup:main"
 pie-mcp = "pie.interfaces.mcp_server:main"
 pie-gateway = "pie.interfaces.gateway:main"
+pie-orchestrator = "pie.orchestrator.__main__:main"
+pie-orchestrator-gitlab-poll = "pie.orchestrator.gitlab_poll:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
