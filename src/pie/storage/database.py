@@ -67,6 +67,16 @@ CREATE TABLE IF NOT EXISTS analysis_state (
     file_id INTEGER PRIMARY KEY REFERENCES files(id) ON DELETE CASCADE,
     sha256 TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS parse_observations (
+    file_id INTEGER PRIMARY KEY REFERENCES files(id) ON DELETE CASCADE,
+    adapter_id TEXT,
+    adapter_version TEXT,
+    status TEXT NOT NULL,
+    column_encoding TEXT NOT NULL,
+    capabilities_json TEXT NOT NULL,
+    diagnostics_json TEXT NOT NULL,
+    source_sha256 TEXT NOT NULL
+);
 CREATE INDEX IF NOT EXISTS idx_definitions_name ON definitions(name);
 CREATE INDEX IF NOT EXISTS idx_definitions_binding ON definitions(binding_key);
 CREATE INDEX IF NOT EXISTS idx_definitions_qualified ON definitions(qualified_name);

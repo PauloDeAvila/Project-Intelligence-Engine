@@ -63,12 +63,16 @@ def build_relationships(root: Path) -> dict[str, object]:
         if not state or state[0] != 'CURRENT':
             raise ValueError('Index must be CURRENT before building relationships')
         conn.executescript(RELATION_SCHEMA)
-        files = conn.execute("SELECT id,path,sha256 FROM files ORDER BY path").fetchall()
+        file_columns = {row['name'] for row in conn.execute("PRAGMA table_info(files)").fetchall()}
+        file_query = "SELECT id,path,sha256,language FROM files ORDER BY path" if 'language' in file_columns else "SELECT id,path,sha256,'python' AS language FROM files ORDER BY path"
+        files = conn.execute(file_query).fetchall()
         module_map = {row['path'][:-3].replace('/', '.'): row['id'] for row in files if row['path'].endswith('.py')}
         count = 0
         with conn:
             conn.execute('DELETE FROM relations')
             for file in files:
+                if file['language'] != 'python':
+                    continue
                 path = root / file['path']
                 data = path.read_bytes()
                 from hashlib import sha256

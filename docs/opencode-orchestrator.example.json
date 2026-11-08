@@ -1,0 +1,22 @@
+{
+  "host": "127.0.0.1",
+  "port": 8472,
+  "auto_execute": false,
+  "state_db": "C:/Users/you/.pie-orchestrator/orchestrator.sqlite3",
+  "admin_token_env": "PIE_ORCHESTRATOR_ADMIN_TOKEN",
+  "opencode_password_env": "OPENCODE_PASSWORD",
+  "opencode_url": "http://127.0.0.1:4097",
+  "opencode_api_version": 2,
+  "gitlab_secret_env": "PIE_GITLAB_WEBHOOK_SECRET",
+  "gitlab_event_map": {
+    "Issue Hook": {"project_id": "pie", "task_type": "read_only_review", "model": "nvidia/nemotron-3-super-120b-a12b"}
+  },
+  "projects": [
+    {
+      "id": "pie",
+      "root": "C:/absolute/path/to/Project-Intelligence-Engine/Start-Project",
+      "pie_mcp_name": "pie",
+      "models": ["nvidia/nemotron-3-super-120b-a12b"]
+    }
+  ]
+}
