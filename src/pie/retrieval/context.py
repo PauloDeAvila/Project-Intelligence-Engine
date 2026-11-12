@@ -93,6 +93,7 @@ def build_context(root: Path, query: str, max_chars: int = 12000, limit: int = 1
             else:
                 # Metadata alone can exceed tiny budgets for giant queries.
                 raise ValueError('Response metadata exceeds context budget')
+        result['source_characters'] = sum(len(item['content']) for item in result['source_ranges'])
         return result
     finally:
         conn.close()
