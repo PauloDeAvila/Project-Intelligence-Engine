@@ -1,6 +1,6 @@
 # Blender Material Worker — implementation contract (proposal)
 
-Status: design only. This branch does not yet execute Blender or modify .blend files.
+Status: initial implementation. A validated v1 Principled BSDF worker and offline unit tests are committed. Headless Blender execution is not yet certified.
 
 ## Goal
 
@@ -31,3 +31,19 @@ Keep PIE responsible for source-code discovery and evidence. Introduce a separat
 - Deterministic output and no duplicate materials on repeat requests.
 - No unverified claims about token savings, render quality, or GPU acceleration.
 - Separate PR for each milestone; no merge without CI evidence.
+
+## Prototype usage
+
+Create a JSON file such as:
+
+```json
+{"version":1,"materials":[{"name":"Steel","base_color":"#8899AA","metallic":1,"roughness":0.35}]}
+```
+
+Install the PIE package into Blender's Python environment or otherwise ensure `pie` is importable, then run:
+
+```powershell
+blender --background --python src/pie/blender/material_worker.py -- job.json --output result.blend
+```
+
+The worker refuses to overwrite an existing .blend file. It supports only a fixed Principled BSDF node graph and no arbitrary scripts, texture paths, or MCP interface. A real Blender headless test is still required before production use.
