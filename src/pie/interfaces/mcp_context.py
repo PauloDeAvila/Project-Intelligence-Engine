@@ -85,7 +85,7 @@ class MCPContextEngine:
                     "Verified consumers indicate potential impact, not guaranteed runtime effects.")
         # Exact duplicate names are explicitly ambiguous even if ranking prefers one.
         exact = self.service._connection.execute(
-            "SELECT COUNT(DISTINCT f.path || ':' || s.qualified_name) "
+            "SELECT COUNT(*) "
             "FROM symbols s JOIN files f ON f.id=s.file_id "
             "WHERE s.name=? COLLATE NOCASE OR s.qualified_name=? COLLATE NOCASE", (query.strip(), query.strip())
         ).fetchone()[0]
