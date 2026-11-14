@@ -105,7 +105,7 @@ class MCPStdioGateway:
         self.compress_tools=frozenset(compress_tools)
         self._write_lock=threading.RLock()
         self._pending_lock=threading.RLock()
-        self._pending:dict[str,tuple[str,str]]={}
+        self._pending:dict[str,tuple[str,str,float]]={}
         self._output_schema_tools:set[str]=set()
         self._listed_tools:set[str]=set()
         self._collision=False
@@ -131,7 +131,7 @@ class MCPStdioGateway:
             pending=self._pending.pop(_id(response["id"]),None)
         if not pending:
             return response
-        method,tool=pending
+        method,tool,started=pending
         if method=="tools/list":
             body=response.get("result")
             if isinstance(body,dict) and isinstance(body.get("tools"),list):
@@ -150,6 +150,7 @@ class MCPStdioGateway:
             return response
         if method!="tools/call":
             return response
+        elapsed_ms=(time.perf_counter()-started)*1000
         body=response.get("result")
         if not isinstance(body,dict) or not isinstance(body.get("content"),list):
             return response
@@ -171,7 +172,7 @@ class MCPStdioGateway:
             try:
                 record(self.root,surface="mcp",tool=tool,
                        state="PASSTHROUGH" if not eligible else "SMALL",
-                       source_chars=len(source),returned_chars=len(source),elapsed_ms=0)
+                       source_chars=len(source),returned_chars=len(source),elapsed_ms=elapsed_ms)
             except (OSError, ValueError):
                 pass
             return response
@@ -184,7 +185,7 @@ class MCPStdioGateway:
                 # Oversize source cannot be fully recovered; do not rewrite it.
                 record(self.root,surface="mcp",tool=tool,state="OVERSIZE_PASSTHROUGH",
                        source_chars=len(source),returned_chars=len(source),
-                       elapsed_ms=(time.perf_counter()-started)*1000)
+                       elapsed_ms=elapsed_ms)
                 return response
             envelope={"pie_gateway":"v1","state":reduced["state"],
                       "tool":tool,"preview":reduced["text"],
@@ -208,7 +209,7 @@ class MCPStdioGateway:
             content[0]["text"]=encoded
             record(self.root,surface="mcp",tool=tool,state="COMPACTED",
                    source_chars=len(source),returned_chars=len(encoded),
-                   elapsed_ms=(time.perf_counter()-started)*1000,
+                   elapsed_ms=elapsed_ms,
                    output_id=reduced["output_id"])
         except (ValueError, RuntimeError, OSError):
             # Fail open for exact tool semantics; never invent a successful summary.
@@ -256,7 +257,7 @@ class MCPStdioGateway:
                         continue
                     name=(request.get("params") or {}).get("name","") if isinstance(request.get("params"),dict) else ""
                     with self._pending_lock:
-                        self._pending[_id(request["id"])]=(request.get("method",""),name)
+                        self._pending[_id(request["id"])]=(request.get("method",""),name,time.perf_counter())
                 upstream.stdin.write(line)
                 upstream.stdin.flush()
         finally:

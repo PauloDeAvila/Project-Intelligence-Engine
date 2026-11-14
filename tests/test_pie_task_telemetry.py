@@ -40,6 +40,19 @@ class TaskTelemetryTests(unittest.TestCase):
                             returned_chars=10, elapsed_ms=1.0)
             self.assertEqual(report(Path(tmp))["apps"][0]["task_id"], "unassigned")
 
+    def test_run_and_condition_are_automatic_and_queryable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict(os.environ, {"PIE_TASK_ID": "scene-read",
+                                          "PIE_RUN_ID": "run-07",
+                                          "PIE_CONDITION": "optimized"}):
+                record_task(Path(tmp), surface="mcp", tool="browser_snapshot",
+                            state="SUCCESS", source_chars=100,
+                            returned_chars=40, elapsed_ms=12.25)
+            row = report(Path(tmp))["apps"][0]
+            self.assertEqual(row["run_id"], "run-07")
+            self.assertEqual(row["condition"], "optimized")
+            self.assertEqual(row["elapsed_ms"], 12.25)
+
 
 if __name__ == "__main__":
     unittest.main()

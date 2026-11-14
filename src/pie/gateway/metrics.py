@@ -4,6 +4,7 @@ from __future__ import annotations
 from contextlib import closing
 from datetime import datetime, timezone
 import sqlite3
+import os
 from pathlib import Path
 
 from pie.storage.locations import workspace_file
@@ -27,6 +28,14 @@ ON pie_gateway_metrics(created_utc);
 """
 
 
+def _connect(database: Path) -> sqlite3.Connection:
+    db = sqlite3.connect(database, timeout=5)
+    db.execute("PRAGMA busy_timeout=5000")
+    db.execute("PRAGMA journal_mode=WAL")
+    db.executescript(SCHEMA)
+    return db
+
+
 def record(root: Path, *, surface: str, tool: str, state: str,
            source_chars: int, returned_chars: int, elapsed_ms: float,
            output_id: str | None = None, exit_code: int | None = None) -> None:
@@ -36,7 +45,7 @@ def record(root: Path, *, surface: str, tool: str, state: str,
         raise ValueError("Invalid character counts")
     database=workspace_file(root)
     database.parent.mkdir(parents=True,exist_ok=True)
-    with closing(sqlite3.connect(database, timeout=5)) as db:
+    with closing(_connect(database)) as db:
         with db:
             db.executescript(SCHEMA)
             db.execute(
@@ -52,7 +61,8 @@ def record(root: Path, *, surface: str, tool: str, state: str,
     try:
         record_task(root, surface=surface, tool=tool, state=state,
                     source_chars=source_chars, returned_chars=returned_chars,
-                    elapsed_ms=elapsed_ms)
+                    elapsed_ms=elapsed_ms,
+                    condition=os.environ.get("PIE_CONDITION", "observed"))
     except (OSError, ValueError, sqlite3.Error):
         pass
 
@@ -61,8 +71,7 @@ def report(root: Path) -> dict:
     database = workspace_file(root)
     if not database.is_file():
         return {"events": 0, "measurement": "characters_not_model_tokens"}
-    with closing(sqlite3.connect(database, timeout=5)) as db:
-        db.executescript(SCHEMA)
+    with closing(_connect(database)) as db:
         rows = db.execute(
             "SELECT surface, state, COUNT(*), SUM(source_chars), "
             "SUM(returned_chars) FROM pie_gateway_metrics "
