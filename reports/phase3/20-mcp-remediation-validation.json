@@ -30,5 +30,5 @@
   },
   "ready_for_codex_probe": false,
   "reason": "The sole authorized diagnostic invocation failed during local Codex configuration parsing before MCP spawn; the original session failure remains inconclusive.",
-  "next_action": "Do not retry automatically. A future diagnostic requires separately authorized quota and a native profile/config overlay rather than a -c array override. Do not resume A/B."
+  "next_action": "Do not retry automatically. A future diagnostic requires separately authorized quota and tools/run_codex_mcp_diagnostic.ps1, which uses the persisted route without a -c array override. Do not resume A/B."
 }
