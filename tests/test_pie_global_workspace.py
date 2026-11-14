@@ -77,6 +77,17 @@ class GlobalWorkspaceTests(unittest.TestCase):
         self.assertIsNone(again["python_index"])
         self.assertEqual(again["changed_files"],[])
 
+    def test_bulk_file_additions_trigger_full_reconcile(self):
+        w=GlobalWorkspaceIndex(self.project,force_global=True)
+        w.refresh()
+        for i in range(65):
+            (self.project/("new_%03d.py" % i)).write_text(
+                "def generated_%d(): return %d\n" % (i,i),encoding="utf8")
+        result=w.refresh()
+        self.assertEqual(result["mode"],"FULL")
+        self.assertEqual(result["content_reads"],65)
+        self.assertEqual(result["python_index"]["files"],67)
+
     def test_one_changed_file_only_is_reindexed(self):
         w=GlobalWorkspaceIndex(self.project,force_global=True)
         w.refresh()
@@ -202,6 +213,28 @@ class GlobalWorkspaceTests(unittest.TestCase):
         self.assertEqual(status["python_indexed_files"],1)
         self.assertTrue((self.store/"registry.sqlite3").exists())
         self.assertFalse((workspace/".pie").exists())
+
+    def test_stdio_uses_inherited_workspace_cwd_without_per_project_registration(self):
+        workspace=self.base/"inherited-cwd"
+        workspace.mkdir()
+        (workspace/"pyproject.toml").write_text("[project]\nname='cwd-project'\n",encoding="utf8")
+        (workspace/"auto.py").write_text("def auto(): return 1\n",encoding="utf8")
+        env=dict(os.environ,PYTHONPATH=str(Path(__file__).resolve().parents[1]/"src"))
+        msgs=[
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}},
+            {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{
+                "name":"pie_global_status","arguments":{}}},
+        ]
+        proc=subprocess.run(
+            [sys.executable,"-m","pie.interfaces.global_mcp",
+             "--store",str(self.store),"--poll-seconds","0"],
+            input="\n".join(json.dumps(m) for m in msgs)+"\n",
+            cwd=workspace,env=env,capture_output=True,text=True,timeout=35,
+        )
+        self.assertEqual(proc.returncode,0,proc.stderr)
+        status=json.loads(json.loads(proc.stdout.splitlines()[-1])["result"]["content"][0]["text"])
+        self.assertEqual(status["root"],str(workspace))
+        self.assertEqual(status["python_indexed_files"],1)
 
     def test_workspace_discovery_prefers_nearest_marker_and_home_guard(self):
         nested=self.project/"src"
