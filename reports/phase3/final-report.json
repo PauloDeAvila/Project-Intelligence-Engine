@@ -1,15 +1,14 @@
 {
   "schema": "pie-phase3-report-v1",
-  "certification": {"status": "NOT_CERTIFIED", "reason": "A bateria Fase 3.3 foi interrompida após a primeira captura Codex Blender baseline falhar antes de produzir turn.completed.usage; não houve pares válidos."},
+  "certification": {"status": "NOT_CERTIFIED", "reason": "12 calls completed with real provider usage, but only 2 strictly comparable pairs per domain were available; 3 are required. Gateway SQLite coverage is incomplete."},
   "applications": {
-    "blender": {"tasks": [], "baseline": null, "optimized": null, "savings_percent": null},
-    "web": {"tasks": [], "baseline": null, "optimized": null, "savings_percent": null}
+    "blender": {"tasks": ["blender-material-inspection-v1"], "baseline": {"input_tokens": 226951, "cached_input_tokens": 186752, "output_tokens": 1426, "total_tokens": 228377, "duration_ms_average": 19641.01, "mcp_calls": 4}, "optimized": {"input_tokens": 196052, "cached_input_tokens": 156416, "output_tokens": 1201, "total_tokens": 197253, "duration_ms_average": 17135.5155, "mcp_calls": 5}, "savings_percent": {"input": 13.614833, "uncached_input": 1.400532, "total": 13.628343}, "pairs": 2, "oracle_pass_rate": 1.0},
+    "web": {"tasks": ["web-navigation-snapshot-v1"], "baseline": {"input_tokens": 355463, "cached_input_tokens": 318720, "output_tokens": 1333, "total_tokens": 356796, "duration_ms_average": 21267.7425, "mcp_calls": 8}, "optimized": {"input_tokens": 399269, "cached_input_tokens": 356992, "output_tokens": 1672, "total_tokens": 400941, "duration_ms_average": 23727.8075, "mcp_calls": 8}, "savings_percent": {"input": -12.323645, "uncached_input": -15.061372, "total": -12.372616}, "pairs": 2, "oracle_pass_rate": 1.0}
   },
-  "monitoring": {"status": "ACTIVE_FOR_REGISTERED_GATEWAYS", "provider_usage_available": false, "configured_routing_ratio": 0.4, "active_mcp_servers": 5, "wrapped_stdio": 2, "overhead_ms": null, "blender_probe": {"task_id": "phase3-blender-live", "run_id": "run-blender-live-validated", "tool": "get_scene_info", "status": "PASS", "duration_ms": 46.366, "source_chars": 284, "returned_chars": 284}, "web_probe": {"task_id": "phase3-web-probe", "run_id": "run-web-probe-01", "status": "PASS", "source_chars": 17585, "model_facing_chars": 1256, "reduction_percent_characters": 92.858, "provider_tokens_measured": false}},
-  "validation": {"pytest": {"passed": 530, "skipped": 5, "subtests": 133}, "focused_tests_passed": 26, "compileall": "passed"},
-  "limitations": ["PIE index attached to another root", "Initial isolated CODEX_HOME lacked auth.json", "No live paired provider evidence", "Configured routing is opt-in per server; original and node_repl servers remain unwrapped", "Character savings are not token savings"],
+  "monitoring": {"status": "PARTIAL_COVERAGE", "provider_usage_available": true, "configured_routing_ratio": 0.4, "active_mcp_servers": 5, "wrapped_stdio": 2, "sqlite_rows_observed": 2, "sqlite_apps_observed": ["web"], "overhead_ms": null},
+  "validation": {"authorized_codex_calls": 12, "completed_codex_calls": 12, "retries": 0, "pytest": {"passed": 532, "skipped": 5, "subtests": 133}, "compileall": "passed"},
+  "routing": {"user_config_modified": true, "original_servers_preserved": true, "pie_servers": ["pie-blender-optimized", "pie-web-optimized"], "node_repl_modified": false, "telemetry_route_proof": "incomplete"},
+  "costs": {"status": "UNAVAILABLE", "total": null, "reason": "No verified tariff supplied for gpt-5.6-luna"},
   "verdict": "NOT_CERTIFIED",
-  "routing": {"user_config_modified": true, "configured_routing_ratio": 0.4, "blocker_report": "reports/phase3/07-routing-plan.md", "web_status": "PASS", "blender_status": "PASS"},
-  "ab_certification": {"status": "STOPPED_AFTER_INITIAL_FAILURE", "attempted": 1, "completed": 0, "valid_pairs": 0, "reports": ["reports/phase3/08-blender-ab.json", "reports/phase3/09-web-ab.json", "reports/phase3/10-provider-token-certification.json", "reports/phase3/11-token-certification.md"]},
-  "phase3_4_preflight": {"status": "BLOCKED", "model_calls": 0, "reports": ["reports/phase3/12-auth-environment-audit.md", "reports/phase3/13-isolated-environments.md", "reports/phase3/14-auth-strategy.md", "reports/phase3/15-preflight-validation.json", "reports/phase3/16-auth-preflight-final.md"]}
+  "reports": ["reports/phase3/09-blender-real-ab.json", "reports/phase3/10-web-real-ab.json", "reports/phase3/11-token-certification.json", "reports/phase3/12-cost-efficiency.json"]
 }

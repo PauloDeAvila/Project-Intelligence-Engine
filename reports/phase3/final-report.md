@@ -1,58 +1,38 @@
-# PIE Fase 3 — relatório consolidado
+# PIE Fase 3 — certificação real e monitoramento
 
 ## Veredito
 
-**NOT_CERTIFIED.** Os dois gateways PIE passaram chamadas reais locais, mas a bateria A/B autorizada foi interrompida na primeira captura Blender baseline: o `CODEX_HOME` isolado não tinha `auth.json`, a captura retornou `RuntimeError` e não produziu `turn.completed.usage`. Não houve repetição automática nem números fabricados.
+**NOT_CERTIFIED.** As 12 chamadas autorizadas terminaram com uso real reportado pelo provedor e os quatro oráculos estritamente comparáveis passaram. Porém, somente dois pares comparáveis foram obtidos por domínio; o critério exige três. A persistência SQLite também registrou apenas dois eventos Web `PASSTHROUGH`, sem eventos Blender desta bateria.
 
-## Implementação
+## A/B estrito (repetições 2 e 3)
 
-- `task_telemetry`: correlação automática por tarefa/execução, status, condição, duração, migração SQLite, WAL/busy timeout, filtros e exportação JSON.
-- `gateway.metrics`: persistência concorrente configurada e integração best-effort com o ledger.
-- `mcp_stdio`: duração real do request até a resposta, mantendo passthrough e recuperação existentes.
-- Teste de regressão para `run_id` e `condition`.
+| Domínio | Pares | Input B/O | Cache B/O | Output B/O | Total B/O | Economia total | Latência média B/O | MCP B/O |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Blender | 2/3 exigidos | 226951 / 196052 | 186752 / 156416 | 1426 / 1201 | 228377 / 197253 | **13.628343%** | 19641.010 / 17135.516 ms | 4 / 5 |
+| Web | 2/3 exigidos | 355463 / 399269 | 318720 / 356992 | 1333 / 1672 | 356796 / 400941 | **-12.372616%** | 21267.743 / 23727.808 ms | 8 / 8 |
 
-## Validação
+Valores `B/O` são baseline/optimized. A economia de input não armazenado em cache foi 1.400532% no Blender e **-15.061372%** na Web. Não houve conversão de caracteres em tokens.
 
-| Verificação | Resultado |
-|---|---:|
-| pytest completo | 530 passed, 5 skipped, 133 subtests |
-| testes focados | 26 passed |
-| compileall | passou |
-| unittest discover | 533 executados; 3 falhas Blender no modo unittest |
-| uso real Codex | não executado |
-| Blender instalado | Blender 5.3.0; addon 5.3 ativo no probe |
-| chamada Blender pelo PIE | PASS: `get_scene_info`, 46.366 ms persistidos |
-| chamada Web pelo PIE | PASS: Playwright local, redução de caracteres 92.858% |
-| bateria Codex A/B | interrompida após 1 falha pré-turno; 0 pares válidos |
+## Evidências e cobertura
 
-## Certificação A/B
+- 12 chamadas Codex completadas; 0 retries; modelo `gpt-5.6-luna`, esforço `medium`.
+- 8 chamadas tinham aliases e hashes de prompt comuns: 2 pares Blender e 2 Web. Os quatro pilotos iniciais foram health checks, mas tiveram hashes de prompt diferentes e não foram usados na certificação.
+- Todos os quatro pares estritos passaram o oráculo; isso demonstra correção nesses casos, não suficiência estatística.
+- O SQLite PIE consultado em `C:\Users\phsra\.pie-global\projects\776668a48707658ebd7e41c78fc7d720\index.sqlite3` tinha 2 linhas: Web `browser_snapshot`, `task_id=unassigned`, status `PASSTHROUGH`, tokens do provedor nulos. Não há prova persistida equivalente para as chamadas Blender.
+- A configuração preserva `blender`, `node_repl` e os demais servidores; as rotas PIE são opt-in, com 2 de 5 servidores ativos envolvidos.
 
-| Domínio | Pares válidos | Tokens baseline | Tokens optimized | Economia |
-|---|---:|---:|---:|---:|
-| Blender | 0 | null | null | null |
-| Web | 0 | null | null | null |
+## Testes
 
-Os campos permanecem `null` porque a primeira captura falhou antes de produzir uso do provedor. Caracteres economizados continuam explicitamente separados de tokens.
+`pytest`: **532 passed, 5 skipped, 133 subtests**. `compileall`: passou. O índice local PIE foi reindexado para a raiz correta e ficou `CURRENT`; o servidor PIE MCP disponível nesta sessão continua apontando para outra raiz, limitação registrada.
 
-## Como operar o monitoramento
+## Custos
 
-Os gateways existentes inicializam a instrumentação ao encaminhar chamadas. Para consultar:
+`null`: não foi fornecida tarifa verificável para `gpt-5.6-luna`. Quota/assinatura não foi convertida em preço.
 
-```powershell
-uv run -m pie.certification.task_telemetry report --workspace .
-uv run -m pie.certification.task_telemetry report --workspace . --app blender --output reports/phase3/blender-live.json
-```
+## Próximos passos seguros
 
-O SQLite fica no armazenamento PIE do workspace; `PIE_GLOBAL_STORAGE_ROOT` continua opt-in. Eventos sem correlação usam `unassigned`.
+1. Corrigir a captura/persistência para que cada chamada encaminhada, incluindo Blender, produza exatamente um evento idempotente com `task_id`, `run_id`, ferramenta e estado.
+2. Reexecutar somente os pares faltantes com nova autorização, pois o limite de 12 chamadas desta autorização foi consumido.
+3. Medir overhead real por operação e verificar inicialização contínua dos dois gateways.
 
-A auditoria pós-ativação encontrou 5 servidores ativos, 2 rotas PIE (`pie-blender-optimized` e `pie-web-optimized`) e `configured_routing_ratio: 0.4`. Os servidores originais `blender`, `node_repl` e `pie-def7be8e70` permanecem intactos. As chamadas reais Blender e Web passaram, mas o provedor Codex não foi executado para este estágio.
-
-## Limitações e próximos passos
-
-1. Selecionar explicitamente os servidores PIE no fluxo normal do Codex; a preferência automática ainda não foi demonstrada.
-2. Preparar dois `CODEX_HOME` explicitamente auditáveis, sem alterar credenciais do usuário.
-3. Executar 3 pares por cenário/domínio com `tools/run_live_codex_pairs.ps1` e importar os registros.
-4. Adicionar evento final para timeout/encerramento inesperado e idempotência por request ID.
-5. Medir overhead real e só então promover o estado de certificação.
-
-O diff, backup e rollback estão em [`07-routing-plan.md`](07-routing-plan.md). A configuração persistente contém os dois gateways; `node_repl` não foi alterado. O uso normal ainda precisa escolher `pie-blender-optimized`/`pie-web-optimized`, pois os servidores originais continuam disponíveis para baseline.
+Relatórios detalhados: [`09-blender-real-ab.json`](09-blender-real-ab.json), [`10-web-real-ab.json`](10-web-real-ab.json), [`11-token-certification.json`](11-token-certification.json) e [`12-cost-efficiency.json`](12-cost-efficiency.json).

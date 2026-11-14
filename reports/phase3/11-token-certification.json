@@ -1,0 +1,22 @@
+{
+  "schema": "pie-phase3-token-certification-v1",
+  "status": "NOT_CERTIFIED",
+  "reason": "Provider usage was reported for all 12 authorized calls, but only two strictly comparable pairs per application were available; three pairs per application are required. SQLite gateway coverage was also incomplete.",
+  "authorized_calls": 12,
+  "completed_calls": 12,
+  "retries": 0,
+  "pilot_health_checks": 4,
+  "strict_comparable_calls": 8,
+  "strict_pairs_by_application": {"blender": 2, "web": 2},
+  "provider_usage_available": true,
+  "oracle_pass_rate_strict_pairs": {"blender": 1.0, "web": 1.0},
+  "applications": {
+    "blender": {"report": "reports/phase3/09-blender-real-ab.json", "observed_total_savings_percent": 13.628343},
+    "web": {"report": "reports/phase3/10-web-real-ab.json", "observed_total_savings_percent": -12.372616}
+  },
+  "limitations": [
+    "The first baseline/optimized pilot prompts had different hashes and are excluded from paired certification.",
+    "Gateway SQLite contains two Web PASSTHROUGH events with unassigned task IDs and no Blender events for this battery.",
+    "No token value was inferred from characters."
+  ]
+}
