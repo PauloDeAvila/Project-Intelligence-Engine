@@ -14,7 +14,7 @@ Os gateways `pie-blender-optimized` e `pie-web-optimized` estão registrados. Ch
 
 ## Autenticação
 
-O ambiente original responde `AUTH_VALIDATED_LOCAL` via `codex login status`. Os perfis baseline e optimized isolados respondem `AUTH_MISSING`. Nenhum `auth.json`, token ou cookie foi copiado.
+O ambiente original respondeu `AUTH_REMOTE_VALIDATED` em uma única chamada mínima, após pré-voo, usando `--ignore-user-config` e sem MCP. O uso reportado foi 19.935 tokens de entrada, 0 em cache e 10 de saída. Os perfis baseline e optimized isolados continuam `AUTH_MISSING`. Nenhum `auth.json`, token ou cookie foi copiado.
 
 O runner possui pré-voo fail-closed e interrompe antes de `codex exec` quando a autenticação não está disponível.
 
@@ -28,7 +28,7 @@ SQLite local com WAL, timeout de concorrência, filtros e retenção. Os probes 
 
 ## Certificação
 
-Nenhum par A/B válido. Não é possível calcular economia de tokens, custo, latência comparável ou regressão de qualidade. Redução de caracteres Web não é tratada como redução de tokens.
+Nenhum par A/B válido. O probe não executou Blender/Web e não prova autenticação dos perfis isolados. Não é possível calcular economia de tokens, custo, latência comparável ou regressão de qualidade. Redução de caracteres Web não é tratada como redução de tokens.
 
 ## Evidências
 

@@ -7,6 +7,6 @@ Estratégias avaliadas:
 - Link ou compartilhamento não documentado do arquivo de autenticação: não selecionado sem validação de compatibilidade e segurança.
 - Perfis temporários usando o `CODEX_HOME` autenticado original: tecnicamente promissor, mas ainda requer validação de isolamento MCP e autorização para criar arquivos de perfil temporários no diretório do Codex.
 
-Estado: `READY_FOR_AUTH_PROBE`, não `READY_FOR_BENCHMARK`.
+Estado: `AUTH_REMOTE_VALIDATED_ORIGINAL_ONLY`, não `READY_FOR_BENCHMARK`.
 
-O próximo teste permitido deve ser uma única chamada diagnóstica autorizada, usando o `CODEX_HOME` original e configuração MCP temporária/reversível, sem copiar credenciais. A bateria de 12 chamadas continua bloqueada.
+A chamada diagnóstica autorizada foi executada com o `CODEX_HOME` original, `--ignore-user-config` e sem MCP. A bateria de 12 chamadas continua bloqueada porque os perfis isolados ainda não possuem autenticação.

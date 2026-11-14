@@ -4,7 +4,7 @@
 
 `BLOCKED`.
 
-O Codex original está autenticado localmente (`AUTH_VALIDATED_LOCAL`), mas os perfis isolados baseline e optimized não têm autenticação disponível (`AUTH_MISSING`). O pré-voo agora identifica o problema antes de qualquer chamada de modelo.
+O Codex original está autenticado remotamente (`AUTH_REMOTE_VALIDATED`) após uma única chamada diagnóstica mínima. Os perfis isolados baseline e optimized não têm autenticação disponível (`AUTH_MISSING`). O pré-voo identifica o problema antes de qualquer chamada de benchmark.
 
 ## Causa raiz
 
@@ -25,8 +25,9 @@ Os `CODEX_HOME` temporários receberam apenas `config.toml`. A autenticação or
 - Pré-voo original: autenticação local PASS.
 - Pré-voo baseline: configuração/MCP/worktree PASS; autenticação BLOCKED.
 - Pré-voo optimized: configuração/MCP/worktree PASS; autenticação BLOCKED.
-- Chamadas de modelo nesta fase: `0`.
+- Chamadas diagnósticas nesta fase: `1`, sem MCP, sem retry.
+- Tokens diagnósticos: 19.935 entrada, 0 cache, 10 saída.
 
 ## Próximo passo
 
-Selecionar uma estratégia de autenticação oficialmente suportada: login independente nos perfis ou uso controlado do `CODEX_HOME` original com configuração MCP reversível. Essa decisão requer nova autorização antes de qualquer chamada que consuma quota.
+Selecionar uma estratégia de autenticação oficialmente suportada: login independente nos perfis ou uso controlado do `CODEX_HOME` original com configuração MCP reversível. A chamada diagnóstica não libera a bateria A/B; qualquer nova chamada consumidora de quota requer autorização.
