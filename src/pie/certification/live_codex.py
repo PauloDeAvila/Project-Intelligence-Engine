@@ -1,6 +1,6 @@
 """Fail-closed Codex real token accounting. Never persist prompts, answers or traces."""
 from __future__ import annotations
-import hashlib,json,math,os,shutil,subprocess,time
+import hashlib,json,math,os,shutil,subprocess,time,tomllib
 from pathlib import Path
 
 SCHEMA="pie-live-codex-usage-v1"
@@ -41,13 +41,80 @@ def parse_codex_jsonl(source:str)->dict:
             "tool_events":calls,"source":"codex_exec_json_turn_completed","provider_reported":True}
 
 def validate_scenario(s:dict)->dict:
-    if not isinstance(s,dict) or set(s)-{"scenario_id","prompt","expected_exact","model","description"}:
+    allowed={"scenario_id","prompt","expected_exact","model","description","required_mcp_server"}
+    if not isinstance(s,dict) or set(s)-allowed:
         raise ValueError("Invalid scenario fields")
     if any(not isinstance(s.get(k),str) or not s[k].strip() for k in ("scenario_id","prompt","expected_exact","model")):
         raise ValueError("Scenario needs ID, prompt, expected exact answer, model")
     if "CONFIGURE_BEFORE_USE" in s["model"] or len(s["prompt"])>12000 or len(s["expected_exact"])>4000:
         raise ValueError("Unconfigured or oversized scenario")
     return s
+
+def _auth_state(home:Path, executable:str, env:dict)->str:
+    """Return a sanitized auth state; never expose auth material or output."""
+    for name in ("OPENAI_API_KEY","CODEX_ACCESS_TOKEN"):
+        if env.get(name):
+            return "AUTH_PRESENT_ENV"
+    auth=home/"auth.json"
+    if not auth.is_file() or auth.stat().st_size==0:
+        return "AUTH_MISSING"
+    try:
+        result=subprocess.run([executable,"login","status"],env=env,
+                              capture_output=True,text=True,timeout=15,check=False)
+    except (OSError,subprocess.TimeoutExpired):
+        return "AUTH_UNAVAILABLE"
+    # Do not persist or print stdout/stderr. A successful status command is
+    # stronger evidence than file existence, but remains a local preflight.
+    status_text=(result.stdout+"\n"+result.stderr).lower()
+    if result.returncode==0 and "logged in" in status_text:
+        return "AUTH_VALIDATED_LOCAL"
+    return "AUTH_INVALID" if result.returncode==1 else "AUTH_UNAVAILABLE"
+
+def preflight_codex(scenario:dict,*,condition:str,workspace:Path,codex_home:Path,
+                    codex_bin:str="codex",evidence_dir:Path|None=None)->dict:
+    """Run all non-model checks required before a paid Codex capture."""
+    checks={};errors=[]
+    try:scenario=validate_scenario(scenario);checks["scenario"]="PASS"
+    except ValueError as exc:checks["scenario"]="FAIL";errors.append("PRECHECK_SCENARIO_INVALID");return {"state":"BLOCKED","checks":checks,"errors":errors}
+    if condition not in CONDITIONS:checks["condition"]="FAIL";errors.append("PRECHECK_CONFIG_INVALID")
+    else:checks["condition"]="PASS"
+    workspace=Path(workspace).expanduser().resolve()
+    codex_home=Path(codex_home).expanduser().resolve()
+    try:
+        commit=_git_clean_commit(workspace);checks["worktree"]={"state":"PASS","commit":commit}
+    except (ValueError,OSError,subprocess.TimeoutExpired):
+        checks["worktree"]={"state":"FAIL"};errors.append("PRECHECK_WORKTREE_DIRTY")
+    config=codex_home/"config.toml"
+    parsed=None
+    try:
+        parsed=tomllib.loads(config.read_text(encoding="utf-8"));checks["config"]="PASS"
+    except (OSError,tomllib.TOMLDecodeError):
+        checks["config"]="FAIL";errors.append("PRECHECK_CONFIG_INVALID")
+    executable=shutil.which(codex_bin)
+    if executable is None:checks["codex_executable"]="FAIL";errors.append("PRECHECK_AUTH_UNAVAILABLE")
+    else:checks["codex_executable"]="PASS"
+    if executable and parsed is not None:
+        model=parsed.get("model")
+        checks["model"]="PASS" if model==scenario["model"] else {"state":"FAIL","configured":model}
+        if model!=scenario["model"]:errors.append("PRECHECK_MODEL_INVALID")
+        servers=parsed.get("mcp_servers") if isinstance(parsed.get("mcp_servers"),dict) else {}
+        required=scenario.get("required_mcp_server")
+        if required and required not in servers:
+            checks["mcp"]={"state":"FAIL","required_server":required};errors.append("PRECHECK_MCP_UNAVAILABLE")
+        else:checks["mcp"]={"state":"PASS","required_server":required}
+        auth_env=dict(os.environ);auth_env["CODEX_HOME"]=str(codex_home)
+        auth=_auth_state(codex_home,executable,auth_env)
+        checks["authentication"]={"state":auth}
+        if auth not in ("AUTH_VALIDATED_LOCAL","AUTH_PRESENT_ENV"):errors.append("PRECHECK_AUTH_MISSING" if auth=="AUTH_MISSING" else "PRECHECK_AUTH_UNAVAILABLE")
+    if evidence_dir is not None:
+        try:
+            Path(evidence_dir).mkdir(parents=True,exist_ok=True)
+            checks["evidence_dir"]="PASS"
+        except OSError:
+            checks["evidence_dir"]="FAIL";errors.append("PRECHECK_CONFIG_INVALID")
+    return {"state":"READY_FOR_BENCHMARK" if not errors else "BLOCKED",
+            "checks":checks,"errors":sorted(set(errors)),"model":scenario.get("model"),
+            "condition":condition}
 
 def _codex_environment(home:Path):
     home=home.expanduser().resolve(strict=True)
@@ -77,6 +144,10 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
     workspace=Path(workspace).expanduser().resolve(strict=True)
     commit=_git_clean_commit(workspace)
     env,configsha=_codex_environment(Path(codex_home))
+    preflight=preflight_codex(scenario,condition=condition,workspace=workspace,
+                              codex_home=Path(codex_home),codex_bin=codex_bin)
+    if preflight["state"]!="READY_FOR_BENCHMARK":
+        raise RuntimeError(preflight["errors"][0] if preflight["errors"] else "PRECHECK_CONFIG_INVALID")
     executable=shutil.which(codex_bin)
     if executable is None:raise RuntimeError("Codex executable unavailable")
     ver=subprocess.run([executable,"--version"],capture_output=True,text=True,timeout=10,check=False)

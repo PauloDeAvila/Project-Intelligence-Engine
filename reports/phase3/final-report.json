@@ -10,5 +10,6 @@
   "limitations": ["PIE index attached to another root", "Initial isolated CODEX_HOME lacked auth.json", "No live paired provider evidence", "Configured routing is opt-in per server; original and node_repl servers remain unwrapped", "Character savings are not token savings"],
   "verdict": "NOT_CERTIFIED",
   "routing": {"user_config_modified": true, "configured_routing_ratio": 0.4, "blocker_report": "reports/phase3/07-routing-plan.md", "web_status": "PASS", "blender_status": "PASS"},
-  "ab_certification": {"status": "STOPPED_AFTER_INITIAL_FAILURE", "attempted": 1, "completed": 0, "valid_pairs": 0, "reports": ["reports/phase3/08-blender-ab.json", "reports/phase3/09-web-ab.json", "reports/phase3/10-provider-token-certification.json", "reports/phase3/11-token-certification.md"]}
+  "ab_certification": {"status": "STOPPED_AFTER_INITIAL_FAILURE", "attempted": 1, "completed": 0, "valid_pairs": 0, "reports": ["reports/phase3/08-blender-ab.json", "reports/phase3/09-web-ab.json", "reports/phase3/10-provider-token-certification.json", "reports/phase3/11-token-certification.md"]},
+  "phase3_4_preflight": {"status": "BLOCKED", "model_calls": 0, "reports": ["reports/phase3/12-auth-environment-audit.md", "reports/phase3/13-isolated-environments.md", "reports/phase3/14-auth-strategy.md", "reports/phase3/15-preflight-validation.json", "reports/phase3/16-auth-preflight-final.md"]}
 }
