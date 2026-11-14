@@ -61,7 +61,7 @@ def _bounded_index_report(report: dict | None) -> dict | None:
     if report is None:
         return None
     reduced = dict(report)
-    for field in ("changed_files", "removed_files"):
+    for field in ("changed_files", "removed_files", "diagnostics"):
         names = list(reduced.get(field, []))
         reduced[field] = names[:REPORT_PATH_LIMIT]
         reduced[field + "_total"] = len(names)
