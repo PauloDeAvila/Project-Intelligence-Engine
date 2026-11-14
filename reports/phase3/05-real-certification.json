@@ -1,0 +1,20 @@
+{
+  "schema": "pie-phase3-real-certification-v1",
+  "status": "NOT_CERTIFIED",
+  "reason": "Nenhum par real Codex baseline/optimized foi executado neste ambiente; faltam Blender e configuração gateway otimizada verificável.",
+  "applications": {
+    "blender": {"valid_pairs": 0, "baseline": null, "optimized": null, "oracle": null},
+    "web": {"valid_pairs": 0, "baseline": null, "optimized": null, "oracle": null}
+  },
+  "provider_usage_available": false,
+  "metrics": {
+    "input_savings_percent": null,
+    "uncached_input_savings_percent": null,
+    "total_savings_percent": null,
+    "duration_delta_ms": null,
+    "mcp_call_delta": null
+  },
+  "evidence": {"provider_records": [], "commands": [], "oracle_passes": 0, "oracle_failures": 0},
+  "limitations": ["Blender executable ausente", "Nenhum servidor/página Playwright local executado", "Sem pares Codex reais e uso reportado"],
+  "certification_gate": "not_reached"
+}

@@ -1,0 +1,12 @@
+{
+  "schema": "pie-phase3-report-v1",
+  "certification": {"status": "NOT_CERTIFIED", "reason": "Aguardando benchmark real pareado com uso do provedor, oráculos Blender/Web e configuração PIE verificável."},
+  "applications": {
+    "blender": {"tasks": [], "baseline": null, "optimized": null, "savings_percent": null},
+    "web": {"tasks": [], "baseline": null, "optimized": null, "savings_percent": null}
+  },
+  "monitoring": {"status": "IMPLEMENTED_NOT_LIVE_CERTIFIED", "provider_usage_available": false, "overhead_ms": null},
+  "validation": {"pytest": {"passed": 528, "skipped": 5, "subtests": 133}, "focused_tests_passed": 22, "compileall": "passed"},
+  "limitations": ["PIE index attached to another root", "Blender unavailable", "No live paired provider evidence", "Unanswered MCP timeouts are not persisted as final events"],
+  "verdict": "NOT_CERTIFIED"
+}

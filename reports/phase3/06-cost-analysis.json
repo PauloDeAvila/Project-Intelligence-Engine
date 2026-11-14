@@ -1,0 +1,10 @@
+{
+  "schema": "pie-phase3-cost-analysis-v1",
+  "status": "NOT_AVAILABLE",
+  "currency": "USD",
+  "tariffs": null,
+  "baseline": {"uncached_input": null, "cached_input": null, "output": null, "total": null},
+  "optimized": {"uncached_input": null, "cached_input": null, "output": null, "total": null},
+  "difference": null,
+  "reason": "Nenhuma tarifa explícita verificável nem uso real do provedor disponível; valores permanecem null."
+}
