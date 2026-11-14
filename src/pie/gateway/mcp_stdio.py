@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import time
 from pathlib import Path
 import subprocess
 import sys
@@ -161,11 +162,15 @@ class MCPStdioGateway:
             except (OSError, ValueError):
                 pass
             return response
+        started=time.perf_counter()
         try:
             reduced=reduce_text(self.root,source,surface="mcp",tool=tool,kind="api",
-                                max_chars=self.max_chars)
+                                max_chars=self.max_chars,record_metric=False)
             if reduced["state"]=="CAPTURE_LIMIT_EXCEEDED":
                 # Oversize source cannot be fully recovered; do not rewrite it.
+                record(self.root,surface="mcp",tool=tool,state="OVERSIZE_PASSTHROUGH",
+                       source_chars=len(source),returned_chars=len(source),
+                       elapsed_ms=(time.perf_counter()-started)*1000)
                 return response
             envelope={"pie_gateway":"v1","state":reduced["state"],
                       "tool":tool,"preview":reduced["text"],
@@ -184,6 +189,10 @@ class MCPStdioGateway:
             if len(encoded)>self.max_chars:
                 return response
             content[0]["text"]=encoded
+            record(self.root,surface="mcp",tool=tool,state="COMPACTED",
+                   source_chars=len(source),returned_chars=len(encoded),
+                   elapsed_ms=(time.perf_counter()-started)*1000,
+                   output_id=reduced["output_id"])
         except (ValueError, RuntimeError, OSError):
             # Fail open for exact tool semantics; never invent a successful summary.
             return response

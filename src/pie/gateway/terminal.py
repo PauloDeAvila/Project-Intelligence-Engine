@@ -16,6 +16,7 @@ import threading
 import time
 
 from pie.gateway.policy import reduce_text
+from pie.gateway.metrics import record
 from pie.gateway.rtk_adapter import wrap_command
 from pie.indexing.global_workspace import detect_workspace
 from pie.storage.locations import ENV_HOME, global_home
@@ -75,7 +76,8 @@ def run_command(root: Path, command: list[str], *, max_chars: int = 2500,
     source = ("STDOUT:\n" + stdout["text"] + "\nSTDERR:\n" + stderr["text"])
     observed = reduce_text(root, source, surface="terminal",
                            tool=Path(command[0]).name, kind="terminal",
-                           max_chars=max_chars, exit_code=code)
+                           max_chars=max_chars, exit_code=code,
+                           record_metric=False)
     discarded = stdout["discarded_bytes"] + stderr["discarded_bytes"]
     if discarded:
         observed["state"] = "CAPTURE_TRUNCATED"
@@ -87,6 +89,12 @@ def run_command(root: Path, command: list[str], *, max_chars: int = 2500,
     if timed_out:
         observed["state"] = "TIMED_OUT"
         observed["capture_complete"] = False
+    record(root,surface="terminal",tool=Path(command[0]).name,
+           state=observed["state"],
+           source_chars=observed["source_chars"],
+           returned_chars=observed["returned_chars"],
+           elapsed_ms=(time.perf_counter()-started)*1000,
+           output_id=observed["output_id"],exit_code=code)
     observed["rtk_applied"] = used_rtk
     observed["command_name"] = Path(command[0]).name
     observed["elapsed_ms"] = round((time.perf_counter()-started)*1000, 3)

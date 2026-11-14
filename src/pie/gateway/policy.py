@@ -35,7 +35,8 @@ def _is_structured_text(value: str) -> bool:
 def reduce_text(root: Path, source: str, *, surface: str, tool: str,
                 max_chars: int = DEFAULT_MAX_CHARS,
                 kind: str = "terminal", exit_code: int | None = None,
-                safe_text: bool = True) -> dict[str, Any]:
+                safe_text: bool = True,
+                record_metric: bool = True) -> dict[str, Any]:
     """Store a recoverable sanitized original, then return a bounded view.
 
     safe_text=False bypasses lossy compaction; the client sees the actual text.
@@ -82,11 +83,12 @@ def reduce_text(root: Path, source: str, *, surface: str, tool: str,
                       "output_id": compact["output_id"], "exit_code": exit_code,
                       "recovery": "pie_gateway_output_get",
                       "omitted_unique_lines": compact["omitted_unique_lines"]}
-    record(root, surface=surface, tool=tool, state=result["state"],
-           source_chars=result["source_chars"],
-           returned_chars=result["returned_chars"],
-           elapsed_ms=(time.perf_counter()-started)*1000,
-           output_id=result["output_id"], exit_code=exit_code)
+    if record_metric:
+        record(root, surface=surface, tool=tool, state=result["state"],
+               source_chars=result["source_chars"],
+               returned_chars=result["returned_chars"],
+               elapsed_ms=(time.perf_counter()-started)*1000,
+               output_id=result["output_id"], exit_code=exit_code)
     return result
 
 
