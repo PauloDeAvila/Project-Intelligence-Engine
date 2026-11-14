@@ -54,6 +54,20 @@ FILE_HASH_LIMIT = 2_000_000
 MAX_TRACKED_FILES = 20_000
 RECONCILE_CHANGE_COUNT = 64
 RECONCILE_FRACTION = .30
+INVENTORY_SCHEMA = """
+CREATE TABLE IF NOT EXISTS pie_global_files(
+    path TEXT PRIMARY KEY, mtime_ns INTEGER NOT NULL,
+    size INTEGER NOT NULL, inode INTEGER NOT NULL,
+    sha256 TEXT, content TEXT, text_state TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_pie_global_files_path ON pie_global_files(path);
+CREATE TABLE IF NOT EXISTS pie_global_changes(
+    seq INTEGER PRIMARY KEY AUTOINCREMENT,
+    path TEXT NOT NULL, change_kind TEXT NOT NULL,
+    old_sha256 TEXT, new_sha256 TEXT, observed_utc TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_pie_global_changes_recent ON pie_global_changes(seq DESC);
+"""
 
 
 
@@ -162,11 +176,14 @@ class GlobalWorkspaceIndex:
             try:
                 current = self._scan()
                 with closing(self._db()) as db:
+                    records = db.execute(
+                        "SELECT path,mtime_ns,size,inode,sha256 FROM pie_global_files"
+                    ).fetchall()
                     previous = {
                         row["path"]: (row["mtime_ns"], row["size"], row["inode"])
-                        for row in db.execute(
-                            "SELECT path,mtime_ns,size,inode FROM pie_global_files")
+                        for row in records
                     }
+                    previous_hashes = {row["path"]: row["sha256"] for row in records}
                     old_ready = db.execute(
                         "SELECT value FROM metadata WHERE key='pie_global_ready'"
                     ).fetchone()
@@ -209,10 +226,21 @@ class GlobalWorkspaceIndex:
                         db.execute("BEGIN IMMEDIATE")
                         for p in sorted(deleted):
                             db.execute("DELETE FROM pie_global_files WHERE path=?", (p,))
+                            if not first:
+                                db.execute(
+                                    "INSERT INTO pie_global_changes(path,change_kind,old_sha256,new_sha256,observed_utc)"
+                                    " VALUES(?,?,?,?,?)",
+                                    (p, "DELETED", previous_hashes.get(p), None, _utc()))
                         for p, stat in current.items():
                             if p not in prepared:
                                 continue
                             digest, content, state = prepared[p]
+                            if not first:
+                                db.execute(
+                                    "INSERT INTO pie_global_changes(path,change_kind,old_sha256,new_sha256,observed_utc)"
+                                    " VALUES(?,?,?,?,?)",
+                                    (p, "ADDED" if p in new_paths else "MODIFIED",
+                                     previous_hashes.get(p), digest, _utc()))
                             db.execute(
                                 "INSERT INTO pie_global_files(path,mtime_ns,size,inode,sha256,content,text_state) "
                                 "VALUES(?,?,?,?,?,?,?) ON CONFLICT(path) DO UPDATE SET "
@@ -221,6 +249,10 @@ class GlobalWorkspaceIndex:
                                 "text_state=excluded.text_state",
                                 (p, *stat, digest, content, state),
                             )
+                        db.execute(
+                            "DELETE FROM pie_global_changes WHERE seq NOT IN "
+                            "(SELECT seq FROM pie_global_changes ORDER BY seq DESC LIMIT 256)"
+                        )
                         db.execute(
                             "INSERT INTO metadata(key,value) VALUES('pie_global_ready',?) "
                             "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (_utc(),)
@@ -280,6 +312,31 @@ class GlobalWorkspaceIndex:
                 "background_error": self.error,
                 "model_calls": 0,
             }
+
+    def recent_changes(self, *, limit: int = 12, max_chars: int = 4000) -> dict[str, Any]:
+        """Automatically recorded file changes, independent of an agent."""
+        if type(limit) is not int or not 1 <= limit <= 50:
+            raise ValueError("limit must be 1..50")
+        if type(max_chars) is not int or not 500 <= max_chars <= 64000:
+            raise ValueError("max_chars must be 500..64000")
+        with self._lock:
+            with closing(self._db()) as db:
+                rows = db.execute(
+                    "SELECT seq,path,change_kind,old_sha256,new_sha256,observed_utc "
+                    "FROM pie_global_changes ORDER BY seq DESC LIMIT ?", (limit+1,)
+                ).fetchall()
+        events = [dict(item) for item in rows[:limit]]
+        result = {"state":"COMPLETE" if len(rows)<=limit else "PARTIAL",
+                  "events":events,"omitted":max(0,len(rows)-limit),
+                  "source":"automatic_filesystem_fingerprint_log"}
+        import json
+        while len(json.dumps(result,ensure_ascii=False,separators=(",",":")))>max_chars and events:
+            events.pop()
+            result["omitted"]+=1
+            result["state"]="PARTIAL"
+        if len(json.dumps(result,ensure_ascii=False,separators=(",",":")))>max_chars:
+            raise ValueError("Requested budget too small")
+        return result
 
     def search(self, query: str, *, limit: int = 5, max_chars: int = 4000) -> dict[str, Any]:
         """Bounded multi-language lexical retrieval; recheck source SHA before use."""
