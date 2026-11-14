@@ -42,6 +42,31 @@ class GlobalWorkspaceTests(unittest.TestCase):
         self.assertTrue((self.store/"registry.sqlite3").exists())
         self.assertEqual(w.status()["tracked_files"],3)
 
+    def test_automatic_file_change_journal_survives_restart(self):
+        w=GlobalWorkspaceIndex(self.project,force_global=True)
+        w.refresh()
+        self.assertEqual(w.recent_changes()["events"], [])
+        (self.project/"alpha.py").write_text("def alpha():\n    return 99\n",encoding="utf8")
+        w.refresh()
+        changes=GlobalWorkspaceIndex(self.project,force_global=True).recent_changes()
+        self.assertEqual(len(changes["events"]),1)
+        self.assertEqual(changes["events"][0]["path"],"alpha.py")
+        self.assertEqual(changes["events"][0]["change_kind"],"MODIFIED")
+
+    def test_binary_blender_ableton_assets_store_metadata_only(self):
+        (self.project/"material.blend").write_bytes(b"BINARY"+bytes(range(80)))
+        (self.project/"session.als").write_bytes(b"Ableton-proprietary-placeholder")
+        w=GlobalWorkspaceIndex(self.project,force_global=True)
+        w.refresh()
+        import sqlite3
+        from contextlib import closing
+        with closing(sqlite3.connect(w.storage)) as db:
+            data=db.execute("SELECT path,sha256,content,text_state FROM pie_global_files "
+                            "WHERE path IN ('material.blend','session.als') ORDER BY path").fetchall()
+        self.assertEqual(len(data),2)
+        self.assertTrue(all(item[3]=="METADATA_ONLY" and item[1] is None
+                            and item[2] is None for item in data))
+
     def test_second_use_never_reads_unchanged_files(self):
         w=GlobalWorkspaceIndex(self.project,force_global=True)
         w.refresh()
@@ -116,6 +141,14 @@ class GlobalWorkspaceTests(unittest.TestCase):
         self.assertEqual(first.status()["python_indexed_files"],2)
         self.assertEqual(second.status()["python_indexed_files"],1)
         self.assertEqual(second.search("alpha")["matches"],[])
+
+    def test_sensitive_python_file_never_enters_global_ast(self):
+        (self.project/"secret_config.py").write_text("password='example-only'\n",encoding="utf8")
+        w=GlobalWorkspaceIndex(self.project,force_global=True)
+        result=w.refresh()
+        self.assertNotIn("secret_config.py",result["changed_files"])
+        self.assertEqual(w.status()["python_indexed_files"],2)
+        self.assertEqual(w.search("secret_config")["matches"],[])
 
     def test_gitsensitive_and_symlinks_are_not_auto_read(self):
         (self.project/".env").write_text("API_KEY=SECRET",encoding="utf8")
