@@ -39,4 +39,4 @@ Estado causal: `INCONCLUSIVE` para a integração MCP original. A quota autoriza
 
 ## Próximo gate
 
-O gate permanece fechado. Não deve haver nova tentativa automática: uma futura chamada diagnóstica exigirá nova autorização de quota e um profile/config overlay nativo, sem override `-c` de array. Só depois de observar `upstream_spawned`, `downstream_request`, resposta/timeout e `upstream_exit` no arquivo de diagnóstico será possível fechar a causa.
+O gate permanece fechado. Não deve haver nova tentativa automática: uma futura chamada diagnóstica exigirá nova autorização de quota e deverá usar [run_codex_mcp_diagnostic.ps1](../../tools/run_codex_mcp_diagnostic.ps1), que usa a rota persistida e não envia arrays por `-c`. Só depois de observar `upstream_spawned`, `downstream_request`, resposta/timeout e `upstream_exit` no arquivo de diagnóstico será possível fechar a causa.
