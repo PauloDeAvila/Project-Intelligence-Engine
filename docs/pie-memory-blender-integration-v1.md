@@ -80,7 +80,7 @@ claimed by mock-upstream tests.
 ## 3. Three-arm actual token validation
 
 Run fresh/restarted Blender scenes with identical scene checksum,
-Blender version, model, temperature, task and independent correctness
+Blender version, model, hashed sampling settings, exact hashed task and independent correctness
 oracle. The three conditions are:
 
 - baseline: native Blender MCP without PIE.
@@ -98,6 +98,7 @@ Put the data in a JSON file with records shaped like:
 {"records":[
  {"scenario_id":"example-task","repetition":1,"model":"model-id",
   "blender_version":"4.5.0","scene_sha256":"real-hash",
+  "task_sha256":"real-task-hash","sampling_sha256":"real-settings-hash",
   "oracle_id":"review-id","condition":"baseline",
   "prompt_tokens":1200,"completion_tokens":200,
   "wall_ms":5000,"correct":true}
@@ -140,3 +141,15 @@ verification. A real Windows/Blender GUI plus live Codex acceptance
 must still check addon handshake, read-only safe-mode execution,
 manual-edit delta, material graph behavior, rendering correctness,
 and identical-task three-arm provider usage before production release.
+
+For reduced tool-schema discovery in Codex, run: 
+
+~~~powershell
+pie-setup --project C:\dev\MyProject --clients codex --tool-profile compact
+~~~
+
+The compact tool profile is optional and offers only five MCP tools;
+full profile remains the backward-compatible default. Configure a
+fresh workspace or review/remove only the previous PIE registration
+before changing an existing registration, since setup deliberately
+refuses to overwrite mismatched MCP entries.
