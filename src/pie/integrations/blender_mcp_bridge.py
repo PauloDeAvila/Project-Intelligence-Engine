@@ -18,6 +18,7 @@ from typing import Any
 
 OBSERVATION_TOOLS = frozenset({"get_scene_info", "get_object_info"})
 MAX_SNAPSHOTS = 32
+MAX_SNAPSHOT_CHARS = 2_000_000
 MIN_BUDGET = 800
 MAX_BUDGET = 64000
 
@@ -131,7 +132,7 @@ def compact_observation(
     if part.get("type") != "text" or not isinstance(part.get("text"), str):
         return message
     source = part["text"]
-    if len(source) <= max_chars or source.lstrip().startswith(("Error:", "Rejected", "Failed:")):
+    if len(source) <= max_chars or len(source) > MAX_SNAPSHOT_CHARS or source.lstrip().startswith(("Error:", "Rejected", "Failed:")):
         return message
     identifier, seen = snapshots.remember(source)
     common = {
