@@ -17,6 +17,8 @@ def entry(condition, tokens=1000, *, correct=True, scene="scene-sha-1", repetiti
         "model": "test-model",
         "blender_version": "4.5.0",
         "scene_sha256": scene,
+        "task_sha256": "fixed-task-hash",
+        "sampling_sha256": "fixed-model-settings-hash",
         "oracle_id": "fixture-oracle-1",
         "condition": condition,
         "prompt_tokens": tokens,
@@ -50,6 +52,14 @@ class ThreeArmGateTests(unittest.TestCase):
         v = assess({"records": rows}, min_pairs=1)
         self.assertEqual(v["complete_paired_trials"], 0)
         self.assertGreater(v["incomplete_groups"], 0)
+
+    def test_task_or_sampling_drift_never_paired(self):
+        rows = [entry("baseline"), entry("pie_current"), entry("pie_optimized")]
+        rows[2]["task_sha256"] = "another-task"
+        self.assertEqual(assess({"records": rows}, min_pairs=1)["complete_paired_trials"], 0)
+        rows[2]["task_sha256"] = "fixed-task-hash"
+        rows[2]["sampling_sha256"] = "different-model-settings"
+        self.assertEqual(assess({"records": rows}, min_pairs=1)["complete_paired_trials"], 0)
 
     def test_correctness_regression_blocks_claim(self):
         rows = [entry("baseline", 1000, correct=True),
