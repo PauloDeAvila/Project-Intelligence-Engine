@@ -33,7 +33,9 @@ def record(root: Path, *, surface: str, tool: str, state: str,
         raise ValueError("Invalid tool surface or name")
     if not all(type(n) is int and n >= 0 for n in (source_chars, returned_chars)):
         raise ValueError("Invalid character counts")
-    with closing(sqlite3.connect(workspace_file(root), timeout=5)) as db:
+    database=workspace_file(root)
+    database.parent.mkdir(parents=True,exist_ok=True)
+    with closing(sqlite3.connect(database, timeout=5)) as db:
         with db:
             db.executescript(SCHEMA)
             db.execute(

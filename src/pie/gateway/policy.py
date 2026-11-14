@@ -6,12 +6,16 @@ Sanitized originals can be recovered using existing PIE output infrastructure.
 """
 from __future__ import annotations
 
+from contextlib import closing
+
 import json
 import time
 from pathlib import Path
 from typing import Any
 
 from pie.gateway.metrics import record
+from pie.storage.database import connect
+from pie.storage.locations import workspace_file
 from pie.retrieval.output_pipeline import compact_output, _redact
 
 MAX_CAPTURE_CHARS = 500_000
@@ -43,6 +47,13 @@ def reduce_text(root: Path, source: str, *, surface: str, tool: str,
     if not isinstance(source, str):
         raise ValueError("Expected UTF-8 decoded text")
     started = time.perf_counter()
+    # Phase-1 gateways must work before a workspace has source-indexed Python.
+    # This creates the central SQLite schema, but does not pretend to have
+    # indexed the workspace. Global PIE indexes on its own bootstrap.
+    database=workspace_file(root)
+    if not database.is_file():
+        with closing(connect(database)):
+            pass
     if not safe_text:
         result = {"state": "PASSTHROUGH_UNSAFE_TO_COMPACT", "text": source,
                   "source_chars": len(source), "returned_chars": len(source),

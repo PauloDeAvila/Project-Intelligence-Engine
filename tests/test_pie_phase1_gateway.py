@@ -211,7 +211,7 @@ for line in sys.stdin:
         self.assertEqual(done.returncode,0,done.stderr)
         lines=[json.loads(s) for s in done.stdout.splitlines()]
         messages={x["id"]:x for x in lines if "id" in x}
-        self.assertEqual(len(messages),8)
+        self.assertEqual(len(messages),8, "STDERR: "+done.stderr+" STDOUT: "+done.stdout[:3000])
         self.assertEqual(len(marker.read_text()),6)
         self.assertEqual(messages[1]["result"]["serverInfo"]["name"],"mock")
         names=[x["name"] for x in messages[2]["result"]["tools"]]
