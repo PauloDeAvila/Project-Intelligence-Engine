@@ -1,0 +1,37 @@
+name: PIE Blender + Web Domain Gateway
+
+on:
+  push:
+    branches:
+      - 'feat/pie-blender-web-domain-gateway-*'
+  pull_request:
+    paths:
+      - 'src/pie/gateway/**'
+      - 'tests/test_pie_domain_gateway.py'
+      - 'pyproject.toml'
+      - '.github/workflows/pie-domain-gateway.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  domain-e2e:
+    name: Blender and web MCP domain tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install PIE
+        run: python -m pip install -e .
+      - name: Domain-specific end-to-end tests
+        run: python -m unittest discover -s tests -p test_pie_domain_gateway.py -v
+      - name: Existing generic MCP gateway regression
+        run: python -m unittest discover -s tests -p test_pie_phase1_gateway.py -v
+      - name: Existing Blender bridge regression
+        run: python -m unittest discover -s tests -p test_blender_mcp_bridge.py -v
