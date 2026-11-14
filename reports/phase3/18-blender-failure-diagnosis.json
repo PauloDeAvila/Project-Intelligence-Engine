@@ -1,0 +1,20 @@
+{
+  "schema": "pie-phase3-blender-failure-diagnosis-v1",
+  "model_calls": 0,
+  "codex_followup_calls": 2,
+  "codex_followup_tool_status": "failed",
+  "direct_gateway_probe": {
+    "get_addon_status": "PASS",
+    "get_scene_info": "PASS",
+    "handshake": "PASS",
+    "tools_list": "PASS"
+  },
+  "codex_events": {
+    "baseline": ["get_addon_status:failed", "get_scene_info:failed"],
+    "optimized": ["get_addon_status:failed", "get_scene_info:failed", "execute_blender_code:failed"]
+  },
+  "conclusion": "The upstream/addon/gateway can work outside Codex, but the Codex-session MCP lifecycle or sandbox integration failed during both arms. The available evidence does not identify whether startup timing, sandbox connectivity, or session-specific MCP handling caused it.",
+  "logs": "No textual Codex MCP error was persisted in the isolated logs database.",
+  "action": "No retry performed; Web pair was not started after the critical Blender failure.",
+  "certification": "NOT_CERTIFIED"
+}
