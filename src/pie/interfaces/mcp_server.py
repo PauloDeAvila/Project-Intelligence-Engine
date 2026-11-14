@@ -10,6 +10,10 @@ import sys
 from pathlib import Path
 
 from pie.graph.relationships import build_relationships, get_relationships
+from pie.retrieval.task_memory import start_task, record_task, resume_task
+from pie.retrieval.task_search import search_tasks
+from pie.retrieval.output_pipeline import compact_output, recover_output
+from pie.interfaces.tool_gateway import execute_gateway, OPERATIONS
 from pie.interfaces.mcp_context import MCPContextEngine
 from pie.retrieval.context import build_context
 from pie.interfaces.cli import command_status, command_search, command_symbol
@@ -20,6 +24,14 @@ from pie.retrieval.evidence_atoms import build_proof_context
 from pie.retrieval.context_mesh import build_context_mesh
 
 TOOLS = [
+    {'name':'pie_tool_gateway','description':'Single allowlisted local read-only gateway: project_status, source_query, task_search, task_resume, context_pack, output_compact, output_get. Stores sanitized results and returns bounded payloads/recovery IDs. Not a transparent external-tool interceptor.', 'inputSchema':{'type':'object','properties':{'operation':{'type':'string','enum':list(OPERATIONS)},'arguments':{'type':'object'},'max_chars':{'type':'integer','minimum':512,'maximum':64000}},'required':['operation'],'additionalProperties':False}},
+
+    {'name':'pie_output_compact','description':'RTK-inspired: redact, deduplicate and bound a tool log; save the sanitized full output for recovery. Text is limited to 4096 chars via MCP.', 'inputSchema':{'type':'object','properties':{'text':{'type':'string'},'kind':{'type':'string','enum':['log','test','git','terminal','web','api']},'max_chars':{'type':'integer','minimum':256,'maximum':64000},'exit_code':{'type':'integer','minimum':-65535,'maximum':65535}},'required':['text'],'additionalProperties':False}},
+    {'name':'pie_output_get','description':'Recover the complete SANITIZED tool output by its opaque local ID.', 'inputSchema':{'type':'object','properties':{'output_id':{'type':'string'}},'required':['output_id'],'additionalProperties':False}},
+    {'name':'pie_task_search', 'description':'Search project-local task memories by lexical terms; all entries are agent-supplied unverified claims, with source references.', 'inputSchema':{'type':'object','properties':{'query':{'type':'string'},'limit':{'type':'integer','minimum':1,'maximum':20},'max_chars':{'type':'integer','minimum':1000,'maximum':64000}},'required':['query'],'additionalProperties':False}},
+    {'name':'pie_task_start', 'description':'Start an explicit project-scoped persistent task; records only the supplied objective.', 'inputSchema':{'type':'object','properties':{'objective':{'type':'string'}},'required':['objective'],'additionalProperties':False}},
+    {'name':'pie_task_record', 'description':'Atomically append an explicit action, decision, result, checkpoint or note; optionally change task status.', 'inputSchema':{'type':'object','properties':{'task_id':{'type':'string'},'kind':{'type':'string','enum':['action','decision','result','checkpoint','note']},'text':{'type':'string'},'reference':{'type':'string'},'status':{'type':'string','enum':['in_progress','blocked','completed']}},'required':['task_id','kind','text'],'additionalProperties':False}},
+    {'name':'pie_task_resume', 'description':'Recover latest unfinished or blocked task, or one by ID, from project-local SQLite; bounded event history.', 'inputSchema':{'type':'object','properties':{'task_id':{'type':'string'},'limit':{'type':'integer','minimum':1,'maximum':100}},'additionalProperties':False}},
     {'name':'pie_query', 'description':'Preferred unified source-grounded lookup: responsibilities, symbol/file navigation and verified impact relationships. Use this before direct file browsing.', 'inputSchema':{'type':'object','properties':{'query':{'type':'string'},'mode':{'type':'string','enum':['responsibility','navigation','impact']},'limit':{'type':'integer','minimum':1,'maximum':20},'max_chars':{'type':'integer','minimum':500,'maximum':200000}},'required':['query'],'additionalProperties':False}},
     {'name':'pie_verified_evidence', 'description':'Canonical hash-verified function or qualified method signature (e.g. MeasurementCache.get) and bounded verified direct call sites; rejects ambiguous or stale evidence.', 'inputSchema':{'type':'object','properties':{'symbol':{'type':'string'}},'required':['symbol'],'additionalProperties':False}},
     {'name':'pie_build_context_pack', 'description':'Deterministic v2 Context Pack for an exact function or qualified method (e.g. MeasurementCache.get); separates returned verified-call completeness from partial static coverage; never certifies exhaustive callers or runtime breakage.', 'inputSchema':{'type':'object','properties':{'symbol':{'type':'string'},'max_chars':{'type':'integer','minimum':1500,'maximum':64000},'max_calls':{'type':'integer','minimum':1,'maximum':100}},'required':['symbol'],'additionalProperties':False}},
@@ -77,6 +89,10 @@ def dispatch(request: dict, root: Path, engine: MCPContextEngine | None = None) 
                         raise ValueError(f'{key} must be a nonempty safe string <= 4096 chars')
                     if spec.get('type') == 'integer' and (type(value) is not int or not spec.get('minimum', -10**30) <= value <= spec.get('maximum', 10**30)):
                         raise ValueError(f'{key} must be an integer within range')
+                    if spec.get('type') == 'object' and not isinstance(value, dict):
+                        raise ValueError(f'{key} must be an object')
+                    if 'enum' in spec and value not in spec['enum']:
+                        raise ValueError(f'{key} must be one of {spec["enum"]}')
                     if spec.get('type') == 'array':
                         if not isinstance(value, list) or len(value) > spec.get('maxItems', 10**6):
                             raise ValueError(f'{key} must be a bounded list')
@@ -85,11 +101,22 @@ def dispatch(request: dict, root: Path, engine: MCPContextEngine | None = None) 
                                 raise ValueError('agents must be a list of objects')
                         elif any(not isinstance(item, str) or len(item) > 128 or not item.strip() for item in value):
                             raise ValueError(f'{key} must be a bounded list of nonempty strings')
+            if name == 'pie_task_record' and 'kind' in args and args['kind'] not in ('action','decision','result','checkpoint','note'):
+                raise ValueError('Invalid event kind')
+            if 'status' in args and args['status'] not in ('in_progress','blocked','completed'):
+                raise ValueError('Invalid task status')
             if 'mode' in args and args['mode'] not in ('responsibility','navigation','impact'):
                 raise ValueError('Invalid mode')
             if 'detail' in args and args['detail'] not in ('compact', 'full'):
                 raise ValueError('Invalid detail')
             functions = {
+                'pie_tool_gateway':lambda:execute_gateway(root,args['operation'],args.get('arguments'),max_chars=args.get('max_chars',4000),engine=engine),
+                'pie_output_compact':lambda:compact_output(root,args['text'],kind=args.get('kind','log'),max_chars=args.get('max_chars',4000),exit_code=args.get('exit_code')),
+                'pie_output_get':lambda:recover_output(root,args['output_id']),
+                'pie_task_search':lambda:search_tasks(root,args['query'],limit=args.get('limit',10),max_chars=args.get('max_chars',12000)),
+                'pie_task_start':lambda:start_task(root,args['objective']),
+                'pie_task_record':lambda:record_task(root,args['task_id'],args['kind'],args['text'],reference=args.get('reference'),status=args.get('status')),
+                'pie_task_resume':lambda:resume_task(root,args.get('task_id'),args.get('limit',30)),
                 'pie_query':lambda:engine.query(args['query'],mode=args.get('mode','responsibility'),limit=args.get('limit',5),max_chars=args.get('max_chars',12000)) if engine is not None else _standalone_query(root,args),
                 'pie_verified_evidence':lambda:build_evidence(root,args['symbol']),
                 'pie_build_context_pack':lambda:build_context_pack(root,args['symbol'],max_chars=args.get('max_chars',12000),max_calls=args.get('max_calls',100)),
