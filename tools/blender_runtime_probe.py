@@ -26,19 +26,24 @@ def main()->int:
             assert text.startswith(MARKER),"PIE snapshot marker absent"
             return json.loads(text[len(MARKER):])
         rough.default_value=0.35
+        value_before=float(rough.default_value)
         before=snap();cache=SceneDeltaCache()
         first=cache.observe(before,max_chars=16000)
         same=cache.observe(before,max_chars=16000)
         rough.default_value=0.28
+        value_after=float(rough.default_value)
         delta=cache.observe(snap(),max_chars=16000)
         body=json.dumps(delta,separators=(",",":"),ensure_ascii=False)
         ok=(first["state"]=="INITIAL" and same["state"]=="UNCHANGED"
             and delta["state"]=="DELTA" and
-            "Roughness" in body and "0.35" in body and "0.28" in body)
+            "Roughness" in body and abs(value_before-0.35)<0.002
+            and abs(value_after-0.28)<0.002)
         result={"schema":"pie-real-blender-bpy-probe-v1",
                 "state":"PASS" if ok else "FAIL","blender_version":bpy.app.version_string,
                 "initial":first["state"],"unchanged":same["state"],"delta":delta["state"],
                 "material_delta_found":"Roughness" in body,
+                "roughness_before":round(value_before,6),
+                "roughness_after":round(value_after,6),
                 "source":"actual_blender_bpy_not_mock",
                 "note":"Headless bpy only, not Codex/GPU GUI integration"}
     except Exception as ex:
