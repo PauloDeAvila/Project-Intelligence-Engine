@@ -20,6 +20,7 @@ from typing import Any, TextIO
 
 from pie.gateway.metrics import record
 from pie.gateway.policy import mcp_compactable, reduce_text
+from pie.gateway.web_results import web_result_eligible, web_snapshot_preview
 from pie.indexing.global_workspace import detect_workspace
 from pie.retrieval.output_pipeline import recover_output
 from pie.storage.locations import ENV_HOME, global_home
@@ -90,12 +91,15 @@ def recovery_page(root: Path, args: object) -> dict:
 class MCPStdioGateway:
     def __init__(self, root: Path, command: list[str], *,
                  max_chars: int = 2500, compress_tools: tuple[str,...] =
-                 ("get_scene_info","get_object_info")) -> None:
+                 ("get_scene_info","get_object_info"), profile: str = "generic") -> None:
         self.root=detect_workspace(root)
         if not command or not all(isinstance(v,str) and v for v in command):
             raise ValueError("Upstream server command is required")
         if type(max_chars) is not int or not 800<=max_chars<=64000:
             raise ValueError("Invalid MCP result budget")
+        if profile not in ("generic","web"):
+            raise ValueError("MCP profile must be generic or web")
+        self.profile=profile
         self.command=list(command)
         self.max_chars=max_chars
         self.compress_tools=frozenset(compress_tools)
@@ -156,6 +160,12 @@ class MCPStdioGateway:
         eligible=(not self._collision and tool in self._listed_tools and
                   mcp_compactable(response,tool,self.compress_tools,
                                   has_output_schema=tool in self._output_schema_tools))
+        web_view=None
+        if eligible and self.profile=="web":
+            eligible=web_result_eligible(source,tool)
+            if eligible and len(source)>self.max_chars:
+                web_view=web_snapshot_preview(source,max(250,self.max_chars-480))
+                eligible=web_view is not None
         if not eligible or len(source)<=self.max_chars:
             # Telemetry only. Never mutate unsupported/structured/error results.
             try:
@@ -167,7 +177,8 @@ class MCPStdioGateway:
             return response
         started=time.perf_counter()
         try:
-            reduced=reduce_text(self.root,source,surface="mcp",tool=tool,kind="api",
+            reduced=reduce_text(self.root,source,surface="mcp",tool=tool,
+                                kind="web" if self.profile=="web" else "api",
                                 max_chars=self.max_chars,record_metric=False)
             if reduced["state"]=="CAPTURE_LIMIT_EXCEEDED":
                 # Oversize source cannot be fully recovered; do not rewrite it.
@@ -183,6 +194,9 @@ class MCPStdioGateway:
                       "recovery_tool":RECOVERY_NAME,
                       "recovery":"complete_sanitized_source_only",
                       "token_measurement":None}
+            if self.profile=="web" and web_view is not None:
+                envelope["preview"]=web_view["preview"]
+                envelope["web"]={k:v for k,v in web_view.items() if k!="preview"}
             encoded=_json(envelope)
             if len(encoded)>self.max_chars:
                 # No invalid protocol; use metadata-only reference with hash-backed
@@ -261,6 +275,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--workspace",type=Path,default=Path.cwd())
     parser.add_argument("--store",type=Path,default=None)
     parser.add_argument("--max-chars",type=int,default=2500)
+    parser.add_argument("--profile",choices=("generic","web"),default="generic")
     parser.add_argument("--compress-tool",action="append",default=None,
                         help="Explicitly authorize lossy text-only reduction for this tool")
     parser.add_argument("upstream",nargs=argparse.REMAINDER)
@@ -271,7 +286,8 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("Provide upstream argv after --")
     proxy=MCPStdioGateway(opt.workspace,command,max_chars=opt.max_chars,
                           compress_tools=tuple(opt.compress_tool) if opt.compress_tool
-                          else ("get_scene_info","get_object_info"))
+                          else ("get_scene_info","get_object_info"),
+                          profile=opt.profile)
     return proxy.run()
 
 
