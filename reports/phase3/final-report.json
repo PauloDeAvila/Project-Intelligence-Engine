@@ -5,10 +5,10 @@
     "blender": {"tasks": ["blender-material-inspection-v1"], "baseline": {"input_tokens": 226951, "cached_input_tokens": 186752, "output_tokens": 1426, "total_tokens": 228377, "duration_ms_average": 19641.01, "mcp_calls": 4}, "optimized": {"input_tokens": 196052, "cached_input_tokens": 156416, "output_tokens": 1201, "total_tokens": 197253, "duration_ms_average": 17135.5155, "mcp_calls": 5}, "savings_percent": {"input": 13.614833, "uncached_input": 1.400532, "total": 13.628343}, "pairs": 2, "oracle_pass_rate": 1.0},
     "web": {"tasks": ["web-navigation-snapshot-v1"], "baseline": {"input_tokens": 355463, "cached_input_tokens": 318720, "output_tokens": 1333, "total_tokens": 356796, "duration_ms_average": 21267.7425, "mcp_calls": 8}, "optimized": {"input_tokens": 399269, "cached_input_tokens": 356992, "output_tokens": 1672, "total_tokens": 400941, "duration_ms_average": 23727.8075, "mcp_calls": 8}, "savings_percent": {"input": -12.323645, "uncached_input": -15.061372, "total": -12.372616}, "pairs": 2, "oracle_pass_rate": 1.0}
   },
-  "monitoring": {"status": "PARTIAL_COVERAGE", "provider_usage_available": true, "configured_routing_ratio": 0.4, "active_mcp_servers": 5, "wrapped_stdio": 2, "sqlite_rows_observed": 2, "sqlite_apps_observed": ["web"], "overhead_ms": null},
-  "validation": {"authorized_codex_calls": 12, "completed_codex_calls": 12, "retries": 0, "pytest": {"passed": 532, "skipped": 5, "subtests": 133}, "compileall": "passed"},
+  "monitoring": {"status": "PARTIAL_COVERAGE", "provider_usage_available": true, "configured_routing_ratio": 0.4, "active_mcp_servers": 5, "wrapped_stdio": 2, "sqlite_gateway_observations": 2, "sqlite_provider_imports": 12, "sqlite_apps_observed": ["blender", "web"], "overhead_ms": null},
+  "validation": {"authorized_codex_calls": 12, "completed_codex_calls": 12, "retries": 0, "pytest": {"passed": 533, "skipped": 5, "subtests": 133}, "compileall": "passed"},
   "routing": {"user_config_modified": true, "original_servers_preserved": true, "pie_servers": ["pie-blender-optimized", "pie-web-optimized"], "node_repl_modified": false, "telemetry_route_proof": "incomplete"},
   "costs": {"status": "UNAVAILABLE", "total": null, "reason": "No verified tariff supplied for gpt-5.6-luna"},
   "verdict": "NOT_CERTIFIED",
-  "reports": ["reports/phase3/09-blender-real-ab.json", "reports/phase3/10-web-real-ab.json", "reports/phase3/11-token-certification.json", "reports/phase3/12-cost-efficiency.json"]
+  "reports": ["reports/phase3/09-blender-real-ab.json", "reports/phase3/10-web-real-ab.json", "reports/phase3/11-token-certification.json", "reports/phase3/12-cost-efficiency.json", "reports/phase3/13-telemetry-persistence.json"]
 }

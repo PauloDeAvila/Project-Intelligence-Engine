@@ -3,7 +3,16 @@ from __future__ import annotations
 import argparse,json,sys
 from pathlib import Path
 from pie.certification.live_codex import _read_records,capture_codex,compare,validate_scenario,preflight_codex
+from pie.certification.task_telemetry import import_provider_record
 from pie.certification.coverage import audit_codex
+
+def _scenario_app(scenario: dict) -> str:
+    value = " ".join(str(scenario.get(k, "")) for k in ("required_mcp_server", "scenario_id")).lower()
+    if "blender" in value:
+        return "blender"
+    if "web" in value or "playwright" in value:
+        return "web"
+    return "other_mcp"
 
 def main(argv=None)->int:
     parser=argparse.ArgumentParser(description="PIE real Codex token and routing certification")
@@ -19,6 +28,9 @@ def main(argv=None)->int:
     c.add_argument("--timeout",type=int,default=240)
     c.add_argument("--codex-bin",default="codex")
     c.add_argument("--profile")
+    c.add_argument("--telemetry-workspace",type=Path)
+    c.add_argument("--telemetry-app",choices=("blender","web"))
+    c.add_argument("--telemetry-task-id")
     p=subs.add_parser("preflight");p.add_argument("--scenario",type=Path,required=True)
     p.add_argument("--condition",choices=("baseline","optimized"),required=True)
     p.add_argument("--workspace",type=Path,required=True)
@@ -36,6 +48,10 @@ def main(argv=None)->int:
             result=capture_codex(scenario,condition=args.condition,
                     repetition=args.repetition,workspace=args.workspace,
                     codex_home=args.codex_home,timeout=args.timeout,codex_bin=args.codex_bin,profile=args.profile)
+            if args.telemetry_workspace is not None:
+                import_provider_record(args.telemetry_workspace, result,
+                                       app=args.telemetry_app or _scenario_app(scenario),
+                                       task_id=args.telemetry_task_id or scenario["scenario_id"])
         elif args.cmd=="preflight":
             scenario=validate_scenario(json.loads(args.scenario.read_text(encoding="utf-8")))
             result=preflight_codex(scenario,condition=args.condition,workspace=args.workspace,

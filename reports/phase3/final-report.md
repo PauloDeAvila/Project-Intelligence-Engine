@@ -18,12 +18,12 @@ Valores `B/O` são baseline/optimized. A economia de input não armazenado em ca
 - 12 chamadas Codex completadas; 0 retries; modelo `gpt-5.6-luna`, esforço `medium`.
 - 8 chamadas tinham aliases e hashes de prompt comuns: 2 pares Blender e 2 Web. Os quatro pilotos iniciais foram health checks, mas tiveram hashes de prompt diferentes e não foram usados na certificação.
 - Todos os quatro pares estritos passaram o oráculo; isso demonstra correção nesses casos, não suficiência estatística.
-- O SQLite PIE consultado em `C:\Users\phsra\.pie-global\projects\776668a48707658ebd7e41c78fc7d720\index.sqlite3` tinha 2 linhas: Web `browser_snapshot`, `task_id=unassigned`, status `PASSTHROUGH`, tokens do provedor nulos. Não há prova persistida equivalente para as chamadas Blender.
+- O SQLite PIE consultado em `C:\Users\phsra\.pie-global\projects\776668a48707658ebd7e41c78fc7d720\index.sqlite3` contém 2 observações reais do gateway Web (`browser_snapshot`, `task_id=unassigned`, `PASSTHROUGH`) e 12 imports de uso Codex validados: 3 baseline/3 optimized por domínio. Os imports têm `source_event_id` determinístico e são idempotentes; eles não provam, sozinhos, o roteamento de cada chamada pelo gateway.
 - A configuração preserva `blender`, `node_repl` e os demais servidores; as rotas PIE são opt-in, com 2 de 5 servidores ativos envolvidos.
 
 ## Testes
 
-`pytest`: **532 passed, 5 skipped, 133 subtests**. `compileall`: passou. O índice local PIE foi reindexado para a raiz correta e ficou `CURRENT`; o servidor PIE MCP disponível nesta sessão continua apontando para outra raiz, limitação registrada.
+`pytest`: **533 passed, 5 skipped, 133 subtests**. `compileall`: passou. O índice local PIE foi reindexado para a raiz correta e ficou `CURRENT`; o servidor PIE MCP disponível nesta sessão continua apontando para outra raiz, limitação registrada.
 
 ## Custos
 
@@ -31,7 +31,7 @@ Valores `B/O` são baseline/optimized. A economia de input não armazenado em ca
 
 ## Próximos passos seguros
 
-1. Corrigir a captura/persistência para que cada chamada encaminhada, incluindo Blender, produza exatamente um evento idempotente com `task_id`, `run_id`, ferramenta e estado.
+1. Fazer cada captura Codex autorizada usar `--telemetry-workspace`, para que o import validado ocorra automaticamente no mesmo fluxo da execução.
 2. Reexecutar somente os pares faltantes com nova autorização, pois o limite de 12 chamadas desta autorização foi consumido.
 3. Medir overhead real por operação e verificar inicialização contínua dos dois gateways.
 

@@ -25,7 +25,8 @@ for($i=1;$i -le $Repetitions;$i++){
   $captureArgs=@('-m','pie.certification.cli','capture',
    '--scenario',$Scenario,'--workspace',$Workspace,'--codex-home',$homeDir,
    '--condition',$condition,'--repetition',"$i",'--timeout',"$Timeout",
-   '--output',$target)
+   '--output',$target,'--telemetry-workspace',$Workspace,
+   '--telemetry-task-id',($Scenario | Split-Path -LeafBase))
   & $PythonExe @captureArgs
   if($LASTEXITCODE -ne 0){throw 'Provider trace unavailable; NOT_CERTIFIED'}
   $records+=$target

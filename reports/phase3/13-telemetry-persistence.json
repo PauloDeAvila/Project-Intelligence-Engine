@@ -1,0 +1,11 @@
+{
+  "schema": "pie-phase3-telemetry-persistence-v1",
+  "storage": "C:/Users/phsra/.pie-global/projects/776668a48707658ebd7e41c78fc7d720/index.sqlite3",
+  "provider_imports": {"blender": {"baseline": 3, "optimized": 3}, "web": {"baseline": 3, "optimized": 3}},
+  "gateway_observations": {"web": 2, "blender": 0},
+  "provider_tokens_imported": true,
+  "idempotency": "deterministic source_event_id with INSERT OR IGNORE",
+  "task_ids": ["blender-material-inspection-v1", "web-navigation-snapshot-v1"],
+  "gateway_route_coverage": "INCOMPLETE",
+  "limitation": "Provider imports prove validated usage persistence, not that every Codex MCP call traversed the PIE gateway."
+}

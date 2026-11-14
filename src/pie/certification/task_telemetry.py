@@ -8,6 +8,7 @@ from __future__ import annotations
 from contextlib import closing
 from datetime import datetime, timezone
 import json
+import hashlib
 import os
 from pathlib import Path
 import re
@@ -33,7 +34,8 @@ CREATE TABLE IF NOT EXISTS pie_task_usage (
  provider_input_tokens INTEGER,
  provider_cached_tokens INTEGER,
  provider_output_tokens INTEGER,
- condition TEXT NOT NULL DEFAULT 'observed'
+ condition TEXT NOT NULL DEFAULT 'observed',
+ source_event_id TEXT
 );
 """
 _ALLOWED = re.compile(r"^[A-Za-z0-9_.-]{1,80}$")
@@ -41,6 +43,7 @@ _MIGRATIONS = {
     "run_id": "TEXT NOT NULL DEFAULT 'run-legacy'",
     "tool_name": "TEXT NOT NULL DEFAULT ''",
     "status": "TEXT NOT NULL DEFAULT 'observed'",
+    "source_event_id": "TEXT",
 }
 
 
@@ -62,6 +65,7 @@ def _connect(root: Path) -> sqlite3.Connection:
             db.execute(f"ALTER TABLE pie_task_usage ADD COLUMN {name} {definition}")
     db.execute("CREATE INDEX IF NOT EXISTS pie_task_usage_by_task ON pie_task_usage(app, task_id, run_id, created_utc)")
     db.execute("CREATE INDEX IF NOT EXISTS pie_task_usage_by_run ON pie_task_usage(run_id, created_utc)")
+    db.execute("CREATE UNIQUE INDEX IF NOT EXISTS pie_task_usage_by_event ON pie_task_usage(source_event_id) WHERE source_event_id IS NOT NULL")
     return db
 
 
@@ -118,20 +122,24 @@ def import_provider_record(root: Path, record: dict, *, app: str, task_id: str) 
     if not _ALLOWED.fullmatch(app) or not _ALLOWED.fullmatch(task_id):
         raise ValueError("Invalid app/task")
     u = record["usage"]
+    event_id = hashlib.sha256("|".join(str(v) for v in (
+        app, task_id, record.get("run_id") or "", record["condition"],
+        record["scenario_id"], record["repetition"], record["configuration_sha256"]
+    )).encode("utf-8")).hexdigest()
     with closing(_connect(root)) as db:
         with db:
             db.executescript(SCHEMA)
-            db.execute("""INSERT INTO pie_task_usage
+            db.execute("""INSERT OR IGNORE INTO pie_task_usage
                 (created_utc,app,task_id,run_id,surface,tool,tool_name,state,status,source_chars,
-                 returned_chars,elapsed_ms,provider_input_tokens,
-                 provider_cached_tokens,provider_output_tokens,condition)
-                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                returned_chars,elapsed_ms,provider_input_tokens,
+                provider_cached_tokens,provider_output_tokens,condition,source_event_id)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (datetime.now(timezone.utc).isoformat(), app, task_id,
                  record.get("run_id") or f"{record['condition']}-{record['scenario_id']}-{record['repetition']}",
                  "provider", "codex_exec", "codex_exec", "PROVIDER_REPORTED", "success", 0, 0,
                  record["runtime_ms"], u["input_tokens"],
                  u["cached_input_tokens"], u["output_tokens"],
-                 record["condition"]))
+                 record["condition"], event_id))
 
 
 def report(root: Path, *, app: str | None = None, task_id: str | None = None,

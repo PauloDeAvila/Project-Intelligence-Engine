@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from pie.certification.task_telemetry import app_for, record_task, report
+from pie.certification.task_telemetry import app_for, record_task, import_provider_record, report
 
 
 class TaskTelemetryTests(unittest.TestCase):
@@ -52,6 +52,26 @@ class TaskTelemetryTests(unittest.TestCase):
             self.assertEqual(row["run_id"], "run-07")
             self.assertEqual(row["condition"], "optimized")
             self.assertEqual(row["elapsed_ms"], 12.25)
+
+    def test_provider_import_is_idempotent_and_keeps_real_usage(self):
+        record = {
+            "schema": "pie-live-codex-usage-v1", "provider_reported": True,
+            "source": "codex_exec_json_turn_completed", "condition": "optimized",
+            "scenario_id": "scene-read", "repetition": 2, "model": "m",
+            "codex_version": "c", "prompt_sha256": "p", "expected_sha256": "e",
+            "workspace_commit": "w", "configuration_sha256": "cfg",
+            "oracle_kind": "exact_text", "oracle_pass": True, "tool_events": 1,
+            "runtime_ms": 12.5, "usage": {"input_tokens": 100,
+                "cached_input_tokens": 40, "output_tokens": 7}
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            import_provider_record(root, record, app="blender", task_id="scene-read")
+            import_provider_record(root, record, app="blender", task_id="scene-read")
+            data = report(root)
+            self.assertEqual(len(data["apps"]), 1)
+            self.assertEqual(data["apps"][0]["events"], 1)
+            self.assertEqual(data["apps"][0]["input_tokens"], 100)
 
 
 if __name__ == "__main__":
