@@ -48,10 +48,23 @@ TOOLS = [
     {'name':'pie_analysis_summary', 'description':'Counts of definitions and references by kind, context and resolution verdict.', 'inputSchema':{'type':'object','properties':{},'additionalProperties':False}},
 ]
 
+# Opt-in compact discovery reduces MCP tool-schema context. All existing
+# tools remain available in the default full profile for backward compatibility.
+COMPACT_TOOL_NAMES = frozenset({
+    "pie_tool_gateway", "pie_task_start", "pie_task_record",
+    "pie_build_proof_context", "pie_build_context_mesh",
+})
 
-def dispatch(request: dict, root: Path, engine: MCPContextEngine | None = None) -> dict | None:
+
+def dispatch(request: dict, root: Path, engine: MCPContextEngine | None = None,
+             *, tool_profile: str = "full") -> dict | None:
     if not isinstance(request, dict):
         return {'jsonrpc':'2.0','id':None,'error':{'code':-32600,'message':'Request must be an object'}}
+    if tool_profile not in ("full", "compact"):
+        raise ValueError("Invalid MCP tool profile")
+    visible_tools = TOOLS if tool_profile == "full" else [
+        tool for tool in TOOLS if tool["name"] in COMPACT_TOOL_NAMES
+    ]
     rid = request.get('id')
     method = request.get('method')
     if rid is None and isinstance(method, str) and method.startswith('notifications/'):
@@ -64,14 +77,14 @@ def dispatch(request: dict, root: Path, engine: MCPContextEngine | None = None) 
         elif method == 'ping':
             result = {}
         elif method == 'tools/list':
-            result = {'tools':TOOLS}
+            result = {'tools':visible_tools}
         elif method == 'tools/call':
             params = request.get('params') or {}
             if not isinstance(params, dict):
                 raise ValueError('params must be an object')
             args = params.get('arguments', {})
             name = params.get('name')
-            allowed = next((t for t in TOOLS if t['name']==name), None)
+            allowed = next((t for t in visible_tools if t['name']==name), None)
             if allowed is None:
                 raise ValueError('Unknown tool')
             if not isinstance(args, dict):
@@ -151,7 +164,9 @@ def main(argv=None):
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--root',type=Path,default=Path.cwd())
-    configured_root = parser.parse_args(argv).root
+    parser.add_argument('--tool-profile', choices=('full', 'compact'), default='full')
+    options = parser.parse_args(argv)
+    configured_root = options.root
     if configured_root.is_symlink():
         raise ValueError('MCP root must not be a symlink')
     root = configured_root.resolve(strict=True)
@@ -165,7 +180,7 @@ def main(argv=None):
                 reply = {"jsonrpc": "2.0", "id": request.get("id"),
                          "error": {"code": -32600, "message": "Missing or invalid jsonrpc version"}}
             else:
-                reply = dispatch(request,root,engine)
+                reply = dispatch(request,root,engine,tool_profile=options.tool_profile)
         except Exception as exc:
             reply = {'jsonrpc':'2.0','id':None,'error':{'code':-32700,'message':str(exc)}}
         if reply is not None:
