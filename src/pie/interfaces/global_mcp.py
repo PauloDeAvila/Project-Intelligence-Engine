@@ -26,6 +26,14 @@ EXTRA_TOOLS = [
         "inputSchema": {"type":"object","properties":{},"additionalProperties":False},
     },
     {
+        "name": "pie_global_recent_changes",
+        "description": "Read automatically captured changed/deleted file fingerprints across sessions; independent of model checkpoints.",
+        "inputSchema": {"type":"object","properties":{
+            "limit":{"type":"integer","minimum":1,"maximum":50},
+            "max_chars":{"type":"integer","minimum":500,"maximum":64000}},
+            "additionalProperties":False},
+    },
+    {
         "name": "pie_global_find_files",
         "description": "Search bounded source text and paths across supported languages in the current auto-indexed workspace. Results are file-hash verified, non-Python languages have lexical coverage only.",
         "inputSchema": {"type":"object","properties":{
@@ -52,7 +60,7 @@ def _dispatch(req: dict, manager: GlobalWorkspaceIndex, *, tool_profile: str) ->
     if req.get("method") == "tools/call" and isinstance(req.get("params"), dict):
         params = req["params"]
         name = params.get("name")
-        if name in ("pie_global_status", "pie_global_find_files"):
+        if name in ("pie_global_status", "pie_global_find_files", "pie_global_recent_changes"):
             args = params.get("arguments", {})
             if not isinstance(args, dict) or (
                 name == "pie_global_status" and args):
@@ -60,10 +68,17 @@ def _dispatch(req: dict, manager: GlobalWorkspaceIndex, *, tool_profile: str) ->
             if name == "pie_global_find_files" and (
                 set(args)-{"query","limit","max_chars"} or "query" not in args):
                 return _error_reply(req.get("id"),"Invalid file search arguments")
+            if name == "pie_global_recent_changes" and set(args)-{"limit","max_chars"}:
+                return _error_reply(req.get("id"),"Invalid change journal arguments")
             try:
-                value = (manager.status() if name == "pie_global_status"
-                         else manager.search(args["query"], limit=args.get("limit",5),
-                                             max_chars=args.get("max_chars",4000)))
+                if name == "pie_global_status":
+                    value = manager.status()
+                elif name == "pie_global_recent_changes":
+                    value = manager.recent_changes(limit=args.get("limit",12),
+                                                    max_chars=args.get("max_chars",4000))
+                else:
+                    value = manager.search(args["query"], limit=args.get("limit",5),
+                                           max_chars=args.get("max_chars",4000))
                 return {"jsonrpc":"2.0","id":req.get("id"),"result":{
                     "content":[{"type":"text","text":json.dumps(value,ensure_ascii=False,separators=(",",":"))}]
                 }}
@@ -96,6 +111,7 @@ def run_stdio(workspace: Path, *, poll_seconds: float = 5.0,
         thread.start()
     try:
         for line in sys.stdin:
+            req = None
             try:
                 req=json.loads(line)
                 if not isinstance(req,dict):
