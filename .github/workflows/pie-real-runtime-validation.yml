@@ -85,11 +85,17 @@ jobs:
           node-version: '22'
       - name: Install real pinned Codex CLI
         run: npm install -g @openai/codex@0.166.0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e .
       - name: Exercise real Codex CLI parser without login or model requests
         run: |
           codex --version
           codex exec --help
           codex mcp --help
+      - name: Register and inspect PIE proxy via actual Codex MCP config
+        run: python tools/verify_codex_mcp_registry.py
 
   blender-real-bpy:
     name: Actual Blender bpy material delta Linux
