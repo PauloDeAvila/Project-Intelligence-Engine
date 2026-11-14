@@ -46,7 +46,7 @@ class Phase1GatewayTests(unittest.TestCase):
         self.addCleanup(self.env.stop)
 
     def test_generic_compact_and_recover_exact_sanitized(self):
-        original="OK\n"*150 + "Authorization: Bearer super-private-credential\n" + "FAILED: expected 23, got 22\n"
+        original="OK\n"*500 + "Authorization: Bearer super-private-credential\n" + "FAILED: expected 23, got 22\n"
         r=reduce_text(self.root,original,surface="terminal",tool="pytest",
                       kind="test",exit_code=1,max_chars=800)
         self.assertEqual(r["state"],"PARTIAL")
