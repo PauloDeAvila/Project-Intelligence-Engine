@@ -1,0 +1,24 @@
+{
+  "schema": "pie-phase3-ab-equivalence-v1",
+  "status": "BLOCKED_AUTH",
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "same_workspace_commit": "c913bdb85980e20e325cc9bcf390f736eb07b211",
+  "baseline": {
+    "mcp_blender": "blender",
+    "mcp_web": "playwright-baseline",
+    "pie_compaction": false,
+    "config_valid": true,
+    "mcp_expected_servers": "PASS",
+    "authentication": "AUTH_MISSING"
+  },
+  "optimized": {
+    "mcp_blender": "pie-blender-optimized",
+    "mcp_web": "pie-web-optimized",
+    "pie_compaction": true,
+    "config_valid": true,
+    "mcp_expected_servers": "PASS",
+    "authentication": "AUTH_MISSING"
+  },
+  "equivalence": "Model, commit, scenario, permissions and oracles are prepared; remote execution is not released."
+}

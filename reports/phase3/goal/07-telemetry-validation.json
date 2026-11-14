@@ -1,0 +1,12 @@
+{
+  "schema": "pie-phase3-telemetry-validation-v1",
+  "status": "PASS_FOR_REGISTERED_GATEWAYS",
+  "sqlite": {"wal": true, "busy_timeout_ms": 5000, "retention_configurable": true, "filters": ["application", "task_id", "run_id", "period", "tool", "condition", "status"]},
+  "real_local_probes": {
+    "blender": {"status": "PASS", "task_id": "phase3-blender-live", "run_id": "run-blender-live-validated", "duration_ms": 46.366, "source_chars": 284, "returned_chars": 284, "tokens": null},
+    "web": {"status": "PASS", "task_id": "phase3-web-probe", "run_id": "run-web-probe-01", "source_chars": 17585, "model_facing_chars": 1256, "tokens": null}
+  },
+  "provider_usage": "unavailable until authenticated Codex capture",
+  "overhead_p95_ms": null,
+  "conclusion": "Local gateway instrumentation is operational; universal route coverage and provider-token attribution are not proven."
+}

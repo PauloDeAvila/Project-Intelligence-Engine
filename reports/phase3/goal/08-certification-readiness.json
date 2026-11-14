@@ -1,0 +1,15 @@
+{
+  "schema": "pie-phase3-certification-readiness-v1",
+  "status": "BLOCKED",
+  "model": "gpt-5.6-luna",
+  "planned_pairs_per_domain": 3,
+  "authentication_original": "AUTH_VALIDATED_LOCAL",
+  "baseline_authentication": "AUTH_MISSING",
+  "optimized_authentication": "AUTH_MISSING",
+  "mcp_preflight": "PASS",
+  "worktree_preflight": "PASS",
+  "scenario_oracle_preflight": "PASS",
+  "provider_usage_preflight": "BLOCKED",
+  "model_calls_allowed": 0,
+  "next_gate": "Resolve authentication strategy without copying credentials, then obtain separate authorization for any quota-consuming probe."
+}

@@ -1,0 +1,17 @@
+{
+  "schema": "pie-phase3-live-routing-v1",
+  "status": "PARTIAL",
+  "configured_servers": 5,
+  "pie_wrapped_servers": 2,
+  "configured_routing_ratio": 0.4,
+  "routes": {
+    "blender": "UNWRAPPED_STDIO",
+    "node_repl": "UNWRAPPED_STDIO",
+    "pie-blender-optimized": "PIE_STDIO_WRAPPED",
+    "pie-web-optimized": "PIE_STDIO_WRAPPED",
+    "pie-def7be8e70": "UNWRAPPED_WRONG_ROOT"
+  },
+  "effective_task_routing": "NOT_PROVEN",
+  "evidence": ["reports/phase3/blender-live-telemetry.json", "reports/phase3/routing-audit-final.json"],
+  "limitation": "Registered route presence is not proof that normal Codex tasks select the gateway."
+}
