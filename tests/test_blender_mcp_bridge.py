@@ -97,9 +97,9 @@ class BlenderProxyUnitTests(unittest.TestCase):
             {"name":"get_scene_info","inputSchema":{"type":"object"}},
         ],"nextCursor":"next"}}
         tools = extend_tools(raw)["result"]["tools"]
-        self.assertEqual([t["name"] for t in tools], ["execute_blender_code", "get_scene_info", "pie_blender_expand"])
+        self.assertEqual([t["name"] for t in tools], ["execute_blender_code", "get_scene_info", "pie_blender_expand", "pie_blender_scene_delta"])
         extend_tools(raw)
-        self.assertEqual(len(raw["result"]["tools"]), 3)
+        self.assertEqual(len(raw["result"]["tools"]), 4)
 
     def test_invalid_budget(self):
         with self.assertRaises(ValueError):
@@ -155,7 +155,7 @@ for line in sys.stdin:
         responses = {r["id"]:r for r in (json.loads(line) for line in process.stdout.splitlines())}
         self.assertEqual(responses[1]["result"]["serverInfo"]["name"], "mock-blender")
         names = [x["name"] for x in responses[2]["result"]["tools"]]
-        self.assertEqual(names, ["get_scene_info","execute_blender_code","pie_blender_expand"])
+        self.assertEqual(names, ["get_scene_info","execute_blender_code","pie_blender_expand","pie_blender_scene_delta"])
         compact = json.loads(responses[3]["result"]["content"][0]["text"])
         self.assertEqual(compact["status"], "PARTIAL")
         self.assertEqual(responses[4]["result"]["content"][0]["text"], "MATERIAL_CREATED"*150)

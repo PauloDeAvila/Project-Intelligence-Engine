@@ -4,6 +4,9 @@ import time
 from pathlib import Path
 
 from pie import __version__
+from pie.retrieval.task_memory import start_task, record_task, resume_task
+from pie.retrieval.task_search import search_tasks
+from pie.retrieval.output_pipeline import compact_output, recover_output
 from pie.core.errors import ProjectNotInitializedError
 from pie.indexing.indexer import index_project
 from pie.retrieval.symbols import analysis_summary, find_definitions, find_references
@@ -153,10 +156,47 @@ def main(argv: list[str] | None = None) -> int:
     recall_cmd = subparsers.add_parser("recall")
     recall_cmd.add_argument("query", nargs="?", default="")
     recall_cmd.add_argument("--root", default=".")
+    task_start = subparsers.add_parser("task-start")
+    task_start.add_argument("--root", default=".")
+    task_start.add_argument("--objective", required=True)
+    task_record = subparsers.add_parser("task-record")
+    task_record.add_argument("--root", default=".")
+    task_record.add_argument("--task-id", required=True)
+    task_record.add_argument("--kind", choices=("action","decision","result","checkpoint","note"), required=True)
+    task_record.add_argument("--text", required=True)
+    task_record.add_argument("--reference")
+    task_record.add_argument("--status", choices=("in_progress","blocked","completed"))
+    task_resume = subparsers.add_parser("task-resume")
+    task_resume.add_argument("--root", default=".")
+    task_resume.add_argument("--task-id")
+    task_resume.add_argument("--limit", type=int, default=30)
+    task_search = subparsers.add_parser("task-search")
+    task_search.add_argument("query")
+    task_search.add_argument("--root", default=".")
+    task_search.add_argument("--limit", type=int, default=10)
+    task_search.add_argument("--max-chars", type=int, default=12000)
+    oc = subparsers.add_parser("output-compact", help="Redact, compact, and store recoverable tool output")
+    oc.add_argument("--file", type=Path, required=True)
+    oc.add_argument("--root", default=".")
+    oc.add_argument("--kind", choices=("log","test","git","terminal","web","api"), default="log")
+    oc.add_argument("--max-chars", type=int, default=4000)
+    oc.add_argument("--exit-code", type=int)
+    og = subparsers.add_parser("output-get", help="Recover sanitized original tool output")
+    og.add_argument("--output-id", required=True)
+    og.add_argument("--root", default=".")
     args = parser.parse_args(argv)
     root = project_root(args.root)
     try:
-        if args.command == "init": result = command_init(root)
+        if args.command == "output-compact":
+            result = compact_output(root, args.file.read_text(encoding="utf-8"),kind=args.kind,max_chars=args.max_chars,exit_code=args.exit_code)
+        elif args.command == "output-get": result = recover_output(root,args.output_id)
+        elif args.command == "task-start": result = start_task(root, args.objective)
+        elif args.command == "task-record":
+            result = record_task(root, args.task_id, args.kind, args.text,
+                                 reference=args.reference, status=args.status)
+        elif args.command == "task-resume": result = resume_task(root, args.task_id, args.limit)
+        elif args.command == "task-search": result = search_tasks(root, args.query, limit=args.limit, max_chars=args.max_chars)
+        elif args.command == "init": result = command_init(root)
         elif args.command == "index": result = index_project(root) if (root / ".pie" / "index.sqlite3").exists() else command_init(root) | index_project(root)
         elif args.command == "status": result = command_status(root)
         elif args.command == "search": result = command_search(root, args.query)

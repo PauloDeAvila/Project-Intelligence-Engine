@@ -16,11 +16,30 @@ import sys
 import threading
 from typing import Any
 
+from pie.integrations.blender_delta import SceneDeltaCache, snapshot_code, parse_execution_reply
+
 OBSERVATION_TOOLS = frozenset({"get_scene_info", "get_object_info"})
 MAX_SNAPSHOTS = 32
 MAX_SNAPSHOT_CHARS = 2_000_000
 MIN_BUDGET = 800
 MAX_BUDGET = 64000
+
+SCENE_DELTA_TOOL: dict[str, Any] = {
+    "name": "pie_blender_scene_delta",
+    "description": (
+        "Read-only delta of selected or all Blender scene objects, materials and shader nodes. "
+        "Returns INITIAL, UNCHANGED, DELTA or PARTIAL since prior observation. "
+        "No scene edits; observation is explicit, not background monitoring."
+    ),
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "scope": {"type": "string", "enum": ["selected", "all"]},
+            "max_chars": {"type": "integer", "minimum": 1000, "maximum": 64000},
+        },
+        "additionalProperties": False,
+    },
+}
 
 EXPAND_TOOL: dict[str, Any] = {
     "name": "pie_blender_expand",
@@ -110,9 +129,11 @@ def _error(reason: str) -> dict[str, Any]:
 def extend_tools(message: dict[str, Any]) -> dict[str, Any]:
     result = message.get("result")
     if isinstance(result, dict) and isinstance(result.get("tools"), list):
-        tools = result["tools"]
-        if not any(isinstance(t, dict) and t.get("name") == EXPAND_TOOL["name"] for t in tools):
-            result["tools"] = [*tools, EXPAND_TOOL]
+        values = list(result["tools"])
+        for extra in (EXPAND_TOOL, SCENE_DELTA_TOOL):
+            if not any(isinstance(t, dict) and t.get("name") == extra["name"] for t in values):
+                values.append(extra)
+        result["tools"] = values
     return message
 
 
@@ -178,6 +199,8 @@ class BlenderMcpBridge:
         self.upstream = upstream
         self.max_chars = max_chars
         self.snapshots = SnapshotStore()
+        self.delta_cache = SceneDeltaCache()
+        self.delta_options: dict[str, int] = {}
         self.pending: dict[str, str] = {}
         self.pending_lock = threading.Lock()
         self.output_lock = threading.Lock()
@@ -211,6 +234,26 @@ class BlenderMcpBridge:
                         marker = "__tools_list__" if not (isinstance(params, dict) and params.get("cursor")) else ""
                     elif method == "tools/call" and isinstance(params, dict):
                         marker = str(params.get("name", ""))
+                        if marker == "pie_blender_scene_delta":
+                            arguments = params.get("arguments", {})
+                            valid = isinstance(arguments, dict) and not (
+                                set(arguments) - {"scope", "max_chars"}
+                            )
+                            scope = arguments.get("scope", "selected") if valid else None
+                            max_chars = arguments.get("max_chars", 4000) if valid else None
+                            valid = (valid and scope in ("selected", "all")
+                                     and type(max_chars) is int and 1000 <= max_chars <= 64000)
+                            if not valid:
+                                self._write({"jsonrpc": "2.0", "id": message["id"],
+                                             "result": _error("Invalid scene delta arguments")})
+                                continue
+                            self.delta_options[_key(message["id"])] = max_chars
+                            marker = "__blender_delta__"
+                            raw = _json({
+                                "jsonrpc": "2.0", "id": message["id"], "method": "tools/call",
+                                "params": {"name": "execute_blender_code",
+                                           "arguments": {"code": snapshot_code(scope)}},
+                            }) + "\n"
                     else:
                         marker = ""
                     if marker:
@@ -253,6 +296,16 @@ class BlenderMcpBridge:
                         tool_name = self.pending.pop(_key(message["id"]), "")
                     if tool_name == "__tools_list__":
                         self._write(extend_tools(message))
+                    elif tool_name == "__blender_delta__":
+                        with self.pending_lock:
+                            budget = self.delta_options.pop(_key(message["id"]), 4000)
+                        try:
+                            snapshot = parse_execution_reply(message)
+                            delta = self.delta_cache.observe(snapshot, max_chars=budget)
+                            result = {"content": [{"type": "text", "text": _json(delta)}]}
+                        except (ValueError, KeyError, TypeError, OverflowError) as exc:
+                            result = _error("PIE_DELTA_UNAVAILABLE: " + str(exc)[:250])
+                        self._write({"jsonrpc": "2.0", "id": message["id"], "result": result})
                     elif tool_name in OBSERVATION_TOOLS:
                         before = _json(message)
                         result = compact_observation(message, tool_name, self.snapshots, self.max_chars)
