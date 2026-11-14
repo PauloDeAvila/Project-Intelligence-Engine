@@ -20,7 +20,7 @@ from typing import Any
 
 from pie.indexing.indexer import index_project
 from pie.indexing.global_lock import workspace_index_lock
-from pie.scanning.discovery import IGNORED_DIRECTORIES
+from pie.scanning.discovery import IGNORED_DIRECTORIES, sensitive_name
 from pie.scanning.ignore import IgnoreRules
 from pie.storage.database import connect
 from pie.storage.locations import global_home, project_id, workspace_file
@@ -38,26 +38,23 @@ SOURCE_SUFFIXES = frozenset({
     ".css", ".scss", ".html", ".glsl", ".vert", ".frag", ".osl",
     ".gd", ".shader", ".json", ".toml", ".yaml", ".yml", ".md",
     ".txt", ".sql", ".xml", ".gradle", ".sh", ".ps1", ".blend",
+    ".blend1", ".blend2", ".fbx", ".obj", ".mtl", ".glb", ".gltf",
+    ".usd", ".usda", ".usdc", ".vdb", ".png", ".jpg", ".jpeg",
+    ".webp", ".exr", ".hdr", ".tif", ".tiff", ".wav", ".aiff",
+    ".flac", ".mp3", ".ogg", ".als", ".adg", ".adv",
+})
+BINARY_ASSET_SUFFIXES = frozenset({
+    ".blend", ".blend1", ".blend2", ".fbx", ".glb", ".usdc",
+    ".vdb", ".png", ".jpg", ".jpeg", ".webp", ".exr", ".hdr",
+    ".tif", ".tiff", ".wav", ".aiff", ".flac", ".mp3", ".ogg",
+    ".als", ".adg", ".adv",
 })
 TEXT_CACHE_LIMIT = 128_000
 FILE_HASH_LIMIT = 2_000_000
 MAX_TRACKED_FILES = 20_000
 RECONCILE_CHANGE_COUNT = 64
 RECONCILE_FRACTION = .30
-EXCLUDE_NAMES = frozenset({
-    ".env", ".npmrc", ".pypirc", "id_rsa", "id_ed25519",
-    "credentials", "credentials.json", "secrets.json",
-    "keyfile", ".netrc",
-})
-EXCLUDE_SUFFIXES = frozenset({".pem", ".key", ".p12", ".pfx", ".secret"})
-INVENTORY_SCHEMA = """
-CREATE TABLE IF NOT EXISTS pie_global_files(
-    path TEXT PRIMARY KEY, mtime_ns INTEGER NOT NULL,
-    size INTEGER NOT NULL, inode INTEGER NOT NULL,
-    sha256 TEXT, content TEXT, text_state TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_pie_global_files_path ON pie_global_files(path);
-"""
+
 
 
 def detect_workspace(start: Path) -> Path:
@@ -79,15 +76,9 @@ def detect_workspace(start: Path) -> Path:
     return start
 
 
-def _skip(path: Path) -> bool:
-    name = path.name.lower()
-    return (name in EXCLUDE_NAMES or name.startswith(".env.")
-            or path.suffix.lower() in EXCLUDE_SUFFIXES
-            or "secret" in name or "credential" in name)
-
 
 def _eligible(path: Path) -> bool:
-    return not _skip(path) and path.suffix.lower() in SOURCE_SUFFIXES
+    return not sensitive_name(path) and path.suffix.lower() in SOURCE_SUFFIXES
 
 
 def _utc() -> str:
@@ -143,7 +134,7 @@ class GlobalWorkspaceIndex:
     def _capture(self, relative: str, stat: tuple[int, int, int]) -> tuple[str | None, str | None, str]:
         """Only read changed text; fail closed if a source changes mid-read."""
         source = self.root / relative
-        if source.suffix.lower() == ".blend" or stat[1] > FILE_HASH_LIMIT:
+        if source.suffix.lower() in BINARY_ASSET_SUFFIXES or stat[1] > FILE_HASH_LIMIT:
             return None, None, "METADATA_ONLY"
         try:
             with source.open("rb") as stream:
