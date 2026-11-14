@@ -2,8 +2,8 @@
   "schema": "pie-phase3-token-certification-v1",
   "status": "NOT_CERTIFIED",
   "reason": "Provider usage was reported for all 12 authorized calls, but only two strictly comparable pairs per application were available; three pairs per application are required. SQLite gateway coverage was also incomplete.",
-  "authorized_calls": 12,
-  "completed_calls": 12,
+  "authorized_calls": 16,
+  "completed_calls": 14,
   "retries": 0,
   "pilot_health_checks": 4,
   "strict_comparable_calls": 8,
@@ -16,7 +16,7 @@
   },
   "limitations": [
     "The first baseline/optimized pilot prompts had different hashes and are excluded from paired certification.",
-    "Gateway SQLite contains two Web PASSTHROUGH events with unassigned task IDs and no Blender events for this battery.",
+    "The follow-up Blender pair had provider usage but failed all expected MCP tool calls in both arms and is excluded. The authorized Web pair was not run after this critical failure.",
     "No token value was inferred from characters."
   ]
 }

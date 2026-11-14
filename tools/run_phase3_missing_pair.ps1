@@ -27,11 +27,11 @@ New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
 $scenarioId = [IO.Path]::GetFileNameWithoutExtension($Scenario)
 $order = @("optimized", "baseline")
 foreach ($condition in $order) {
-    $home = if ($condition -eq "baseline") { $BaselineCodexHome } else { $OptimizedCodexHome }
+    $homeDir = if ($condition -eq "baseline") { $BaselineCodexHome } else { $OptimizedCodexHome }
     $profile = if ($condition -eq "baseline") { $BaselineProfile } else { $OptimizedProfile }
     $target = Join-Path $OutputDirectory ("{0}-{1:D2}.json" -f $condition, $Repetition)
     $args = @("-m", "pie.certification.cli", "capture", "--scenario", $Scenario,
-        "--workspace", $Workspace, "--codex-home", $home, "--condition", $condition,
+        "--workspace", $Workspace, "--codex-home", $homeDir, "--condition", $condition,
         "--repetition", "$Repetition", "--timeout", "$Timeout", "--profile", $profile,
         "--telemetry-workspace", $Workspace, "--telemetry-task-id", $scenarioId,
         "--output", $target)
