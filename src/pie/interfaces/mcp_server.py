@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 from pie.graph.relationships import build_relationships, get_relationships
+from pie.telemetry.tokens import estimate, compare
 from pie.interfaces.mcp_context import MCPContextEngine
 from pie.retrieval.context import build_context
 from pie.interfaces.cli import command_status, command_search, command_symbol
@@ -20,6 +21,7 @@ from pie.retrieval.evidence_atoms import build_proof_context
 from pie.retrieval.context_mesh import build_context_mesh
 
 TOOLS = [
+    {'name':'pie_count_tokens', 'description':'Estimate text-only tokens; optional comparison. Not billed API usage.', 'inputSchema':{'type':'object','properties':{'text':{'type':'string'},'optimized_text':{'type':'string'},'model':{'type':'string'}},'required':['text'],'additionalProperties':False}},
     {'name':'pie_query', 'description':'Preferred unified source-grounded lookup: responsibilities, symbol/file navigation and verified impact relationships. Use this before direct file browsing.', 'inputSchema':{'type':'object','properties':{'query':{'type':'string'},'mode':{'type':'string','enum':['responsibility','navigation','impact']},'limit':{'type':'integer','minimum':1,'maximum':20},'max_chars':{'type':'integer','minimum':500,'maximum':200000}},'required':['query'],'additionalProperties':False}},
     {'name':'pie_verified_evidence', 'description':'Canonical hash-verified function or qualified method signature (e.g. MeasurementCache.get) and bounded verified direct call sites; rejects ambiguous or stale evidence.', 'inputSchema':{'type':'object','properties':{'symbol':{'type':'string'}},'required':['symbol'],'additionalProperties':False}},
     {'name':'pie_build_context_pack', 'description':'Deterministic v2 Context Pack for an exact function or qualified method (e.g. MeasurementCache.get); separates returned verified-call completeness from partial static coverage; never certifies exhaustive callers or runtime breakage.', 'inputSchema':{'type':'object','properties':{'symbol':{'type':'string'},'max_chars':{'type':'integer','minimum':1500,'maximum':64000},'max_calls':{'type':'integer','minimum':1,'maximum':100}},'required':['symbol'],'additionalProperties':False}},
@@ -90,6 +92,7 @@ def dispatch(request: dict, root: Path, engine: MCPContextEngine | None = None) 
             if 'detail' in args and args['detail'] not in ('compact', 'full'):
                 raise ValueError('Invalid detail')
             functions = {
+                'pie_count_tokens':lambda: compare(args['text'], args['optimized_text'], args.get('model','unknown')) if 'optimized_text' in args else estimate(args['text'], args.get('model','unknown')),
                 'pie_query':lambda:engine.query(args['query'],mode=args.get('mode','responsibility'),limit=args.get('limit',5),max_chars=args.get('max_chars',12000)) if engine is not None else _standalone_query(root,args),
                 'pie_verified_evidence':lambda:build_evidence(root,args['symbol']),
                 'pie_build_context_pack':lambda:build_context_pack(root,args['symbol'],max_chars=args.get('max_chars',12000),max_calls=args.get('max_calls',100)),
