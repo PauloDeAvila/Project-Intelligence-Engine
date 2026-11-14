@@ -141,20 +141,34 @@ def compact_output(root: Path, content: str, *, kind: str = "log",
             continue
         compacted.append(candidate)
         used += len(candidate) + 1
+    manifest_json = json.dumps(verified_manifest, separators=(",", ":"))
+    cache_hit = False
     with closing(_open_outputs(root)) as db:
         with db:
-            db.execute(
-                "INSERT INTO pie_tool_outputs"
-                "(output_id,kind,content,sha256,created_utc,manifest_json) VALUES (?,?,?,?,?,?)",
-                (output_id, kind, original, digest,
-                 datetime.now(timezone.utc).isoformat(),
-                 json.dumps(verified_manifest, separators=(",", ":"))),
-            )
+            db.execute("BEGIN IMMEDIATE")
+            current = db.execute(
+                "SELECT output_id,content FROM pie_tool_outputs "
+                "WHERE sha256=? AND kind=? AND manifest_json=? "
+                "ORDER BY created_utc DESC LIMIT 1",
+                (digest, kind, manifest_json),
+            ).fetchone()
+            timestamp = datetime.now(timezone.utc).isoformat()
+            if current is not None and current["content"] == original:
+                output_id = current["output_id"]
+                cache_hit = True
+                db.execute("UPDATE pie_tool_outputs SET created_utc=? WHERE output_id=?",
+                           (timestamp, output_id))
+            else:
+                db.execute(
+                    "INSERT INTO pie_tool_outputs"
+                    "(output_id,kind,content,sha256,created_utc,manifest_json) VALUES (?,?,?,?,?,?)",
+                    (output_id, kind, original, digest, timestamp, manifest_json),
+                )
             _prune(db)
     response_text = "\n".join(compacted)
     # Not a token estimate: these are exact Unicode character counts for the
     # observed text payload, prior to envelope serialization.
-    return {"output_id": output_id, "kind": kind,
+    return {"output_id": output_id, "kind": kind, "cache_hit": cache_hit,
             "state": "PARTIAL" if omitted else "COMPLETE",
             "text": response_text, "sha256": digest,
             "source_chars": len(original), "returned_chars": len(response_text),
