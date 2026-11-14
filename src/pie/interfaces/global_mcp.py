@@ -11,6 +11,8 @@ import json
 import os
 from pathlib import Path
 import shutil
+import sqlite3
+from contextlib import closing
 import subprocess
 import sys
 import threading
@@ -167,9 +169,23 @@ def install_codex() -> dict:
             "global_storage":str(global_home())}
 
 
+def list_known_workspaces() -> dict:
+    """List workspaces discovered by the global service without crawling disk."""
+    database = global_home() / "registry.sqlite3"
+    if not database.is_file():
+        return {"workspaces":[]}
+    with closing(sqlite3.connect(database)) as conn:
+        rows = conn.execute(
+            "SELECT workspace_id,root,last_seen_utc FROM workspaces "
+            "ORDER BY last_seen_utc DESC,workspace_id"
+        ).fetchall()
+    return {"workspaces":[{"workspace_id":r[0],"root":r[1],"last_seen_utc":r[2]}
+                          for r in rows]}
+
+
 def cli(argv=None) -> int:
     parser=argparse.ArgumentParser(description="Global PIE setup/status")
-    parser.add_argument("command",choices=("install-codex","status","scan","watch"))
+    parser.add_argument("command",choices=("install-codex","projects","status","scan","watch"))
     parser.add_argument("--workspace",type=Path,default=Path.cwd())
     parser.add_argument("--store",type=Path)
     parser.add_argument("--poll-seconds",type=float,default=5.0)
@@ -180,6 +196,8 @@ def cli(argv=None) -> int:
         os.environ[ENV_HOME]=str(global_home())
     if args.command=="install-codex":
         result=install_codex()
+    elif args.command=="projects":
+        result=list_known_workspaces()
     else:
         manager=GlobalWorkspaceIndex(args.workspace,force_global=True)
         result=manager.refresh()
