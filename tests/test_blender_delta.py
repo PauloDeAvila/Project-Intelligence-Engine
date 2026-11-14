@@ -41,6 +41,9 @@ class BlenderDeltaTests(unittest.TestCase):
         self.assertEqual(delta["state"], "DELTA")
         self.assertEqual(delta["materials"]["counts"]["changed"], 1)
         self.assertIn("nodes", delta["materials"]["changed"][0]["details"])
+        node_changes = delta["materials"]["changed"][0]["details"]["nodes"]["changed"]
+        value = node_changes[0]["details"]["inputs"]["changed"]["Roughness"]
+        self.assertEqual(value, {"before": 0.35, "after": 0.28})
         self.assertNotEqual(delta["digest"], delta["previous_digest"])
         self.assertEqual(cache.observe(update)["state"], "UNCHANGED")
         manual = copy.deepcopy(update)
