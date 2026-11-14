@@ -20,7 +20,7 @@ args: -m pie.gateway.domain serve --domain blender --workspace <checkout> --max-
 env keys: []
 ```
 
-O ponto verificável é que a rota não declara `PIE_MCP_DIAGNOSTICS_PATH`; a tentativa anterior só colocou a variável no ambiente pai do Codex. Não se deve assumir que o Codex a repasse aos servidores MCP.
+O ponto verificável é que a rota não declara `PIE_MCP_DIAGNOSTICS_PATH`; a tentativa anterior só colocou a variável no ambiente pai do Codex. O bootstrap agora não depende dessa herança: quando a variável está ausente, deriva `--workspace` de `sys.argv` e grava em `<workspace>/.pie-live-store/mcp-lifecycle.jsonl`.
 
 ## Bootstrap implementado
 
@@ -50,6 +50,10 @@ uv run --project . python tools/probe_blender_domain_live.py
 ```
 
 Ambos os comandos retornaram `state: PASS`, `handshake: true`, `tools_list: true` e `tool_call: true`.
+
+## Validação do fallback sem ambiente
+
+Após a correção, duas execuções offline sem `PIE_MCP_DIAGNOSTICS_PATH` explícito passaram. O arquivo padrão `C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine\\.pie-live-store\\mcp-lifecycle.jsonl` acumulou 38 eventos: 19 para `get_scene_info` e 19 para `get_addon_status`. Ambas tiveram `upstream_exit=0`.
 
 ## Veredito da fase
 

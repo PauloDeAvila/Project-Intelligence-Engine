@@ -23,6 +23,7 @@
     "get_scene_info": {"status": "PASS", "event_count": 19, "upstream_exit_code": 0},
     "get_addon_status": {"status": "PASS", "event_count": 19, "upstream_exit_code": 0}
   },
+  "fallback_without_environment_variable": {"status": "PASS", "event_count": 38, "path": "<workspace>/.pie-live-store/mcp-lifecycle.jsonl"},
   "codex_session": {
     "status": "NO_LIFECYCLE_FILE",
     "interpretation": "The Codex child did not expose the diagnostic path to the gateway, or the gateway failed before opening it."

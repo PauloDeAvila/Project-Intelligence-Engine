@@ -5,12 +5,29 @@ from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
+import sys
 from typing import Any
 
 
 def _path() -> Path | None:
     value = os.environ.get("PIE_MCP_BOOTSTRAP_PATH") or os.environ.get("PIE_MCP_DIAGNOSTICS_PATH")
-    return Path(value).expanduser() if value else None
+    if value:
+        return Path(value).expanduser()
+    # Codex may not inherit arbitrary parent environment variables. The
+    # workspace argument is part of the persisted MCP command, so it is a safe
+    # deterministic fallback for sanitized lifecycle events.
+    try:
+        index = sys.argv.index("--workspace")
+        workspace = Path(sys.argv[index + 1]).expanduser()
+        if workspace:
+            return workspace / ".pie-live-store" / "mcp-lifecycle.jsonl"
+    except (ValueError, IndexError):
+        pass
+    return None
+
+
+def path() -> Path | None:
+    return _path()
 
 
 def event(name: str, **fields: Any) -> None:

@@ -146,11 +146,10 @@ for line in sys.stdin:
   else: result={"serverInfo":{"name":"mock","version":"1"},"protocolVersion":"2025-03-26","capabilities":{"tools":{}}}
   print(json.dumps({"jsonrpc":"2.0","id":q["id"],"result":result}),flush=True)
 '''
-        diagnostics=self.tmp/"bootstrap.jsonl"
+        diagnostics=self.root/".pie-live-store"/"mcp-lifecycle.jsonl"
         requests=[request(1,"initialize",{}),request(2,"tools/list",{}),
                   request(3,"tools/call",{"name":"get_scene_info","arguments":{}})]
-        run=self._run("web",upstream,requests,
-                      env_extra={"PIE_MCP_DIAGNOSTICS_PATH":str(diagnostics)})
+        run=self._run("web",upstream,requests)
         self.assertEqual(run.returncode,0,run.stderr)
         self.assertTrue(diagnostics.is_file())
         events=[json.loads(line) for line in diagnostics.read_text().splitlines()]

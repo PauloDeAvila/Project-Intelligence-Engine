@@ -21,6 +21,7 @@ import threading
 from typing import Any, TextIO
 
 from pie.gateway.metrics import record
+from pie.gateway.bootstrap import path as bootstrap_path
 from pie.gateway.policy import mcp_compactable, reduce_text
 from pie.gateway.web_results import web_result_eligible, web_snapshot_preview
 from pie.indexing.global_workspace import detect_workspace
@@ -121,8 +122,7 @@ class MCPStdioGateway:
         self._output_schema_tools:set[str]=set()
         self._listed_tools:set[str]=set()
         self._collision=False
-        diagnostic_path=os.environ.get("PIE_MCP_DIAGNOSTICS_PATH")
-        self._diagnostics_path=Path(diagnostic_path).expanduser() if diagnostic_path else None
+        self._diagnostics_path=bootstrap_path()
         self._diagnostic("gateway_constructed", profile=profile,
                          workspace_id=_workspace_fingerprint(self.root),
                          upstream_executable=Path(self.command[0]).name,
