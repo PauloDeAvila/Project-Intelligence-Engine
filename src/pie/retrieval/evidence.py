@@ -12,6 +12,7 @@ from hashlib import sha256
 from pathlib import Path
 
 from pie.retrieval.symbols import find_definitions, find_references
+from pie.storage.locations import workspace_file
 from pie.storage.database import connect
 from pie.retrieval.snapshot import SnapshotError, SnapshotVerifier
 
@@ -30,7 +31,7 @@ def _verify_project_snapshot(root: Path) -> dict:
     """
     started = time.perf_counter()
     db_started = time.perf_counter()
-    connection = connect(root / ".pie" / "index.sqlite3")
+    connection = connect(workspace_file(root))
     try:
         indexed = {
             row["path"]: row["sha256"]
@@ -63,7 +64,7 @@ def _source_snapshot(root: Path, path: str) -> tuple[str, str]:
     resolved = candidate.resolve(strict=True)
     if not resolved.is_relative_to(root) or not resolved.is_file():
         raise EvidenceError("Source escapes the project root")
-    connection = connect(root / ".pie" / "index.sqlite3")
+    connection = connect(workspace_file(root))
     try:
         row = connection.execute("SELECT sha256 FROM files WHERE path=?", (path,)).fetchone()
     finally:

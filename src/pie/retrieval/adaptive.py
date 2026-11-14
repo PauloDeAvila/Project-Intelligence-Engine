@@ -10,6 +10,7 @@ from __future__ import annotations
 from hashlib import sha256
 from pathlib import Path
 from pie.retrieval.intelligence import smart_context
+from pie.storage.locations import workspace_file
 from pie.storage.database import connect
 
 
@@ -46,7 +47,7 @@ def adaptive_context(root: Path, query: str, *, max_chars: int = 12000,
         candidate = (root / full_source_path).resolve()
         if not candidate.is_relative_to(root) or not candidate.is_file() or candidate.is_symlink():
             raise ValueError("full_source_path is not a regular project file")
-        db = root / ".pie" / "index.sqlite3"
+        db = workspace_file(root)
         conn = connect(db)
         try:
             row = conn.execute("SELECT sha256 FROM files WHERE path=?", (

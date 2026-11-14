@@ -10,6 +10,7 @@ from hashlib import sha256
 from pathlib import Path
 import re
 
+from pie.storage.locations import workspace_file
 from pie.storage.database import connect
 from pie.retrieval.fts import search_fts
 
@@ -60,7 +61,7 @@ def smart_context(root: Path, query: str, *, max_chars: int = 12000, limit: int 
     if not query.strip() or not 500 <= max_chars <= 200000 or not 1 <= limit <= 100:
         raise ValueError("Invalid query, budget or limit")
     root = Path(root).resolve()
-    db = root / ".pie" / "index.sqlite3"
+    db = workspace_file(root)
     if not db.is_file():
         raise ValueError("Run pie index first")
     conn = connect(db)

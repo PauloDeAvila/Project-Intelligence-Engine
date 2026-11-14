@@ -5,6 +5,7 @@ from pathlib import Path
 from pie.indexing.python_ast import parse_python_content
 from pie.scanning.discovery import iter_files
 from pie.storage import analysis as symbol_store
+from pie.storage.locations import workspace_file
 from pie.storage.database import connect
 
 
@@ -48,7 +49,7 @@ def _refresh_symbol_documents(connection, file_id: int, content: bytes) -> None:
     )
 
 def index_project(root: Path) -> dict[str, object]:
-    db_path = root / ".pie" / "index.sqlite3"
+    db_path = workspace_file(root)
     unreadable_paths: set[Path] = set()
     unreadable_directories: set[Path] = set()
     oversized_paths: set[Path] = set()

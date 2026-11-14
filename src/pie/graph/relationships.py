@@ -9,6 +9,7 @@ import ast
 from hashlib import sha256
 from pathlib import Path
 
+from pie.storage.locations import workspace_file
 from pie.storage.database import connect
 from pie.scanning.discovery import iter_files
 
@@ -54,7 +55,7 @@ def _index_fingerprint(conn) -> str:
 def build_relationships(root: Path) -> dict[str, object]:
     """Rebuild static relations atomically, refusing incomplete indexes."""
     root = Path(root).resolve()
-    db = root / '.pie' / 'index.sqlite3'
+    db = workspace_file(root)
     if not db.is_file():
         raise ValueError('Run pie index first')
     conn = connect(db)
@@ -131,7 +132,7 @@ def get_relationships(root: Path, name: str, limit: int = 100) -> dict[str, obje
     if not 1 <= limit <= 500:
         raise ValueError('limit must be between 1 and 500')
     root = Path(root).resolve()
-    conn = connect(root / '.pie' / 'index.sqlite3')
+    conn = connect(workspace_file(root))
     try:
         if not conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='relations'").fetchone():
             return {'relations': [], 'drifted_sources': [], 'warning': 'Run pie graph-build first'}
