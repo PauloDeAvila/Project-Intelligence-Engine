@@ -98,6 +98,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         command,tools,profile=domain_route(args.domain,upstream,
                                           python=sys.executable,max_chars=args.max_chars)
+        os.environ.setdefault("PIE_APP", args.domain)
         return MCPStdioGateway(args.workspace,command,max_chars=args.max_chars,
                                compress_tools=tools,profile=profile).run()
     except (OSError,ValueError,RuntimeError,subprocess.TimeoutExpired) as exc:

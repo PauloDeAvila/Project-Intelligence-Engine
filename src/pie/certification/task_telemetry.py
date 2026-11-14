@@ -71,6 +71,8 @@ def _connect(root: Path) -> sqlite3.Connection:
 
 def app_for(surface: str, tool: str) -> str:
     t = tool.lower()
+    if t == "pie_gateway_output_get":
+        return os.environ.get("PIE_APP", "other_mcp")
     if t.startswith(("browser_", "playwright")) or "web" in t:
         return "web"
     if "blender" in t or t in ("get_scene_info", "get_object_info", "execute_blender_code"):

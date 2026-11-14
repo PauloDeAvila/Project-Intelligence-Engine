@@ -10,5 +10,5 @@
   "routing": {"user_config_modified": true, "original_servers_preserved": true, "pie_servers": ["pie-blender-optimized", "pie-web-optimized"], "node_repl_modified": false, "telemetry_route_proof": "incomplete"},
   "costs": {"status": "UNAVAILABLE", "total": null, "reason": "No verified tariff supplied for gpt-5.6-luna"},
   "verdict": "NOT_CERTIFIED",
-  "reports": ["reports/phase3/09-blender-real-ab.json", "reports/phase3/10-web-real-ab.json", "reports/phase3/11-token-certification.json", "reports/phase3/12-cost-efficiency.json", "reports/phase3/13-telemetry-persistence.json", "reports/phase3/14-offline-root-cause.json"]
+  "reports": ["reports/phase3/09-blender-real-ab.json", "reports/phase3/10-web-real-ab.json", "reports/phase3/11-token-certification.json", "reports/phase3/12-cost-efficiency.json", "reports/phase3/13-telemetry-persistence.json", "reports/phase3/14-offline-root-cause.json", "reports/phase3/15-live-gateway-runtime.json"]
 }

@@ -123,8 +123,16 @@ class MCPStdioGateway:
 
     def _handle_recovery(self, message: dict) -> dict:
         args=message.get("params",{}).get("arguments",{})
+        started=time.perf_counter()
         try:
             result=recovery_page(self.root,args)
+            try:
+                page=json.loads(result["content"][0]["text"])
+                record(self.root,surface="mcp",tool=RECOVERY_NAME,state="RECOVERY",
+                       source_chars=int(page["total_chars"]),returned_chars=len(_json(result)),
+                       elapsed_ms=(time.perf_counter()-started)*1000)
+            except (OSError,ValueError,TypeError,KeyError,IndexError):
+                pass
             return {"jsonrpc":"2.0","id":message.get("id"),"result":result}
         except (ValueError, OSError) as exc:
             return _tool_error(message.get("id"),
