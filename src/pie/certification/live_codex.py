@@ -71,7 +71,8 @@ def _auth_state(home:Path, executable:str, env:dict)->str:
     return "AUTH_INVALID" if result.returncode==1 else "AUTH_UNAVAILABLE"
 
 def preflight_codex(scenario:dict,*,condition:str,workspace:Path,codex_home:Path,
-                    codex_bin:str="codex",evidence_dir:Path|None=None)->dict:
+                    codex_bin:str="codex",evidence_dir:Path|None=None,
+                    profile:str|None=None)->dict:
     """Run all non-model checks required before a paid Codex capture."""
     checks={};errors=[]
     try:scenario=validate_scenario(scenario);checks["scenario"]="PASS"
@@ -90,6 +91,14 @@ def preflight_codex(scenario:dict,*,condition:str,workspace:Path,codex_home:Path
         parsed=tomllib.loads(config.read_text(encoding="utf-8"));checks["config"]="PASS"
     except (OSError,tomllib.TOMLDecodeError):
         checks["config"]="FAIL";errors.append("PRECHECK_CONFIG_INVALID")
+    if profile is not None:
+        profile_path=codex_home/(profile+".config.toml")
+        try:
+            if not profile or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_" for c in profile):
+                raise ValueError("Invalid Codex profile")
+            tomllib.loads(profile_path.read_text(encoding="utf-8"));checks["profile"]="PASS"
+        except (OSError,tomllib.TOMLDecodeError,ValueError):
+            checks["profile"]="FAIL";errors.append("PRECHECK_CONFIG_INVALID")
     executable=shutil.which(codex_bin)
     if executable is None:checks["codex_executable"]="FAIL";errors.append("PRECHECK_AUTH_UNAVAILABLE")
     else:checks["codex_executable"]="PASS"
@@ -116,12 +125,18 @@ def preflight_codex(scenario:dict,*,condition:str,workspace:Path,codex_home:Path
             "checks":checks,"errors":sorted(set(errors)),"model":scenario.get("model"),
             "condition":condition}
 
-def _codex_environment(home:Path):
+def _codex_environment(home:Path,profile:str|None=None):
     home=home.expanduser().resolve(strict=True)
     config=home/"config.toml"
     if not config.is_file():raise ValueError("CODEX_HOME/config.toml absent")
     hook=home/"hooks.json"
     material=config.read_bytes()+b"\0"+(hook.read_bytes() if hook.is_file() else b"")
+    if profile is not None:
+        if not profile or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_" for c in profile):
+            raise ValueError("Invalid Codex profile")
+        profile_path=home/(profile+".config.toml")
+        if not profile_path.is_file():raise ValueError("Codex profile config absent")
+        material+=b"\0"+profile_path.read_bytes()
     env=dict(os.environ);env["CODEX_HOME"]=str(home)
     return env,_sha(material)
 
@@ -136,16 +151,16 @@ def _git_clean_commit(root:Path)->str:
         raise ValueError("Benchmark needs a clean immutable Git checkout")
     return sha
 
-def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=240,codex_bin="codex"):
+def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=240,codex_bin="codex",profile=None):
     validate_scenario(scenario)
     if condition not in CONDITIONS or type(repetition) is not int or repetition<1:
         raise ValueError("Invalid condition or repetition")
     if type(timeout) is not int or not 20<=timeout<=3600:raise ValueError("Invalid timeout")
     workspace=Path(workspace).expanduser().resolve(strict=True)
     commit=_git_clean_commit(workspace)
-    env,configsha=_codex_environment(Path(codex_home))
+    env,configsha=_codex_environment(Path(codex_home),profile=profile)
     preflight=preflight_codex(scenario,condition=condition,workspace=workspace,
-                              codex_home=Path(codex_home),codex_bin=codex_bin)
+                              codex_home=Path(codex_home),codex_bin=codex_bin,profile=profile)
     if preflight["state"]!="READY_FOR_BENCHMARK":
         raise RuntimeError(preflight["errors"][0] if preflight["errors"] else "PRECHECK_CONFIG_INVALID")
     executable=shutil.which(codex_bin)
@@ -154,7 +169,9 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
     if ver.returncode or not ver.stdout.strip():raise RuntimeError("Codex version unavailable")
     version=ver.stdout.strip().splitlines()[0][:120]
     args=[executable,"exec","--json","--ephemeral","--sandbox","read-only",
-          "--cd",str(workspace),"--model",scenario["model"],"-"]
+          "--cd",str(workspace),"--model",scenario["model"]]
+    if profile is not None:args += ["--profile",profile]
+    args += ["-"]
     t0=time.perf_counter()
     try:run=subprocess.run(args,cwd=workspace,env=env,input=scenario["prompt"],
                            text=True,capture_output=True,timeout=timeout,check=False)
@@ -167,7 +184,7 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
             "repetition":repetition,"model":scenario["model"],"codex_version":version,
             "prompt_sha256":_sha(scenario["prompt"]),"expected_sha256":_sha(expected),
             "answer_sha256":_sha(actual),"oracle_kind":"exact_text","oracle_pass":actual==expected,
-            "workspace_commit":commit,"configuration_sha256":configsha,
+            "workspace_commit":commit,"configuration_sha256":configsha,"profile":profile,
             "runtime_ms":round((time.perf_counter()-t0)*1000,3),
             "tool_events":parsed["tool_events"],"usage":parsed["usage"],
             "provider_reported":parsed["provider_reported"],"source":parsed["source"],

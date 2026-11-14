@@ -121,4 +121,20 @@ class PreflightTests(unittest.TestCase):
             self.assertEqual(result["state"],"BLOCKED")
             self.assertIn("PRECHECK_AUTH_MISSING",result["errors"])
 
+    def test_profile_is_validated_without_reading_auth_material(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)/"repo"; root.mkdir()
+            subprocess.run(["git","init","-q"],cwd=root,check=True)
+            (root/"README.md").write_text("fixture")
+            subprocess.run(["git","add","."],cwd=root,check=True)
+            subprocess.run(["git","-c","user.email=test@example.invalid","-c","user.name=test","commit","-qm","fixture"],cwd=root,check=True)
+            home=Path(tmp)/"home"; home.mkdir()
+            (home/"config.toml").write_text('model="gpt-5.6-luna"\n')
+            (home/"probe.config.toml").write_text('model_reasoning_effort="medium"\n')
+            scenario={"scenario_id":"x","prompt":"inspect","expected_exact":"x","model":"gpt-5.6-luna","description":"x"}
+            with patch("pie.certification.live_codex.shutil.which",return_value="codex"):
+                result=preflight_codex(scenario,condition="baseline",workspace=root,codex_home=home,profile="probe")
+            self.assertEqual(result["checks"]["profile"],"PASS")
+            self.assertIn("PRECHECK_AUTH_MISSING",result["errors"])
+
 if __name__=="__main__":unittest.main()
