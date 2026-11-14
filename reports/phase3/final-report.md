@@ -31,6 +31,8 @@ Valores `B/O` são baseline/optimized. A economia de input não armazenado em ca
 
 A chamada diagnóstica inicial falhou no parsing do override transitório `-c`. A tentativa corrigida usando `tools/run_codex_mcp_diagnostic.ps1` iniciou uma sessão real, selecionou `pie-blender-optimized` e reportou tokens (`136207` input, `115968` cache, `691` output), mas `get_addon_status` e `get_scene_info` falharam. Nenhum lifecycle JSONL foi produzido; o ponto interno da falha permanece inconclusivo. Resultado detalhado: `22-codex-mcp-probe-result.json`. Não há certificação nem nova tentativa automática.
 
+Na Fase 3.7, o gateway foi validado offline com as duas ferramentas reais. O bootstrap passou a registrar em `.pie-live-store/mcp-lifecycle.jsonl` mesmo sem variável de ambiente herdada. Também foi corrigido o encerramento do Blender bridge para aguardar saída natural do upstream. Os testes focados passaram; a suíte completa teve apenas uma falha intermitente HTTP (`WinError 10053`), aprovada quando repetida isoladamente.
+
 ## Custos
 
 `null`: não foi fornecida tarifa verificável para `gpt-5.6-luna`. Quota/assinatura não foi convertida em preço.
