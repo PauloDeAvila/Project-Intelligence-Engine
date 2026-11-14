@@ -41,7 +41,7 @@ A instrumentação registra somente eventos, nomes de ferramentas, status, dura�
 
 ## Estado
 
-`NOT_CERTIFIED` e não `READY_FOR_CODEX_PROBE`: a causa exata dentro da sessão Codex ainda não está demonstrada. O procedimento seguro para uma única chamada diagnóstica está preparado, mas não foi executado.
+`NOT_CERTIFIED` e não `READY_FOR_CODEX_PROBE`: a causa exata dentro da sessão Codex ainda não está demonstrada. O procedimento seguro foi executado uma vez, mas a invocação falhou no parsing local antes de iniciar o MCP.
 
 ## Chamada diagnóstica autorizada — 2026-11-14
 

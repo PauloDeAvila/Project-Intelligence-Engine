@@ -25,7 +25,11 @@ Valores `B/O` são baseline/optimized. A economia de input não armazenado em ca
 
 ## Testes
 
-`pytest`: **534 passed, 5 skipped, 133 subtests**. `compileall`: passou. O preflight agora bloqueia overlays com workspace divergente. O índice local PIE foi reindexado para a raiz correta e ficou `CURRENT`; o servidor PIE MCP disponível nesta sessão continua apontando para outra raiz, limitação registrada.
+`pytest`: **535 passed, 5 skipped, 133 subtests**. `compileall`: passou. O preflight agora bloqueia overlays com workspace divergente. O índice local PIE foi reindexado para a raiz correta e ficou `CURRENT`; o servidor PIE MCP disponível nesta sessão continua apontando para outra raiz, limitação registrada.
+
+## Diagnóstico Codex/MCP
+
+A única chamada diagnóstica autorizada após a instrumentação falhou antes do spawn MCP porque o override transitório `-c` codificou `mcp_servers.pie-blender-optimized.args` como string (`expected a sequence`). Não houve handshake, `tools/list`, `tools/call` ou tokens reportados. O resultado não identifica a falha MCP original; uma nova tentativa exigiria autorização adicional e não deve ser feita automaticamente.
 
 ## Custos
 
