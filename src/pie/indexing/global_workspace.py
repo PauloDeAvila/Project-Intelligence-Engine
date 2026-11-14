@@ -19,6 +19,7 @@ import time
 from typing import Any
 
 from pie.indexing.indexer import index_project
+from pie.indexing.global_lock import workspace_index_lock
 from pie.scanning.discovery import IGNORED_DIRECTORIES
 from pie.scanning.ignore import IgnoreRules
 from pie.storage.database import connect
@@ -165,7 +166,7 @@ class GlobalWorkspaceIndex:
 
     def refresh(self) -> dict[str, Any]:
         """Read file *metadata* globally, but only read/reparse changed source bytes."""
-        with self._lock:
+        with self._lock, workspace_index_lock(self.storage.parent / "index.lock"):
             t0 = time.perf_counter()
             try:
                 current = self._scan()
@@ -189,6 +190,21 @@ class GlobalWorkspaceIndex:
                 python_dirty = {
                     p for p in changed | deleted if p.lower().endswith(".py")
                 }
+                if not full and not changed and not deleted:
+                    self._refresh_count += 1
+                    self.error = None
+                    self.last_report = {
+                        "workspace_id": self.workspace_id, "root": str(self.root),
+                        "storage": str(self.storage), "mode": "UNCHANGED",
+                        "first_index": False, "changed_files": [], "deleted_files": [],
+                        "scanned_file_metadata": len(current), "content_reads": 0,
+                        "python_index": None,
+                        "elapsed_ms": round((time.perf_counter()-t0)*1000, 3),
+                        "measurement": "filesystem_operation_counts_not_model_tokens",
+                    }
+                    if self._refresh_count == 1:
+                        self._register()
+                    return self.last_report
                 # Capture changed sources BEFORE modifying the previous good index.
                 prepared = {p: self._capture(p, current[p]) for p in sorted(changed)}
                 if full:
