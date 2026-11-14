@@ -53,6 +53,7 @@ To check one workspace explicitly (without asking any agent):
 ~~~powershell
 & "$env:USERPROFILE\.pie-global\venv\Scripts\pie-global.exe" scan --workspace "C:\Dev\MyGame"
 & "$env:USERPROFILE\.pie-global\venv\Scripts\pie-global.exe" status --workspace "C:\Dev\MyGame"
+& "$env:USERPROFILE\.pie-global\venv\Scripts\pie-global.exe" projects
 ~~~
 
 To maintain an always-running watcher independently of Codex, you can
@@ -98,7 +99,7 @@ paths still check source bytes before presenting evidence as current.
 - TypeScript, JavaScript, Java, C, C++, C#, Go, Rust, shader code,
   Lua, YAML, TOML, markdown and other listed text formats: **path and
   bounded lexical source search**, persisted with SHA-256 verification.
-- Blender .blend binary files: metadata-only tracking. Scene/material
+- Blender .blend, FBX, GLB, EXR and Ableton .als binary assets: metadata-only tracking. Scene/material
   semantic observation still requires the separate Blender MCP bridge.
 - Files excluded by .gitignore, common credential filenames, symlinks
   and generated directories are skipped.
@@ -112,7 +113,11 @@ For those languages semantic parsers are a separate development step.
 The existing compact profile remains available; Global PIE exposes:
 - pie_global_status — central index lifecycle, last refresh and counts.
 - pie_global_find_files — bounded lexical search with hash validation.
+- pie_global_recent_changes — small, automatic change-event journal with old/new hashes (up to 256 recent events, no agent-written checkpoints needed).
 - plus current PIE gateway, checkpoints and proof/context MCP tools.
+
+The global registry tracks which workspaces have actually been opened; run the
+"projects" command to inspect it without crawling the entire computer.
 
 An LLM may choose never to query these tools, so an automatic index does
 not guarantee an automatic *token-saving retrieval policy*. The essential
