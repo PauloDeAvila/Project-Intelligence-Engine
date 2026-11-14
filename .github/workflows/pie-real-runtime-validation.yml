@@ -71,6 +71,26 @@ jobs:
           & $exe.FullName init --global --codex --dry-run | Out-Null
           if ($LASTEXITCODE -ne 0) { throw 'RTK hook dry-run failed' }
 
+  codex-real-cli:
+    name: Actual Codex CLI v0.166.0 (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install real pinned Codex CLI
+        run: npm install -g @openai/codex@0.166.0
+      - name: Exercise real Codex CLI parser without login or model requests
+        run: |
+          codex --version
+          codex exec --help
+          codex mcp --help
+
   blender-real-bpy:
     name: Actual Blender bpy material delta Linux
     runs-on: ubuntu-latest
