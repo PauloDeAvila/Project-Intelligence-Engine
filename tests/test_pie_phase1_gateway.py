@@ -45,6 +45,16 @@ class Phase1GatewayTests(unittest.TestCase):
         self.env.start()
         self.addCleanup(self.env.stop)
 
+    def test_offline_fixture_reduction_and_exact_recovery(self):
+        from tools.benchmark_phase1_gateway import measure
+        result=measure(max_chars=1200)
+        self.assertEqual(result["functional_gate"],"PASS")
+        self.assertTrue(result["sanitized_source_recovered_exactly"])
+        self.assertTrue(result["exit_code_preserved"])
+        self.assertTrue(result["secret_placeholder_not_returned"])
+        self.assertGreater(result["character_reduction_percent"],80)
+        self.assertFalse(result["provider_tokens_measured"])
+
     def test_generic_compact_and_recover_exact_sanitized(self):
         original="OK\n"*500 + "Authorization: Bearer super-private-credential\n" + "FAILED: expected 23, got 22\n"
         r=reduce_text(self.root,original,surface="terminal",tool="pytest",
