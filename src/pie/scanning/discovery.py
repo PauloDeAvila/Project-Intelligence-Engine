@@ -10,6 +10,19 @@ from pie.scanning.ignore import IgnoreRules
 IGNORED_DIRECTORIES = {".git", ".pie", ".venv", "venv", "__pycache__", ".mypy_cache", ".pytest_cache", "node_modules"}
 LANGUAGES = {".py": "python"}
 
+SENSITIVE_NAMES = frozenset({".env", ".npmrc", ".pypirc", "id_rsa",
+    "id_ed25519", "credentials", "credentials.json", "secrets.json",
+    "keyfile", ".netrc"})
+SENSITIVE_SUFFIXES = frozenset({".pem", ".key", ".p12", ".pfx", ".secret"})
+
+
+def sensitive_name(path: Path) -> bool:
+    name = path.name.lower()
+    return (name in SENSITIVE_NAMES or name.startswith(".env.")
+            or path.suffix.lower() in SENSITIVE_SUFFIXES
+            or "secret" in name or "credential" in name)
+
+
 
 def read_snapshot(path: Path, max_bytes: int) -> bytes | None:
     """Read at most the configured limit plus one byte to bound scanner memory."""
@@ -87,6 +100,10 @@ def iter_files(
         if language is None:
             continue
         if path.is_symlink() or any(part in IGNORED_DIRECTORIES for part in relative.parts) or ignore.ignored(relative):
+            continue
+        # Global automatic indexing must not duplicate obvious local secrets.
+        # Legacy per-project scans retain their previous behavior.
+        if os.environ.get("PIE_GLOBAL_STORAGE_ROOT") and sensitive_name(path):
             continue
         try:
             read_started = time.perf_counter()
