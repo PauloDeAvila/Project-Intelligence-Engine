@@ -1,6 +1,6 @@
 """Fail-closed Codex real token accounting. Never persist prompts, answers or traces."""
 from __future__ import annotations
-import hashlib,json,math,os,subprocess,time
+import hashlib,json,math,os,shutil,subprocess,time
 from pathlib import Path
 
 SCHEMA="pie-live-codex-usage-v1"
@@ -77,10 +77,12 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
     workspace=Path(workspace).expanduser().resolve(strict=True)
     commit=_git_clean_commit(workspace)
     env,configsha=_codex_environment(Path(codex_home))
-    ver=subprocess.run([codex_bin,"--version"],capture_output=True,text=True,timeout=10,check=False)
+    executable=shutil.which(codex_bin)
+    if executable is None:raise RuntimeError("Codex executable unavailable")
+    ver=subprocess.run([executable,"--version"],capture_output=True,text=True,timeout=10,check=False)
     if ver.returncode or not ver.stdout.strip():raise RuntimeError("Codex version unavailable")
     version=ver.stdout.strip().splitlines()[0][:120]
-    args=[codex_bin,"exec","--json","--ephemeral","--sandbox","read-only",
+    args=[executable,"exec","--json","--ephemeral","--sandbox","read-only",
           "--cd",str(workspace),"--model",scenario["model"],"-"]
     t0=time.perf_counter()
     try:run=subprocess.run(args,cwd=workspace,env=env,input=scenario["prompt"],
