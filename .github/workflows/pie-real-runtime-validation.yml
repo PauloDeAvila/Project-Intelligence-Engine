@@ -1,0 +1,94 @@
+name: PIE Live Runtime Validation (without provider calls)
+
+on:
+  push:
+    branches: ['feat/pie-live-token-certification-*']
+  pull_request:
+    paths:
+      - 'src/pie/certification/**'
+      - 'tests/test_pie_live_certification.py'
+      - 'tools/blender_runtime_probe.py'
+      - '.github/workflows/pie-real-runtime-validation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  codex-usage-parser:
+    name: Usage schema and interception audit (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e .
+      - run: python -m unittest discover -s tests -p test_pie_live_certification.py -v
+
+  rtk-real-linux:
+    name: RTK v1.2.0 actual binary Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download checksum-pinned RTK executable
+        shell: bash
+        run: |
+          curl -fsSL --retry 3 https://github.com/rtk-ai/rtk/releases/download/v1.2.0/rtk-x86_64-unknown-linux-musl.tar.gz -o rtk-linux.tar.gz
+          echo '70fee7b4a548c43dde94c77e2335550981b0bc2fb013691d8c8109b5bd0eda37  rtk-linux.tar.gz' | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/rtk-bin"
+          tar -xzf rtk-linux.tar.gz -C "$RUNNER_TEMP/rtk-bin"
+          RTK_BIN=$(find "$RUNNER_TEMP/rtk-bin" -maxdepth 3 -type f -name rtk -print -quit)
+          test -n "$RTK_BIN"
+          chmod +x "$RTK_BIN"
+          "$RTK_BIN" --version
+          "$RTK_BIN" git status
+          "$RTK_BIN" init --global --codex --dry-run > /dev/null
+
+  rtk-real-windows:
+    name: RTK v1.2.0 actual binary Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download checksum-pinned RTK executable
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $url = 'https://github.com/rtk-ai/rtk/releases/download/v1.2.0/rtk-x86_64-pc-windows-msvc.zip'
+          Invoke-WebRequest -Uri $url -OutFile rtk-windows.zip
+          $hash = (Get-FileHash rtk-windows.zip -Algorithm SHA256).Hash.ToLower()
+          if ($hash -ne 'b291b4e53d37f84b7f1696bc20559207396fb0190f20ed3c949db1b7e1c0c378') { throw 'RTK SHA256 mismatch' }
+          Expand-Archive rtk-windows.zip -DestinationPath "$env:RUNNER_TEMP\rtk-bin"
+          $exe = Get-ChildItem "$env:RUNNER_TEMP\rtk-bin" -Filter rtk.exe -Recurse | Select-Object -First 1
+          if (-not $exe) { throw 'RTK exe missing' }
+          & $exe.FullName --version
+          if ($LASTEXITCODE -ne 0) { throw 'RTK version failed' }
+          & $exe.FullName git status
+          if ($LASTEXITCODE -ne 0) { throw 'RTK git status failed' }
+          & $exe.FullName init --global --codex --dry-run | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw 'RTK hook dry-run failed' }
+
+  blender-real-bpy:
+    name: Actual Blender bpy material delta Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install actual Blender from Ubuntu repository
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y blender
+      - name: Exercise actual Blender nodes and PIE delta
+        shell: bash
+        run: |
+          set -o pipefail
+          blender --background --factory-startup --python tools/blender_runtime_probe.py | tee blender-live.log
+          grep 'PIE_BLENDER_LIVE_REPORT=' blender-live.log | grep '"state":"PASS"'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: actual-blender-bpy-evidence
+          path: blender-live.log
+          if-no-files-found: warn
