@@ -36,7 +36,14 @@
     "mcp_tool_statuses": ["failed", "failed"],
     "root_cause_status": "INCONCLUSIVE"
   },
-  "ready_for_codex_probe": false,
-  "reason": "The corrected real Codex probe reached the PIE server and reported provider tokens, but both MCP tools failed and no gateway lifecycle events were captured; the internal failure phase remains inconclusive.",
-  "next_action": "Do not retry automatically. Diagnose propagation of PIE_MCP_DIAGNOSTICS_PATH or configure diagnostics through the MCP server environment, then request separate authorization. Do not resume A/B."
+  "offline_remediation": {
+    "status": "PASS",
+    "bootstrap_without_environment": true,
+    "get_scene_info": "PASS",
+    "get_addon_status": "PASS",
+    "focused_tests": "50 passed, 1 skipped"
+  },
+  "ready_for_codex_probe": true,
+  "reason": "Offline gateway and upstream integration are healthy with bootstrap diagnostics independent of inherited environment. A future Codex session remains separately authorized and must not be started automatically.",
+  "next_action": "Request separate authorization before one new Codex probe; do not resume A/B."
 }

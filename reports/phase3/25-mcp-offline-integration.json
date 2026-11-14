@@ -21,5 +21,5 @@
   "bootstrap_fallback": {"status": "PASS", "explicit_environment_variable": false, "events": 38},
   "test_note": "Blender bridge focused tests pass after graceful EOF shutdown fix; one unrelated HTTP test intermittently reports WinError 10053 in the full unittest run and passes in isolation.",
   "limitation": "The offline client reproduces the configured stdio command and protocol, but not the Codex sandbox or MCP child lifecycle.",
-  "next_gate": "READY_FOR_CODEX_PROBE remains false until diagnostics are supplied through the MCP server environment and a separately authorized session is run."
+  "next_gate": "READY_FOR_CODEX_PROBE=true; a separate authorization is still required before any Codex session, and A/B must remain paused."
 }
