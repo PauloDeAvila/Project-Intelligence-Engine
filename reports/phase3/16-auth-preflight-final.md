@@ -21,7 +21,7 @@ Os `CODEX_HOME` temporários receberam apenas `config.toml`. A autenticação or
 
 ## Validação
 
-- Suíte: `531 passed, 5 skipped, 133 subtests passed`.
+- Suíte: `532 passed, 5 skipped, 133 subtests passed`.
 - Pré-voo original: autenticação local PASS.
 - Pré-voo baseline: configuração/MCP/worktree PASS; autenticação BLOCKED.
 - Pré-voo optimized: configuração/MCP/worktree PASS; autenticação BLOCKED.
