@@ -122,9 +122,10 @@ class DomainStdioTests(unittest.TestCase):
                       PIE_GLOBAL_STORAGE_ROOT=str(self.store),
                       PYTHONPATH=str(Path(__file__).resolve().parents[1]/"src"))
 
-    def _run(self,domain,upstream,inputs,max_chars="1200",mark=None):
+    def _run(self,domain,upstream,inputs,max_chars="1200",mark=None,env_extra=None):
         env=dict(self.env)
         if mark:env["PIE_TEST_DOMAIN_MARKER"]=str(mark)
+        if env_extra:env.update(env_extra)
         cmd=[sys.executable,"-m","pie.gateway.domain","serve",
              "--domain",domain,"--max-chars",max_chars,
              "--workspace",str(self.root),"--store",str(self.store),
@@ -132,6 +133,37 @@ class DomainStdioTests(unittest.TestCase):
         proc=subprocess.run(cmd,input="\n".join(json.dumps(x) for x in inputs)+"\n",
                             text=True,env=env,capture_output=True,timeout=22)
         return proc
+
+    def test_bootstrap_lifecycle_events_precede_mcp_events(self):
+        upstream=r'''
+import json,sys
+for line in sys.stdin:
+  q=json.loads(line)
+  if "id" not in q: continue
+  method=q.get("method")
+  if method=="tools/list": result={"tools":[{"name":"get_scene_info","inputSchema":{"type":"object"}}]}
+  elif method=="tools/call": result={"content":[{"type":"text","text":"scene"}]}
+  else: result={"serverInfo":{"name":"mock","version":"1"},"protocolVersion":"2025-03-26","capabilities":{"tools":{}}}
+  print(json.dumps({"jsonrpc":"2.0","id":q["id"],"result":result}),flush=True)
+'''
+        diagnostics=self.tmp/"bootstrap.jsonl"
+        requests=[request(1,"initialize",{}),request(2,"tools/list",{}),
+                  request(3,"tools/call",{"name":"get_scene_info","arguments":{}})]
+        run=self._run("web",upstream,requests,
+                      env_extra={"PIE_MCP_DIAGNOSTICS_PATH":str(diagnostics)})
+        self.assertEqual(run.returncode,0,run.stderr)
+        self.assertTrue(diagnostics.is_file())
+        events=[json.loads(line) for line in diagnostics.read_text().splitlines()]
+        names=[item["event"] for item in events]
+        self.assertIn("PROCESS_STARTED",names)
+        self.assertIn("BOOTSTRAP_INITIALIZED",names)
+        self.assertIn("IMPORT_SUCCEEDED",names)
+        self.assertIn("UPSTREAM_STARTED",names)
+        self.assertIn("MCP_INITIALIZE_RECEIVED",names)
+        self.assertIn("MCP_TOOLS_LIST_RECEIVED",names)
+        self.assertIn("MCP_TOOL_CALL_RECEIVED",names)
+        self.assertIn("PROCESS_EXITING",names)
+        self.assertNotIn("content",diagnostics.read_text())
 
     def test_web_navigation_is_called_once_and_recoverable(self):
         upstream=r"""

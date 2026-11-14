@@ -13,7 +13,18 @@ import shutil
 import subprocess
 import sys
 
-from pie.gateway.mcp_stdio import MCPStdioGateway
+from pie.gateway.bootstrap import event as bootstrap_event
+
+bootstrap_event("PROCESS_STARTED", module=__name__)
+bootstrap_event("BOOTSTRAP_INITIALIZED")
+bootstrap_event("IMPORT_STARTED", module="pie.gateway.mcp_stdio")
+try:
+    from pie.gateway.mcp_stdio import MCPStdioGateway
+except Exception as exc:
+    bootstrap_event("IMPORT_FAILED", error_type=type(exc).__name__)
+    raise
+bootstrap_event("IMPORT_SUCCEEDED", module="pie.gateway.mcp_stdio")
+
 from pie.gateway.web_results import SNAPSHOT_RESULT_TOOLS
 from pie.storage.locations import ENV_HOME, global_home
 
@@ -87,6 +98,7 @@ def main(argv: list[str] | None = None) -> int:
             p.add_argument("--apply",action="store_true")
         p.add_argument("upstream",nargs=argparse.REMAINDER)
     args=parser.parse_args(argv)
+    exit_code=2
     upstream=args.upstream[1:] if args.upstream and args.upstream[0]=="--" else args.upstream
     try:
         os.environ[ENV_HOME]=str((args.store or global_home()).expanduser().resolve())
@@ -95,7 +107,8 @@ def main(argv: list[str] | None = None) -> int:
                                   python=sys.executable,max_chars=args.max_chars,
                                   apply=args.apply)
             print(json.dumps(result,ensure_ascii=False,indent=2))
-            return 0
+            exit_code=0
+            return exit_code
         command,tools,profile=domain_route(args.domain,upstream,
                                           python=sys.executable,max_chars=args.max_chars)
         os.environ.setdefault("PIE_APP", args.domain)
@@ -103,12 +116,15 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps({"event":"domain_gateway_start","domain":args.domain,
                               "upstream_executable":Path(upstream[0]).name},
                              separators=(",",":")),file=sys.stderr,flush=True)
-        return MCPStdioGateway(args.workspace,command,max_chars=args.max_chars,
-                               compress_tools=tools,profile=profile).run()
+        exit_code=MCPStdioGateway(args.workspace,command,max_chars=args.max_chars,
+                                  compress_tools=tools,profile=profile).run()
+        return exit_code
     except (OSError,ValueError,RuntimeError,subprocess.TimeoutExpired) as exc:
         # Never write protocol failures to MCP stdout.
         print("PIE domain gateway unavailable: "+type(exc).__name__,file=sys.stderr)
-        return 2
+        return exit_code
+    finally:
+        bootstrap_event("PROCESS_EXITING", exit_code=exit_code)
 
 
 if __name__=="__main__":

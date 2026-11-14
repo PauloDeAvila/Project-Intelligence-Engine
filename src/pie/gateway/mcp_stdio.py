@@ -320,8 +320,10 @@ class MCPStdioGateway:
                 cwd=self.root,shell=False)
         except OSError as exc:
             self._diagnostic("upstream_spawn_failed", error_type=type(exc).__name__)
+            self._diagnostic("UPSTREAM_FAILED", error_type=type(exc).__name__)
             raise
         self._diagnostic("upstream_spawned", pid=upstream.pid)
+        self._diagnostic("UPSTREAM_STARTED", pid=upstream.pid)
         assert upstream.stdin is not None and upstream.stdout is not None
 
         def read_upstream() -> None:
@@ -355,6 +357,14 @@ class MCPStdioGateway:
                     request=None
                 if isinstance(request,dict) and "id" in request:
                     params=request.get("params")
+                    method=request.get("method", "")
+                    if method == "initialize":
+                        self._diagnostic("MCP_INITIALIZE_RECEIVED")
+                    elif method == "tools/list":
+                        self._diagnostic("MCP_TOOLS_LIST_RECEIVED")
+                    elif method == "tools/call":
+                        self._diagnostic("MCP_TOOL_CALL_RECEIVED",
+                                         tool=params.get("name", "") if isinstance(params, dict) else "")
                     self._diagnostic("downstream_request", method=request.get("method",""),
                                      tool=params.get("name","") if isinstance(params,dict) else "")
                     if (request.get("method")=="tools/call"

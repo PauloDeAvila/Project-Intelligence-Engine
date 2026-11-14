@@ -1,0 +1,24 @@
+{
+  "schema": "pie-phase3-mcp-offline-integration-v1",
+  "status": "OFFLINE_MCP_INTEGRATION_PASS",
+  "scope": {"domain": "blender", "gateway": "pie-blender-optimized", "model_calls": 0},
+  "configuration": {
+    "workspace": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+    "gateway_module": "pie.gateway.domain",
+    "upstream": "mcp-for-blender",
+    "python_executable": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine\\.venv\\Scripts\\python.exe",
+    "uvx_version": "0.13.6",
+    "blender_port": "127.0.0.1:9876",
+    "persistent_config_modified": false
+  },
+  "sequence": ["spawn", "initialize", "initialized", "tools/list", "tools/call", "clean_exit"],
+  "scenarios": {
+    "get_scene_info": {"status": "PASS", "handshake": true, "tools_list": true, "tool_call": true, "lifecycle_events": 19, "upstream_exit_code": 0},
+    "get_addon_status": {"status": "PASS", "handshake": true, "tools_list": true, "tool_call": true, "lifecycle_events": 19, "upstream_exit_code": 0}
+  },
+  "codex_equivalence": "PARTIAL",
+  "regression_status": "NO_NEW_FAILURES_PROVEN",
+  "test_note": "The three existing Blender bridge return-code failures reproduce at the prior f6facf0 commit; bootstrap-focused tests pass.",
+  "limitation": "The offline client reproduces the configured stdio command and protocol, but not the Codex sandbox or MCP child lifecycle.",
+  "next_gate": "READY_FOR_CODEX_PROBE remains false until diagnostics are supplied through the MCP server environment and a separately authorized session is run."
+}
