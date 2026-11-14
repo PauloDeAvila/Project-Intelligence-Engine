@@ -54,6 +54,20 @@ FILE_HASH_LIMIT = 2_000_000
 MAX_TRACKED_FILES = 20_000
 RECONCILE_CHANGE_COUNT = 64
 RECONCILE_FRACTION = .30
+REPORT_PATH_LIMIT = 32
+
+
+def _bounded_index_report(report: dict | None) -> dict | None:
+    if report is None:
+        return None
+    reduced = dict(report)
+    for field in ("changed_files", "removed_files"):
+        names = list(reduced.get(field, []))
+        reduced[field] = names[:REPORT_PATH_LIMIT]
+        reduced[field + "_total"] = len(names)
+        reduced[field + "_omitted"] = max(0, len(names) - REPORT_PATH_LIMIT)
+    return reduced
+
 INVENTORY_SCHEMA = """
 CREATE TABLE IF NOT EXISTS pie_global_files(
     path TEXT PRIMARY KEY, mtime_ns INTEGER NOT NULL,
@@ -277,11 +291,16 @@ class GlobalWorkspaceIndex:
                     "root": str(self.root),
                     "storage": str(self.storage),
                     "mode": "FULL" if full else ("INCREMENTAL" if changed or deleted else "UNCHANGED"),
-                    "first_index": first, "changed_files": sorted(changed),
-                    "deleted_files": sorted(deleted),
+                    "first_index": first,
+                    "changed_files": sorted(changed)[:REPORT_PATH_LIMIT],
+                    "changed_files_total": len(changed),
+                    "changed_files_omitted": max(0, len(changed) - REPORT_PATH_LIMIT),
+                    "deleted_files": sorted(deleted)[:REPORT_PATH_LIMIT],
+                    "deleted_files_total": len(deleted),
+                    "deleted_files_omitted": max(0, len(deleted) - REPORT_PATH_LIMIT),
                     "scanned_file_metadata": len(current),
                     "content_reads": len(prepared),
-                    "python_index": report,
+                    "python_index": _bounded_index_report(report),
                     "elapsed_ms": round((time.perf_counter()-t0)*1000, 3),
                     "measurement": "filesystem_operation_counts_not_model_tokens",
                 }
