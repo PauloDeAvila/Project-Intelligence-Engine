@@ -7,6 +7,7 @@ import sqlite3
 from pathlib import Path
 
 from pie.storage.locations import workspace_file
+from pie.certification.task_telemetry import record_task
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS pie_gateway_metrics (
@@ -46,6 +47,14 @@ def record(root: Path, *, surface: str, tool: str, state: str,
                  state[:60], source_chars, returned_chars, elapsed_ms, output_id, exit_code))
             db.execute("DELETE FROM pie_gateway_metrics WHERE id NOT IN "
                        "(SELECT id FROM pie_gateway_metrics ORDER BY id DESC LIMIT 1000)")
+    # Keep the legacy counter independent from the task ledger.
+    # The task ledger is best-effort and must not break MCP execution.
+    try:
+        record_task(root, surface=surface, tool=tool, state=state,
+                    source_chars=source_chars, returned_chars=returned_chars,
+                    elapsed_ms=elapsed_ms)
+    except (OSError, ValueError, sqlite3.Error):
+        pass
 
 
 def report(root: Path) -> dict:
