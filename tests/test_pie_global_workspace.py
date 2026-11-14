@@ -119,7 +119,7 @@ class GlobalWorkspaceTests(unittest.TestCase):
         (other/"package.json").write_text('{"name":"second"}',encoding="utf8")
         GlobalWorkspaceIndex(other,force_global=True).refresh()
         paths={item["root"] for item in list_known_workspaces()["workspaces"]}
-        self.assertEqual(paths,{str(self.project),str(other)})
+        self.assertEqual(paths,{str(self.project.resolve()),str(other.resolve())})
 
     def test_restart_preserves_central_index_and_files(self):
         GlobalWorkspaceIndex(self.project,force_global=True).refresh()
@@ -233,13 +233,13 @@ class GlobalWorkspaceTests(unittest.TestCase):
         )
         self.assertEqual(proc.returncode,0,proc.stderr)
         status=json.loads(json.loads(proc.stdout.splitlines()[-1])["result"]["content"][0]["text"])
-        self.assertEqual(status["root"],str(workspace))
+        self.assertEqual(status["root"],str(workspace.resolve()))
         self.assertEqual(status["python_indexed_files"],1)
 
     def test_workspace_discovery_prefers_nearest_marker_and_home_guard(self):
         nested=self.project/"src"
         nested.mkdir()
-        self.assertEqual(detect_workspace(nested),self.project)
+        self.assertEqual(detect_workspace(nested),self.project.resolve())
 
 
 if __name__=="__main__":
