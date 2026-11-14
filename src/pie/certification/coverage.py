@@ -39,8 +39,12 @@ def audit_codex(home:Path,*,project_config:Path|None=None)->dict:
             if not isinstance(args,list) or not all(isinstance(v,str) for v in args):
                 raise ValueError("MCP args must be string array")
             full=" ".join(args).lower()
-            wrapped=("pie.gateway.mcp_stdio" in full or "pie-mcp-proxy" in cmd or
-                     "pie-mcp-proxy" in full)
+            scoped=("pie.gateway.domain" in full and "serve" in args and
+                    "--domain" in args and
+                    args.index("--domain")+1<len(args) and
+                    args[args.index("--domain")+1] in ("blender","web"))
+            wrapped=(scoped or "pie.gateway.mcp_stdio" in full or
+                     "pie-mcp-proxy" in cmd or "pie-mcp-proxy" in full)
             state="PIE_STDIO_WRAPPED" if wrapped else "UNWRAPPED_STDIO"
         else:state,transport="UNKNOWN_CONFIGURATION","unknown"
         routes.append({"name":name,"transport":transport,"route":state,
