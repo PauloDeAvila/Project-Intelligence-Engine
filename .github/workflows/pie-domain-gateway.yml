@@ -65,3 +65,23 @@ jobs:
           name: pie-domain-real-playwright-evidence
           path: playwright-live.log
           if-no-files-found: warn
+
+  real-codex-domain-register:
+    name: Real Codex CLI two-domain registration (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm install -g @openai/codex@0.166.0
+      - run: python -m pip install -e .
+      - name: Register Blender/Web proxies with real Codex CLI without model tokens
+        run: python tools/verify_codex_domain_registry.py
