@@ -35,8 +35,8 @@ class WebReducerTests(unittest.TestCase):
         self.assertTrue(web_result_eligible(SNAPSHOT,"browser_snapshot"))
         self.assertFalse(web_result_eligible(SNAPSHOT,"browser_take_screenshot"))
         self.assertFalse(web_result_eligible(SNAPSHOT,"browser_evaluate"))
-        self.assertFalse(web_result_eligible(SNAPSHOT+"\\n### Error\\nNavigation failed","browser_navigate"))
-        self.assertFalse(web_result_eligible(SNAPSHOT+"\\nSet-Cookie: session=x","browser_navigate"))
+        self.assertFalse(web_result_eligible(SNAPSHOT+"\n### Error\nNavigation failed","browser_navigate"))
+        self.assertFalse(web_result_eligible(SNAPSHOT+"\nSet-Cookie: session=x","browser_navigate"))
         self.assertFalse(web_result_eligible(SNAPSHOT.replace("sort=popular","token=SECRET"),"browser_snapshot"))
         self.assertFalse(web_result_eligible("A"*4000,"browser_snapshot"))
 
@@ -89,6 +89,9 @@ class DomainStdioTests(unittest.TestCase):
         self.root.mkdir()
         (self.root/"pyproject.toml").write_text("[project]\nname='domain'\n")
         self.store=self.tmp/"store"
+        self.patchenv=patch.dict(os.environ,{"PIE_GLOBAL_STORAGE_ROOT":str(self.store)})
+        self.patchenv.start()
+        self.addCleanup(self.patchenv.stop)
         self.env=dict(os.environ,
                       PIE_GLOBAL_STORAGE_ROOT=str(self.store),
                       PYTHONPATH=str(Path(__file__).resolve().parents[1]/"src"))
