@@ -83,6 +83,24 @@ class MemoryIntegrationRegression(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "changed or stale"):
             recover_output(self.root, record["output_id"])
 
+    def test_gateway_context_pack_becomes_stale_on_source_edit(self):
+        from pie.indexing.indexer import index_project
+        target = self.root / "logic.py"
+        target.write_text("def calculate(value):\\n    return value + 1\\n".replace("\\\\n", "\\n"), encoding="utf8")
+        indexed = index_project(self.root)
+        self.assertEqual(indexed["index_state"], "CURRENT")
+        delivered = execute_gateway(self.root, "context_pack", {"symbol": "calculate"},
+                                    max_chars=4000)
+        output_id = delivered["telemetry"]["output_id"]
+        self.assertGreaterEqual(delivered["telemetry"]["verified_source_files"], 1)
+        recovered = execute_gateway(self.root, "output_get", {"output_id": output_id},
+                                    max_chars=64000)
+        self.assertIn("calculate", recovered["result"]["text"])
+        target.write_text("def calculate(value):\\n    return value + 2\\n".replace("\\\\n", "\\n"), encoding="utf8")
+        with self.assertRaisesRegex(ValueError, "changed or stale"):
+            execute_gateway(self.root, "output_get", {"output_id": output_id},
+                            max_chars=64000)
+
     def test_gateway_recovery_pages_without_oversized_payload(self):
         record = compact_output(self.root, "TRACE " + "x" * 12000)
         offset = 0
