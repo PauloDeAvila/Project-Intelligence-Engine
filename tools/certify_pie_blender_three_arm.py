@@ -14,7 +14,8 @@ import statistics
 
 ARMS = ("baseline", "pie_current", "pie_optimized")
 REQUIRED = ("scenario_id", "repetition", "model", "blender_version",
-            "scene_sha256", "condition", "prompt_tokens", "completion_tokens",
+            "scene_sha256", "task_sha256", "sampling_sha256",
+            "condition", "prompt_tokens", "completion_tokens",
             "wall_ms", "correct", "oracle_id")
 TARGET_SAVINGS = 85.0
 
@@ -22,7 +23,8 @@ TARGET_SAVINGS = 85.0
 def _valid_record(value) -> bool:
     if not isinstance(value, dict) or any(k not in value for k in REQUIRED):
         return False
-    for key in ("scenario_id", "model", "blender_version", "scene_sha256", "oracle_id"):
+    for key in ("scenario_id", "model", "blender_version", "scene_sha256",
+                "task_sha256", "sampling_sha256", "oracle_id"):
         if not isinstance(value[key], str) or not value[key].strip():
             return False
     if value["condition"] not in ARMS:
@@ -50,7 +52,8 @@ def assess(raw: dict, *, min_pairs: int = 10, target_savings: float = TARGET_SAV
         if i in invalid:
             continue
         key = (item["scenario_id"], item["repetition"], item["model"],
-               item["blender_version"], item["scene_sha256"], item["oracle_id"])
+               item["blender_version"], item["scene_sha256"],
+               item["task_sha256"], item["sampling_sha256"], item["oracle_id"])
         if item["condition"] in groups.setdefault(key, {}):
             duplicates.append(i)
         else:
@@ -60,6 +63,10 @@ def assess(raw: dict, *, min_pairs: int = 10, target_savings: float = TARGET_SAV
     baseline_tokens = sum(pair["baseline"]["prompt_tokens"] for pair in pairs)
     current_tokens = sum(pair["pie_current"]["prompt_tokens"] for pair in pairs)
     optimized_tokens = sum(pair["pie_optimized"]["prompt_tokens"] for pair in pairs)
+    completion_tokens = {
+        arm: sum(pair[arm]["completion_tokens"] for pair in pairs) if pairs else None
+        for arm in ARMS
+    }
     savings = round(100 * (1 - optimized_tokens / baseline_tokens), 3) if baseline_tokens > 0 else None
     present = len(records) > 0 and not invalid and not duplicates and not missing
     no_regression = bool(pairs) and all(
@@ -70,6 +77,15 @@ def assess(raw: dict, *, min_pairs: int = 10, target_savings: float = TARGET_SAV
     correctness = {arm: sum(p[arm]["correct"] for p in pairs) for arm in ARMS}
     median_ms = {arm: round(statistics.median(p[arm]["wall_ms"] for p in pairs), 3) if pairs else None
                  for arm in ARMS}
+    def p95(values):
+        if not values:
+            return None
+        ordered = sorted(values)
+        position = (len(ordered) - 1) * .95
+        bottom = int(position)
+        return round(ordered[bottom] + (ordered[min(bottom+1, len(ordered)-1)] -
+                      ordered[bottom]) * (position-bottom), 3)
+    p95_ms = {arm: p95([p[arm]["wall_ms"] for p in pairs]) for arm in ARMS}
     certified = bool(
         present and len(pairs) >= min_pairs and baseline_tokens > 0 and
         no_regression and savings is not None and savings >= target_savings
@@ -91,9 +107,15 @@ def assess(raw: dict, *, min_pairs: int = 10, target_savings: float = TARGET_SAV
         },
         "paired_input_token_savings_pct": savings,
         "target_savings_pct": target_savings,
+        "paired_current_input_token_savings_pct": (
+            round(100 * (1 - current_tokens / baseline_tokens), 3)
+            if baseline_tokens > 0 else None
+        ),
+        "completion_tokens_by_arm": completion_tokens,
         "paired_correct_count": correctness,
         "optimized_no_correctness_regression": no_regression,
         "median_wall_ms": median_ms,
+        "p95_wall_ms": p95_ms,
         "data_kind": "externally_provided_provider_usage_not_verified_by_this_script",
         "note": "Independent oracle and raw provider logs must be reviewed before any external certification claim.",
     }
