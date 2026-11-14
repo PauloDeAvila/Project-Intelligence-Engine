@@ -32,6 +32,8 @@ _SECRET = re.compile(
     r"(?i)(?:authorization\s*:\s*bearer|set-cookie\s*:|"
     r"cookie\s*:|password\s*[=:]|passcode\s*[=:]|"
     r"\b(?:api[_-]?key|access[_-]?token|session[_-]?id)\s*[=:]|"
+    r"[?&](?:token|access_token|auth|session|key|apikey|api_key)=|"
+    r"\btoken\s*[=:]|"
     r"\b(?:credit.card.number|card.number|cvv)\b)"
 )
 _REF = re.compile(r"(?<!\w)(?:\[\s*ref\s*=\s*(?:[a-z]\d+|f\d+e\d+)\s*\]|\bref\s*=\s*(?:[a-z]\d+|f\d+e\d+))", re.I)
