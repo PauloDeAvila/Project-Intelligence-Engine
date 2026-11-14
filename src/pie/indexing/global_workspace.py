@@ -79,6 +79,8 @@ def detect_workspace(start: Path) -> Path:
     if not start.is_dir():
         raise ValueError("Workspace must be an existing directory")
     home = Path.home().resolve()
+    if start == home or start == Path(start.anchor):
+        raise ValueError("Global PIE refuses HOME or a drive root as its workspace")
     for candidate in (start, *start.parents):
         if candidate == home and start != home:
             break
