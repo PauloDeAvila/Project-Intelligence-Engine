@@ -96,6 +96,22 @@ jobs:
           codex mcp --help
       - name: Register and inspect PIE proxy via actual Codex MCP config
         run: python tools/verify_codex_mcp_registry.py
+      - name: Validate Windows PowerShell harness syntax without paid trials
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          foreach ($script in @('tools/verify_windows_stack.ps1', 'tools/run_live_codex_pairs.ps1')) {
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path $script).Path, [ref]$tokens, [ref]$parseErrors
+            ) | Out-Null
+            if ($parseErrors.Count -gt 0) {
+              $parseErrors | ForEach-Object { Write-Error $_.Message }
+              throw "PowerShell syntax invalid: $script"
+            }
+            Write-Host "PowerShell syntax OK: $script"
+          }
 
   blender-real-bpy:
     name: Actual Blender bpy material delta Linux
