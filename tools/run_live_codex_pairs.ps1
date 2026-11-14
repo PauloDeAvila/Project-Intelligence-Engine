@@ -5,7 +5,8 @@ param([Parameter(Mandatory=$true)][string]$Workspace,
       [Parameter(Mandatory=$true)][string]$OptimizedCodexHome,
       [string]$OutputDir=(Join-Path $env:USERPROFILE 'pie-live-evidence\provider-usage'),
       [int]$Repetitions=3,[int]$Timeout=240,[string]$PythonExe='py',
-      [string]$Prices='')
+      [string]$Prices='', [string]$BaselineProfile='',
+      [string]$OptimizedProfile='')
 $ErrorActionPreference='Stop'
 if($Repetitions -lt 3 -or $Repetitions -gt 20){throw 'Require 3..20 repetitions'}
 if(-not (Test-Path $Scenario) -or -not (Test-Path $Workspace)){throw 'Missing scenario/workspace'}
@@ -27,6 +28,8 @@ for($i=1;$i -le $Repetitions;$i++){
    '--condition',$condition,'--repetition',"$i",'--timeout',"$Timeout",
    '--output',$target,'--telemetry-workspace',$Workspace,
    '--telemetry-task-id',($Scenario | Split-Path -LeafBase))
+  if($condition -eq 'baseline' -and $BaselineProfile){$captureArgs+=@('--profile',$BaselineProfile)}
+  if($condition -eq 'optimized' -and $OptimizedProfile){$captureArgs+=@('--profile',$OptimizedProfile)}
   & $PythonExe @captureArgs
   if($LASTEXITCODE -ne 0){throw 'Provider trace unavailable; NOT_CERTIFIED'}
   $records+=$target
