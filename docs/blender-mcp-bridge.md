@@ -25,7 +25,7 @@ safety checks, consent/telemetry controls, asset integrations or tool schemas.
   pie_blender_expand recovery reference. Identical repeated large
   responses become UNCHANGED SHA references.
 - The original full response is stored in a bounded, **process-local**
-  32-response cache. pie_blender_expand retrieves exact chunks (up to
+  32-response cache (at most two million characters per entry). pie_blender_expand retrieves exact chunks (up to
   16,000 characters) by response_id and start offset. Cache entries
   expire on eviction, server restart and interruption. If expired,
   query Blender again. There is **no durable Blender scene memory**.
@@ -101,6 +101,7 @@ python -m unittest discover -s tests -p test_blender_mcp_bridge.py -v
 python -m unittest discover -s tests -v
 python tools/verify_project.py
 python -m compileall -q src tools tests
+python tools/benchmark_blender_payload.py --objects 1000 --max-chars 2400
 ~~~
 
 A process-level stdio test uses a mock upstream Blender MCP, so no
@@ -123,3 +124,8 @@ The separate PR #62 introduces an early deterministic material worker.
 Its current proposal/initial implementation is not automatically bridged
 to all MCP for Blender tools, and Blender headless runtime certification
 remains pending. This bridge must not claim to implement or certify it.
+
+The proxy emits an aggregate character-count report to **stderr** on exit:
+`pie_blender_bridge_stats` with counts of compressed observations and
+JSON response characters before/after compaction. This is a payload
+measurement, never a model-token or end-to-end performance estimate.
