@@ -29,7 +29,8 @@ def main()->int:
         except json.JSONDecodeError:
             print(json.dumps({"state":"FAIL","step":"mcp_get_json"}))
             return 1
-        args=data.get("args",[]) if isinstance(data,dict) else []
+        transport=data.get("transport",{}) if isinstance(data,dict) else {}
+        args=transport.get("args",[]) if isinstance(transport,dict) else []
         passed=(isinstance(args,list) and "pie.gateway.mcp_stdio" in args
                 and "get_scene_info" in args)
         print(json.dumps({"schema":"pie-codex-actual-cli-registry-v1",
