@@ -276,6 +276,39 @@ for line in sys.stdin:
         self.assertFalse(observed.startswith('{"pie_gateway"'))
         self.assertIn("Cube roughness",observed)
 
+    def test_duplicate_inflight_request_is_suppressed_and_timeout_is_explicit(self):
+        marker=self.root/"timeout-calls.txt"
+        script=r"""
+import json,sys,time
+from pathlib import Path
+marker=Path(sys.argv[1])
+for line in sys.stdin:
+    req=json.loads(line)
+    if req.get("method")=="tools/list":
+        body={"tools":[{"name":"slow_tool","inputSchema":{"type":"object"}}]}
+    elif req.get("method")=="tools/call":
+        time.sleep(1.5)
+        marker.write_text(marker.read_text()+"x" if marker.exists() else "x")
+        body={"content":[{"type":"text","text":"done"}]}
+    else:
+        body={}
+    print(json.dumps({"jsonrpc":"2.0","id":req["id"],"result":body}),flush=True)
+"""
+        cmd=[sys.executable,"-m","pie.gateway.mcp_stdio","--workspace",str(self.root),
+             "--store",str(self.store),"--request-timeout-sec","1","--",
+             sys.executable,"-u","-c",script,str(marker)]
+        calls=[req(1,"tools/list",{}),
+               req(2,"tools/call",{"name":"slow_tool","arguments":{}}),
+               req(2,"tools/call",{"name":"slow_tool","arguments":{}})]
+        done=subprocess.run(cmd,input="\n".join(json.dumps(x) for x in calls)+"\n",
+                            env=dict(os.environ,PYTHONPATH=str(Path(__file__).resolve().parents[1]/"src")),
+                            timeout=5,text=True,capture_output=True)
+        self.assertEqual(done.returncode,0,done.stderr)
+        messages=[json.loads(s) for s in done.stdout.splitlines() if s.strip()]
+        timeout=[x for x in messages if x.get("id")==2 and "error" in x]
+        self.assertEqual(timeout[0]["error"]["message"],"PIE_GATEWAY_TIMEOUT")
+        self.assertEqual(marker.read_text(),"x")
+
     def test_recovery_pages_exact_and_cross_project_isolation(self):
         content="REDUCED "+("x"*3200)
         reduced=reduce_text(self.root,content,surface="mcp",tool="safe",kind="api",

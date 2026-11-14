@@ -2,7 +2,7 @@
 
 ## Veredito
 
-**NOT_CERTIFIED.** A instrumentação foi implementada e validada localmente, mas a certificação exige medições reais pareadas. Não há números de tokens, economia, latência ou custo a apresentar sem fabricar evidências.
+**BLOCKED.** A instrumentação foi implementada e validada localmente, mas a certificação exige roteamento persistente autorizado e medições reais pareadas. Não há números de tokens, economia, latência ou custo a apresentar sem fabricar evidências.
 
 ## Implementação
 
@@ -51,3 +51,5 @@ A auditoria local da configuração Codex encontrou 3 servidores MCP ativos e 0 
 3. Executar 3 pares por cenário/domínio com `tools/run_live_codex_pairs.ps1` e importar os registros.
 4. Adicionar evento final para timeout/encerramento inesperado e idempotência por request ID.
 5. Medir overhead real e só então promover o estado de certificação.
+
+O plano/diff não aplicado está em [`07-routing-plan.md`](07-routing-plan.md). É necessária autorização explícita para alterar `C:\Users\phsra\.codex\config.toml`; a configuração Web também requer disponibilizar `@playwright/mcp`.

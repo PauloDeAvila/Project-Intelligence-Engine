@@ -91,7 +91,8 @@ def recovery_page(root: Path, args: object) -> dict:
 class MCPStdioGateway:
     def __init__(self, root: Path, command: list[str], *,
                  max_chars: int = 2500, compress_tools: tuple[str,...] =
-                 ("get_scene_info","get_object_info"), profile: str = "generic") -> None:
+                 ("get_scene_info","get_object_info"), profile: str = "generic",
+                 request_timeout_sec: float = 120.0) -> None:
         self.root=detect_workspace(root)
         if not command or not all(isinstance(v,str) and v for v in command):
             raise ValueError("Upstream server command is required")
@@ -99,13 +100,17 @@ class MCPStdioGateway:
             raise ValueError("Invalid MCP result budget")
         if profile not in ("generic","web"):
             raise ValueError("MCP profile must be generic or web")
+        if isinstance(request_timeout_sec, bool) or not isinstance(request_timeout_sec, (int, float)) or not 1 <= request_timeout_sec <= 3600:
+            raise ValueError("Invalid MCP request timeout")
         self.profile=profile
+        self.request_timeout_sec=float(request_timeout_sec)
         self.command=list(command)
         self.max_chars=max_chars
         self.compress_tools=frozenset(compress_tools)
         self._write_lock=threading.RLock()
         self._pending_lock=threading.RLock()
-        self._pending:dict[str,tuple[str,str,float]]={}
+        self._pending:dict[str,tuple[str,str,float,threading.Timer]]={}
+        self._expired:set[str]=set()
         self._output_schema_tools:set[str]=set()
         self._listed_tools:set[str]=set()
         self._collision=False
@@ -130,8 +135,18 @@ class MCPStdioGateway:
         with self._pending_lock:
             pending=self._pending.pop(_id(response["id"]),None)
         if not pending:
-            return response
-        method,tool,started=pending
+            with self._pending_lock:
+                if _id(response["id"]) in self._expired:
+                    self._expired.discard(_id(response["id"]))
+                    return None
+            body=response.get("result")
+            if isinstance(body,dict) and isinstance(body.get("tools"),list):
+                pending=("tools/list","",0.0,None)
+            else:
+                return response
+        method,tool,started,timer=pending
+        if timer is not None:
+            timer.cancel()
         if method=="tools/list":
             body=response.get("result")
             if isinstance(body,dict) and isinstance(body.get("tools"),list):
@@ -216,6 +231,19 @@ class MCPStdioGateway:
             return response
         return response
 
+    def _expire(self, key: str, stdout: TextIO) -> None:
+        with self._pending_lock:
+            pending = self._pending.pop(key, None)
+            if pending is None:
+                return
+            self._expired.add(key)
+        try:
+            self._send(stdout, {"jsonrpc":"2.0", "id":json.loads(key),
+                                "error":{"code":-32001,
+                                         "message":"PIE_GATEWAY_TIMEOUT"}})
+        except OSError:
+            pass
+
     def run(self, stdin: TextIO = sys.stdin, stdout: TextIO = sys.stdout) -> int:
         upstream=subprocess.Popen(
             self.command,stdin=subprocess.PIPE,stdout=subprocess.PIPE,
@@ -228,6 +256,8 @@ class MCPStdioGateway:
                 try:
                     payload=json.loads(line)
                     response=self._transform(payload) if isinstance(payload,dict) else payload
+                    if response is None:
+                        continue
                     with self._write_lock:
                         stdout.write(_json(response)+"\n")
                         stdout.flush()
@@ -256,8 +286,16 @@ class MCPStdioGateway:
                         self._send(stdout,self._handle_recovery(request))
                         continue
                     name=(request.get("params") or {}).get("name","") if isinstance(request.get("params"),dict) else ""
+                    key=_id(request["id"])
                     with self._pending_lock:
-                        self._pending[_id(request["id"])]=(request.get("method",""),name,time.perf_counter())
+                        if key in self._pending:
+                            continue
+                        timer=threading.Timer(self.request_timeout_sec, self._expire,
+                                              args=(key,stdout))
+                        self._pending[key]=(request.get("method",""),name,
+                                            time.perf_counter(),timer)
+                        timer.daemon=True
+                        timer.start()
                 upstream.stdin.write(line)
                 upstream.stdin.flush()
         finally:
@@ -268,6 +306,10 @@ class MCPStdioGateway:
                 upstream.kill()
                 upstream.wait()
             reader.join(timeout=3)
+            with self._pending_lock:
+                for _, _, _, timer in self._pending.values():
+                    timer.cancel()
+                self._pending.clear()
         return upstream.returncode or 0
 
 
@@ -277,6 +319,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--store",type=Path,default=None)
     parser.add_argument("--max-chars",type=int,default=2500)
     parser.add_argument("--profile",choices=("generic","web"),default="generic")
+    parser.add_argument("--request-timeout-sec",type=float,default=120.0)
     parser.add_argument("--compress-tool",action="append",default=None,
                         help="Explicitly authorize lossy text-only reduction for this tool")
     parser.add_argument("upstream",nargs=argparse.REMAINDER)
@@ -288,7 +331,7 @@ def main(argv: list[str] | None = None) -> int:
     proxy=MCPStdioGateway(opt.workspace,command,max_chars=opt.max_chars,
                           compress_tools=tuple(opt.compress_tool) if opt.compress_tool
                           else ("get_scene_info","get_object_info"),
-                          profile=opt.profile)
+                          profile=opt.profile,request_timeout_sec=opt.request_timeout_sec)
     return proxy.run()
 
 
