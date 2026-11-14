@@ -14,7 +14,7 @@ def _count(x,k):
 def parse_codex_jsonl(source:str)->dict:
     if not isinstance(source,str) or len(source.encode("utf-8"))>16_000_000:
         raise ValueError("Trace missing or too large")
-    usage=[];answer="";calls=0;failed=False
+    usage=[];answer="";calls=0;failed=False;mcp_tools=[]
     for line in source.splitlines():
         if not line.strip():continue
         try:e=json.loads(line)
@@ -34,11 +34,16 @@ def parse_codex_jsonl(source:str)->dict:
             if isinstance(item,dict):
                 if e["type"]=="item.completed" and item.get("type")=="agent_message" and isinstance(item.get("text"),str):
                     answer=item["text"]
+                if e["type"]=="item.completed" and item.get("type")=="mcp_tool_call":
+                    server=item.get("server");tool=item.get("tool");status=item.get("status")
+                    if all(isinstance(v,str) for v in (server,tool,status)):
+                        mcp_tools.append({"server":server[:120],"tool":tool[:120],"status":status[:40]})
                 if e["type"]=="item.started" and item.get("type") in ("command_execution","mcp_tool_call","web_search","file_change"):
                     calls+=1
     if failed or len(usage)!=1:raise ValueError("Need one successful turn.completed event")
     return {"usage":usage[0],"answer":answer,"answer_sha256":_sha(answer),
-            "tool_events":calls,"source":"codex_exec_json_turn_completed","provider_reported":True}
+            "tool_events":calls,"mcp_tools":mcp_tools,
+            "source":"codex_exec_json_turn_completed","provider_reported":True}
 
 def validate_scenario(s:dict)->dict:
     allowed={"scenario_id","prompt","expected_exact","model","description","required_mcp_server"}
@@ -188,7 +193,7 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
             "answer_sha256":_sha(actual),"oracle_kind":"exact_text","oracle_pass":actual==expected,
             "workspace_commit":commit,"configuration_sha256":configsha,"profile":profile,
             "runtime_ms":round((time.perf_counter()-t0)*1000,3),
-            "tool_events":parsed["tool_events"],"usage":parsed["usage"],
+            "tool_events":parsed["tool_events"],"mcp_tools":parsed["mcp_tools"],"usage":parsed["usage"],
             "provider_reported":parsed["provider_reported"],"source":parsed["source"],
             "note":"Codex provider usage, not billing or a raw transcript"}
 

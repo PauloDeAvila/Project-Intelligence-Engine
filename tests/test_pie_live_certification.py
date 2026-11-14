@@ -9,7 +9,8 @@ from pie.certification.coverage import audit_codex
 
 def event(inp=1200,cached=100,out=200,answer="answer"):
     objects=[{"type":"thread.started","thread_id":"opaque"},
-             {"type":"item.started","item":{"type":"command_execution"}},
+             {"type":"item.started","item":{"type":"mcp_tool_call"}},
+             {"type":"item.completed","item":{"type":"mcp_tool_call","server":"pie-web-optimized","tool":"browser_snapshot","status":"completed"}},
              {"type":"item.completed","item":{"type":"agent_message","text":answer}},
              {"type":"turn.completed","usage":{"input_tokens":inp,
                "cached_input_tokens":cached,"output_tokens":out,"reasoning_output_tokens":0}}]
@@ -35,6 +36,7 @@ class UsageTests(unittest.TestCase):
         self.assertEqual(actual["answer"],"answer")
         self.assertEqual(actual["tool_events"],1)
         self.assertTrue(actual["provider_reported"])
+        self.assertEqual(actual["mcp_tools"], [{"server":"pie-web-optimized","tool":"browser_snapshot","status":"completed"}])
     def test_missing_conflicting_or_failed_usage_rejected(self):
         base=event()
         bad=("","not json",'{"type":"turn.completed"}',base+base,

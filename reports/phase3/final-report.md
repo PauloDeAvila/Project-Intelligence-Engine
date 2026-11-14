@@ -35,4 +35,4 @@ Valores `B/O` são baseline/optimized. A economia de input não armazenado em ca
 2. Reexecutar somente os pares faltantes com nova autorização, pois o limite de 12 chamadas desta autorização foi consumido.
 3. Medir overhead real por operação e verificar inicialização contínua dos dois gateways.
 
-Relatórios detalhados: [`09-blender-real-ab.json`](09-blender-real-ab.json), [`10-web-real-ab.json`](10-web-real-ab.json), [`11-token-certification.json`](11-token-certification.json) e [`12-cost-efficiency.json`](12-cost-efficiency.json).
+Relatórios detalhados: [`09-blender-real-ab.json`](09-blender-real-ab.json), [`10-web-real-ab.json`](10-web-real-ab.json), [`11-token-certification.json`](11-token-certification.json), [`12-cost-efficiency.json`](12-cost-efficiency.json) e [`14-offline-root-cause.md`](14-offline-root-cause.md).

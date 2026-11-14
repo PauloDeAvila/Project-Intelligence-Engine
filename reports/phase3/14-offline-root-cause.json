@@ -1,0 +1,47 @@
+{
+  "schema": "pie-phase3-offline-root-cause-v1",
+  "source": "12 sanitized provider records, two profile overlays, gateway SQLite, and current source",
+  "model_calls": 0,
+  "confirmed_findings": [
+    {
+      "id": "PAIR-HASH-MISMATCH-01",
+      "finding": "Repetition 1 baseline and optimized prompts have different SHA-256 values in both domains.",
+      "evidence": "Blender 5f8d1642 vs 5fdccb76; Web 9ced10ed vs 14a1bd28.",
+      "impact": "Those two runs cannot be valid paired comparisons under the fail-closed comparator."
+    },
+    {
+      "id": "WORKSPACE-OVERLAY-MISMATCH-01",
+      "finding": "The optimized overlay embeds the main checkout as --workspace while Codex executed in a temporary worktree.",
+      "evidence": "pie-phase3-optimized-20261114.config.toml was inspected offline; capture workspace_commit was the temporary worktree commit.",
+      "impact": "Gateway storage and workspace detection were not guaranteed to refer to the Codex execution root, explaining incomplete route telemetry."
+    },
+    {
+      "id": "WEB-VARIANCE-01",
+      "finding": "The Web regression is concentrated in repetition 3.",
+      "evidence": "Optimized input 272287 vs baseline 202275 (+34.612%), MCP events 5 vs 4, duration 25167.380 vs 21242.227 ms.",
+      "impact": "The aggregate Web result is negative; the available evidence is consistent with extra/repeated retrieval, but does not prove which tool caused it."
+    }
+  ],
+  "per_repetition": {
+    "blender": [
+      {"repetition": 1, "comparable": false, "input_savings_percent": 9.241, "mcp_events_baseline": 3, "mcp_events_optimized": 2},
+      {"repetition": 2, "comparable": true, "input_savings_percent": -4.258, "uncached_input_savings_percent": -7.732, "mcp_events_baseline": 2, "mcp_events_optimized": 3},
+      {"repetition": 3, "comparable": true, "input_savings_percent": 30.132, "uncached_input_savings_percent": 9.294, "mcp_events_baseline": 2, "mcp_events_optimized": 2}
+    ],
+    "web": [
+      {"repetition": 1, "comparable": false, "input_savings_percent": 14.75, "mcp_events_baseline": 3, "mcp_events_optimized": 3},
+      {"repetition": 2, "comparable": true, "input_savings_percent": 17.107, "uncached_input_savings_percent": 2.174, "mcp_events_baseline": 4, "mcp_events_optimized": 3},
+      {"repetition": 3, "comparable": true, "input_savings_percent": -34.612, "uncached_input_savings_percent": -28.504, "mcp_events_baseline": 4, "mcp_events_optimized": 5}
+    ]
+  },
+  "not_recoverable_from_existing_records": [
+    "Exact MCP server/tool names for the 12 calls; only counts were persisted.",
+    "Per-tool response sizes and recovery-page calls.",
+    "Whether each Codex MCP event traversed the gateway at runtime."
+  ],
+  "changes_made": [
+    "Future Codex captures now persist sanitized server/tool/status fields for completed MCP calls.",
+    "No prompts, answers, cookies, credentials, or tool payloads are persisted."
+  ],
+  "next_validation": "Generate per-worktree optimized profiles with the current workspace path, then request authorization only for the missing pairs."
+}
