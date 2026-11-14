@@ -223,6 +223,16 @@ class GlobalWorkspaceIndex:
                     report = index_project(self.root, selected_paths=python_dirty)
                 else:
                     report = None
+                # If a source changed between capture and indexing, fail closed.
+                # The next background pass will reconcile from current bytes.
+                for rel in changed:
+                    target = self.root / rel
+                    try:
+                        st = target.stat()
+                    except OSError as exc:
+                        raise RuntimeError("Source disappeared during indexing") from exc
+                    if (st.st_mtime_ns, st.st_size, st.st_ino) != current[rel]:
+                        raise RuntimeError("Source changed during indexing: " + rel)
                 with closing(self._db()) as db:
                     with db:
                         db.execute("BEGIN IMMEDIATE")
