@@ -27,6 +27,10 @@ O último ponto é uma correlação observada, não uma atribuição causal fech
 
 Os registros antigos armazenaram apenas `tool_events`; não é possível reconstruir offline quais ferramentas MCP foram usadas, se houve recuperação paginada ou se cada evento atravessou o gateway. A nova captura passa a registrar apenas `server`, `tool` e `status`, sem payloads sensíveis.
 
-## Próxima correção
+## Correção aplicada
+
+O preflight agora rejeita configurações `pie.gateway.domain` cujo argumento `--workspace` não coincide com o workspace efetivo do Codex. Isso impede novo benchmark com telemetria apontando para outra raiz.
+
+## Próxima validação
 
 Gerar o overlay optimized por worktree, com o caminho de `--workspace` igual ao workspace efetivamente passado ao Codex. Depois, solicitar nova autorização somente para os pares faltantes. O estado permanece `NOT_CERTIFIED`.

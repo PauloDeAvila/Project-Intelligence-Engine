@@ -137,6 +137,25 @@ class PreflightTests(unittest.TestCase):
             with patch("pie.certification.live_codex.shutil.which",return_value="codex"):
                 result=preflight_codex(scenario,condition="baseline",workspace=root,codex_home=home,profile="probe")
             self.assertEqual(result["checks"]["profile"],"PASS")
-            self.assertIn("PRECHECK_AUTH_MISSING",result["errors"])
+
+    def test_preflight_rejects_gateway_profile_for_another_workspace(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp); home=root/"home"; home.mkdir()
+            (root/"pyproject.toml").write_text("[project]\nname='x'\n")
+            (home/"config.toml").write_text("model='test-model'\n")
+            (home/"probe.config.toml").write_text(
+                "[mcp_servers.pie-phase3-web]\n"
+                "command='python'\n"
+                "args=['-m','pie.gateway.domain','serve','--domain','web',"
+                "'--workspace','C:/different-workspace']\n")
+            with patch("pie.certification.live_codex.shutil.which",return_value="codex"), \
+                 patch("pie.certification.live_codex._auth_state",return_value="AUTH_PRESENT_ENV"), \
+                 patch("pie.certification.live_codex._git_clean_commit",return_value="0"*40):
+                result=preflight_codex({"scenario_id":"web","prompt":"x",
+                    "expected_exact":"x","model":"test-model",
+                    "required_mcp_server":"pie-phase3-web"},condition="optimized",
+                    workspace=root,codex_home=home,profile="probe")
+            self.assertEqual(result["state"],"BLOCKED")
+            self.assertIn("PRECHECK_GATEWAY_WORKSPACE_MISMATCH",result["errors"])
 
 if __name__=="__main__":unittest.main()

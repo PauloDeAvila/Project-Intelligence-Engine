@@ -23,7 +23,7 @@ Valores `B/O` são baseline/optimized. A economia de input não armazenado em ca
 
 ## Testes
 
-`pytest`: **533 passed, 5 skipped, 133 subtests**. `compileall`: passou. O índice local PIE foi reindexado para a raiz correta e ficou `CURRENT`; o servidor PIE MCP disponível nesta sessão continua apontando para outra raiz, limitação registrada.
+`pytest`: **534 passed, 5 skipped, 133 subtests**. `compileall`: passou. O preflight agora bloqueia overlays com workspace divergente. O índice local PIE foi reindexado para a raiz correta e ficou `CURRENT`; o servidor PIE MCP disponível nesta sessão continua apontando para outra raiz, limitação registrada.
 
 ## Custos
 

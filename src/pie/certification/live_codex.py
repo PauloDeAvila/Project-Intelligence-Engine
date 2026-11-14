@@ -117,7 +117,21 @@ def preflight_codex(scenario:dict,*,condition:str,workspace:Path,codex_home:Path
         required=scenario.get("required_mcp_server")
         if required and required not in servers:
             checks["mcp"]={"state":"FAIL","required_server":required};errors.append("PRECHECK_MCP_UNAVAILABLE")
-        else:checks["mcp"]={"state":"PASS","required_server":required}
+        else:
+            checks["mcp"]={"state":"PASS","required_server":required}
+            selected=servers.get(required) if required else None
+            args=selected.get("args",[]) if isinstance(selected,dict) else []
+            if not isinstance(args,list) or not all(isinstance(v,str) for v in args):
+                checks["gateway_workspace"]="FAIL";errors.append("PRECHECK_CONFIG_INVALID")
+            elif "pie.gateway.domain" in args and "--workspace" in args:
+                pos=args.index("--workspace")
+                configured=Path(args[pos+1]).expanduser().resolve() if pos+1<len(args) else None
+                if configured != workspace:
+                    checks["gateway_workspace"]={"state":"FAIL","reason":"MCP gateway workspace differs from Codex workspace"}
+                    errors.append("PRECHECK_GATEWAY_WORKSPACE_MISMATCH")
+                else: checks["gateway_workspace"]="PASS"
+            else:
+                checks["gateway_workspace"]="NOT_APPLICABLE"
         auth_env=dict(os.environ);auth_env["CODEX_HOME"]=str(codex_home)
         auth=_auth_state(codex_home,executable,auth_env)
         checks["authentication"]={"state":auth}
