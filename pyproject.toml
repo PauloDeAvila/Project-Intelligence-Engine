@@ -17,6 +17,8 @@ pie-setup = "pie.interfaces.setup:main"
 pie-mcp = "pie.interfaces.mcp_server:main"
 pie-gateway = "pie.interfaces.gateway:main"
 pie-blender-mcp = "pie.integrations.blender_mcp_bridge:main"
+pie-global = "pie.interfaces.global_mcp:cli"
+pie-global-mcp = "pie.interfaces.global_mcp:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
