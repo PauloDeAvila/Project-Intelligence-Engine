@@ -41,8 +41,27 @@ def pie_node(node):
     for sock in node.inputs:
         if hasattr(sock, "default_value") and not sock.is_linked:
             sockets[sock.identifier or sock.name] = pie_sanitize(sock.default_value)
+    props = {}
+    for key in ("operation", "blend_type", "vector_type", "noise_dimensions",
+                "interpolation", "projection", "extension", "attribute_name",
+                "uv_map", "data_type", "clamp", "use_clamp"):
+        try:
+            value = getattr(node, key)
+            if isinstance(value, (str, bool, int, float)):
+                props[key] = pie_sanitize(value)
+        except (AttributeError, ValueError, TypeError):
+            pass
+    if hasattr(node, "color_ramp"):
+        ramp = node.color_ramp
+        props["color_ramp"] = {
+            "color_mode": ramp.color_mode, "interpolation": ramp.interpolation,
+            "elements": [{"position": pie_sanitize(e.position),
+                          "color": pie_sanitize(e.color)} for e in ramp.elements][:64],
+            "element_count": len(ramp.elements)}
+    if hasattr(node, "image") and node.image is not None:
+        props["image"] = {"name": node.image.name, "source": node.image.source}
     return {"name": node.name, "type": node.bl_idname, "inputs": sockets,
-            "mute": bool(node.mute)}
+            "props": props, "mute": bool(node.mute)}
 
 def pie_material(mat):
     nodes = []
@@ -68,7 +87,8 @@ def pie_object(obj):
             "scale": pie_sanitize(obj.scale),
             "visible": not bool(obj.hide_get()),
             "materials": [m.name if m else None for m in (obj.data.materials if
-                           obj.type == "MESH" and obj.data is not None else [])][:64]}
+                           obj.type == "MESH" and obj.data is not None else [])][:64],
+            "material_slot_count": len(obj.data.materials) if obj.type == "MESH" and obj.data is not None else 0}
 
 pie_scope = __PIE_SCOPE__
 pie_scene = bpy.context.scene
@@ -92,7 +112,11 @@ pie_data = {
 }
 pie_data["complete"] = not any(pie_data["omissions"].values()) and all(
     m["node_count"] == len(m["nodes"]) and m["link_count"] == len(m["links"])
-    for m in pie_data["materials"])
+    and all(n["props"].get("color_ramp", {}).get("element_count", 0)
+            <= len(n["props"].get("color_ramp", {}).get("elements", []))
+            for n in m["nodes"])
+    for m in pie_data["materials"]) and all(
+    o["material_slot_count"] == len(o["materials"]) for o in pie_data["objects"])
 pie_encoded = json.dumps(pie_data, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
 if len(pie_encoded) > 1800000:
     print("PIE_SCENE_SNAPSHOT_V1=" + json.dumps({
