@@ -103,6 +103,7 @@ class MCPStdioGateway:
         self._pending_lock=threading.RLock()
         self._pending:dict[str,tuple[str,str]]={}
         self._output_schema_tools:set[str]=set()
+        self._listed_tools:set[str]=set()
         self._collision=False
 
     def _send(self, stdout: TextIO, message: dict) -> None:
@@ -133,6 +134,8 @@ class MCPStdioGateway:
                 for spec in body["tools"]:
                     if isinstance(spec,dict):
                         name=spec.get("name")
+                        if isinstance(name,str):
+                            self._listed_tools.add(name)
                         if spec.get("outputSchema") is not None:
                             self._output_schema_tools.add(name)
                         if name==RECOVERY_NAME:
@@ -150,7 +153,7 @@ class MCPStdioGateway:
         if len(content)!=1 or not isinstance(content[0],dict) or not isinstance(content[0].get("text"),str):
             return response
         source=content[0]["text"]
-        eligible=(not self._collision and
+        eligible=(not self._collision and tool in self._listed_tools and
                   mcp_compactable(response,tool,self.compress_tools,
                                   has_output_schema=tool in self._output_schema_tools))
         if not eligible or len(source)<=self.max_chars:
