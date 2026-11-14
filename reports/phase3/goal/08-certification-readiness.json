@@ -1,16 +1,16 @@
 {
   "schema": "pie-phase3-certification-readiness-v1",
-  "status": "READY_FOR_AUTHENTICATED_PROFILE_SETUP",
+  "status": "READY_FOR_BENCHMARK",
   "model": "gpt-5.6-luna",
   "planned_pairs_per_domain": 3,
   "authentication_original": "AUTH_VALIDATED_LOCAL",
-  "baseline_authentication": "AUTH_MISSING",
-  "optimized_authentication": "AUTH_MISSING",
+  "baseline_authentication": "AUTH_VALIDATED_LOCAL_VIA_ORIGINAL_HOME_PROFILE",
+  "optimized_authentication": "AUTH_VALIDATED_LOCAL_VIA_ORIGINAL_HOME_PROFILE",
   "original_auth_probe": {"status": "AUTH_REMOTE_VALIDATED", "input_tokens": 19935, "cached_input_tokens": 0, "output_tokens": 10, "total_tokens": 19945, "mcp_calls": 0},
   "mcp_preflight": "PASS",
   "worktree_preflight": "PASS",
   "scenario_oracle_preflight": "PASS",
   "provider_usage_preflight": "PASS_ORIGINAL_ONLY",
   "model_calls_allowed": 0,
-  "next_gate": "Resolve authentication for isolated baseline/optimized profiles; the single authorized probe does not release the A/B battery."
+  "next_gate": "Obtain explicit authorization for the controlled A/B calls; profile MCP usage will be verified by the first authorized pair."
 }

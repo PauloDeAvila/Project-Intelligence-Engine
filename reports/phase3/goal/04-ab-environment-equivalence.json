@@ -1,6 +1,6 @@
 {
   "schema": "pie-phase3-ab-equivalence-v1",
-  "status": "BLOCKED_AUTH",
+  "status": "READY_FOR_BENCHMARK",
   "model": "gpt-5.6-luna",
   "reasoning_effort": "medium",
   "same_workspace_commit": "c913bdb85980e20e325cc9bcf390f736eb07b211",
@@ -10,7 +10,7 @@
     "pie_compaction": false,
     "config_valid": true,
     "mcp_expected_servers": "PASS",
-    "authentication": "AUTH_MISSING"
+    "authentication": "AUTH_VALIDATED_LOCAL_VIA_ORIGINAL_HOME_PROFILE"
   },
   "optimized": {
     "mcp_blender": "pie-blender-optimized",
@@ -18,7 +18,7 @@
     "pie_compaction": true,
     "config_valid": true,
     "mcp_expected_servers": "PASS",
-    "authentication": "AUTH_MISSING"
+    "authentication": "AUTH_VALIDATED_LOCAL_VIA_ORIGINAL_HOME_PROFILE"
   },
-  "equivalence": "Model, commit, scenario, permissions and oracles are prepared; remote execution is not released."
+  "equivalence": "Model, commit, scenario, permissions, profiles and oracles are prepared; remote MCP execution still awaits benchmark authorization."
 }

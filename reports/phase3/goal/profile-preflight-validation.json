@@ -1,0 +1,33 @@
+{
+  "schema": "pie-phase3-profile-preflight-v1",
+  "status": "READY_FOR_BENCHMARK",
+  "auth_home": "original CODEX_HOME; no credentials copied",
+  "profiles": {
+    "pie-phase3-baseline-20261114": {
+      "condition": "baseline",
+      "state": "READY_FOR_BENCHMARK",
+      "required_mcp_server": "playwright-baseline",
+      "config": "PASS",
+      "profile": "PASS",
+      "worktree": "PASS",
+      "model": "PASS",
+      "authentication": "AUTH_VALIDATED_LOCAL"
+    },
+    "pie-phase3-optimized-20261114": {
+      "condition": "optimized",
+      "state": "READY_FOR_BENCHMARK",
+      "required_mcp_server": "pie-blender-optimized",
+      "config": "PASS",
+      "profile": "PASS",
+      "worktree": "PASS",
+      "model": "PASS",
+      "authentication": "AUTH_VALIDATED_LOCAL"
+    }
+  },
+  "profile_files": [
+    "C:\\Users\\phsra\\.codex\\pie-phase3-baseline-20261114.config.toml",
+    "C:\\Users\\phsra\\.codex\\pie-phase3-optimized-20261114.config.toml"
+  ],
+  "remote_profile_mcp_call": "not yet executed",
+  "model_calls_this_step": 0
+}

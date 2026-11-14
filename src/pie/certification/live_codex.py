@@ -91,22 +91,24 @@ def preflight_codex(scenario:dict,*,condition:str,workspace:Path,codex_home:Path
         parsed=tomllib.loads(config.read_text(encoding="utf-8"));checks["config"]="PASS"
     except (OSError,tomllib.TOMLDecodeError):
         checks["config"]="FAIL";errors.append("PRECHECK_CONFIG_INVALID")
+    profile_parsed={}
     if profile is not None:
         profile_path=codex_home/(profile+".config.toml")
         try:
             if not profile or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_" for c in profile):
                 raise ValueError("Invalid Codex profile")
-            tomllib.loads(profile_path.read_text(encoding="utf-8"));checks["profile"]="PASS"
+            profile_parsed=tomllib.loads(profile_path.read_text(encoding="utf-8"));checks["profile"]="PASS"
         except (OSError,tomllib.TOMLDecodeError,ValueError):
             checks["profile"]="FAIL";errors.append("PRECHECK_CONFIG_INVALID")
     executable=shutil.which(codex_bin)
     if executable is None:checks["codex_executable"]="FAIL";errors.append("PRECHECK_AUTH_UNAVAILABLE")
     else:checks["codex_executable"]="PASS"
     if executable and parsed is not None:
-        model=parsed.get("model")
+        model=profile_parsed.get("model",parsed.get("model"))
         checks["model"]="PASS" if model==scenario["model"] else {"state":"FAIL","configured":model}
         if model!=scenario["model"]:errors.append("PRECHECK_MODEL_INVALID")
-        servers=parsed.get("mcp_servers") if isinstance(parsed.get("mcp_servers"),dict) else {}
+        servers=dict(parsed.get("mcp_servers") if isinstance(parsed.get("mcp_servers"),dict) else {})
+        if isinstance(profile_parsed.get("mcp_servers"),dict):servers.update(profile_parsed["mcp_servers"])
         required=scenario.get("required_mcp_server")
         if required and required not in servers:
             checks["mcp"]={"state":"FAIL","required_server":required};errors.append("PRECHECK_MCP_UNAVAILABLE")
