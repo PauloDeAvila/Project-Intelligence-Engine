@@ -1,0 +1,169 @@
+"""Global PIE zero-prompt tests: startup, incremental, restart, isolation, no project writes."""
+from contextlib import contextmanager
+from pathlib import Path
+from unittest.mock import patch
+import json
+import os
+import subprocess
+import sys
+import tempfile
+import unittest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from pie.indexing.global_workspace import GlobalWorkspaceIndex, detect_workspace
+from pie.storage.locations import workspace_file
+
+
+class GlobalWorkspaceTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp=tempfile.TemporaryDirectory()
+        self.base=Path(self.tmp.name)
+        self.store=self.base/"central-store"
+        self.project=self.base/"the-app"
+        self.project.mkdir()
+        (self.project/"pyproject.toml").write_text("[project]\nname='test-app'\n",encoding="utf8")
+        (self.project/"alpha.py").write_text("def alpha():\n    return 1\n",encoding="utf8")
+        (self.project/"beta.py").write_text("def beta():\n    return 2\n",encoding="utf8")
+        self.patch=patch.dict(os.environ,{"PIE_GLOBAL_STORAGE_ROOT":str(self.store)})
+        self.patch.start()
+
+    def tearDown(self):
+        self.patch.stop()
+        self.tmp.cleanup()
+
+    def test_first_use_builds_index_only_under_central_store(self):
+        w=GlobalWorkspaceIndex(self.project,force_global=True)
+        result=w.refresh()
+        self.assertEqual(result["mode"],"FULL")
+        self.assertTrue(result["first_index"])
+        self.assertEqual(result["python_index"]["files"],2)
+        self.assertFalse((self.project/".pie").exists())
+        self.assertTrue(workspace_file(self.project).is_file())
+        self.assertTrue((self.store/"registry.sqlite3").exists())
+        self.assertEqual(w.status()["tracked_files"],3)
+
+    def test_second_use_never_reads_unchanged_files(self):
+        w=GlobalWorkspaceIndex(self.project,force_global=True)
+        w.refresh()
+        again=w.refresh()
+        self.assertEqual(again["mode"],"UNCHANGED")
+        self.assertEqual(again["content_reads"],0)
+        self.assertIsNone(again["python_index"])
+        self.assertEqual(again["changed_files"],[])
+
+    def test_one_changed_file_only_is_reindexed(self):
+        w=GlobalWorkspaceIndex(self.project,force_global=True)
+        w.refresh()
+        (self.project/"beta.py").write_text("def beta():\n    return 100\n",encoding="utf8")
+        report=w.refresh()
+        self.assertEqual(report["mode"],"INCREMENTAL")
+        self.assertEqual(report["changed_files"],["beta.py"])
+        self.assertEqual(report["content_reads"],1)
+        self.assertEqual(report["python_index"]["changed_files"],["beta.py"])
+        self.assertEqual(report["python_index"]["files"],2)
+        self.assertFalse((self.project/".pie").exists())
+
+    def test_delete_updates_only_removed_path(self):
+        w=GlobalWorkspaceIndex(self.project,force_global=True)
+        w.refresh()
+        (self.project/"alpha.py").unlink()
+        report=w.refresh()
+        self.assertEqual(report["mode"],"INCREMENTAL")
+        self.assertEqual(report["deleted_files"],["alpha.py"])
+        self.assertEqual(report["content_reads"],0)
+        self.assertEqual(report["python_index"]["removed_files"],["alpha.py"])
+        self.assertEqual(w.status()["python_indexed_files"],1)
+
+    def test_restart_preserves_central_index_and_files(self):
+        GlobalWorkspaceIndex(self.project,force_global=True).refresh()
+        fresh=GlobalWorkspaceIndex(self.project,force_global=True)
+        result=fresh.refresh()
+        self.assertFalse(result["first_index"])
+        self.assertEqual(result["mode"],"UNCHANGED")
+        self.assertEqual(fresh.status()["python_indexed_files"],2)
+
+    def test_non_python_project_is_catalogued_and_query_verified(self):
+        app=self.base/"front-end"
+        app.mkdir()
+        (app/"package.json").write_text('{"name":"front-end"}',encoding="utf8")
+        (app/"app.ts").write_text("export const steelRoughness = 0.35;\n",encoding="utf8")
+        w=GlobalWorkspaceIndex(app,force_global=True)
+        result=w.refresh()
+        self.assertEqual(result["python_index"]["files"],0)
+        self.assertEqual(result["mode"],"FULL")
+        x=w.search("steelRoughness")
+        self.assertEqual(x["state"],"COMPLETE")
+        self.assertEqual(x["matches"][0]["path"],"app.ts")
+        self.assertEqual(x["matches"][0]["verification"],"sha256_checked")
+        (app/"app.ts").write_text("export const steelRoughness = 0.28;\n",encoding="utf8")
+        stale=w.search("steelRoughness")
+        self.assertEqual(stale["state"],"PARTIAL")
+        self.assertFalse(stale["matches"])
+        w.refresh()
+        self.assertIn("0.28",w.search("steelRoughness")["matches"][0]["snippet"])
+
+    def test_two_projects_are_isolated_in_global_store(self):
+        b=self.base/"second-project"
+        b.mkdir()
+        (b/"pyproject.toml").write_text("[project]\nname='other'\n",encoding="utf8")
+        (b/"another.py").write_text("def another(): return 5\n",encoding="utf8")
+        first=GlobalWorkspaceIndex(self.project,force_global=True)
+        second=GlobalWorkspaceIndex(b,force_global=True)
+        first.refresh()
+        second.refresh()
+        self.assertNotEqual(first.workspace_id,second.workspace_id)
+        self.assertNotEqual(first.storage,second.storage)
+        self.assertEqual(first.status()["python_indexed_files"],2)
+        self.assertEqual(second.status()["python_indexed_files"],1)
+        self.assertEqual(second.search("alpha")["matches"],[])
+
+    def test_gitsensitive_and_symlinks_are_not_auto_read(self):
+        (self.project/".env").write_text("API_KEY=SECRET",encoding="utf8")
+        (self.project/"private.pem").write_text("PRIVATE KEY",encoding="utf8")
+        (self.project/"credentials.json").write_text('{"secret":"bad"}',encoding="utf8")
+        w=GlobalWorkspaceIndex(self.project,force_global=True)
+        w.refresh()
+        self.assertEqual(w.search("SECRET")["matches"],[])
+        self.assertNotIn(".env",w.status()["last_refresh"]["changed_files"])
+        self.assertFalse((self.project/".pie").exists())
+
+    def test_actual_mcp_process_auto_indexes_without_agent_call(self):
+        workspace=self.base/"subprocess-project"
+        workspace.mkdir()
+        (workspace/"pyproject.toml").write_text("[project]\nname='subprocess'\n",encoding="utf8")
+        (workspace/"sample.py").write_text("def sample(): return 42\n",encoding="utf8")
+        requests=[
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{
+                "protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"1"}}},
+            {"jsonrpc":"2.0","method":"notifications/initialized"},
+            {"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}},
+            {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{
+                "name":"pie_global_status","arguments":{}}},
+        ]
+        env=dict(os.environ,PYTHONPATH=str(Path(__file__).resolve().parents[1]/"src"))
+        proc=subprocess.run(
+            [sys.executable,"-m","pie.interfaces.global_mcp",
+             "--workspace",str(workspace),"--store",str(self.store),
+             "--poll-seconds","0"],
+            input="\n".join(json.dumps(x) for x in requests)+"\n",
+            stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,
+            env=env,timeout=35,
+        )
+        self.assertEqual(proc.returncode,0,proc.stderr)
+        messages={x["id"]:x for x in [json.loads(line) for line in proc.stdout.splitlines()] if "id" in x}
+        toolnames={x["name"] for x in messages[2]["result"]["tools"]}
+        self.assertIn("pie_global_status",toolnames)
+        self.assertIn("pie_global_find_files",toolnames)
+        status=json.loads(messages[3]["result"]["content"][0]["text"])
+        self.assertEqual(status["python_indexed_files"],1)
+        self.assertTrue((self.store/"registry.sqlite3").exists())
+        self.assertFalse((workspace/".pie").exists())
+
+    def test_workspace_discovery_prefers_nearest_marker_and_home_guard(self):
+        nested=self.project/"src"
+        nested.mkdir()
+        self.assertEqual(detect_workspace(nested),self.project)
+
+
+if __name__=="__main__":
+    unittest.main()
