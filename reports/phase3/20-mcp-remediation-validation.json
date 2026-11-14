@@ -18,7 +18,17 @@
   },
   "tests": {"focused": "38 passed, 7 subtests", "full": "535 passed, 5 skipped, 133 subtests"},
   "codex_equivalence": "NOT_VERIFIED",
+  "authorized_codex_diagnostic": {
+    "status": "FAILED_BEFORE_MCP_SPAWN",
+    "diagnostic_id": "codex-mcp-diag-8b39ca34284a4835a6d6e7ac5c8cb074",
+    "codex_exit_code": 1,
+    "config_error": "mcp_servers.pie-blender-optimized.args expected a sequence",
+    "gateway_events": 0,
+    "provider_usage_status": "unavailable",
+    "retries": 0,
+    "interpretation": "The transient -c array override was parsed as a string. This explains this diagnostic invocation only and does not identify the original Codex-session MCP failure."
+  },
   "ready_for_codex_probe": false,
-  "reason": "Direct gateway lifecycle is instrumented and healthy, but the Codex-session failure has not yet produced diagnostic events.",
-  "next_action": "Request one separately authorized instrumented Codex diagnostic call; do not resume A/B automatically."
+  "reason": "The sole authorized diagnostic invocation failed during local Codex configuration parsing before MCP spawn; the original session failure remains inconclusive.",
+  "next_action": "Do not retry automatically. A future diagnostic requires separately authorized quota and a native profile/config overlay rather than a -c array override. Do not resume A/B."
 }

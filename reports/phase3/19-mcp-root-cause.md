@@ -31,6 +31,12 @@ Os logs isolados do Codex não continham entradas textuais úteis. O oráculo fi
 
 A hipótese mais forte é uma diferença entre o lifecycle/sandbox da sessão Codex e o processo direto, mas ela permanece hipótese. Não há base para declarar correção nem para retomar A/B.
 
+## Resultado da chamada diagnóstica autorizada
+
+A única tentativa instrumentada autorizada em 2026-11-14 falhou antes do spawn do gateway. O Codex rejeitou a configuração transitória com `invalid type ... expected a sequence` em `mcp_servers.pie-blender-optimized.args`. O erro foi causado pelo formato do override `-c` usado para essa tentativa; não houve eventos `gateway_constructed`, `upstream_spawn_start`, handshake, `tools/list`, `tools/call` ou `upstream_exit`. Este resultado é uma causa comprovada da tentativa diagnóstica específica, não da falha MCP original.
+
+Estado causal: `INCONCLUSIVE` para a integração MCP original. A quota autorizada para a chamada diagnóstica foi consumida como tentativa operacional; não há uso reportado pelo provedor porque a execução terminou no parsing local.
+
 ## Próximo gate
 
-Uma única chamada Codex diagnóstica, com o overlay instrumentado, deverá ser autorizada separadamente. Só depois de observar `upstream_spawned`, `downstream_request`, resposta/timeout e `upstream_exit` no arquivo de diagnóstico será possível fechar a causa.
+O gate permanece fechado. Não deve haver nova tentativa automática: uma futura chamada diagnóstica exigirá nova autorização de quota e um profile/config overlay nativo, sem override `-c` de array. Só depois de observar `upstream_spawned`, `downstream_request`, resposta/timeout e `upstream_exit` no arquivo de diagnóstico será possível fechar a causa.

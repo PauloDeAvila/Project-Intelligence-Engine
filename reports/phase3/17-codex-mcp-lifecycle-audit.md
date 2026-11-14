@@ -42,3 +42,9 @@ A instrumentação registra somente eventos, nomes de ferramentas, status, dura�
 ## Estado
 
 `NOT_CERTIFIED` e não `READY_FOR_CODEX_PROBE`: a causa exata dentro da sessão Codex ainda não está demonstrada. O procedimento seguro para uma única chamada diagnóstica está preparado, mas não foi executado.
+
+## Chamada diagnóstica autorizada — 2026-11-14
+
+Foi consumida a única tentativa autorizada para a sessão instrumentada. O Codex encerrou antes de iniciar a sessão MCP porque o override transitório `-c` serializou `mcp_servers.pie-blender-optimized.args` como string, em vez de sequência TOML. O stderr sanitizado reportou `expected a sequence`; stdout JSONL ficou vazio e nenhum arquivo de lifecycle foi criado. Portanto, esta tentativa comprova falha de parsing da configuração da invocação, mas não permite inferir a causa da falha MCP observada anteriormente.
+
+Não houve retry, chamada de ferramenta, handshake, token `turn.completed` ou evidência de uso do provedor. A causa da falha MCP original permanece não determinada.
