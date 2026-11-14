@@ -38,6 +38,7 @@ class WebReducerTests(unittest.TestCase):
         self.assertFalse(web_result_eligible(SNAPSHOT+"\n### Error\nNavigation failed","browser_navigate"))
         self.assertFalse(web_result_eligible(SNAPSHOT+"\nSet-Cookie: session=x","browser_navigate"))
         self.assertFalse(web_result_eligible(SNAPSHOT.replace("sort=popular","token=SECRET"),"browser_snapshot"))
+        self.assertFalse(web_result_eligible(SNAPSHOT+'\n- textbox "Password" [ref=e900]',"browser_snapshot"))
         self.assertFalse(web_result_eligible("A"*4000,"browser_snapshot"))
 
     def test_actionable_refs_unmodified_but_preview_partial_and_untrusted(self):

@@ -34,7 +34,7 @@ _SECRET = re.compile(
     r"\b(?:api[_-]?key|access[_-]?token|session[_-]?id)\s*[=:]|"
     r"[?&](?:token|access_token|auth|session|key|apikey|api_key)=|"
     r"\btoken\s*[=:]|"
-    r"\b(?:credit.card.number|card.number|cvv)\b)"
+    r"\b(?:password|passcode|one.time.code|verification.code|cvv|credit.card.number|card.number)\b)"
 )
 _REF = re.compile(r"(?<!\w)(?:\[\s*ref\s*=\s*(?:[a-z]\d+|f\d+e\d+)\s*\]|\bref\s*=\s*(?:[a-z]\d+|f\d+e\d+))", re.I)
 _HEAD = re.compile(r"(?i)^\s*[-*]?\s*(?:heading|title|alert|status|dialog|main|navigation|form|button|link|textbox|searchbox|combobox|checkbox|radio|tab|menuitem|option|listitem|row|cell)\b")
