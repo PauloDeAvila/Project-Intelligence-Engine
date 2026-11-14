@@ -105,6 +105,13 @@ class BlenderProxyUnitTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             BlenderMcpBridge(["python"], 200)
 
+    def test_synthetic_payload_benchmark_records_exact_restore(self):
+        from tools.benchmark_blender_payload import measure
+        report = measure(objects=200, max_chars=1200)
+        self.assertGreater(report["response_character_reduction_percent"], 80)
+        self.assertTrue(report["full_response_recovered_exactly"])
+        self.assertIsNone(report["measured_model_tokens"])
+
 
 class BlenderProxyProcessTests(unittest.TestCase):
     def test_real_stdio_roundtrip_with_mock_upstream(self):
