@@ -68,6 +68,31 @@ class DomainConfigTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             domain_route("github",["node","server.js"],python="py",max_chars=1200)
 
+    def test_codex_auditor_recognizes_only_explicit_domain_profiles(self):
+        from pie.certification.coverage import audit_codex
+        home=self._temp_codex_home()
+        home.joinpath("config.toml").write_text(
+            '[mcp_servers.pie_blender]\n'
+            'command="python"\n'
+            'args=["-m","pie.gateway.domain","serve","--domain","blender","--","uvx","mcp-for-blender"]\n'
+            '[mcp_servers.pie_web]\n'
+            'command="python"\n'
+            'args=["-m","pie.gateway.domain","serve","--domain","web","--","npx","@playwright/mcp"]\n'
+            '[mcp_servers.unprotected]\n'
+            'command="node"\n'
+            'args=["browser.js"]\n')
+        audit=audit_codex(home)
+        self.assertEqual(audit["mcp"]["wrapped_stdio"],2)
+        self.assertEqual(audit["mcp"]["active_servers"],3)
+        self.assertEqual(audit["mcp"]["unwrapped_or_unknown_servers"],["unprotected"])
+        self.assertFalse(audit["universal_interception_certified"])
+
+    def _temp_codex_home(self):
+        import tempfile
+        folder=tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        return Path(folder.name)
+
     def test_register_plan_is_dry_run_and_never_overwrites(self):
         out=register_codex("web","pie-web",["node","server.js"],python="py")
         self.assertEqual(out["state"],"DRY_RUN")
