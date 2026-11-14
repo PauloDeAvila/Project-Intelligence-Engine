@@ -30,13 +30,10 @@
   },
   "tests": {
     "bootstrap_focused": "32 passed, 1 skipped",
-    "full_unittest": "541 run, 5 skipped, 3 failed",
-    "full_unittest_failures": [
-      "test_blender_delta_stdio.BlenderDeltaTransportTest.test_three_observations_with_manual_edit_between_calls",
-      "test_blender_mcp_bridge.BlenderProxyProcessTests.test_real_stdio_roundtrip_with_mock_upstream",
-      "test_pie_domain_gateway.DomainStdioTests.test_blender_bridge_tools_and_write_outputs_are_preserved"
-    ],
-    "baseline_comparison": "The same 3 failures occur at commit f6facf0; no regression attributable to bootstrap was demonstrated.",
+    "full_unittest": "541 run, 5 skipped, 1 intermittent HTTP error",
+    "full_unittest_failures": ["test_pie_evidence_gateway.CertifiedGatewayTests.test_http_health_and_ask_and_block_browser_origin (WinError 10053)"],
+    "blender_bridge_regression": "PASS; the three prior Blender bridge failures now pass.",
+    "isolated_retry": "PASS",
     "pytest_availability": "pytest executable/module unavailable in current environment; unittest was used for offline validation."
   }
 }

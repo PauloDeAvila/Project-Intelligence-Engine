@@ -58,3 +58,7 @@ Após a correção, duas execuções offline sem `PIE_MCP_DIAGNOSTICS_PATH` expl
 ## Veredito da fase
 
 `CODEX_MCP_PROBE_FAILED` para a sessão Codex real; `OFFLINE_MCP_INTEGRATION_PASS` para o gateway e upstream. A causa interna da falha Codex permanece `INCONCLUSIVE`. O gate para nova sessão Codex continua fechado até autorização separada.
+
+## Regressão Blender e suíte
+
+As três falhas de retorno do Blender bridge foram corrigidas fazendo o bridge aguardar uma saída natural curta antes de terminar o upstream à força. O conjunto focado passou com `50 testes, 1 skip`. A suíte completa executou `541 testes, 5 skips` e apresentou uma falha intermitente de socket HTTP (`WinError 10053`) em teste não relacionado; a repetição isolada desse teste passou.

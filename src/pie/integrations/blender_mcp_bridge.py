@@ -325,7 +325,12 @@ class BlenderMcpBridge:
             process.terminate()
         finally:
             if process.poll() is None:
-                process.terminate()
+                # Give a stdin-closed upstream a chance to exit cleanly. A
+                # premature terminate turns normal MCP EOF into exit code 1.
+                try:
+                    process.wait(timeout=1)
+                except subprocess.TimeoutExpired:
+                    process.terminate()
             try:
                 process.wait(timeout=5)
             except subprocess.TimeoutExpired:
