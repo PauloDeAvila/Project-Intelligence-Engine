@@ -1,0 +1,7 @@
+{
+  "scenario_id": "pie_indexer_entrypoint_lookup",
+  "description": "Read-only source inspection. Choose a real model first.",
+  "model": "MODEL_ID_CONFIGURE_BEFORE_USE",
+  "prompt": "Use a terminal command to inspect the source file src/pie/indexing/indexer.py in this repository. Identify the exact top-level Python function that performs repository indexing. Answer with only the function identifier, without prose, punctuation or formatting. Do not modify any files or call external services.",
+  "expected_exact": "index_project"
+}
