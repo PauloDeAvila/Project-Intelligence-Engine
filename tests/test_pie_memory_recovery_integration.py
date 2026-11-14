@@ -42,6 +42,15 @@ class MemoryIntegrationRegression(unittest.TestCase):
         self.assertEqual(len(again["events"]), 1)
         self.assertEqual(self.cli("task-search", "metallic")["matches"][0]["task_id"], task_id)
 
+    def test_identical_output_is_deduplicated_per_project(self):
+        first = compact_output(self.root, "same diagnostic", kind="test")
+        second = compact_output(self.root, "same diagnostic", kind="test")
+        self.assertEqual(first["output_id"], second["output_id"])
+        self.assertFalse(first["cache_hit"])
+        self.assertTrue(second["cache_hit"])
+        with sqlite3.connect(self.root / ".pie" / "index.sqlite3") as db:
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM pie_tool_outputs").fetchone()[0], 1)
+
     def test_output_retention_and_expiry(self):
         first = compact_output(self.root, "old first")["output_id"]
         with sqlite3.connect(self.root / ".pie" / "index.sqlite3") as db:
