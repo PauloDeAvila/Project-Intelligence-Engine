@@ -40,3 +40,7 @@ Estado causal: `INCONCLUSIVE` para a integração MCP original. A quota autoriza
 ## Próximo gate
 
 O gate permanece fechado. Não deve haver nova tentativa automática: uma futura chamada diagnóstica exigirá nova autorização de quota e deverá usar [run_codex_mcp_diagnostic.ps1](../../tools/run_codex_mcp_diagnostic.ps1), que usa a rota persistida e não envia arrays por `-c`. Só depois de observar `upstream_spawned`, `downstream_request`, resposta/timeout e `upstream_exit` no arquivo de diagnóstico será possível fechar a causa.
+
+## Resultado do probe corrigido
+
+O executor nativo foi usado uma vez com a rota persistida. A sessão Codex terminou com exit code `0`, uso real reportado e seleção de `pie-blender-optimized`, mas `get_addon_status` e `get_scene_info` retornaram `failed`. Nenhum lifecycle JSONL foi produzido. Portanto, o probe é `CODEX_MCP_PROBE_FAILED`; a fase interna — spawn, handshake, upstream, timeout ou sandbox — permanece `INCONCLUSIVE`. O próximo diagnóstico deve configurar a variável de instrumentação no ambiente específico do servidor MCP, em vez de depender da herança do ambiente pai.

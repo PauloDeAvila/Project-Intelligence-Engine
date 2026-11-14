@@ -29,7 +29,7 @@ Valores `B/O` são baseline/optimized. A economia de input não armazenado em ca
 
 ## Diagnóstico Codex/MCP
 
-A única chamada diagnóstica autorizada após a instrumentação falhou antes do spawn MCP porque o override transitório `-c` codificou `mcp_servers.pie-blender-optimized.args` como string (`expected a sequence`). Não houve handshake, `tools/list`, `tools/call` ou tokens reportados. O resultado não identifica a falha MCP original; uma nova tentativa exigiria autorização adicional e não deve ser feita automaticamente. O executor corrigido está preparado em `tools/run_codex_mcp_diagnostic.ps1`, mas não foi executado.
+A chamada diagnóstica inicial falhou no parsing do override transitório `-c`. A tentativa corrigida usando `tools/run_codex_mcp_diagnostic.ps1` iniciou uma sessão real, selecionou `pie-blender-optimized` e reportou tokens (`136207` input, `115968` cache, `691` output), mas `get_addon_status` e `get_scene_info` falharam. Nenhum lifecycle JSONL foi produzido; o ponto interno da falha permanece inconclusivo. Resultado detalhado: `22-codex-mcp-probe-result.json`. Não há certificação nem nova tentativa automática.
 
 ## Custos
 

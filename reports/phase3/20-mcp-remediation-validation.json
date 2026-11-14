@@ -28,7 +28,15 @@
     "retries": 0,
     "interpretation": "The transient -c array override was parsed as a string. This explains this diagnostic invocation only and does not identify the original Codex-session MCP failure."
   },
+  "corrected_codex_probe": {
+    "status": "CODEX_MCP_PROBE_FAILED",
+    "report": "reports/phase3/22-codex-mcp-probe-result.json",
+    "provider_usage_status": "available",
+    "gateway_lifecycle_events": 0,
+    "mcp_tool_statuses": ["failed", "failed"],
+    "root_cause_status": "INCONCLUSIVE"
+  },
   "ready_for_codex_probe": false,
-  "reason": "The sole authorized diagnostic invocation failed during local Codex configuration parsing before MCP spawn; the original session failure remains inconclusive.",
-  "next_action": "Do not retry automatically. A future diagnostic requires separately authorized quota and tools/run_codex_mcp_diagnostic.ps1, which uses the persisted route without a -c array override. Do not resume A/B."
+  "reason": "The corrected real Codex probe reached the PIE server and reported provider tokens, but both MCP tools failed and no gateway lifecycle events were captured; the internal failure phase remains inconclusive.",
+  "next_action": "Do not retry automatically. Diagnose propagation of PIE_MCP_DIAGNOSTICS_PATH or configure diagnostics through the MCP server environment, then request separate authorization. Do not resume A/B."
 }

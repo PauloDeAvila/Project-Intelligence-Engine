@@ -47,9 +47,24 @@ $stderr = if (Test-Path -LiteralPath $stderrPath) { Get-Content -LiteralPath $st
 $stderr = $stderr -replace '(?im)(authorization|api[_-]?key|access[_-]?token|refresh[_-]?token|cookie|password|secret)\s*[:=].*$', '$1=[REDACTED]'
 $stderr = $stderr -replace '(?i)Bearer\s+[A-Za-z0-9._~+/=-]+', 'Bearer [REDACTED]'
 Set-Content -LiteralPath $stderrPath -Value $stderr -Encoding UTF8
+$codexEvents = @()
+if (Test-Path -LiteralPath $stdoutPath) {
+    $codexEvents = @(Get-Content -LiteralPath $stdoutPath | Where-Object { $_.Trim() } | ForEach-Object {
+        try { $_ | ConvertFrom-Json } catch { $null }
+    } | Where-Object { $_ })
+}
+$turn = $codexEvents | Where-Object { $_.type -eq "turn.completed" } | Select-Object -First 1
+$toolSummary = @($codexEvents | Where-Object {
+    $_.type -eq "item.completed" -and $_.item.type -eq "mcp_tool_call"
+} | ForEach-Object {
+    [ordered]@{server=$_.item.server;tool=$_.item.tool;status=$_.item.status}
+})
 $meta.exit_code = $exitCode
 $meta.duration_ms = $timer.Elapsed.TotalMilliseconds
-$meta.provider_usage_status = "unavailable"
+$meta.provider_usage_status = if ($turn -and $turn.usage) { "available" } else { "unavailable" }
+$meta.usage = if ($turn) { $turn.usage } else { $null }
+$meta.mcp_tools = $toolSummary
+$meta.codex_event_count = $codexEvents.Count
 $meta | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $metaPath -Encoding UTF8
 if ($exitCode -ne 0) { throw "Codex diagnostic failed; inspect sanitized artifacts; no retry permitted" }
 Write-Output (Get-Content -LiteralPath $metaPath -Raw)
