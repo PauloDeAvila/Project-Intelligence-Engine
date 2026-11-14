@@ -86,7 +86,7 @@ class MemoryIntegrationRegression(unittest.TestCase):
     def test_gateway_context_pack_becomes_stale_on_source_edit(self):
         from pie.indexing.indexer import index_project
         target = self.root / "logic.py"
-        target.write_text("def calculate(value):\\n    return value + 1\\n".replace("\\\\n", "\\n"), encoding="utf8")
+        target.write_text("def calculate(value):\n    return value + 1\n", encoding="utf8")
         indexed = index_project(self.root)
         self.assertEqual(indexed["index_state"], "CURRENT")
         delivered = execute_gateway(self.root, "context_pack", {"symbol": "calculate"},
@@ -96,7 +96,7 @@ class MemoryIntegrationRegression(unittest.TestCase):
         recovered = execute_gateway(self.root, "output_get", {"output_id": output_id},
                                     max_chars=64000)
         self.assertIn("calculate", recovered["result"]["text"])
-        target.write_text("def calculate(value):\\n    return value + 2\\n".replace("\\\\n", "\\n"), encoding="utf8")
+        target.write_text("def calculate(value):\n    return value + 2\n", encoding="utf8")
         with self.assertRaisesRegex(ValueError, "changed or stale"):
             execute_gateway(self.root, "output_get", {"output_id": output_id},
                             max_chars=64000)
