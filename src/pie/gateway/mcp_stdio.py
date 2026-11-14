@@ -12,6 +12,8 @@ import argparse
 import json
 import os
 import time
+from datetime import datetime, timezone
+import hashlib
 from pathlib import Path
 import subprocess
 import sys
@@ -53,6 +55,10 @@ def _json(value: Any) -> str:
 def _tool_error(req_id: Any, message: str) -> dict:
     return {"jsonrpc":"2.0","id":req_id,
             "result":{"isError":True,"content":[{"type":"text","text":message[:700]}]}}
+
+
+def _workspace_fingerprint(root: Path) -> str:
+    return hashlib.sha256(str(root).encode("utf-8")).hexdigest()[:16]
 
 
 def recovery_page(root: Path, args: object) -> dict:
@@ -115,6 +121,27 @@ class MCPStdioGateway:
         self._output_schema_tools:set[str]=set()
         self._listed_tools:set[str]=set()
         self._collision=False
+        diagnostic_path=os.environ.get("PIE_MCP_DIAGNOSTICS_PATH")
+        self._diagnostics_path=Path(diagnostic_path).expanduser() if diagnostic_path else None
+        self._diagnostic("gateway_constructed", profile=profile,
+                         workspace_id=_workspace_fingerprint(self.root),
+                         upstream_executable=Path(self.command[0]).name,
+                         request_timeout_sec=self.request_timeout_sec)
+
+    def _diagnostic(self, event: str, **fields: object) -> None:
+        """Best-effort lifecycle diagnostics; never writes to MCP stdout."""
+        if self._diagnostics_path is None:
+            return
+        row={"ts_utc":datetime.now(timezone.utc).isoformat(),"event":event}
+        for key,value in fields.items():
+            if isinstance(value,(str,int,float,bool)) or value is None:
+                row[key]=value
+        try:
+            self._diagnostics_path.parent.mkdir(parents=True,exist_ok=True)
+            with self._diagnostics_path.open("a",encoding="utf-8") as stream:
+                stream.write(_json(row)+"\n")
+        except OSError:
+            pass
 
     def _send(self, stdout: TextIO, message: dict) -> None:
         with self._write_lock:
@@ -126,6 +153,7 @@ class MCPStdioGateway:
         started=time.perf_counter()
         try:
             result=recovery_page(self.root,args)
+            self._diagnostic("recovery_complete", tool=RECOVERY_NAME)
             try:
                 page=json.loads(result["content"][0]["text"])
                 record(self.root,surface="mcp",tool=RECOVERY_NAME,state="RECOVERY",
@@ -135,6 +163,7 @@ class MCPStdioGateway:
                 pass
             return {"jsonrpc":"2.0","id":message.get("id"),"result":result}
         except (ValueError, OSError) as exc:
+            self._diagnostic("recovery_failed", error_type=type(exc).__name__)
             return _tool_error(message.get("id"),
                                "PIE_RECOVERY_FAILED: "+str(exc))
 
@@ -175,10 +204,15 @@ class MCPStdioGateway:
                 if not self._collision and not any(t.get("name")==RECOVERY_NAME
                                                    for t in body["tools"] if isinstance(t,dict)):
                     body["tools"].append(dict(RECOVERY_TOOL))
+                self._diagnostic("tools_list_complete", tool_count=len(body["tools"]),
+                                 recovery_collision=self._collision)
             return response
         if method!="tools/call":
             return response
         elapsed_ms=(time.perf_counter()-started)*1000
+        self._diagnostic("tools_call_response", tool=tool,
+                         status="error" if "error" in response else "result",
+                         duration_ms=round(elapsed_ms,3))
         def observe_passthrough(state: str) -> None:
             encoded = _json(response)
             try:
@@ -263,6 +297,7 @@ class MCPStdioGateway:
             history = self._request_history.pop(key, None)
         method, tool, started, _ = pending
         if method == "tools/call":
+            self._diagnostic("request_timeout", tool=tool)
             try:
                 record(self.root, surface="mcp", tool=tool, state="TIMEOUT",
                        source_chars=0, returned_chars=0,
@@ -277,10 +312,16 @@ class MCPStdioGateway:
             pass
 
     def run(self, stdin: TextIO = sys.stdin, stdout: TextIO = sys.stdout) -> int:
-        upstream=subprocess.Popen(
-            self.command,stdin=subprocess.PIPE,stdout=subprocess.PIPE,
-            stderr=None,bufsize=1,text=True,encoding="utf-8",errors="replace",
-            cwd=self.root,shell=False)
+        self._diagnostic("upstream_spawn_start")
+        try:
+            upstream=subprocess.Popen(
+                self.command,stdin=subprocess.PIPE,stdout=subprocess.PIPE,
+                stderr=None,bufsize=1,text=True,encoding="utf-8",errors="replace",
+                cwd=self.root,shell=False)
+        except OSError as exc:
+            self._diagnostic("upstream_spawn_failed", error_type=type(exc).__name__)
+            raise
+        self._diagnostic("upstream_spawned", pid=upstream.pid)
         assert upstream.stdin is not None and upstream.stdout is not None
 
         def read_upstream() -> None:
@@ -297,7 +338,9 @@ class MCPStdioGateway:
                     # A non-JSON stdio line is a violation by the upstream server.
                     # Do not forward malformed content on the protocol channel.
                     sys.stderr.write("PIE: upstream emitted invalid JSON-RPC\n")
+                    self._diagnostic("upstream_invalid_json")
             upstream.stdout.close()
+            self._diagnostic("upstream_stdout_eof")
 
         reader=threading.Thread(target=read_upstream,daemon=True,
                                 name="pie-mcp-upstream-reader")
@@ -311,6 +354,9 @@ class MCPStdioGateway:
                     # native server to produce the standard JSON-RPC parse error.
                     request=None
                 if isinstance(request,dict) and "id" in request:
+                    params=request.get("params")
+                    self._diagnostic("downstream_request", method=request.get("method",""),
+                                     tool=params.get("name","") if isinstance(params,dict) else "")
                     if (request.get("method")=="tools/call"
                             and isinstance(request.get("params"),dict)
                             and request["params"].get("name")==RECOVERY_NAME
@@ -321,6 +367,7 @@ class MCPStdioGateway:
                     key=_id(request["id"])
                     with self._pending_lock:
                         if key in self._pending:
+                            self._diagnostic("duplicate_request_suppressed")
                             continue
                         started=time.perf_counter()
                         timer=threading.Timer(self.request_timeout_sec, self._expire,
@@ -345,6 +392,7 @@ class MCPStdioGateway:
                     timer.cancel()
                 self._pending.clear()
                 self._request_history.clear()
+            self._diagnostic("upstream_exit", exit_code=upstream.returncode)
         return upstream.returncode or 0
 
 

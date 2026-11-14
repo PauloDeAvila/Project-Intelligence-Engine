@@ -1,0 +1,24 @@
+{
+  "schema": "pie-mcp-remediation-validation-v1",
+  "model_calls": 0,
+  "instrumentation": {
+    "status": "PASS",
+    "channel": "stderr/file; stdout remains JSON-RPC",
+    "events": ["gateway_constructed", "upstream_spawn_start", "upstream_spawned", "downstream_request", "tools_list_complete", "tools_call_response", "request_timeout", "upstream_stdout_eof", "upstream_exit"],
+    "payloads_logged": false,
+    "credentials_logged": false
+  },
+  "direct_runtime_probe": {
+    "status": "PASS",
+    "handshake": true,
+    "tools_list": true,
+    "get_scene_info": true,
+    "diagnostic_events": 10,
+    "exit_code": 0
+  },
+  "tests": {"focused": "38 passed, 7 subtests", "full": "535 passed, 5 skipped, 133 subtests"},
+  "codex_equivalence": "NOT_VERIFIED",
+  "ready_for_codex_probe": false,
+  "reason": "Direct gateway lifecycle is instrumented and healthy, but the Codex-session failure has not yet produced diagnostic events.",
+  "next_action": "Request one separately authorized instrumented Codex diagnostic call; do not resume A/B automatically."
+}
