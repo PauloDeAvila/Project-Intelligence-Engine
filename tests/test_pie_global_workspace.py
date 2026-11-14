@@ -86,6 +86,9 @@ class GlobalWorkspaceTests(unittest.TestCase):
         result=w.refresh()
         self.assertEqual(result["mode"],"FULL")
         self.assertEqual(result["content_reads"],65)
+        self.assertEqual(result["changed_files_total"],65)
+        self.assertEqual(len(result["changed_files"]),32)
+        self.assertEqual(result["changed_files_omitted"],33)
         self.assertEqual(result["python_index"]["files"],67)
 
     def test_one_changed_file_only_is_reindexed(self):
