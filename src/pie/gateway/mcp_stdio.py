@@ -237,6 +237,14 @@ class MCPStdioGateway:
             if pending is None:
                 return
             self._expired.add(key)
+        method, tool, started, _ = pending
+        if method == "tools/call":
+            try:
+                record(self.root, surface="mcp", tool=tool, state="TIMEOUT",
+                       source_chars=0, returned_chars=0,
+                       elapsed_ms=(time.perf_counter() - started) * 1000)
+            except (OSError, ValueError):
+                pass
         try:
             self._send(stdout, {"jsonrpc":"2.0", "id":json.loads(key),
                                 "error":{"code":-32001,

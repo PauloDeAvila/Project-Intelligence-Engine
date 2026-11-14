@@ -6,3 +6,5 @@ O campo `reasoning_output_tokens` é preservado quando disponível no evento. Qu
 
 Estado desta execução: `provider_usage_status = unavailable_for_certification`. Não foi executado um turno Codex real neste ambiente porque faltam configurações baseline/optimized verificáveis e os domínios de benchmark não estão disponíveis.
 
+O provedor não foi chamado para benchmark nem quota nesta etapa; o gateway Blender foi testado sem Codex/modelo e produziu apenas telemetria local.
+

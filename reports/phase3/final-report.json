@@ -5,9 +5,9 @@
     "blender": {"tasks": [], "baseline": null, "optimized": null, "savings_percent": null},
     "web": {"tasks": [], "baseline": null, "optimized": null, "savings_percent": null}
   },
-  "monitoring": {"status": "IMPLEMENTED_NOT_LIVE_CERTIFIED", "provider_usage_available": false, "configured_routing_ratio": 0.0, "active_mcp_servers": 3, "wrapped_stdio": 0, "overhead_ms": null},
+  "monitoring": {"status": "PARTIALLY_ACTIVE", "provider_usage_available": false, "configured_routing_ratio": 0.25, "active_mcp_servers": 4, "wrapped_stdio": 1, "overhead_ms": null, "blender_probe": {"task_id": "phase3-blender-probe", "run_id": "run-blender-probe-01", "tool": "get_scene_info", "status": "TIMEOUT", "duration_ms": 1001.358}},
   "validation": {"pytest": {"passed": 528, "skipped": 5, "subtests": 133}, "focused_tests_passed": 22, "compileall": "passed"},
   "limitations": ["PIE index attached to another root", "Blender unavailable", "No live paired provider evidence", "Unanswered MCP timeouts are not persisted as final events"],
-  "verdict": "BLOCKED",
-  "routing": {"user_config_modified": false, "configured_routing_ratio": 0.0, "blocker_report": "reports/phase3/07-routing-plan.md"}
+  "verdict": "NOT_CERTIFIED",
+  "routing": {"user_config_modified": true, "configured_routing_ratio": 0.25, "blocker_report": "reports/phase3/07-routing-plan.md", "web_status": "BLOCKED"}
 }

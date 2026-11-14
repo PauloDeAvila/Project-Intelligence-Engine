@@ -14,5 +14,5 @@ O perfil `web` usa `web_result_eligible` e `web_snapshot_preview`, preservando r
 - Retenção: ledger de tarefa até 100.000 linhas; métricas legadas até 1.000 linhas.
 - Monitoramento é instrumentação local e best-effort; uma falha de persistência não interrompe uma chamada MCP funcional.
 - Exportação JSON via `pie-usage report --output`; filtros por app, task, run e intervalo ISO UTC.
-- Chamadas sem resposta JSON final ainda não recebem evento de timeout; isso permanece limitação conhecida.
+- Chamadas sem resposta JSON final agora recebem evento `TIMEOUT`. Prova real Blender: `task_id=phase3-blender-probe`, `run_id=run-blender-probe-01`, ferramenta `get_scene_info`, condição `optimized`, duração `1001.358 ms`, estado `TIMEOUT`. O handshake e `tools/list` passaram pelo gateway; a chamada falhou porque o addon instalado está desatualizado e o socket Blender não estava ativo.
 

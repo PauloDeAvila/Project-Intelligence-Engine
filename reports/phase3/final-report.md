@@ -2,7 +2,7 @@
 
 ## Veredito
 
-**BLOCKED.** A instrumentação foi implementada e validada localmente, mas a certificação exige roteamento persistente autorizado e medições reais pareadas. Não há números de tokens, economia, latência ou custo a apresentar sem fabricar evidências.
+**NOT_CERTIFIED.** A rota Blender foi adicionada de forma controlada e o gateway foi comprovado, mas a certificação exige Web disponível, addon Blender ativo e medições A/B reais pareadas. Não há números de tokens, economia ou custo a apresentar sem fabricar evidências.
 
 ## Implementação
 
@@ -42,7 +42,7 @@ uv run -m pie.certification.task_telemetry report --workspace . --app blender --
 
 O SQLite fica no armazenamento PIE do workspace; `PIE_GLOBAL_STORAGE_ROOT` continua opt-in. Eventos sem correlação usam `unassigned`.
 
-A auditoria local da configuração Codex encontrou 3 servidores MCP ativos e 0 rotas stdio envolvidas pelo PIE (`configured_routing_ratio: 0.0`), incluindo `blender`. O monitoramento contínuo ainda não está ativo para o ambiente normal; nenhuma configuração do usuário foi alterada.
+A auditoria pós-ativação encontrou 4 servidores ativos, 1 rota PIE (`pie-blender-optimized`) e `configured_routing_ratio: 0.25`. O servidor `blender` original permanece intacto. A prova real registrou `get_scene_info` como `TIMEOUT` com `task_id=phase3-blender-probe` e `run_id=run-blender-probe-01`; o addon não estava ativo no socket esperado.
 
 ## Limitações e próximos passos
 
@@ -52,4 +52,4 @@ A auditoria local da configuração Codex encontrou 3 servidores MCP ativos e 0 
 4. Adicionar evento final para timeout/encerramento inesperado e idempotência por request ID.
 5. Medir overhead real e só então promover o estado de certificação.
 
-O plano/diff não aplicado está em [`07-routing-plan.md`](07-routing-plan.md). É necessária autorização explícita para alterar `C:\Users\phsra\.codex\config.toml`; a configuração Web também requer disponibilizar `@playwright/mcp`.
+O diff, backup e rollback estão em [`07-routing-plan.md`](07-routing-plan.md). A configuração Web ainda requer disponibilizar `@playwright/mcp`; a documentação oficial exige Node.js 20+ e configura o servidor via `npx @playwright/mcp@...`.
