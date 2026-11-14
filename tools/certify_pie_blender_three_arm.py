@@ -76,7 +76,8 @@ def assess(raw: dict, *, min_pairs: int = 10, target_savings: float = TARGET_SAV
     )
     return {
         "schema": "pie-three-arm-certification-v1",
-        "status": "CERTIFIED" if certified else "NOT_CERTIFIED",
+        "status": "MEASUREMENT_GATE_PASSED" if certified else "NOT_CERTIFIED",
+        "external_evidence_review_required": True,
         "observed_records": len(records),
         "invalid_records": invalid,
         "duplicate_records": duplicates,
@@ -111,7 +112,7 @@ def main(argv=None) -> int:
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(output+"\n", encoding="utf8")
     print(output)
-    return 0 if result["status"] == "CERTIFIED" or not args.strict else 1
+    return 0 if result["status"] == "MEASUREMENT_GATE_PASSED" or not args.strict else 1
 
 
 if __name__ == "__main__":
