@@ -115,6 +115,23 @@ class Phase1GatewayTests(unittest.TestCase):
             self.assertEqual(wrap_command(["git","status"],"auto")[0],
                              ["git","status"])
 
+    def test_terminal_truncated_capture_is_never_claimed_complete(self):
+        code,data=run_command(
+            self.root,[sys.executable,"-c","print('x'*280000)"],
+            rtk="off",max_chars=850)
+        self.assertEqual(code,0)
+        self.assertEqual(data["state"],"CAPTURE_TRUNCATED")
+        self.assertFalse(data["capture_complete"])
+        self.assertGreater(data["discarded_bytes"],0)
+        self.assertEqual(data["recovery"],"partial_capture_only")
+
+    def test_required_rtk_failure_executes_nothing(self):
+        marker=self.root/"must-not-exist"
+        with self.assertRaises(RuntimeError):
+            run_command(self.root,["unrecognized-command",str(marker)],
+                        rtk="required",max_chars=800)
+        self.assertFalse(marker.exists())
+
     def test_oversize_never_claims_recoverability(self):
         result=reduce_text(self.root,"A"*500001,surface="terminal",tool="huge",max_chars=800)
         self.assertEqual(result["state"],"CAPTURE_LIMIT_EXCEEDED")
@@ -248,6 +265,16 @@ for line in sys.stdin:
         self.assertEqual(page["output_id"],compact["output_id"])
         self.assertLessEqual(len(json.dumps(page)),1200)
         self.assertIn("Scene",page["text"])
+
+    def test_no_tools_list_no_unsafely_assumed_schema(self):
+        response=self._mcp([
+            req(42,"tools/call",{"name":"get_scene_info","arguments":{}})
+        ])
+        self.assertEqual(response.returncode,0,response.stderr)
+        data=json.loads(response.stdout)
+        observed=data["result"]["content"][0]["text"]
+        self.assertFalse(observed.startswith('{"pie_gateway"'))
+        self.assertIn("Cube roughness",observed)
 
     def test_recovery_pages_exact_and_cross_project_isolation(self):
         content="REDUCED "+("x"*3200)
