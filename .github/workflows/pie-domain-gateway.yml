@@ -35,3 +35,33 @@ jobs:
         run: python -m unittest discover -s tests -p test_pie_phase1_gateway.py -v
       - name: Existing Blender bridge regression
         run: python -m unittest discover -s tests -p test_blender_mcp_bridge.py -v
+
+  real-playwright-mcp:
+    name: Real Playwright MCP local browser navigation
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install PIE
+        run: python -m pip install -e .
+      - name: Verify Chrome from runner image
+        run: google-chrome --version
+      - name: Exercise actual Playwright MCP browser with isolated local HTML fixture
+        shell: bash
+        run: |
+          set -o pipefail
+          python tools/probe_playwright_domain_live.py npx --yes @playwright/mcp@0.0.85 --headless --browser=chrome --isolated | tee playwright-live.log
+          grep 'PIE_WEB_LIVE_REPORT=' playwright-live.log | grep '"state":"PASS"'
+      - name: Save character/recovery evidence
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pie-domain-real-playwright-evidence
+          path: playwright-live.log
+          if-no-files-found: warn
