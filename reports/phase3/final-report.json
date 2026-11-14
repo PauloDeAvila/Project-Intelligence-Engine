@@ -1,13 +1,14 @@
 {
   "schema": "pie-phase3-report-v1",
-  "certification": {"status": "NOT_CERTIFIED", "reason": "Aguardando benchmark real pareado com uso do provedor, oráculos Blender/Web e configuração PIE verificável."},
+  "certification": {"status": "NOT_CERTIFIED", "reason": "A bateria Fase 3.3 foi interrompida após a primeira captura Codex Blender baseline falhar antes de produzir turn.completed.usage; não houve pares válidos."},
   "applications": {
     "blender": {"tasks": [], "baseline": null, "optimized": null, "savings_percent": null},
     "web": {"tasks": [], "baseline": null, "optimized": null, "savings_percent": null}
   },
   "monitoring": {"status": "ACTIVE_FOR_REGISTERED_GATEWAYS", "provider_usage_available": false, "configured_routing_ratio": 0.4, "active_mcp_servers": 5, "wrapped_stdio": 2, "overhead_ms": null, "blender_probe": {"task_id": "phase3-blender-live", "run_id": "run-blender-live-validated", "tool": "get_scene_info", "status": "PASS", "duration_ms": 46.366, "source_chars": 284, "returned_chars": 284}, "web_probe": {"task_id": "phase3-web-probe", "run_id": "run-web-probe-01", "status": "PASS", "source_chars": 17585, "model_facing_chars": 1256, "reduction_percent_characters": 92.858, "provider_tokens_measured": false}},
   "validation": {"pytest": {"passed": 530, "skipped": 5, "subtests": 133}, "focused_tests_passed": 26, "compileall": "passed"},
-  "limitations": ["PIE index attached to another root", "No live paired provider evidence", "Configured routing is opt-in per server; original and node_repl servers remain unwrapped", "Character savings are not token savings"],
+  "limitations": ["PIE index attached to another root", "Initial isolated CODEX_HOME lacked auth.json", "No live paired provider evidence", "Configured routing is opt-in per server; original and node_repl servers remain unwrapped", "Character savings are not token savings"],
   "verdict": "NOT_CERTIFIED",
-  "routing": {"user_config_modified": true, "configured_routing_ratio": 0.4, "blocker_report": "reports/phase3/07-routing-plan.md", "web_status": "PASS", "blender_status": "PASS"}
+  "routing": {"user_config_modified": true, "configured_routing_ratio": 0.4, "blocker_report": "reports/phase3/07-routing-plan.md", "web_status": "PASS", "blender_status": "PASS"},
+  "ab_certification": {"status": "STOPPED_AFTER_INITIAL_FAILURE", "attempted": 1, "completed": 0, "valid_pairs": 0, "reports": ["reports/phase3/08-blender-ab.json", "reports/phase3/09-web-ab.json", "reports/phase3/10-provider-token-certification.json", "reports/phase3/11-token-certification.md"]}
 }
