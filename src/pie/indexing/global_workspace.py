@@ -182,8 +182,10 @@ class GlobalWorkspaceIndex:
                 changed = {p for p in current if p not in previous or current[p] != previous[p]}
                 deleted = set(previous) - set(current)
                 first = old_ready is None
-                full = (first or len(changed | deleted) >= RECONCILE_CHANGE_COUNT
-                        or bool(previous) and len(changed | deleted) / len(previous) >= RECONCILE_FRACTION)
+                dirty_count = len(changed | deleted)
+                full = (first or dirty_count >= RECONCILE_CHANGE_COUNT
+                        or (len(previous) >= 100 and dirty_count >= 16
+                            and dirty_count / len(previous) >= RECONCILE_FRACTION))
                 python_dirty = {
                     p for p in changed | deleted if p.lower().endswith(".py")
                 }
