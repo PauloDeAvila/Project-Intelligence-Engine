@@ -156,7 +156,24 @@ def _field_delta(previous: dict, current: dict, max_fields: int = 16) -> dict[st
     for key in sorted(set(previous) | set(current)):
         if previous.get(key) == current.get(key):
             continue
-        if key in ("nodes", "links"):
+        if key == "nodes":
+            left = _entity_map(previous.get("nodes", []), "nodes")
+            right = _entity_map(current.get("nodes", []), "nodes")
+            fields[key] = _diff_entities(left, right)
+        elif key == "inputs":
+            before = previous.get(key, {})
+            after = current.get(key, {})
+            if isinstance(before, dict) and isinstance(after, dict):
+                modified = {
+                    name: {"before": before.get(name), "after": after.get(name)}
+                    for name in sorted(set(before) | set(after))
+                    if before.get(name) != after.get(name)
+                }
+                fields[key] = {"changed": {name: modified[name] for name in list(modified)[:32]},
+                               "omitted": max(0, len(modified) - 32)}
+            else:
+                fields[key] = {"old_digest": _digest(before), "new_digest": _digest(after)}
+        elif key == "links":
             fields[key] = {"old_digest": _digest(previous.get(key)),
                            "new_digest": _digest(current.get(key))}
         else:
@@ -201,9 +218,9 @@ class SceneDeltaCache:
         objects = _entity_map(snapshot.get("objects"), "objects")
         materials = _entity_map(snapshot.get("materials"), "materials")
         omissions = snapshot.get("omissions", {})
-        complete = snapshot.get("complete") is True and not any(omissions.values())
         if not isinstance(omissions, dict):
             raise ValueError("Invalid omission metadata")
+        complete = snapshot.get("complete") is True and not any(omissions.values())
         # A partial snapshot must never replace a complete baseline.
         fingerprint = _digest(snapshot)
         key = (scene, scope)
@@ -223,6 +240,7 @@ class SceneDeltaCache:
             "complete": True, "digest": fingerprint,
             "previous_digest": previous[0] if previous else None,
             "counts": {"objects": len(objects), "materials": len(materials)},
+            "coverage": "tracked_object_material_shader_node_fields_only",
         }
         if state == "DELTA":
             old = previous[1]
