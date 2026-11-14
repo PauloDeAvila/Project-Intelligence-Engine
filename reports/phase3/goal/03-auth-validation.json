@@ -1,0 +1,10 @@
+{
+  "schema": "pie-phase3-auth-validation-v1",
+  "status": "READY_FOR_AUTH_PROBE",
+  "original": {"mechanism": "ChatGPT account", "login_status": "AUTH_VALIDATED_LOCAL", "credentials_exported": false},
+  "baseline_isolated": {"login_status": "AUTH_MISSING", "preflight": "BLOCKED"},
+  "optimized_isolated": {"login_status": "AUTH_MISSING", "preflight": "BLOCKED"},
+  "model_calls": 0,
+  "remote_session_validated": false,
+  "next_action": "One explicitly authorized diagnostic Codex call with original authenticated CODEX_HOME and temporary reversible MCP profile."
+}
