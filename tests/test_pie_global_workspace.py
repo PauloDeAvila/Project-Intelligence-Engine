@@ -12,6 +12,7 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from pie.indexing.global_workspace import GlobalWorkspaceIndex, detect_workspace
 from pie.storage.locations import workspace_file
+from pie.interfaces.global_mcp import list_known_workspaces
 
 
 class GlobalWorkspaceTests(unittest.TestCase):
@@ -98,6 +99,16 @@ class GlobalWorkspaceTests(unittest.TestCase):
         self.assertEqual(report["content_reads"],0)
         self.assertEqual(report["python_index"]["removed_files"],["alpha.py"])
         self.assertEqual(w.status()["python_indexed_files"],1)
+
+    def test_global_registry_lists_all_known_projects_without_rescan(self):
+        w=GlobalWorkspaceIndex(self.project,force_global=True)
+        w.refresh()
+        other=self.base/"another-app"
+        other.mkdir()
+        (other/"package.json").write_text('{"name":"second"}',encoding="utf8")
+        GlobalWorkspaceIndex(other,force_global=True).refresh()
+        paths={item["root"] for item in list_known_workspaces()["workspaces"]}
+        self.assertEqual(paths,{str(self.project),str(other)})
 
     def test_restart_preserves_central_index_and_files(self):
         GlobalWorkspaceIndex(self.project,force_global=True).refresh()
