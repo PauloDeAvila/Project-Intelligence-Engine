@@ -110,6 +110,7 @@ class MCPStdioGateway:
         self._write_lock=threading.RLock()
         self._pending_lock=threading.RLock()
         self._pending:dict[str,tuple[str,str,float,threading.Timer]]={}
+        self._request_history:dict[str,tuple[str,str,float]]={}
         self._expired:set[str]=set()
         self._output_schema_tools:set[str]=set()
         self._listed_tools:set[str]=set()
@@ -132,17 +133,21 @@ class MCPStdioGateway:
     def _transform(self, response: dict) -> dict:
         if not isinstance(response,dict) or "id" not in response:
             return response
+        response_key = _id(response["id"])
         with self._pending_lock:
-            pending=self._pending.pop(_id(response["id"]),None)
+            pending=self._pending.pop(response_key,None)
+            history=self._request_history.pop(response_key,None)
         if not pending:
             with self._pending_lock:
-                if _id(response["id"]) in self._expired:
-                    self._expired.discard(_id(response["id"]))
+                if response_key in self._expired:
+                    self._expired.discard(response_key)
                     return None
+            if history is not None:
+                pending=(*history,None)
             body=response.get("result")
-            if isinstance(body,dict) and isinstance(body.get("tools"),list):
+            if pending is None and isinstance(body,dict) and isinstance(body.get("tools"),list):
                 pending=("tools/list","",0.0,None)
-            else:
+            elif pending is None:
                 return response
         method,tool,started,timer=pending
         if timer is not None:
@@ -166,11 +171,21 @@ class MCPStdioGateway:
         if method!="tools/call":
             return response
         elapsed_ms=(time.perf_counter()-started)*1000
+        def observe_passthrough(state: str) -> None:
+            encoded = _json(response)
+            try:
+                record(self.root, surface="mcp", tool=tool, state=state,
+                       source_chars=len(encoded), returned_chars=len(encoded),
+                       elapsed_ms=elapsed_ms)
+            except (OSError, ValueError):
+                pass
         body=response.get("result")
         if not isinstance(body,dict) or not isinstance(body.get("content"),list):
+            observe_passthrough("ERROR" if "error" in response else "STRUCTURED_PASSTHROUGH")
             return response
         content=body["content"]
         if len(content)!=1 or not isinstance(content[0],dict) or not isinstance(content[0].get("text"),str):
+            observe_passthrough("STRUCTURED_PASSTHROUGH")
             return response
         source=content[0]["text"]
         eligible=(not self._collision and tool in self._listed_tools and
@@ -237,6 +252,7 @@ class MCPStdioGateway:
             if pending is None:
                 return
             self._expired.add(key)
+            history = self._request_history.pop(key, None)
         method, tool, started, _ = pending
         if method == "tools/call":
             try:
@@ -298,10 +314,12 @@ class MCPStdioGateway:
                     with self._pending_lock:
                         if key in self._pending:
                             continue
+                        started=time.perf_counter()
                         timer=threading.Timer(self.request_timeout_sec, self._expire,
                                               args=(key,stdout))
                         self._pending[key]=(request.get("method",""),name,
-                                            time.perf_counter(),timer)
+                                            started,timer)
+                        self._request_history[key]=(request.get("method",""),name,started)
                         timer.daemon=True
                         timer.start()
                 upstream.stdin.write(line)
@@ -318,6 +336,7 @@ class MCPStdioGateway:
                 for _, _, _, timer in self._pending.values():
                     timer.cancel()
                 self._pending.clear()
+                self._request_history.clear()
         return upstream.returncode or 0
 
 

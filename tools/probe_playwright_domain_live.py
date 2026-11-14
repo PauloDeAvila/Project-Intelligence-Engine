@@ -87,10 +87,10 @@ def main()->int:
     runner=Thread(target=server.serve_forever,daemon=True)
     runner.start()
     with tempfile.TemporaryDirectory(prefix="pie-real-web-") as folder:
-        root=Path(folder)/"project"
-        root.mkdir()
+        root=Path(os.environ.get("PIE_PROBE_WORKSPACE", str(Path(folder)/"project")))
+        root.mkdir(parents=True, exist_ok=True)
         (root/"pyproject.toml").write_text("[project]\nname='real-browser'\n",encoding="utf-8")
-        store=Path(folder)/"pie-global"
+        store=Path(os.environ.get("PIE_PROBE_STORE", str(Path(folder)/"pie-global")))
         args=[sys.executable,"-m","pie.gateway.domain","serve","--domain","web",
               "--workspace",str(root),"--store",str(store),
               "--max-chars","1300","--",*sys.argv[1:]]

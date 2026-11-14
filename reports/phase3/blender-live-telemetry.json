@@ -1,0 +1,21 @@
+{
+  "state": "OBSERVED",
+  "apps": [
+    {
+      "app": "blender",
+      "task_id": "phase3-blender-live",
+      "run_id": "run-blender-live-validated",
+      "condition": "optimized",
+      "events": 1,
+      "source_chars": 284,
+      "returned_chars": 284,
+      "saved_chars": 0,
+      "input_tokens": null,
+      "cached_input_tokens": null,
+      "output_tokens": null,
+      "elapsed_ms": 46.366
+    }
+  ],
+  "provider_certified": false,
+  "note": "Observed usage only. Savings certification requires paired oracle-validated runs; character savings are not tokens."
+}
