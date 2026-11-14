@@ -11,6 +11,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+from pie.storage.locations import workspace_file, workspace_storage
 from pie.storage.database import connect
 
 SCHEMA = """
@@ -46,8 +47,8 @@ def _open(root: Path) -> sqlite3.Connection:
     root = Path(root).resolve(strict=True)
     if not root.is_dir():
         raise ValueError("Project root must be a directory")
-    storage_dir = root / ".pie"
-    if storage_dir.is_symlink() or storage_dir.resolve() != root / ".pie":
+    storage_dir = workspace_storage(root)
+    if storage_dir.is_symlink() or storage_dir.resolve() != workspace_storage(root).resolve():
         raise ValueError("Project storage must not redirect outside the root")
     database = storage_dir / "index.sqlite3"
     if not database.is_file() or database.is_symlink():

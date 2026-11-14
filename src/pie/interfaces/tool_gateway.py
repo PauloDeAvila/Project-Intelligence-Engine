@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 from contextlib import closing
+from pie.storage.locations import workspace_file
 from pie.storage.database import connect
 from pathlib import Path
 from typing import Any
@@ -87,7 +88,7 @@ def _source_manifest(root: Path, result: dict) -> list[dict]:
     if not paths:
         return []
     root = Path(root).resolve(strict=True)
-    with closing(connect(root / ".pie" / "index.sqlite3")) as db:
+    with closing(connect(workspace_file(root))) as db:
         result = []
         for path in sorted(paths):
             row = db.execute("SELECT sha256 FROM files WHERE path=?", (path,)).fetchone()

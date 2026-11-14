@@ -10,6 +10,7 @@ from pie.retrieval.output_pipeline import compact_output, recover_output
 from pie.core.errors import ProjectNotInitializedError
 from pie.indexing.indexer import index_project
 from pie.retrieval.symbols import analysis_summary, find_definitions, find_references
+from pie.storage.locations import workspace_file
 from pie.storage.database import connect
 from pie.retrieval.intelligence import impact
 from pie.retrieval.context import build_context
@@ -25,17 +26,17 @@ def project_root(value: str | None) -> Path:
 
 
 def require_initialized(root: Path) -> Path:
-    path = root / ".pie" / "index.sqlite3"
+    path = workspace_file(root)
     if not path.exists():
         raise ProjectNotInitializedError(f"Project is not initialized: {root}")
     return path
 
 
 def command_init(root: Path) -> dict[str, str]:
-    path = root / ".pie" / "index.sqlite3"
+    path = workspace_file(root)
     connection = connect(path)
     connection.close()
-    config = root / ".pie" / "config.toml"
+    config = workspace_file(root,"config.toml")
     if not config.exists():
         config.write_text("root = \".\"\n", encoding="utf-8")
     return {"project": str(root), "database": str(path), "status": "initialized"}
@@ -197,7 +198,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "task-resume": result = resume_task(root, args.task_id, args.limit)
         elif args.command == "task-search": result = search_tasks(root, args.query, limit=args.limit, max_chars=args.max_chars)
         elif args.command == "init": result = command_init(root)
-        elif args.command == "index": result = index_project(root) if (root / ".pie" / "index.sqlite3").exists() else command_init(root) | index_project(root)
+        elif args.command == "index": result = index_project(root) if (workspace_file(root)).exists() else command_init(root) | index_project(root)
         elif args.command == "status": result = command_status(root)
         elif args.command == "search": result = command_search(root, args.query)
         elif args.command == "definitions": result = command_definitions(root, args.name)

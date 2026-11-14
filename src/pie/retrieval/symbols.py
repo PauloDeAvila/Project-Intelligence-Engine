@@ -20,6 +20,7 @@ from hashlib import sha256
 from pathlib import Path
 
 from pie.storage.analysis import analysis_version_matches
+from pie.storage.locations import workspace_file
 from pie.storage.database import connect
 
 MAX_RESULTS = 500
@@ -220,7 +221,7 @@ def find_definitions(root: Path, name: str, limit: int = 100) -> dict[str, objec
     if not 1 <= limit <= MAX_RESULTS:
         raise ValueError(f"limit must be between 1 and {MAX_RESULTS}")
     root = Path(root).resolve()
-    connection = connect(root / ".pie" / "index.sqlite3")
+    connection = connect(workspace_file(root))
     try:
         warning = _require_analysis(connection)
         if warning:
@@ -263,7 +264,7 @@ def find_references(root: Path, name: str, limit: int = 100) -> dict[str, object
     if not 1 <= limit <= MAX_RESULTS:
         raise ValueError(f"limit must be between 1 and {MAX_RESULTS}")
     root = Path(root).resolve()
-    connection = connect(root / ".pie" / "index.sqlite3")
+    connection = connect(workspace_file(root))
     try:
         warning = _require_analysis(connection)
         if warning:
@@ -335,7 +336,7 @@ def find_references(root: Path, name: str, limit: int = 100) -> dict[str, object
 def describe_binding(root: Path, binding_key: str, limit: int = 100) -> dict[str, object]:
     """Full report for one binding: sites, readers and writers, grouped by file."""
     root = Path(root).resolve()
-    connection = connect(root / ".pie" / "index.sqlite3")
+    connection = connect(workspace_file(root))
     try:
         warning = _require_analysis(connection)
         if warning:
@@ -387,7 +388,7 @@ def analysis_summary(root: Path) -> dict[str, object]:
     stored rules and the index state are checked instead: both say whether the
     numbers describe the current analysis at all.
     """
-    connection = connect(Path(root).resolve() / ".pie" / "index.sqlite3")
+    connection = connect(workspace_file(Path(root).resolve()))
     try:
         warning = _require_analysis(connection)
         if warning:

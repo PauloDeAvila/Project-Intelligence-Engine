@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 import json
+from pie.storage.locations import workspace_file
 from pie.storage.database import connect
 
 MEMORY_SCHEMA = """
@@ -22,7 +23,7 @@ def remember(root: Path, key: str, description: str, source_path: str) -> dict[s
         raise ValueError("Evidence source must be a real file inside the project")
     import hashlib
     digest = hashlib.sha256(source.read_bytes()).hexdigest()
-    db = root / ".pie" / "index.sqlite3"
+    db = workspace_file(root)
     if not db.is_file():
         raise ValueError("Run pie index first")
     conn = connect(db)
@@ -44,7 +45,7 @@ def recall(root: Path, query: str = "", limit: int = 25) -> dict[str, object]:
     if not 1 <= limit <= 200:
         raise ValueError("limit out of range")
     import hashlib
-    db = root / ".pie" / "index.sqlite3"
+    db = workspace_file(root)
     if not db.is_file():
         raise ValueError("Run pie index first")
     conn = connect(db)

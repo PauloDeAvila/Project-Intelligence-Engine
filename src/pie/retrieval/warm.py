@@ -18,6 +18,7 @@ from typing import TextIO
 
 from pie.indexing.indexer import index_project
 from pie.retrieval.intelligence import smart_context
+from pie.storage.locations import workspace_file
 from pie.storage.database import connect
 from pie.retrieval.fts import search_fts
 from pie.graph.verified import VerifiedGraph
@@ -32,7 +33,7 @@ class WarmContextService:
         if not 1 <= cache_size <= 2048:
             raise ValueError("cache_size out of range")
         self.root = root.resolve()
-        self.db_path = self.root / ".pie" / "index.sqlite3"
+        self.db_path = workspace_file(self.root)
         if not self.db_path.is_file():
             raise ValueError("Run pie index first")
         if background_interval is not None and background_interval < 0.1:
