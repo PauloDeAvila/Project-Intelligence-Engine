@@ -54,14 +54,16 @@ class SnapshotStore:
     def __init__(self, capacity: int = MAX_SNAPSHOTS) -> None:
         self.capacity = capacity
         self._records: OrderedDict[str, str] = OrderedDict()
+        self._lock = threading.RLock()
 
     def remember(self, source: str) -> tuple[str, bool]:
         identifier = sha256(source.encode("utf-8")).hexdigest()
-        seen = identifier in self._records
-        self._records[identifier] = source
-        self._records.move_to_end(identifier)
-        while len(self._records) > self.capacity:
-            self._records.popitem(last=False)
+        with self._lock:
+            seen = identifier in self._records
+            self._records[identifier] = source
+            self._records.move_to_end(identifier)
+            while len(self._records) > self.capacity:
+                self._records.popitem(last=False)
         return identifier, seen
 
     def expand(self, arguments: Any) -> dict[str, Any]:
@@ -78,12 +80,14 @@ class SnapshotStore:
             return _error("start must be a nonnegative integer")
         if type(max_chars) is not int or not 500 <= max_chars <= 16000:
             return _error("max_chars must be in 500..16000")
-        source = self._records.get(identifier)
+        with self._lock:
+            source = self._records.get(identifier)
+            if source is not None:
+                self._records.move_to_end(identifier)
         if source is None:
             return _error("Response expired or unavailable; query Blender again")
         if start > len(source):
             return _error("start exceeds source length")
-        self._records.move_to_end(identifier)
         end = min(len(source), start + max_chars)
         payload = {
             "schema": "pie-blender-observation-v1",
@@ -176,6 +180,7 @@ class BlenderMcpBridge:
         self.pending: dict[str, str] = {}
         self.pending_lock = threading.Lock()
         self.output_lock = threading.Lock()
+        self.stats = {"compacted": 0, "raw_chars": 0, "forwarded_chars": 0}
 
     def _write(self, message: dict[str, Any] | str) -> None:
         data = _json(message) + "\n" if isinstance(message, dict) else message
@@ -248,7 +253,14 @@ class BlenderMcpBridge:
                     if tool_name == "__tools_list__":
                         self._write(extend_tools(message))
                     elif tool_name in OBSERVATION_TOOLS:
-                        self._write(compact_observation(message, tool_name, self.snapshots, self.max_chars))
+                        before = _json(message)
+                        result = compact_observation(message, tool_name, self.snapshots, self.max_chars)
+                        after = _json(result)
+                        if len(after) < len(before):
+                            self.stats["compacted"] += 1
+                            self.stats["raw_chars"] += len(before)
+                            self.stats["forwarded_chars"] += len(after)
+                        self._write(result)
                     else:
                         # Preserve error responses, notifications, images, writes,
                         # prompts, resources and unknown future tools byte-for-byte.
@@ -265,6 +277,7 @@ class BlenderMcpBridge:
             except subprocess.TimeoutExpired:
                 process.kill()
                 process.wait()
+            print(_json({"pie_blender_bridge_stats": self.stats, "unit": "characters_not_tokens"}), file=sys.stderr)
         return process.returncode or 0
 
 
