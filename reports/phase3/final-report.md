@@ -42,6 +42,8 @@ uv run -m pie.certification.task_telemetry report --workspace . --app blender --
 
 O SQLite fica no armazenamento PIE do workspace; `PIE_GLOBAL_STORAGE_ROOT` continua opt-in. Eventos sem correlação usam `unassigned`.
 
+A auditoria local da configuração Codex encontrou 3 servidores MCP ativos e 0 rotas stdio envolvidas pelo PIE (`configured_routing_ratio: 0.0`), incluindo `blender`. O monitoramento contínuo ainda não está ativo para o ambiente normal; nenhuma configuração do usuário foi alterada.
+
 ## Limitações e próximos passos
 
 1. Instalar/disponibilizar Blender e uma página Playwright local determinística.

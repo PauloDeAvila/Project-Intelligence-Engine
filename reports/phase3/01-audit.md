@@ -35,3 +35,5 @@ Base auditada: `origin/feat/pie-blender-web-domain-gateway-20261114`
 - `compileall`: passou.
 - `unittest discover`: 533 testes, 3 falhas em diagnósticos de processo Blender já existentes no modo unittest; pytest reproduzível passou.
 
+Auditoria read-only da rota Codex: 3 servidores MCP ativos, 0 wrapped stdio, razão de roteamento 0.0, estado `GAPS_OR_NO_ROUTED_SERVERS`. Blender, node_repl e `pie-def7be8e70` estão `UNWRAPPED_STDIO`; o monitoramento PIE não pode ser declarado ativo no uso normal.
+
