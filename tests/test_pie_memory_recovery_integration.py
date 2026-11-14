@@ -1,5 +1,6 @@
 """Persistence/restart and bounded evidence-recovery regression tests."""
 import json
+from contextlib import closing
 import os
 from pathlib import Path
 import sqlite3
@@ -48,14 +49,15 @@ class MemoryIntegrationRegression(unittest.TestCase):
         self.assertEqual(first["output_id"], second["output_id"])
         self.assertFalse(first["cache_hit"])
         self.assertTrue(second["cache_hit"])
-        with sqlite3.connect(self.root / ".pie" / "index.sqlite3") as db:
+        with closing(sqlite3.connect(self.root / ".pie" / "index.sqlite3")) as db:
             self.assertEqual(db.execute("SELECT COUNT(*) FROM pie_tool_outputs").fetchone()[0], 1)
 
     def test_output_retention_and_expiry(self):
         first = compact_output(self.root, "old first")["output_id"]
-        with sqlite3.connect(self.root / ".pie" / "index.sqlite3") as db:
-            db.execute("UPDATE pie_tool_outputs SET created_utc='2000-01-01T00:00:00+00:00' "
-                       "WHERE output_id=?", (first,))
+        with closing(sqlite3.connect(self.root / ".pie" / "index.sqlite3")) as db:
+            with db:
+                db.execute("UPDATE pie_tool_outputs SET created_utc='2000-01-01T00:00:00+00:00' "
+                           "WHERE output_id=?", (first,))
         recent = compact_output(self.root, "recent")["output_id"]
         self.assertEqual(recover_output(self.root, recent)["text"], "recent")
         with self.assertRaisesRegex(ValueError, "Unknown output"):
@@ -64,7 +66,7 @@ class MemoryIntegrationRegression(unittest.TestCase):
     def test_output_has_bounded_row_count(self):
         ids = [compact_output(self.root, "message " + str(n))["output_id"]
                for n in range(MAX_OUTPUT_ROWS + 4)]
-        with sqlite3.connect(self.root / ".pie" / "index.sqlite3") as db:
+        with closing(sqlite3.connect(self.root / ".pie" / "index.sqlite3")) as db:
             number = db.execute("SELECT COUNT(*) FROM pie_tool_outputs").fetchone()[0]
         self.assertLessEqual(number, MAX_OUTPUT_ROWS)
         self.assertEqual(recover_output(self.root, ids[-1])["text"], "message " + str(MAX_OUTPUT_ROWS + 3))
