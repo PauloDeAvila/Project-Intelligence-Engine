@@ -11,6 +11,7 @@ from benchmark_local_ollama import (
     _check_response, _provider_usage, _tool_calls, compare_pair, correct_answer,
     fixture_pass, run_local_model, ensure_local_model, collect_mcp, _recover_web_when_required,
     _visible_tool_schemas, local_experiment_scenario,
+    grounded_blender_exact_answer, model_source_mismatches,
 )
 
 
@@ -200,6 +201,62 @@ class LocalOllamaBenchmarkTests(unittest.TestCase):
             self.assertEqual(result["tool_count"], 1)
             self.assertEqual(result["recovery_calls"], 0)
             self.assertIn("PIE_Large_Cube_00", result["observations_json"])
+
+    def test_exact_source_rendering_preserves_identifiers_without_model_copy(self):
+        value = {
+            "object_name": "PIE_Large_Cube_00",
+            "object_type": "MESH",
+            "location": [0.0, 0.0, 0.0],
+            "material_names": ["PIE_Large_Material_00"],
+        }
+        observation = {"observations_json": json.dumps([{
+            "content": [{"type": "text", "text": json.dumps(value)}]
+        }])}
+        source = grounded_blender_exact_answer(observation, "PIE_Large_Cube_00")
+        self.assertEqual(json.loads(source), value)
+        bad_model = source.replace("PIE_Large_Cube_00", "PIE_Large_Cube_0:00")
+        self.assertEqual(model_source_mismatches(bad_model, source), ["object_name"])
+        self.assertEqual(model_source_mismatches(source, source), [])
+        self.assertEqual(model_source_mismatches("not json", source), ["INVALID_MODEL_JSON"])
+        with self.assertRaises(ValueError):
+            grounded_blender_exact_answer(observation, "PIE_Large_Cube_0:00")
+        for invalid in (
+            {"content": [{"type": "text", "text": json.dumps({"name": "Cube"})}]},
+            {"content": [{"type": "text", "text": json.dumps(value)}],
+             "structuredContent": value},
+            {"content": [{"type": "text", "text": json.dumps(value)},
+                         {"type": "text", "text": "duplicate"}]},
+        ):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                grounded_blender_exact_answer(
+                    {"observations_json": json.dumps([invalid])}, "PIE_Large_Cube_00")
+
+    def test_copy_error_never_promoted_to_model_oracle_pass(self):
+        value = {"object_name": "PIE_Large_Cube_00", "object_type": "MESH",
+                 "location": [0.0, 0.0, 0.0], "material_names": ["PIE_Large_Material_00"]}
+        source = json.dumps(value, separators=(",", ":"))
+        model_response = source.replace("PIE_Large_Cube_00", "PIE_Large_Cube_0:00")
+        scenario = {"application": "blender", "expected_exact": source, "prompt": "Read object"}
+        obs = {"schema_json": "[]", "observations_json": "[]", "grounded_answer": source}
+        reply = {"done": True, "prompt_eval_count": 355, "eval_count": 64,
+                 "message": {"content": model_response}}
+
+        class FakeResponse:
+            def __enter__(self):return self
+            def __exit__(self, *_):return False
+            def read(self, _):return json.dumps(reply).encode()
+
+        with patch("benchmark_local_ollama.urlopen", return_value=FakeResponse()):
+            result = run_local_model(scenario, obs, "qwen3:4b", 10, 8192)
+        self.assertFalse(result["oracle_pass"])
+        self.assertTrue(result["source_oracle_pass"])
+        self.assertEqual(result["usage"]["total_tokens"], 419)
+        self.assertEqual(result["model_mismatch_fields"], ["object_name"])
+        self.assertEqual(result["source_rendering"],
+                         "DETERMINISTIC_TOOL_DATA_NOT_MODEL_OUTPUT")
+        self.assertEqual(compare_pair(
+            {"oracle_pass": True, "usage": {"total_tokens": 647, "input_tokens": 584}},
+            result)["state"], "ORACLE_FAILED")
 
     def test_exact_mode_changes_only_local_prompt_and_is_paired(self):
         original = {"application": "blender", "prompt":
