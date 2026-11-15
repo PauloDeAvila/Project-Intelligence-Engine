@@ -1,0 +1,32 @@
+{
+  "schema": "pie-phase3-route-evidence-gate-v1",
+  "status": "PASS",
+  "commit": "d2f574d926599550b4c1a22ceb98dd740b33b724",
+  "requirements": {
+    "provider_usage": true,
+    "mcp_tool_call_records": true,
+    "expected_server_match": true,
+    "completed_status": true,
+    "oracle_required": true
+  },
+  "tests": {
+    "targeted": "10 passed, 7 subtests passed",
+    "full_suite": "537 passed, 5 skipped, 133 subtests passed",
+    "compileall": "PASS",
+    "diff_check": "PASS"
+  },
+  "certification": {
+    "status": "NOT_CERTIFIED",
+    "reason": "Current-commit paired A/B sessions with route evidence are still pending",
+    "required_model_sessions": 12
+  },
+  "pie_evidence": {
+    "status": "UNAVAILABLE_FOR_THIS_CHECKOUT",
+    "reason": "Available PIE server reports a different workspace root",
+    "graphify_local": {
+      "status": "USED_AS_STRUCTURAL_FALLBACK",
+      "nodes": 3394,
+      "edges": 8748
+    }
+  }
+}
