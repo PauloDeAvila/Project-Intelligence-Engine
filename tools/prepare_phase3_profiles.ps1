@@ -16,12 +16,14 @@ param(
     [ValidateSet("all", "blender", "web")][string]$Domain = "all",
     [int]$MaxChars = 2400,
     [string]$PieSource = "",
-    [string]$PieCommit = ""
+    [string]$PieCommit = "",
+    [int]$BlenderPort = 0
 )
 $ErrorActionPreference = "Stop"
 $resolvedWorkspace = (Resolve-Path -LiteralPath $Workspace).Path
 $resolvedOutput = [IO.Path]::GetFullPath($OutputDirectory)
 if ($MaxChars -lt 800 -or $MaxChars -gt 64000) { throw "MaxChars must be 800..64000" }
+if ($BlenderPort -ne 0 -and ($BlenderPort -lt 1024 -or $BlenderPort -gt 65535)) { throw "BlenderPort must be 1024..65535 or zero" }
 if ($resolvedWorkspace.Contains("'")) { throw "Workspace path cannot contain a single quote for literal TOML" }
 foreach ($value in @($PythonExe,$BlenderUpstream,$NpxExe,$PlaywrightVersion)) {
     if ($value.Contains("'")) { throw "Executable/version cannot contain a single quote" }
@@ -49,7 +51,9 @@ function TomlArray([string[]]$values) {
 }
 $optimizedBlenderArgs = @("-m", "pie.gateway.domain", "serve", "--domain", "blender", "--workspace", $root, "--max-chars", "$MaxChars")
 foreach ($tool in $OptimizedExposeTool) { $optimizedBlenderArgs += @("--expose-tool", $tool) }
-$optimizedBlenderArgs += @("--", $BlenderUpstream, "mcp-for-blender")
+$blenderUpstreamArgs = @("mcp-for-blender")
+if ($BlenderPort -ne 0) { $blenderUpstreamArgs += @("--port", "$BlenderPort") }
+$optimizedBlenderArgs += @("--", $BlenderUpstream) + $blenderUpstreamArgs
 $optimizedWebArgs = @("-m", "pie.gateway.domain", "serve", "--domain", "web", "--workspace", $root, "--max-chars", "$MaxChars")
 foreach ($tool in $OptimizedExposeTool) { $optimizedWebArgs += @("--expose-tool", $tool) }
 $optimizedWebArgs += @("--", $NpxExe, "--yes", $PlaywrightVersion, "--headless", "--browser", "chrome")
@@ -57,7 +61,7 @@ $blenderBaseline = @(
     "[mcp_servers.blender]",
     ("command = '{0}'" -f $BlenderUpstream),
     $(if ($diagnosticsBlender) { "env = { PIE_MCP_DIAGNOSTICS_PATH = '$diagnosticsBlender' }" }),
-    ("args = {0}" -f (TomlArray @("mcp-for-blender"))),
+    ("args = {0}" -f (TomlArray $blenderUpstreamArgs)),
     "",
     "[mcp_servers.blender.tools.get_scene_info]",
     "approval_mode = 'approve'",
