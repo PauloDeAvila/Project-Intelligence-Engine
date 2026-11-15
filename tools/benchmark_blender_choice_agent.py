@@ -335,7 +335,7 @@ def plan_observation_target(model: str, candidates: tuple[str, ...],
         {"role": "system", "content": EVIDENCE_SYSTEM},
         {"role": "user", "content":
          "CANDIDATES=" + compact_json(choices) +
-         " MCP_OBSERVATION=" + compact_json(observation)},
+         " MCP_OBSERVATION=" + compact_json(model_observation_payload(observation))},
     ]
     payload = {"model": model, "messages": messages, "stream": False,
                "format": {"type": "object", "properties": {
@@ -385,6 +385,22 @@ def add_usage(left: dict, right: dict) -> dict:
            for name in names):
         raise ValueError("Incomplete provider usage")
     return {name: left[name] + right[name] for name in names}
+
+
+def model_observation_payload(observation: dict) -> dict:
+    """Remove only an exact structured/text duplicate before model inference."""
+    if not isinstance(observation, dict):
+        raise ValueError("Invalid MCP observation")
+    payload = dict(observation)
+    content = payload.get("content")
+    structured = payload.get("structuredContent")
+    if (isinstance(content, list) and len(content) == 1
+            and isinstance(content[0], dict)
+            and isinstance(content[0].get("text"), str)
+            and isinstance(structured, dict)
+            and structured.get("result") == content[0]["text"]):
+        payload.pop("structuredContent", None)
+    return payload
 
 
 def deterministic_choice(catalog: list[dict], task: dict, condition: str) -> dict:

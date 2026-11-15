@@ -152,6 +152,17 @@ A tentativa anterior em `9987` foi preservada em
 timeout de inicialização MCP por porta ocupada, sem modelo ou chamada MCP
 concluída; não foi usada como evidência de economia.
 
+Repetição completa do modo `model_target_evidence`: `C:\Users\phsra\AppData\Local\Temp\pie-blender-multi-choice-d85ba89bc293.json`.
+
+- 3/3 pares válidos e 6/6 oráculos aprovados.
+- Baseline: 375 tokens totais por tarefa.
+- PIE: 359 tokens totais por tarefa.
+- Economia consistente: **4,267%** por tarefa e no agregado.
+- Duas inferências locais e uma chamada MCP por braço.
+- A deduplicação estrutural reduziu a entrada do braço otimizado de 353 para
+  337 tokens; a saída permaneceu em 22 tokens.
+- Não é certificação Codex e não usa quota do Codex.
+
 ### Modo `model_target_evidence` — falha fechada
 
 Foi testado o caminho que inclui uma segunda inferência para interpretar a

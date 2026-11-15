@@ -14,7 +14,7 @@ from benchmark_blender_choice_agent import (
     TASKS, ChoicePlanError, _read_only_blender_code, compare_pair,
     deterministic_choice, planning_catalog,
     independent_fixture_oracle, ordered_catalog, plan_choice, plan_target_choice,
-    plan_observation_target, add_usage, run_arm,
+    plan_observation_target, add_usage, model_observation_payload, run_arm,
     safe_plan_failure, main, validate_task,
 )
 from benchmark_blender_evidence_agent import AgentPlanError
@@ -31,6 +31,14 @@ class MultiChoiceAgentTests(unittest.TestCase):
             add_usage({"total_tokens": 5}, {"input_tokens": 1,
                                              "output_tokens": 1,
                                              "total_tokens": 2})
+
+    def test_model_observation_deduplicates_equal_structured_result(self):
+        content = [{"type": "text", "text": "same"}]
+        self.assertEqual(model_observation_payload({
+            "content": content, "structuredContent": {"result": "same"}}),
+            {"content": content})
+        self.assertIn("structuredContent", model_observation_payload({
+            "content": content, "structuredContent": {"result": "different"}}))
 
     def test_target_plan_accepts_only_target_index(self):
         from benchmark_blender_choice_agent import _parse_target_plan
