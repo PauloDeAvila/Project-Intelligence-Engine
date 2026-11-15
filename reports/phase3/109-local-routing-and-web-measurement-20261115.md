@@ -110,6 +110,12 @@ Relatório: `C:\Users\phsra\AppData\Local\Temp\pie-blender-ollama-2292e3ef755f.j
 
 Esse resultado não é uma falha do runner: ele demonstra que esse contrato seletivo ainda tem overhead maior que o benefício para a consulta A. O modo `pie_blender_get_object` permanece separado; sua execução anterior com Qwen falhou no oráculo por transcrição do identificador e não foi promovida.
 
+### Planejador Blender multi-choice
+
+O catálogo enviado ao planejador foi reduzido para `index`, `name` e descrição limitada, sem `inputSchema`; os argumentos continuam exclusivamente no código validado. A alteração passou em 24 testes específicos.
+
+Uma execução model posterior (`C:\Users\phsra\AppData\Local\Temp\pie-blender-multi-choice-da6e89228c55.json`) terminou `FAILED_CLOSED` por `TimeoutError` no primeiro braço, antes de qualquer chamada MCP. Nenhum resultado foi promovido e não houve retry automático. O roteamento determinístico continua sendo a rota aprovada para nomes explícitos.
+
 Relatório opt-in: `C:\Users\phsra\AppData\Local\Temp\pie-web-ollama-dca357203a5c.json`. O gateway voltou a anunciar 3 ferramentas no braço otimizado, confirmando que a capacidade de recuperação não foi removida; o caminho não foi usado porque a fixture não exigiu compactação.
 
 Repetição local posterior (3 pares, ordem alternada): `C:\Users\phsra\AppData\Local\Temp\pie-web-ollama-9f975951651d.json`.

@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 from benchmark_blender_choice_agent import (
     TASKS, ChoicePlanError, _read_only_blender_code, compare_pair,
-    deterministic_choice,
+    deterministic_choice, planning_catalog,
     independent_fixture_oracle, ordered_catalog, plan_choice, run_arm,
     safe_plan_failure, main, validate_task,
 )
@@ -21,6 +21,18 @@ from verify_phase3_mcp_profiles import Probe
 
 
 class MultiChoiceAgentTests(unittest.TestCase):
+    def test_planner_catalog_excludes_execution_schemas(self):
+        catalog = [
+            {"name": "pie_blender_get_object", "description": "exact",
+             "inputSchema": {"properties": {"name": {"type": "string"}}}},
+            {"name": "pie_blender_query_scene", "description": "broad",
+             "inputSchema": {"properties": {"fields": {"enum": ["x"]}}}},
+        ]
+        self.assertEqual(planning_catalog(catalog), [
+            {"index": 0, "name": "pie_blender_get_object", "description": "exact"},
+            {"index": 1, "name": "pie_blender_query_scene", "description": "broad"},
+        ])
+
     def test_probe_close_closes_all_stdio_streams_after_exit(self):
         process = mock.Mock()
         process.stdin = io.StringIO()

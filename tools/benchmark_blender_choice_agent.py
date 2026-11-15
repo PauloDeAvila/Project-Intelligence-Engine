@@ -131,6 +131,22 @@ def ordered_catalog(visible: list[dict], condition: str, task: dict) -> list[dic
     return [tool_by_name[primary if kind == "exact" else alternate] for kind in order]
 
 
+def planning_catalog(catalog: list[dict]) -> list[dict]:
+    """Expose only routing evidence; execution arguments stay in code."""
+    if not isinstance(catalog, list) or len(catalog) != 2:
+        raise ValueError("Planner catalog must contain exactly two tools")
+    result = []
+    for index, spec in enumerate(catalog):
+        if not isinstance(spec, dict) or not isinstance(spec.get("name"), str):
+            raise ValueError("Malformed planner catalog")
+        description = spec.get("description", "")
+        if not isinstance(description, str):
+            raise ValueError("Malformed tool description")
+        result.append({"index": index, "name": spec["name"],
+                       "description": description[:240]})
+    return result
+
+
 def independent_fixture_oracle(target: str) -> dict:
     """Independent specification from Blender 8x8 generator, not the MCP value."""
     if not isinstance(target, str) or not TARGET_PATTERN.fullmatch(target):
@@ -155,8 +171,7 @@ def plan_choice(model: str, catalog: list[dict], task: dict, *,
          "TASK: Look up object named " + json.dumps(target) +
          " in the active Blender scene. Return its exact type, location and material names. "
          "CANDIDATES=" + compact_json(choices) +
-         " TOOLS=" + compact_json([
-             {"index": index, "schema": spec} for index, spec in enumerate(catalog)])},
+         " TOOLS=" + compact_json(planning_catalog(catalog))},
     ]
     payload = {"model": model, "messages": messages, "stream": False,
                "format": "json", "think": False,
