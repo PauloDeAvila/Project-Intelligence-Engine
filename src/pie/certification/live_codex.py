@@ -116,7 +116,7 @@ def preflight_codex(scenario:dict,*,condition:str,workspace:Path,codex_home:Path
         if model!=scenario["model"]:errors.append("PRECHECK_MODEL_INVALID")
         servers=dict(parsed.get("mcp_servers") if isinstance(parsed.get("mcp_servers"),dict) else {})
         if isinstance(profile_parsed.get("mcp_servers"),dict):servers.update(profile_parsed["mcp_servers"])
-        required=scenario.get("required_mcp_server")
+        required=_expected_mcp_server(scenario,condition) if scenario.get("required_mcp_server") else None
         if required and required not in servers:
             checks["mcp"]={"state":"FAIL","required_server":required};errors.append("PRECHECK_MCP_UNAVAILABLE")
         else:
