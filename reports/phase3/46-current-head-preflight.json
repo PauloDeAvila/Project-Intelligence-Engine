@@ -4,6 +4,7 @@
   "workspace_commit": "75560b5",
   "persistent_config_modified": false,
   "temporary_optimized_overlay": true,
+  "persistent_optimized_profile_without_overlay": "BLOCKED_PRECHECK_GATEWAY_WORKSPACE_MISMATCH",
   "results": {
     "blender_baseline": "READY_FOR_BENCHMARK",
     "blender_optimized": "READY_FOR_BENCHMARK",
