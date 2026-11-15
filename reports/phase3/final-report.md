@@ -25,7 +25,7 @@ Valores `B/O` são baseline/optimized. A economia de input não armazenado em ca
 
 ## Testes
 
-`pytest`: **537 passed, 5 skipped, 133 subtests** (via `PYTHONPATH=. uv run --with pytest pytest -q`). `compileall`: passou. O preflight agora bloqueia overlays com workspace divergente. O status local do checkout retornou `CURRENT`, com `workspace_match=true` e `index_root` igual a `workspace_root`. O servidor PIE MCP disponível nesta sessão continua reportando outra raiz (`C:\\Users\\phsra\\Documents\\Codex\\2026-11-14\\contrato-de-uso-ativo-do-project`), portanto não foi tratado como evidência deste checkout.
+`pytest`: **538 passed, 5 skipped, 133 subtests** (via `uv run --with pytest python -m pytest -q`). A execução sem o caso HTTP intermitente conhecido passou com **537 passed, 5 skipped, 1 deselected, 133 subtests**. `compileall`: passou. O preflight agora bloqueia overlays com workspace divergente. O status local do checkout retornou `CURRENT`, com `workspace_match=true` e `index_root` igual a `workspace_root`. O servidor PIE MCP disponível nesta sessão continua reportando outra raiz (`C:\\Users\\phsra\\Documents\\Codex\\2026-11-14\\contrato-de-uso-ativo-do-project`), portanto não foi tratado como evidência deste checkout. Evidência adicional: `42-validation-after-runner-fix.json`.
 
 ## Diagnóstico Codex/MCP
 
