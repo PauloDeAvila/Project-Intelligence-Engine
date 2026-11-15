@@ -116,7 +116,7 @@ class BlenderProxyUnitTests(unittest.TestCase):
         tools = extend_tools(raw)["result"]["tools"]
         self.assertEqual([t["name"] for t in tools], ["execute_blender_code", "get_scene_info", "pie_blender_expand", "pie_blender_scene_delta", "pie_blender_query_scene", "pie_blender_get_object"])
         extend_tools(raw)
-        self.assertEqual(len(raw["result"]["tools"]), 5)
+        self.assertEqual(len(raw["result"]["tools"]), 6)
 
     def test_invalid_budget(self):
         with self.assertRaises(ValueError):
