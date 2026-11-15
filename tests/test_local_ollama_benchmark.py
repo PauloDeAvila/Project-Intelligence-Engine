@@ -28,11 +28,14 @@ class LocalOllamaBenchmarkTests(unittest.TestCase):
         self.assertEqual(exact, [("pie_blender_get_object", {"name": "PIE_Large_Cube_00"})])
         self.assertEqual([x[0] for x in _tool_calls("web", "baseline")],
                          ["browser_navigate", "browser_snapshot"])
+        large = _tool_calls("web", "optimized",
+                            scenario={"fixture_url": "http://127.0.0.1:8767/index.html"})
+        self.assertEqual(large[0][1]["url"], "http://127.0.0.1:8767/index.html")
 
     def test_mcp_errors_do_not_start_local_model(self):
-        with self.assertRaises(RuntimeError):
+        with self.assertRaisesRegex(RuntimeError, "tool error"):
             _check_response({"result": {"isError": True}}, "tool")
-        with self.assertRaises(RuntimeError):
+        with self.assertRaisesRegex(RuntimeError, "JSON-RPC error"):
             _check_response({"error": {"code": -1}}, "tool")
 
     def test_ollama_reports_real_token_counts_or_fails(self):

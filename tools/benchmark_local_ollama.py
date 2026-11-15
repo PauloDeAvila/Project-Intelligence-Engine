@@ -71,10 +71,18 @@ def correct_answer(scenario: dict, answer: str) -> tuple[bool, bool]:
 
 def _check_response(message: dict, label: str) -> dict:
     if not isinstance(message, dict) or "error" in message:
-        raise RuntimeError(f"MCP {label} returned a JSON-RPC error")
+        detail = message.get("error") if isinstance(message, dict) else None
+        if isinstance(detail, dict):
+            detail = detail.get("message") or detail.get("code")
+        raise RuntimeError(f"MCP {label} returned a JSON-RPC error: {str(detail)[:300]}")
     result = message.get("result")
     if not isinstance(result, dict) or result.get("isError"):
-        raise RuntimeError(f"MCP {label} returned a tool error")
+        detail = None
+        if isinstance(result, dict):
+            parts = result.get("content")
+            if isinstance(parts, list) and parts and isinstance(parts[0], dict):
+                detail = parts[0].get("text")
+        raise RuntimeError(f"MCP {label} returned a tool error: {str(detail)[:300]}")
     return result
 
 
@@ -132,7 +140,7 @@ def fixture_pass(scenario: dict, responses: list[dict]) -> bool:
     return all(text in visible for text in required)
 
 
-def _tool_calls(application: str, condition: str,
+def _tool_calls(application: str, condition: str, *, scenario: dict | None = None,
                 blender_mode: str = "query") -> list[tuple[str, dict]]:
     if application == "blender":
         if condition == "baseline":
@@ -142,7 +150,10 @@ def _tool_calls(application: str, condition: str,
         if blender_mode == "query":
             return [("pie_blender_query_scene", BLENDER_QUERY)]
         raise ValueError("Invalid Blender benchmark mode")
-    return [("browser_navigate", {"url": WEB_URL}), ("browser_snapshot", {})]
+    url = (scenario or {}).get("fixture_url", WEB_URL)
+    if not isinstance(url, str) or not url:
+        raise ValueError("Web scenario fixture_url must be a non-empty string")
+    return [("browser_navigate", {"url": url}), ("browser_snapshot", {})]
 
 
 def _recover_web_when_required(probe: Probe, responses: list[dict],
@@ -282,7 +293,8 @@ def collect_mcp(profile: Path, workspace: Path, scenario: dict, condition: str,
         tools = _check_response(probe.call(2, "tools/list", {}), "tools/list").get("tools", [])
         if not isinstance(tools, list):
             raise RuntimeError("Invalid MCP tools/list response")
-        calls = _tool_calls(app, condition, blender_mode=blender_mode)
+        calls = _tool_calls(app, condition, scenario=scenario,
+                            blender_mode=blender_mode)
         available = {tool.get("name") for tool in tools if isinstance(tool, dict)}
         if any(name not in available for name, _ in calls):
             raise RuntimeError("Required MCP tool not exposed")

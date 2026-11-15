@@ -59,6 +59,30 @@ Relatório sem recuperação: `C:\Users\phsra\AppData\Local\Temp\pie-web-ollama-
 - Ambos os oráculos passaram; recuperação: 0.
 - Resultado: `total_token_savings_percent = 0.0`.
 
+### Fixture Web grande
+
+Foi adicionada a fixture local `fixtures/phase3/web-large/index.html` e o cenário `benchmarks/phase3/web-large-page-scenario.json`, selecionável com `-WebVariant large`. A fixture v2 original permaneceu inalterada.
+
+Gate sem modelo: `C:\Users\phsra\AppData\Local\Temp\pie-web-ollama-e68cac1bfaa8.json`.
+
+- Observação baseline: 8.006 caracteres.
+- Observação PIE: 2.812 caracteres.
+- Catálogo visível: 2 ferramentas em ambos os braços.
+- Recuperação: 0; os fatos obrigatórios permaneceram no preview.
+
+Primeiro par com Qwen: `C:\Users\phsra\AppData\Local\Temp\pie-web-ollama-70c1ef2e0a6c.json`.
+
+| Métrica | Baseline | PIE |
+|---|---:|---:|
+| Entrada | 2.947 | 1.443 |
+| Saída | 42 | 42 |
+| Total | 2.989 | 1.485 |
+| Oráculo | PASS | PASS |
+
+Economia local: **50,318% total** e **51,035% de entrada**.
+
+Uma tentativa de três repetições foi interrompida por timeout do MCP (`initialize`/`tools/call`) após o primeiro ciclo; não foi convertida em pares válidos. O probe isolado posterior passou. O runner agora registra detalhes de erros MCP e os perfis Playwright usam `--isolated` para reduzir interferência entre sessões. A estabilidade de três pares da fixture grande permanece pendente.
+
 Relatório opt-in: `C:\Users\phsra\AppData\Local\Temp\pie-web-ollama-dca357203a5c.json`. O gateway voltou a anunciar 3 ferramentas no braço otimizado, confirmando que a capacidade de recuperação não foi removida; o caminho não foi usado porque a fixture não exigiu compactação.
 
 Repetição local posterior (3 pares, ordem alternada): `C:\Users\phsra\AppData\Local\Temp\pie-web-ollama-9f975951651d.json`.

@@ -5,6 +5,7 @@ Prerequisite: Blender fixture server or Web fixture HTTP server is running.
 [CmdletBinding()]
 param(
     [ValidateSet("blender", "web")][string]$Domain = "blender",
+    [ValidateSet("small", "large")][string]$WebVariant = "small",
     [string]$Model = "qwen3:4b",
     [int]$Repetitions = 3,
     [int]$NumCtx = 8192,
@@ -65,6 +66,11 @@ if ($Domain -eq "blender") {
         throw 'npx.cmd unavailable. Install Node.js LTS (winget install -e --id OpenJS.NodeJS.LTS), reopen PowerShell, or pass -NpxExe with its full path.'
     }
     $profileArgs.NpxExe = if ($npxCandidate.Source) { $npxCandidate.Source } else { $npxCandidate.FullName }
+}
+$scenario = if ($Domain -eq "web" -and $WebVariant -eq "large") {
+    Join-Path $repo "benchmarks\phase3\web-large-page-scenario.json"
+} else {
+    $scenario
 }
 & (Join-Path $PSScriptRoot "prepare_phase3_profiles.ps1") @profileArgs
 
