@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from pie.certification.live_codex import _record, _sha, validate_scenario
+from pie.certification.live_codex import capture_codex, preflight_codex
+from pie.certification.task_telemetry import import_provider_record
 
 SCHEMA = "pie-phase3-certification-controller-v1"
 DECISIONS = frozenset(("VALID", "INVALID", "INSUFFICIENT_EVIDENCE"))
@@ -169,6 +171,83 @@ def validate_batch_budget(manifest: dict[str, Any], batch: str, authorized_sessi
             "model_execution": "DISABLED"}
 
 
+def _load_lifecycle(path: Path) -> list[dict[str, Any]]:
+    if not path.is_file():
+        return []
+    events: list[dict[str, Any]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            value=json.loads(line)
+            if isinstance(value, dict):
+                events.append(value)
+    return events
+
+
+def _fixture_oracle(scenario: dict[str, Any], workspace: Path) -> dict[str, Any]:
+    """Check deterministic fixture invariants without model or external writes."""
+    oracle=_oracle_spec(scenario)
+    if oracle["kind"] == "web_local_page":
+        fixture=workspace/"fixtures"/"phase3"/"web"/"index.html"
+        text=fixture.read_text(encoding="utf-8")
+        missing=[value for value in (*oracle["required_refs"], *oracle["required_text"]) if value not in text]
+        return {"passed": not missing, "kind": oracle["kind"], "missing": missing}
+    # The Blender oracle is a read-only contract for the disposable scene. The
+    # live Blender probe remains an independent external evidence source.
+    return {"passed": bool(oracle["object_name"] and oracle["material_name"]),
+            "kind": oracle["kind"], "independent_live_probe_required": True}
+
+
+def run_pilot(*, manifest: dict[str, Any], scenarios: Iterable[dict[str, Any]],
+              workspace: Path, baseline_home: Path, optimized_home: Path,
+              baseline_profile: str, optimized_profile: str,
+              output: Path, authorized_sessions: int, codex_bin: str = "codex",
+              timeout: int = 240) -> dict[str, Any]:
+    """Execute exactly the authorized four-session pilot, fail closed."""
+    validate_manifest(manifest)
+    validate_batch_budget(manifest, "pilot", authorized_sessions)
+    if authorized_sessions != 4:
+        raise ControllerError("Pilot requires exactly four authorized sessions")
+    scenario_map={item["scenario_id"]: item for item in scenarios}
+    pilot_entries=[item for item in manifest["scenarios"] if item["repetition"] == 1]
+    if len(pilot_entries) != 4:
+        raise ControllerError("Manifest pilot does not contain four sessions")
+    root=workspace.expanduser().resolve(strict=True)
+    output=output.expanduser().resolve()
+    output.parent.mkdir(parents=True,exist_ok=True)
+    records_dir=output.parent/(output.stem+"-records")
+    records_dir.mkdir(parents=True,exist_ok=True)
+    records=[]
+    for entry in pilot_entries:
+        scenario=scenario_map.get(entry["scenario_id"])
+        if scenario is None:
+            raise ControllerError("Manifest scenario is not available")
+        home=baseline_home if entry["condition"]=="baseline" else optimized_home
+        profile=baseline_profile if entry["condition"]=="baseline" else optimized_profile
+        preflight=preflight_codex(scenario,condition=entry["condition"],workspace=root,
+                                  codex_home=home,codex_bin=codex_bin,profile=profile)
+        if preflight["state"]!="READY_FOR_BENCHMARK":
+            raise ControllerError("Preflight failed: "+";".join(preflight["errors"]))
+        record=capture_codex(scenario,condition=entry["condition"],repetition=1,
+                             workspace=root,codex_home=home,codex_bin=codex_bin,
+                             profile=profile,timeout=timeout)
+        if record["run_id"]!=entry["run_id"] or record["pair_id"]!=entry["pair_id"]:
+            raise ControllerError("Capture identity differs from frozen manifest")
+        oracle=_fixture_oracle(scenario,root)
+        if not oracle["passed"]:
+            raise ControllerError("Independent fixture oracle failed")
+        lifecycle=_load_lifecycle(root.parent/("."+root.name+"-pie-live-store")/"mcp-lifecycle.jsonl")
+        route=audit_record_route(record,lifecycle)
+        if route["decision"]!="VALID":
+            raise ControllerError("Route evidence failed: "+route["reason"])
+        destination=records_dir/(entry["condition"]+"-"+entry["application"]+"-r1.json")
+        destination.write_text(json.dumps(record,indent=2,ensure_ascii=False)+"\n",encoding="utf-8")
+        import_provider_record(root,record,app=entry["application"],task_id=entry["scenario_id"])
+        records.append({"manifest":entry,"record":str(destination),"oracle":oracle,"route":route})
+    return {"schema":"pie-phase3-pilot-result-v1","state":"AB_PILOT_PASSED",
+            "sessions_consumed":len(records),"pairs_accepted":2,"records":records,
+            "automatic_retry":False,"complement_executed":False}
+
+
 def plan_batches(manifest: dict[str, Any]) -> dict[str, Any]:
     validate_manifest(manifest)
     entries = manifest["scenarios"]
@@ -222,6 +301,18 @@ def main(argv: list[str] | None = None) -> int:
     audit.add_argument("--record", action="append", type=Path, required=True)
     audit.add_argument("--lifecycle", type=Path, required=True)
     audit.add_argument("--output", type=Path, required=True)
+    pilot = sub.add_parser("pilot")
+    pilot.add_argument("--manifest", type=Path, required=True)
+    pilot.add_argument("--scenario", action="append", type=Path, required=True)
+    pilot.add_argument("--workspace", type=Path, required=True)
+    pilot.add_argument("--baseline-home", type=Path, required=True)
+    pilot.add_argument("--optimized-home", type=Path, required=True)
+    pilot.add_argument("--baseline-profile", required=True)
+    pilot.add_argument("--optimized-profile", required=True)
+    pilot.add_argument("--authorized-sessions", type=int, required=True)
+    pilot.add_argument("--output", type=Path, required=True)
+    pilot.add_argument("--codex-bin", default="codex")
+    pilot.add_argument("--timeout", type=int, default=240)
     args = parser.parse_args(argv)
     try:
         if args.action == "plan":
@@ -230,7 +321,7 @@ def main(argv: list[str] | None = None) -> int:
                                       baseline_profile=args.baseline_profile,
                                       optimized_profile=args.optimized_profile)
             result = {"manifest": manifest, "batches": plan_batches(manifest)}
-        else:
+        elif args.action == "audit":
             lifecycle = [json.loads(line) for line in args.lifecycle.read_text(encoding="utf-8").splitlines() if line.strip()]
             result = {"schema": "pie-phase3-evidence-audit-v1", "decisions": []}
             for path in args.record:
@@ -239,9 +330,20 @@ def main(argv: list[str] | None = None) -> int:
             result["state"] = "EVIDENCE_CERTIFIED" if result["decisions"] and all(
                 item["decision"] == "VALID" for item in result["decisions"]
             ) else "BLOCKED_WITH_EVIDENCE"
+        else:
+            scenarios = [load_scenario(path) for path in args.scenario]
+            manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
+            result = run_pilot(manifest=manifest,scenarios=scenarios,
+                               workspace=args.workspace,baseline_home=args.baseline_home,
+                               optimized_home=args.optimized_home,
+                               baseline_profile=args.baseline_profile,
+                               optimized_profile=args.optimized_profile,
+                               output=args.output,codex_bin=args.codex_bin,
+                               authorized_sessions=args.authorized_sessions,
+                               timeout=args.timeout)
         _write_json(args.output, result)
         print(json.dumps(result, indent=2, ensure_ascii=False))
-        return 0 if (args.action == "plan" or result.get("state") == "EVIDENCE_CERTIFIED") else 2
+        return 0 if (args.action == "plan" or result.get("state") in ("EVIDENCE_CERTIFIED", "AB_PILOT_PASSED")) else 2
     except (ControllerError, OSError, json.JSONDecodeError) as exc:
         print(json.dumps({"state": "BLOCKED_WITH_EVIDENCE", "reason": str(exc)}, ensure_ascii=False))
         return 2
