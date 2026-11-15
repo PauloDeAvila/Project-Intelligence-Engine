@@ -461,6 +461,11 @@ def main(argv: list[str] | None = None) -> int:
                               schema_scope=args.schema_scope, blender_mode=args.blender_mode)
             arm = {key: value for key, value in obs.items()
                    if key not in {"schema_json", "observations_json", "grounded_answer"}}
+            if obs.get("grounded_answer") is not None:
+                arm["source_answer_sha256"] = sha(obs["grounded_answer"])
+                arm["source_oracle_pass"] = correct_answer(
+                    scenario, obs["grounded_answer"])[0]
+                arm["source_rendering"] = "DETERMINISTIC_TOOL_DATA_NOT_MODEL_OUTPUT"
             if not args.probe_only:
                 arm.update(run_local_model(local_scenario, obs, args.model, args.timeout, args.num_ctx))
             pair["arms"][condition] = arm
