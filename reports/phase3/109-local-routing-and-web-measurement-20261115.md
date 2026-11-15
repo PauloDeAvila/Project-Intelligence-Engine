@@ -83,6 +83,18 @@ Economia local: **50,318% total** e **51,035% de entrada**.
 
 Uma tentativa de três repetições foi interrompida por timeout do MCP (`initialize`/`tools/call`) após o primeiro ciclo; não foi convertida em pares válidos. O probe isolado posterior passou. O runner agora registra detalhes de erros MCP e os perfis Playwright usam `--isolated` para reduzir interferência entre sessões. A estabilidade de três pares da fixture grande permanece pendente.
 
+Após a correção do ciclo de vida, o runner passou a manter um processo Playwright por condição durante toda a bateria. Relatório: `C:\Users\phsra\AppData\Local\Temp\pie-web-ollama-0991c7b7dfc2.json`.
+
+- 3/3 pares válidos e 6/6 oráculos aprovados.
+- Baseline total: 9.259 tokens.
+- PIE total: 4.417 tokens.
+- Economia agregada: **52,295%**.
+- Economia agregada de entrada: **53,017%**.
+- Saída: 42 tokens em todos os braços.
+- Ordem alternada: baseline→PIE, PIE→baseline, baseline→PIE.
+- Recuperações: 0; cada snapshot compactado preservou os fatos exigidos.
+- Nenhuma sessão Codex foi iniciada.
+
 Relatório opt-in: `C:\Users\phsra\AppData\Local\Temp\pie-web-ollama-dca357203a5c.json`. O gateway voltou a anunciar 3 ferramentas no braço otimizado, confirmando que a capacidade de recuperação não foi removida; o caminho não foi usado porque a fixture não exigiu compactação.
 
 Repetição local posterior (3 pares, ordem alternada): `C:\Users\phsra\AppData\Local\Temp\pie-web-ollama-9f975951651d.json`.

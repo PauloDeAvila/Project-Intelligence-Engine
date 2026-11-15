@@ -272,62 +272,90 @@ def model_source_mismatches(model_answer: str, grounded_answer: str) -> list[str
                   if actual.get(key) != expected.get(key))
 
 
-def collect_mcp(profile: Path, workspace: Path, scenario: dict, condition: str,
-                schema_scope: str = "profile", blender_mode: str = "query") -> dict:
-    app = scenario["application"]
-    config, server, args, configured_env = _profile(profile, workspace)
-    if server != EXPECTED_SERVERS[app][condition]:
-        raise RuntimeError("Wrong MCP server for condition")
-    env = dict(os.environ)
-    env.update(configured_env)
-    process = subprocess.Popen([config["command"], *args], cwd=workspace, env=env,
-                               stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE, text=True, bufsize=1, encoding="utf-8")
-    probe = Probe(process)
-    start = time.perf_counter()
-    try:
-        _check_response(probe.call(1, "initialize", {
-            "protocolVersion": "2025-03-26", "capabilities": {},
-            "clientInfo": {"name": "pie-local-ollama-ab", "version": "1"}}), "initialize")
-        probe.notify("notifications/initialized")
-        tools = _check_response(probe.call(2, "tools/list", {}), "tools/list").get("tools", [])
-        if not isinstance(tools, list):
-            raise RuntimeError("Invalid MCP tools/list response")
-        calls = _tool_calls(app, condition, scenario=scenario,
-                            blender_mode=blender_mode)
-        available = {tool.get("name") for tool in tools if isinstance(tool, dict)}
+class MCPReplaySession:
+    """One isolated MCP process reused across repetitions for one condition."""
+
+    def __init__(self, profile: Path, workspace: Path, scenario: dict,
+                 condition: str, schema_scope: str, blender_mode: str) -> None:
+        self.app = scenario["application"]
+        self.scenario = scenario
+        self.condition = condition
+        self.schema_scope = schema_scope
+        self.blender_mode = blender_mode
+        config, server, args, configured_env = _profile(profile, workspace)
+        if server != EXPECTED_SERVERS[self.app][condition]:
+            raise RuntimeError("Wrong MCP server for condition")
+        self.config = config
+        self.server = server
+        env = dict(os.environ)
+        env.update(configured_env)
+        process = subprocess.Popen([config["command"], *args], cwd=workspace, env=env,
+                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE, text=True, bufsize=1, encoding="utf-8")
+        self.probe = Probe(process)
+        self.next_id = 3
+        try:
+            _check_response(self.probe.call(1, "initialize", {
+                "protocolVersion": "2025-03-26", "capabilities": {},
+                "clientInfo": {"name": "pie-local-ollama-ab", "version": "1"}}), "initialize")
+            self.probe.notify("notifications/initialized")
+            self.tools = _check_response(self.probe.call(2, "tools/list", {}), "tools/list").get("tools", [])
+            if not isinstance(self.tools, list):
+                raise RuntimeError("Invalid MCP tools/list response")
+        except BaseException:
+            self.probe.close()
+            raise
+
+    def collect(self) -> dict:
+        start = time.perf_counter()
+        calls = _tool_calls(self.app, self.condition, scenario=self.scenario,
+                            blender_mode=self.blender_mode)
+        available = {tool.get("name") for tool in self.tools if isinstance(tool, dict)}
         if any(name not in available for name, _ in calls):
             raise RuntimeError("Required MCP tool not exposed")
         responses = []
-        for index, (name, arguments) in enumerate(calls, start=3):
-            responses.append(_check_response(probe.call(index, "tools/call", {
+        for name, arguments in calls:
+            responses.append(_check_response(self.probe.call(self.next_id, "tools/call", {
                 "name": name, "arguments": arguments}), f"tools/call {name}"))
+            self.next_id += 1
         recovery_calls = 0
-        if app == "web" and condition == "optimized":
+        if self.app == "web" and self.condition == "optimized":
             responses, recovery_calls = _recover_web_when_required(
-                probe, responses, available, scenario, len(calls) + 3)
-        if not fixture_pass(scenario, responses):
+                self.probe, responses, available, self.scenario, self.next_id)
+            self.next_id += recovery_calls
+        if not fixture_pass(self.scenario, responses):
             raise RuntimeError("MCP fixture facts unavailable; no local model will start")
-        visible_tools = _visible_tool_schemas(tools, config, schema_scope)
+        visible_tools = _visible_tool_schemas(self.tools, self.config, self.schema_scope)
         schema_json = compact_json(visible_tools)
         observations_json = compact_json(responses)
         grounded_answer = None
-        if app == "blender" and condition == "optimized" and blender_mode == "exact":
+        if self.app == "blender" and self.condition == "optimized" and self.blender_mode == "exact":
             grounded_answer = grounded_blender_exact_answer(
                 {"observations_json": observations_json}, "PIE_Large_Cube_00")
         return {
-            "server": server,
+            "server": self.server,
             "tool_names": [name for name, _ in calls] + (["pie_gateway_output_get"] * recovery_calls),
             "recovery_calls": recovery_calls,
-            "tool_count": len(visible_tools), "server_tool_count": len(tools),
-            "schema_scope": schema_scope, "tool_schema_chars": len(schema_json),
+            "tool_count": len(visible_tools), "server_tool_count": len(self.tools),
+            "schema_scope": self.schema_scope, "tool_schema_chars": len(schema_json),
             "observation_chars": len(observations_json),
             "tool_elapsed_ms": round((time.perf_counter() - start) * 1000, 3),
             "schema_json": schema_json, "observations_json": observations_json,
             "grounded_answer": grounded_answer,
         }
+
+    def close(self) -> None:
+        self.probe.close()
+
+
+def collect_mcp(profile: Path, workspace: Path, scenario: dict, condition: str,
+                schema_scope: str = "profile", blender_mode: str = "query") -> dict:
+    session = MCPReplaySession(profile, workspace, scenario, condition,
+                               schema_scope, blender_mode)
+    try:
+        return session.collect()
     finally:
-        probe.close()
+        session.close()
 
 
 def local_experiment_scenario(scenario: dict, blender_mode: str) -> dict:
@@ -465,31 +493,53 @@ def main(argv: list[str] | None = None) -> int:
               "prompt_modified_for_experiment": local_scenario["prompt"] != scenario["prompt"],
               "codex_sessions_started": 0, "codex_quota_consumed": False,
               "codex_certification": "NOT_CERTIFIED", "runs": []}
-    for rep in range(1, args.repetitions + 1):
-        order = ("baseline", "optimized") if rep % 2 else ("optimized", "baseline")
-        pair = {"repetition": rep, "order": list(order), "arms": {}}
-        for condition in order:
-            obs = collect_mcp(profiles[condition], workspace, scenario, condition,
-                              schema_scope=args.schema_scope, blender_mode=args.blender_mode)
-            arm = {key: value for key, value in obs.items()
-                   if key not in {"schema_json", "observations_json", "grounded_answer"}}
-            if obs.get("grounded_answer") is not None:
-                arm["source_answer_sha256"] = sha(obs["grounded_answer"])
-                arm["source_oracle_pass"] = correct_answer(
-                    scenario, obs["grounded_answer"])[0]
-                arm["source_rendering"] = "DETERMINISTIC_TOOL_DATA_NOT_MODEL_OUTPUT"
-            if not args.probe_only:
-                arm.update(run_local_model(local_scenario, obs, args.model, args.timeout, args.num_ctx))
-            pair["arms"][condition] = arm
-        pair["comparison"] = (compare_pair(pair["arms"]["baseline"], pair["arms"]["optimized"])
-                              if not args.probe_only else {"state": "MCP_ONLY_NO_MODEL"})
-        report["runs"].append(pair)
-        if pair["comparison"]["state"] == "ORACLE_FAILED":
-            break
+    sessions: dict[str, MCPReplaySession] = {}
+    failure = None
+    try:
+        for condition in ("baseline", "optimized"):
+            sessions[condition] = MCPReplaySession(
+                profiles[condition], workspace, scenario, condition,
+                args.schema_scope, args.blender_mode)
+        for rep in range(1, args.repetitions + 1):
+            order = ("baseline", "optimized") if rep % 2 else ("optimized", "baseline")
+            pair = {"repetition": rep, "order": list(order), "arms": {}}
+            for condition in order:
+                obs = sessions[condition].collect()
+                arm = {key: value for key, value in obs.items()
+                       if key not in {"schema_json", "observations_json", "grounded_answer"}}
+                if obs.get("grounded_answer") is not None:
+                    arm["source_answer_sha256"] = sha(obs["grounded_answer"])
+                    arm["source_oracle_pass"] = correct_answer(
+                        scenario, obs["grounded_answer"])[0]
+                    arm["source_rendering"] = "DETERMINISTIC_TOOL_DATA_NOT_MODEL_OUTPUT"
+                if not args.probe_only:
+                    arm.update(run_local_model(local_scenario, obs, args.model, args.timeout, args.num_ctx))
+                pair["arms"][condition] = arm
+            pair["comparison"] = (compare_pair(pair["arms"]["baseline"], pair["arms"]["optimized"])
+                                  if not args.probe_only else {"state": "MCP_ONLY_NO_MODEL"})
+            report["runs"].append(pair)
+            if pair["comparison"]["state"] == "ORACLE_FAILED":
+                break
+    except Exception as exc:
+        failure = {
+            "status": "FAILED_CLOSED",
+            "failure_stage": "MCP_OR_MODEL",
+            "error_type": type(exc).__name__,
+            "error": str(exc)[:500],
+            "completed_pairs": len(report["runs"]),
+            "automatic_retry": False,
+        }
+    finally:
+        for session in reversed(list(sessions.values())):
+            session.close()
+    if failure is not None:
+        report["failure"] = failure
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(report, ensure_ascii=False, indent=2))
-    return 0 if all(row["comparison"]["state"] != "ORACLE_FAILED" for row in report["runs"]) else 2
+    return 0 if failure is None and all(
+        row["comparison"]["state"] != "ORACLE_FAILED" for row in report["runs"]
+    ) else 2
 
 
 if __name__ == "__main__":
