@@ -53,6 +53,12 @@ A única sessão real Web usou uma página local determinística e um perfil tem
 
 O probe offline do Playwright preservou referências nativas e reduziu caracteres de 17.585 para 1.256 (92,858%). Isso é uma métrica de caracteres, não uma medição de tokens; a economia permanece pendente de A/B.
 
+## Auditoria offline dos A/B históricos
+
+Os pares 2/3 de Blender e Web têm prompts, oráculos e uso do provedor comparáveis. Ainda assim, os artefatos não registram ferramentas/rota por execução; o SQLite histórico tem `0` observações Blender e `2` Web, e o gateway mudou desde o commit histórico. Eles permanecem evidência preliminar, não certificação causal do PIE.
+
+Para certificar o commit atual, o plano fechado exige **12 novas sessões**: três pares Blender e três Web, seis baseline e seis optimized. O relatório detalhado é [`34-ab-offline-audit.md`](34-ab-offline-audit.md). Não foram executados modelos nesta auditoria.
+
 ## Custos
 
 `null`: não foi fornecida tarifa verificável para `gpt-5.6-luna`. Quota/assinatura não foi convertida em preço.
