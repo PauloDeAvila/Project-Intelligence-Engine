@@ -207,7 +207,7 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
                            text=True,capture_output=True,timeout=timeout,check=False)
     except (FileNotFoundError,subprocess.TimeoutExpired) as ex:
         raise RuntimeError("Codex execution unavailable/timeout") from ex
-    if run.returncode:raise RuntimeError("Codex failed; inspect locally; no certification")
+    if run.returncode:raise RuntimeError(f"Codex failed with exit code {run.returncode}; no certification")
     parsed=parse_codex_jsonl(run.stdout)
     expected_server=_expected_mcp_server(scenario,condition)
     if not parsed["mcp_tools"]:
