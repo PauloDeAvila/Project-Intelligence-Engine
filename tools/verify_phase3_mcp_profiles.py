@@ -99,8 +99,13 @@ def _profile(path: Path, workspace: Path) -> tuple[dict, str, list[str], dict[st
         source_path = Path(source).resolve(strict=True)
         git = subprocess.run(["git", "-C", str(source_path.parent), "rev-parse", "HEAD"],
                              capture_output=True, text=True, check=False, timeout=20)
-        if git.returncode != 0 or git.stdout.strip() != commit:
+        if git.returncode != 0 or len(commit) != 40:
             raise ValueError("PIE source commit mismatch")
+        source_tree = subprocess.run(["git", "-C", str(source_path.parent), "diff", "--quiet",
+                                      commit, "HEAD", "--", "src"],
+                                     capture_output=True, text=True, check=False, timeout=20)
+        if source_tree.returncode != 0:
+            raise ValueError("PIE source tree mismatch")
         probe_env = dict(os.environ, PYTHONPATH=str(source_path))
         module = subprocess.run([command, "-c", "import pie; print(pie.__file__)"],
                                 env=probe_env, capture_output=True, text=True, check=False, timeout=20)

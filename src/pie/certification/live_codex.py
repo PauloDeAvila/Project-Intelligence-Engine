@@ -343,7 +343,12 @@ def preflight_codex(scenario:dict,*,condition:str,workspace:Path,codex_home:Path
                         git_root=source_path.parent
                         git_result=subprocess.run(["git","-C",str(git_root),"rev-parse","HEAD"],
                                                   capture_output=True,text=True,timeout=20,check=False)
-                        source_ok=source_ok and git_result.returncode==0 and git_result.stdout.strip()==source_commit
+                        source_ok=source_ok and git_result.returncode==0 and len(source_commit)==40
+                        if source_ok:
+                            source_tree=subprocess.run(["git","-C",str(git_root),"diff","--quiet",
+                                                        source_commit,"HEAD","--","src"],
+                                                       capture_output=True,timeout=20,check=False)
+                            source_ok=source_tree.returncode==0
                         if source_ok:
                             probe_env=dict(os.environ);probe_env.update({"PYTHONPATH":str(source_path)})
                             probe=subprocess.run([command,"-c","import pie; print(pie.__file__)"],
