@@ -260,6 +260,8 @@ Os perfis baseline e optimized passaram novamente por `initialize`, `tools/list`
 
 O preflight passou a validar a identidade da árvore `src/`, permitindo commits posteriores apenas de relatórios sem invalidar perfis. A suíte completa foi executada novamente: `583` aprovados e `5` ignorados. Tokens reais de provedor e economia A/B continuam pendentes; o veredito permanece `NOT_CERTIFIED`.
 
+O plano `83-blender-selective-a-plan.json` foi alinhado com essa evidência: `runtime_validation=PASS_NO_MODEL_GATE`, com `tools/list`, `tools/call` e rejeição da ferramenta proibida em `PASS`. O campo `latest_plan_review` do consolidado agora é `READY_FOR_MANUAL_PILOT`; isso não altera o estado de certificação, pois o A/B com modelo ainda não foi executado.
+
 1. Escolher, com nova autorização, uma combinação de aprovação suportada pela versão instalada: ou `--approve-for-me` sem `--sandbox`, ou uma sessão interativa `on-request` que aceite a aprovação manual. Não remover proteções indiscriminadamente.
 2. Fazer cada captura Codex autorizada usar `--telemetry-workspace`, para que o import validado ocorra automaticamente no mesmo fluxo da execução.
 3. Corrigir offline a captura Codex→MCP e repetir somente uma sonda controlada antes de retomar os pares; a bateria atual foi interrompida na primeira captura.
