@@ -9,10 +9,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import json
+import uuid
 from pathlib import Path
 from typing import Any, Iterable
 
-from pie.certification.live_codex import _record, _sha, validate_scenario
+from pie.certification.live_codex import CONDITIONS, _record, _sha, validate_scenario
 from pie.certification.live_codex import CodexCaptureError, capture_codex, preflight_codex
 from pie.certification.task_telemetry import import_provider_record
 
@@ -315,6 +316,111 @@ def _write_json(path: Path, value: dict[str, Any]) -> None:
     path.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
+def _budget_ledger_path(output: Path) -> Path:
+    return output.parent / (output.stem + "-budget-ledger.json")
+
+
+def _write_budget_ledger(path: Path, *, state: str, run_id: str, pair_id: str,
+                         consumed_sessions: int, authorized_sessions: int,
+                         error: str | None = None) -> None:
+    value = {
+        "schema": "pie-phase3-budget-ledger-v1",
+        "state": state,
+        "authorized_sessions": authorized_sessions,
+        "consumed_sessions": consumed_sessions,
+        "remaining_sessions": authorized_sessions - consumed_sessions,
+        "run_id": run_id,
+        "pair_id": pair_id,
+        "automatic_retry": False,
+    }
+    if error:
+        value["error"] = str(error)[:2000]
+    _write_json(path, value)
+
+
+def run_single(*, scenario: dict[str, Any], application: str, condition: str,
+               workspace: Path, baseline_home: Path, optimized_home: Path,
+               baseline_profile: str, optimized_profile: str, output: Path,
+               authorized_sessions: int = 1, codex_bin: str = "codex",
+               timeout: int = 240) -> dict[str, Any]:
+    """Run one reusable certification arm with a persistent pre-spawn ledger."""
+    validate_scenario(scenario)
+    if application not in ("blender", "web") or condition not in CONDITIONS:
+        raise ControllerError("Invalid single-run domain or condition")
+    if _application(scenario) != application:
+        raise ControllerError("Scenario domain does not match requested application")
+    if authorized_sessions != 1:
+        raise ControllerError("Single run requires exactly one authorized session")
+    root = workspace.expanduser().resolve(strict=True)
+    output = output.expanduser().resolve()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    run_id = f"{condition}-" + uuid.uuid4().hex[:24]
+    pair_id = "pair-" + uuid.uuid4().hex[:24]
+    ledger = _budget_ledger_path(output)
+    _write_budget_ledger(ledger, state="reserved", run_id=run_id, pair_id=pair_id,
+                         consumed_sessions=0, authorized_sessions=authorized_sessions)
+    home = baseline_home if condition == "baseline" else optimized_home
+    profile = baseline_profile if condition == "baseline" else optimized_profile
+    preflight = preflight_codex(scenario, condition=condition, workspace=root,
+                                codex_home=home, codex_bin=codex_bin, profile=profile)
+    if preflight["state"] != "READY_FOR_BENCHMARK":
+        _write_budget_ledger(ledger, state="preflight_failed", run_id=run_id, pair_id=pair_id,
+                             consumed_sessions=0, authorized_sessions=authorized_sessions,
+                             error=";".join(preflight.get("errors", [])))
+        return {"schema": "pie-phase3-single-result-v1", "state": "BASELINE_BLENDER_FAILED",
+                "run_id": run_id, "pair_id": pair_id, "ledger": str(ledger),
+                "preflight": preflight, "quota_consumed": False,
+                "automatic_retry": False}
+    # Reserve the one authorized session before the model process is spawned.
+    _write_budget_ledger(ledger, state="started", run_id=run_id, pair_id=pair_id,
+                         consumed_sessions=1, authorized_sessions=authorized_sessions)
+    try:
+        record = capture_codex(
+            scenario, condition=condition, repetition=1, workspace=root,
+            codex_home=home, codex_bin=codex_bin, profile=profile, timeout=timeout,
+            run_id_override=run_id, pair_id_override=pair_id)
+    except CodexCaptureError as exc:
+        _write_budget_ledger(ledger, state="failed", run_id=run_id, pair_id=pair_id,
+                             consumed_sessions=1, authorized_sessions=authorized_sessions,
+                             error=str(exc))
+        return {"schema": "pie-phase3-single-result-v1", "state": "BASELINE_BLENDER_FAILED",
+                "run_id": run_id, "pair_id": pair_id, "ledger": str(ledger),
+                "quota_consumed": True, "automatic_retry": False,
+                "failure": str(exc), "provider_evidence": exc.evidence or "unavailable"}
+    if record["run_id"] != run_id or record["pair_id"] != pair_id:
+        _write_budget_ledger(ledger, state="failed", run_id=run_id, pair_id=pair_id,
+                             consumed_sessions=1, authorized_sessions=authorized_sessions,
+                             error="Capture identity differs from generated single-run identity")
+        raise ControllerError("Capture identity differs from generated single-run identity")
+    oracle = _fixture_oracle(scenario, root)
+    if not oracle["passed"]:
+        _write_budget_ledger(ledger, state="failed", run_id=run_id, pair_id=pair_id,
+                             consumed_sessions=1, authorized_sessions=authorized_sessions,
+                             error="Independent fixture oracle failed")
+        return {"schema": "pie-phase3-single-result-v1", "state": "BASELINE_BLENDER_FAILED",
+                "run_id": run_id, "pair_id": pair_id, "ledger": str(ledger),
+                "quota_consumed": True, "automatic_retry": False, "oracle": oracle}
+    lifecycle = _load_lifecycle(root.parent / ("." + root.name + "-pie-live-store") / "mcp-lifecycle.jsonl")
+    route = audit_record_route(record, lifecycle)
+    if route["decision"] != "VALID":
+        _write_budget_ledger(ledger, state="failed", run_id=run_id, pair_id=pair_id,
+                             consumed_sessions=1, authorized_sessions=authorized_sessions,
+                             error=route["reason"])
+        return {"schema": "pie-phase3-single-result-v1", "state": "BASELINE_BLENDER_FAILED",
+                "run_id": run_id, "pair_id": pair_id, "ledger": str(ledger),
+                "quota_consumed": True, "automatic_retry": False,
+                "record": record, "oracle": oracle, "route": route}
+    destination = output.parent / (output.stem + "-record.json")
+    _write_json(destination, record)
+    import_provider_record(root, record, app=application, task_id=scenario["scenario_id"])
+    _write_budget_ledger(ledger, state="completed", run_id=run_id, pair_id=pair_id,
+                         consumed_sessions=1, authorized_sessions=authorized_sessions)
+    return {"schema": "pie-phase3-single-result-v1", "state": "BASELINE_BLENDER_VALID",
+            "run_id": run_id, "pair_id": pair_id, "ledger": str(ledger),
+            "record": str(destination), "oracle": oracle, "route": route,
+            "quota_consumed": True, "automatic_retry": False}
+
+
 def main(argv: list[str] | None = None) -> int:
     import argparse
     parser = argparse.ArgumentParser(description="Offline PIE Phase 3 certification controller")
@@ -350,6 +456,18 @@ def main(argv: list[str] | None = None) -> int:
     pilot.add_argument("--output", type=Path, required=True)
     pilot.add_argument("--codex-bin", default="codex")
     pilot.add_argument("--timeout", type=int, default=240)
+    single = sub.add_parser("single")
+    single.add_argument("--scenario", type=Path, required=True)
+    single.add_argument("--application", choices=("blender", "web"), required=True)
+    single.add_argument("--condition", choices=("baseline", "optimized"), required=True)
+    single.add_argument("--workspace", type=Path, required=True)
+    single.add_argument("--baseline-home", type=Path, required=True)
+    single.add_argument("--optimized-home", type=Path, required=True)
+    single.add_argument("--baseline-profile", required=True)
+    single.add_argument("--optimized-profile", required=True)
+    single.add_argument("--output", type=Path, required=True)
+    single.add_argument("--codex-bin", default="codex")
+    single.add_argument("--timeout", type=int, default=240)
     args = parser.parse_args(argv)
     try:
         if args.action == "plan":
@@ -379,6 +497,14 @@ def main(argv: list[str] | None = None) -> int:
             result={"schema":"pie-phase3-preflight-v1","state":"READY_FOR_BENCHMARK" if all(
                 row["state"]=="READY_FOR_BENCHMARK" for row in rows) else "BLOCKED",
                     "model_started":False,"quota_consumed":False,"arms":rows}
+        elif args.action == "single":
+            scenario = load_scenario(args.scenario)
+            result = run_single(
+                scenario=scenario, application=args.application, condition=args.condition,
+                workspace=args.workspace, baseline_home=args.baseline_home,
+                optimized_home=args.optimized_home,
+                baseline_profile=args.baseline_profile, optimized_profile=args.optimized_profile,
+                output=args.output, codex_bin=args.codex_bin, timeout=args.timeout)
         else:
             scenarios = [load_scenario(path) for path in args.scenario]
             manifest_document = json.loads(args.manifest.read_text(encoding="utf-8"))
@@ -394,7 +520,8 @@ def main(argv: list[str] | None = None) -> int:
         _write_json(args.output, result)
         print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0 if (args.action == "plan" or result.get("state") in (
-            "EVIDENCE_CERTIFIED", "AB_PILOT_PASSED", "READY_FOR_BENCHMARK")) else 2
+            "EVIDENCE_CERTIFIED", "AB_PILOT_PASSED", "BASELINE_BLENDER_VALID",
+            "READY_FOR_BENCHMARK")) else 2
     except (ControllerError, OSError, json.JSONDecodeError) as exc:
         print(json.dumps({"state": "BLOCKED_WITH_EVIDENCE", "reason": str(exc)}, ensure_ascii=False))
         return 2

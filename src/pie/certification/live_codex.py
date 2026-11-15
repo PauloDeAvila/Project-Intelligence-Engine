@@ -319,7 +319,8 @@ def _expected_mcp_server(scenario:dict,condition:str)->str|None:
         return "playwright-baseline" if condition=="baseline" else "pie-web-optimized"
     return required
 
-def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=240,codex_bin="codex",profile=None):
+def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=240,codex_bin="codex",profile=None,
+                  run_id_override=None,pair_id_override=None):
     validate_scenario(scenario)
     if condition not in CONDITIONS or type(repetition) is not int or repetition<1:
         raise ValueError("Invalid condition or repetition")
@@ -327,8 +328,11 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
     workspace=Path(workspace).expanduser().resolve(strict=True)
     commit=_git_clean_commit(workspace)
     env,configsha=_codex_environment(Path(codex_home),profile=profile)
-    run_id=_capture_run_id(scenario,condition,repetition)
-    pair_id=_capture_pair_id(scenario)
+    run_id=run_id_override or _capture_run_id(scenario,condition,repetition)
+    pair_id=pair_id_override or _capture_pair_id(scenario)
+    if (not isinstance(run_id,str) or not re.fullmatch(r"[A-Za-z0-9_-]{8,128}",run_id) or
+        not isinstance(pair_id,str) or not re.fullmatch(r"[A-Za-z0-9_-]{8,128}",pair_id)):
+        raise ValueError("Invalid capture identity")
     expected_server=_expected_mcp_server(scenario,condition)
     env.update({"PIE_RUN_ID":run_id,"PIE_PAIR_ID":pair_id,
                 "PIE_TASK_ID":scenario["scenario_id"],"PIE_CONDITION":condition,
