@@ -18,6 +18,10 @@ from threading import Thread
 
 SCHEMA="pie-playwright-mcp-real-browser-v1"
 
+def safe_error(exc:Exception)->str:
+    message=" ".join(str(exc).split())[:240]
+    return message if message else type(exc).__name__
+
 
 class Fixture(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -155,6 +159,7 @@ def main()->int:
         except Exception as exc:
             print("PIE_WEB_LIVE_REPORT="+json.dumps({
                 "schema":SCHEMA,"state":"FAIL","error_type":type(exc).__name__,
+                "error":safe_error(exc),
                 "provider_tokens_measured":False}),flush=True)
             return 1
         finally:
