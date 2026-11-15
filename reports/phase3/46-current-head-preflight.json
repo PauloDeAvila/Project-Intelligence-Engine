@@ -1,0 +1,16 @@
+{
+  "schema": "pie-phase3-current-head-preflight-v1",
+  "workspace": "C:/Users/phsra/AppData/Local/Temp/pie-phase3-preflight-head",
+  "workspace_commit": "75560b5",
+  "persistent_config_modified": false,
+  "temporary_optimized_overlay": true,
+  "results": {
+    "blender_baseline": "READY_FOR_BENCHMARK",
+    "blender_optimized": "READY_FOR_BENCHMARK",
+    "web_baseline": "READY_FOR_BENCHMARK",
+    "web_optimized": "READY_FOR_BENCHMARK"
+  },
+  "model_started": false,
+  "quota_consumed": false,
+  "certification": "NOT_CERTIFIED"
+}
