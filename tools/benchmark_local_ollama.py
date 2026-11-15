@@ -178,7 +178,28 @@ def _recover_web_when_required(probe: Probe, responses: list[dict],
     return responses, page + 1
 
 
-def collect_mcp(profile: Path, workspace: Path, scenario: dict, condition: str) -> dict:
+def _visible_tool_schemas(tools: list[dict], config: dict,
+                          schema_scope: str) -> list[dict]:
+    """Model the actual client-side enabled_tools catalog, not raw MCP tools/list."""
+    if schema_scope == "server":
+        return tools
+    if schema_scope != "profile":
+        raise ValueError("Unknown schema scope")
+    enabled = config.get("enabled_tools")
+    if (not isinstance(enabled, list) or not enabled
+            or any(not isinstance(name, str) or not name for name in enabled)
+            or len(set(enabled)) != len(enabled)):
+        raise RuntimeError("MCP profile enabled_tools must be an explicit allowlist")
+    by_name = {tool.get("name"): tool for tool in tools if isinstance(tool, dict)
+               and isinstance(tool.get("name"), str)}
+    missing = set(enabled) - set(by_name)
+    if missing:
+        raise RuntimeError("MCP advertised catalog does not contain profile-enabled tools")
+    return [by_name[name] for name in enabled]
+
+
+def collect_mcp(profile: Path, workspace: Path, scenario: dict, condition: str,
+                schema_scope: str = "profile") -> dict:
     app = scenario["application"]
     config, server, args, configured_env = _profile(profile, workspace)
     if server != EXPECTED_SERVERS[app][condition]:
@@ -212,13 +233,15 @@ def collect_mcp(profile: Path, workspace: Path, scenario: dict, condition: str) 
                 probe, responses, available, scenario, len(calls) + 3)
         if not fixture_pass(scenario, responses):
             raise RuntimeError("MCP fixture facts unavailable; no local model will start")
-        schema_json = compact_json(tools)
+        visible_tools = _visible_tool_schemas(tools, config, schema_scope)
+        schema_json = compact_json(visible_tools)
         observations_json = compact_json(responses)
         return {
             "server": server,
             "tool_names": [name for name, _ in calls] + (["pie_gateway_output_get"] * recovery_calls),
             "recovery_calls": recovery_calls,
-            "tool_count": len(tools), "tool_schema_chars": len(schema_json),
+            "tool_count": len(visible_tools), "server_tool_count": len(tools),
+            "schema_scope": schema_scope, "tool_schema_chars": len(schema_json),
             "observation_chars": len(observations_json),
             "tool_elapsed_ms": round((time.perf_counter() - start) * 1000, 3),
             "schema_json": schema_json, "observations_json": observations_json,
@@ -308,6 +331,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--model", default="qwen3:4b")
     parser.add_argument("--repetitions", type=int, default=1)
     parser.add_argument("--num-ctx", type=int, default=16384)
+    parser.add_argument("--schema-scope", choices=("profile", "server"), default="profile",
+                        help="profile: advertise only enabled_tools; server: raw tools/list legacy replay")
     parser.add_argument("--timeout", type=int, default=240)
     parser.add_argument("--probe-only", action="store_true")
     parser.add_argument("--output", type=Path, required=True)
@@ -328,13 +353,15 @@ def main(argv: list[str] | None = None) -> int:
     report = {"schema": "pie-local-ollama-mcp-replay-v1", "scenario": scenario["scenario_id"],
               "model": None if args.probe_only else args.model, "provider": "local_ollama",
               "methodology": "deterministic_mcp_tool_replay_not_codex_agent",
+              "schema_scope": args.schema_scope,
               "codex_sessions_started": 0, "codex_quota_consumed": False,
               "codex_certification": "NOT_CERTIFIED", "runs": []}
     for rep in range(1, args.repetitions + 1):
         order = ("baseline", "optimized") if rep % 2 else ("optimized", "baseline")
         pair = {"repetition": rep, "order": list(order), "arms": {}}
         for condition in order:
-            obs = collect_mcp(profiles[condition], workspace, scenario, condition)
+            obs = collect_mcp(profiles[condition], workspace, scenario, condition,
+                              schema_scope=args.schema_scope)
             arm = {key: value for key, value in obs.items() if key not in {"schema_json", "observations_json"}}
             if not args.probe_only:
                 arm.update(run_local_model(scenario, obs, args.model, args.timeout, args.num_ctx))
