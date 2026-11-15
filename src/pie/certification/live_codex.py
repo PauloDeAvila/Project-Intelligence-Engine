@@ -51,8 +51,13 @@ def _materialize_runtime_profile(home: Path, profile: str | None, *, server: str
         raise ValueError("Expected MCP server section absent from profile") from exc
     end = next((i for i in range(start + 1, len(lines))
                 if lines[i].startswith("[mcp_servers.") and lines[i].endswith("]")), len(lines))
+    configured_env = ((parsed.get("mcp_servers") or {}).get(server) or {}).get("env", {})
+    if not isinstance(configured_env, dict):
+        raise ValueError("MCP server env must be a table")
+    merged_env = {str(key): str(value) for key, value in configured_env.items()}
+    merged_env.update({str(key): str(value) for key, value in runtime_env.items()})
     env = "env = { " + ", ".join(
-        f"{key} = '{value.replace(chr(39), '')}'" for key, value in sorted(runtime_env.items())
+        f"{key} = '{value.replace(chr(39), '')}'" for key, value in sorted(merged_env.items())
     ) + " }"
     replaced = False
     for index in range(start + 1, end):
@@ -292,6 +297,31 @@ def preflight_codex(scenario:dict,*,condition:str,workspace:Path,codex_home:Path
             checks["mcp_command"]="PASS" if command_ok else {"state":"FAIL"}
             if not command_ok:
                 errors.append("PRECHECK_MCP_COMMAND_UNAVAILABLE")
+            if command_ok and isinstance(selected,dict) and "pie.gateway.domain" in (selected.get("args") or []):
+                configured_env=selected.get("env",{})
+                source_root=configured_env.get("PIE_SOURCE_ROOT") if isinstance(configured_env,dict) else None
+                source_commit=configured_env.get("PIE_SOURCE_COMMIT") if isinstance(configured_env,dict) else None
+                pythonpath=configured_env.get("PYTHONPATH") if isinstance(configured_env,dict) else None
+                source_ok=False
+                if isinstance(source_root,str) and isinstance(source_commit,str) and isinstance(pythonpath,str):
+                    try:
+                        source_path=Path(source_root).expanduser().resolve(strict=True)
+                        source_ok=(source_path.is_dir() and Path(pythonpath).expanduser().resolve()==source_path)
+                        git_root=source_path.parent
+                        git_result=subprocess.run(["git","-C",str(git_root),"rev-parse","HEAD"],
+                                                  capture_output=True,text=True,timeout=20,check=False)
+                        source_ok=source_ok and git_result.returncode==0 and git_result.stdout.strip()==source_commit
+                        if source_ok:
+                            probe_env=dict(os.environ);probe_env.update({"PYTHONPATH":str(source_path)})
+                            probe=subprocess.run([command,"-c","import pie; print(pie.__file__)"],
+                                                 env=probe_env,capture_output=True,text=True,timeout=20,check=False)
+                            module_path=Path(probe.stdout.strip()).resolve() if probe.returncode==0 and probe.stdout.strip() else None
+                            source_ok=module_path is not None and module_path.is_relative_to(source_path)
+                    except (OSError,subprocess.SubprocessError,ValueError):
+                        source_ok=False
+                checks["pie_source"]="PASS" if source_ok else {"state":"FAIL"}
+                if not source_ok:
+                    errors.append("PRECHECK_PIE_SOURCE_INVALID")
             args=selected.get("args",[]) if isinstance(selected,dict) else []
             if not isinstance(args,list) or not all(isinstance(v,str) for v in args):
                 checks["gateway_workspace"]="FAIL";errors.append("PRECHECK_CONFIG_INVALID")

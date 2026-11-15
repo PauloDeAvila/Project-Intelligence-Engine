@@ -71,6 +71,7 @@ class CaptureBoundaryTests(unittest.TestCase):
             (home / "profile.config.toml").write_text(
                 "[mcp_servers.pie-blender-optimized]\n"
                 "command = 'python'\n"
+                "env = { PYTHONPATH = 'C:/pie/src' }\n"
                 "args = ['-m', 'pie.gateway.domain']\n",
                 encoding="utf-8")
             name, path = _materialize_runtime_profile(
@@ -80,6 +81,7 @@ class CaptureBoundaryTests(unittest.TestCase):
             self.assertEqual(name, "profile-run-optimized-run")
             self.assertIn("PIE_RUN_ID = 'optimized-run'", path.read_text(encoding="utf-8"))
             self.assertIn("PIE_PAIR_ID = 'pair-fixed'", path.read_text(encoding="utf-8"))
+            self.assertIn("PYTHONPATH = 'C:/pie/src'", path.read_text(encoding="utf-8"))
 
     def _capture(self, exec_result, *, scenario=None):
         scenario = scenario or _scenario()

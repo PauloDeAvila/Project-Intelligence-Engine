@@ -204,4 +204,28 @@ class PreflightTests(unittest.TestCase):
             self.assertEqual(result["state"],"BLOCKED")
             self.assertIn("PRECHECK_MCP_COMMAND_UNAVAILABLE",result["errors"])
 
+    def test_preflight_rejects_pie_source_commit_mismatch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp); home=root/"home"; home.mkdir(); source=root/"src"; source.mkdir()
+            (root/"README.md").write_text("fixture")
+            subprocess.run(["git","init","-q"],cwd=root,check=True)
+            subprocess.run(["git","add","."],cwd=root,check=True)
+            subprocess.run(["git","-c","user.email=test@example.invalid","-c","user.name=test","commit","-qm","fixture"],cwd=root,check=True)
+            (home/"config.toml").write_text("model='test-model'\n")
+            source_text=str(source).replace("\\", "\\\\")
+            root_text=str(root).replace("\\", "\\\\")
+            (home/"probe.config.toml").write_text(
+                "[mcp_servers.pie-phase3-web]\n"
+                "command='python'\n"
+                f"env={{PYTHONPATH='{source_text}', PIE_SOURCE_ROOT='{source_text}', PIE_SOURCE_COMMIT='{'0'*40}'}}\n"
+                f"args=['-m','pie.gateway.domain','serve','--domain','web','--workspace','{root_text}']\n")
+            with patch("pie.certification.live_codex.shutil.which",return_value="codex"), \
+                 patch("pie.certification.live_codex._auth_state",return_value="AUTH_PRESENT_ENV"):
+                result=preflight_codex({"scenario_id":"web","prompt":"x",
+                    "expected_exact":"x","model":"test-model",
+                    "required_mcp_server":"pie-phase3-web"},condition="optimized",
+                    workspace=root,codex_home=home,profile="probe")
+            self.assertEqual(result["state"],"BLOCKED")
+            self.assertIn("PRECHECK_PIE_SOURCE_INVALID",result["errors"])
+
 if __name__=="__main__":unittest.main()
