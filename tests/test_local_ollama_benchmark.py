@@ -10,6 +10,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 from benchmark_local_ollama import (
     _check_response, _provider_usage, _tool_calls, compare_pair, correct_answer,
     fixture_pass, run_local_model, ensure_local_model, collect_mcp, _recover_web_when_required,
+    _visible_tool_schemas,
 )
 
 
@@ -77,6 +78,21 @@ class LocalOllamaBenchmarkTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 ensure_local_model("missing:2b")
 
+    def test_client_tool_allowlist_eliminates_raw_server_schema_confound(self):
+        tools = [{"name": "execute_blender_code", "inputSchema": {"type": "object"}},
+                 {"name": "get_scene_info", "inputSchema": {"type": "object"}},
+                 {"name": "delete_object", "inputSchema": {"type": "object"}}]
+        config = {"enabled_tools": ["execute_blender_code"]}
+        effective = _visible_tool_schemas(tools, config, "profile")
+        self.assertEqual([item["name"] for item in effective], ["execute_blender_code"])
+        self.assertEqual(len(_visible_tool_schemas(tools, config, "server")), 3)
+        for invalid in ({"enabled_tools": ["missing"]},
+                        {"enabled_tools": []},
+                        {"enabled_tools": ["execute_blender_code", "execute_blender_code"]},
+                        {}):
+            with self.subTest(invalid=invalid), self.assertRaises(RuntimeError):
+                _visible_tool_schemas(tools, invalid, "profile")
+
     def test_web_recovers_compacted_snapshot_only_if_required(self):
         scenario = {"application": "web"}
         compact = [{"content": [{"type": "text", "text": json.dumps({
@@ -136,7 +152,9 @@ class LocalOllamaBenchmarkTests(unittest.TestCase):
             with (
                 self.subTest(condition=condition),
                 patch("benchmark_local_ollama._profile", return_value=(
-                    {"command": "python"}, server, [], {})),
+                    {"command": "python", "enabled_tools": [
+                        "execute_blender_code" if condition == "baseline" else "pie_blender_query_scene"
+                    ]}, server, [], {})),
                 patch("benchmark_local_ollama.subprocess.Popen"),
                 patch("benchmark_local_ollama.Probe", FakeProbe),
             ):
