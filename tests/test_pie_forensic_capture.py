@@ -188,10 +188,35 @@ class ControllerBoundaryTests(unittest.TestCase):
                     baseline_profile="baseline", optimized_profile="optimized",
                     output=output)
             self.assertEqual(result["state"], "BASELINE_BLENDER_VALID")
+            self.assertTrue(result["pair_id"].startswith("pair-"))
             self.assertEqual(observed["state"], "started")
             self.assertEqual(observed["consumed_sessions"], 1)
             self.assertEqual(observed["remaining_sessions"], 0)
             self.assertFalse(observed["automatic_retry"])
+
+    def test_single_run_accepts_pair_id_for_paired_arm(self):
+        scenario = _scenario()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            output = root / "single.json"
+            with patch("pie.certification.controller.preflight_codex",
+                       return_value={"state": "READY_FOR_BENCHMARK"}), \
+                 patch("pie.certification.controller.capture_codex",
+                       side_effect=lambda *args, **kwargs: {
+                           "run_id": kwargs["run_id_override"],
+                           "pair_id": kwargs["pair_id_override"]}), \
+                 patch("pie.certification.controller._fixture_oracle",
+                       return_value={"passed": True, "kind": "blender_material_properties"}), \
+                 patch("pie.certification.controller.audit_record_route",
+                       return_value={"decision": "VALID", "reason": "test"}), \
+                 patch("pie.certification.controller.import_provider_record"):
+                result = controller.run_single(
+                    scenario=scenario, application="blender", condition="optimized",
+                    workspace=root, baseline_home=root, optimized_home=root,
+                    baseline_profile="baseline", optimized_profile="optimized",
+                    output=output, pair_id_override="pair-fixed")
+            self.assertEqual(result["state"], "OPTIMIZED_BLENDER_VALID")
+            self.assertEqual(result["pair_id"], "pair-fixed")
 
     def test_persistence_failure_returns_blocked_once(self):
         with tempfile.TemporaryDirectory() as tmp:

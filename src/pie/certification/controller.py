@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import json
+import re
 import uuid
 from pathlib import Path
 from typing import Any, Iterable
@@ -342,7 +343,7 @@ def run_single(*, scenario: dict[str, Any], application: str, condition: str,
                workspace: Path, baseline_home: Path, optimized_home: Path,
                baseline_profile: str, optimized_profile: str, output: Path,
                authorized_sessions: int = 1, codex_bin: str = "codex",
-               timeout: int = 240) -> dict[str, Any]:
+               timeout: int = 240, pair_id_override: str | None = None) -> dict[str, Any]:
     """Run one reusable certification arm with a persistent pre-spawn ledger."""
     validate_scenario(scenario)
     if application not in ("blender", "web") or condition not in CONDITIONS:
@@ -355,7 +356,11 @@ def run_single(*, scenario: dict[str, Any], application: str, condition: str,
     output = output.expanduser().resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
     run_id = f"{condition}-" + uuid.uuid4().hex[:24]
-    pair_id = "pair-" + uuid.uuid4().hex[:24]
+    pair_id = pair_id_override or ("pair-" + uuid.uuid4().hex[:24])
+    if not re.fullmatch(r"[A-Za-z0-9._-]{1,128}", pair_id):
+        raise ControllerError("Invalid pair_id override")
+    valid_state = f"{condition.upper()}_{application.upper()}_VALID"
+    failed_state = f"{condition.upper()}_{application.upper()}_FAILED"
     ledger = _budget_ledger_path(output)
     _write_budget_ledger(ledger, state="reserved", run_id=run_id, pair_id=pair_id,
                          consumed_sessions=0, authorized_sessions=authorized_sessions)
@@ -367,7 +372,7 @@ def run_single(*, scenario: dict[str, Any], application: str, condition: str,
         _write_budget_ledger(ledger, state="preflight_failed", run_id=run_id, pair_id=pair_id,
                              consumed_sessions=0, authorized_sessions=authorized_sessions,
                              error=";".join(preflight.get("errors", [])))
-        return {"schema": "pie-phase3-single-result-v1", "state": "BASELINE_BLENDER_FAILED",
+        return {"schema": "pie-phase3-single-result-v1", "state": failed_state,
                 "run_id": run_id, "pair_id": pair_id, "ledger": str(ledger),
                 "preflight": preflight, "quota_consumed": False,
                 "automatic_retry": False}
@@ -383,7 +388,7 @@ def run_single(*, scenario: dict[str, Any], application: str, condition: str,
         _write_budget_ledger(ledger, state="failed", run_id=run_id, pair_id=pair_id,
                              consumed_sessions=1, authorized_sessions=authorized_sessions,
                              error=str(exc))
-        return {"schema": "pie-phase3-single-result-v1", "state": "BASELINE_BLENDER_FAILED",
+        return {"schema": "pie-phase3-single-result-v1", "state": failed_state,
                 "run_id": run_id, "pair_id": pair_id, "ledger": str(ledger),
                 "quota_consumed": True, "automatic_retry": False,
                 "failure": str(exc), "provider_evidence": exc.evidence or "unavailable"}
@@ -397,7 +402,7 @@ def run_single(*, scenario: dict[str, Any], application: str, condition: str,
         _write_budget_ledger(ledger, state="failed", run_id=run_id, pair_id=pair_id,
                              consumed_sessions=1, authorized_sessions=authorized_sessions,
                              error="Independent fixture oracle failed")
-        return {"schema": "pie-phase3-single-result-v1", "state": "BASELINE_BLENDER_FAILED",
+        return {"schema": "pie-phase3-single-result-v1", "state": failed_state,
                 "run_id": run_id, "pair_id": pair_id, "ledger": str(ledger),
                 "quota_consumed": True, "automatic_retry": False, "oracle": oracle}
     lifecycle = _load_lifecycle(root.parent / ("." + root.name + "-pie-live-store") / "mcp-lifecycle.jsonl")
@@ -406,7 +411,7 @@ def run_single(*, scenario: dict[str, Any], application: str, condition: str,
         _write_budget_ledger(ledger, state="failed", run_id=run_id, pair_id=pair_id,
                              consumed_sessions=1, authorized_sessions=authorized_sessions,
                              error=route["reason"])
-        return {"schema": "pie-phase3-single-result-v1", "state": "BASELINE_BLENDER_FAILED",
+        return {"schema": "pie-phase3-single-result-v1", "state": failed_state,
                 "run_id": run_id, "pair_id": pair_id, "ledger": str(ledger),
                 "quota_consumed": True, "automatic_retry": False,
                 "record": record, "oracle": oracle, "route": route}
@@ -415,7 +420,7 @@ def run_single(*, scenario: dict[str, Any], application: str, condition: str,
     import_provider_record(root, record, app=application, task_id=scenario["scenario_id"])
     _write_budget_ledger(ledger, state="completed", run_id=run_id, pair_id=pair_id,
                          consumed_sessions=1, authorized_sessions=authorized_sessions)
-    return {"schema": "pie-phase3-single-result-v1", "state": "BASELINE_BLENDER_VALID",
+    return {"schema": "pie-phase3-single-result-v1", "state": valid_state,
             "run_id": run_id, "pair_id": pair_id, "ledger": str(ledger),
             "record": str(destination), "oracle": oracle, "route": route,
             "quota_consumed": True, "automatic_retry": False}
@@ -466,6 +471,7 @@ def main(argv: list[str] | None = None) -> int:
     single.add_argument("--baseline-profile", required=True)
     single.add_argument("--optimized-profile", required=True)
     single.add_argument("--output", type=Path, required=True)
+    single.add_argument("--pair-id", default=None)
     single.add_argument("--codex-bin", default="codex")
     single.add_argument("--timeout", type=int, default=240)
     args = parser.parse_args(argv)
@@ -504,7 +510,8 @@ def main(argv: list[str] | None = None) -> int:
                 workspace=args.workspace, baseline_home=args.baseline_home,
                 optimized_home=args.optimized_home,
                 baseline_profile=args.baseline_profile, optimized_profile=args.optimized_profile,
-                output=args.output, codex_bin=args.codex_bin, timeout=args.timeout)
+                output=args.output, codex_bin=args.codex_bin, timeout=args.timeout,
+                pair_id_override=args.pair_id)
         else:
             scenarios = [load_scenario(path) for path in args.scenario]
             manifest_document = json.loads(args.manifest.read_text(encoding="utf-8"))
@@ -521,6 +528,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0 if (args.action == "plan" or result.get("state") in (
             "EVIDENCE_CERTIFIED", "AB_PILOT_PASSED", "BASELINE_BLENDER_VALID",
+            "OPTIMIZED_BLENDER_VALID", "BASELINE_WEB_VALID", "OPTIMIZED_WEB_VALID",
             "READY_FOR_BENCHMARK")) else 2
     except (ControllerError, OSError, json.JSONDecodeError) as exc:
         print(json.dumps({"state": "BLOCKED_WITH_EVIDENCE", "reason": str(exc)}, ensure_ascii=False))
