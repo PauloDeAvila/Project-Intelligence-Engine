@@ -26,5 +26,5 @@ Write-Output "Interactive probe prepared. The next command may request human MCP
 Write-Output "Workspace: $workspacePath"
 Write-Output "Approval: $ApprovalPolicy"
 Write-Output "Sandbox: read-only"
-& $CodexBin --cd $workspacePath --model $Model --sandbox read-only --ask-for-approval $ApprovalPolicy $prompt
+& $CodexBin --no-daemon --cd $workspacePath --model $Model --sandbox read-only --ask-for-approval $ApprovalPolicy $prompt
 exit $LASTEXITCODE

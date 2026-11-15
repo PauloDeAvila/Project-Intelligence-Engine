@@ -1,0 +1,43 @@
+{
+  "schema": "pie-phase3-interactive-probe-v1",
+  "status": "BLOCKED_BEFORE_MODEL_EXECUTION",
+  "authorized_scope": {
+    "sessions_authorized": 1,
+    "sessions_attempted": 1,
+    "retries": 0,
+    "model_sessions": 0,
+    "quota_consumed": false
+  },
+  "configuration": {
+    "model": "gpt-5.6-luna",
+    "effort": "medium",
+    "approval": "on-request",
+    "sandbox": "read-only",
+    "approve_for_me": false,
+    "no_daemon": false,
+    "persistent_config_restored": false,
+    "config_sha256_before_probe": "0C389437225838D120039708D27B0A022E82541B1ADCACE490F8EF9FE400D3DE",
+    "config_sha256_after_cleanup": "850C2E3559A58B205958B82DF08FD195AAC4D5A3C8D63B10DC8A2399E4D8416C",
+    "config_difference": "Semantic [tui] setting removed; file EOF normalization prevents byte-identical restoration."
+  },
+  "failure": {
+    "phase": "interactive CLI startup",
+    "message": "this CLI has no complete local package; install a packaged Codex CLI or use the standalone installer",
+    "suggested_cli_option": "--no-daemon",
+    "effect": "The TUI opened but terminated before model execution and before any MCP approval request."
+  },
+  "gateway_evidence": {
+    "initialize": "not_observed_in_this_session",
+    "tools_call": "not_observed",
+    "task_id": null,
+    "run_id": null,
+    "sqlite_event": "not_observed"
+  },
+  "configuration_change": {
+    "observed": "Codex added [tui] screen_reader_detection_done = true during startup",
+    "action": "Removed that incidental setting",
+    "result": "The setting was removed, but the byte-identical hash was not restored; this limitation is disclosed."
+  },
+  "next_prepared_change": "The interactive executor now passes --no-daemon. No second session was started.",
+  "certification": "NOT_CERTIFIED"
+}

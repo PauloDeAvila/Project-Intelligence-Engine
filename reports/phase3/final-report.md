@@ -39,6 +39,8 @@ A Fase 3.12 adicionou um guard no executor e um validador offline. O guard rejei
 
 A Fase 3.13 adicionou `tools/run_codex_mcp_interactive_probe.ps1`, usando `--ask-for-approval on-request` com `--sandbox read-only`, sem `--approve-for-me`. A execução permanece preparada, não iniciada. O status local também passou a comparar caminhos normalizados e resolvidos; divergências retornam `WRONG_WORKSPACE`. Na raiz correta, a verificação retornou `CURRENT`, `workspace_match=true`, 250 arquivos, 1789 símbolos e 2410 imports.
 
+A única sonda interativa autorizada foi iniciada, mas o TUI encerrou antes do modelo por falta do pacote local completo do CLI. Nenhuma aprovação MCP, `tools/call` ou token foi observado. O Codex acrescentou temporariamente apenas `[tui] screen_reader_detection_done = true`; essa configuração foi removida. A normalização de EOF da edição impediu restaurar o hash byte-a-byte anterior (`0C389...`); o hash atual é `850C2E...`, limitação registrada em `31-interactive-probe-blocked.json`. O executor agora inclui `--no-daemon`; não houve segunda tentativa.
+
 ## Custos
 
 `null`: não foi fornecida tarifa verificável para `gpt-5.6-luna`. Quota/assinatura não foi convertida em preço.
