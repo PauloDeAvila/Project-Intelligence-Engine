@@ -168,4 +168,9 @@ oráculos 2/2 aprovados e 59 tokens de reasoning reportados no braço otimizado.
 Isso é evidência de outro provedor, não certificação Codex. Evidência:
 [133-web-harness-openai-compatible-20261115.json](133-web-harness-openai-compatible-20261115.json).
 
+Após a integração do provider OpenAI-compatible, a suíte completa passou com
+644 testes, 5 ignorados e 0 erros em 63,037 s. Os warnings HTTP são dos testes
+simulados e não foram contados como falhas. Evidência:
+[134-full-suite-after-external-provider-20261115.json](134-full-suite-after-external-provider-20261115.json).
+
 Auditoria requisito‑por‑requisito: [115-completion-audit-20261115.json](115-completion-audit-20261115.json).

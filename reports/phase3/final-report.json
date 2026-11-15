@@ -109,6 +109,7 @@
   "web_fixture_guard": "reports/phase3/131-web-fixture-preflight-guard-20261115.json",
   "web_fixture_guard_bidirectional": "reports/phase3/132-web-fixture-guard-bidirectional-20261115.json",
   "latest_external_provider_run": "reports/phase3/133-web-harness-openai-compatible-20261115.json",
+  "latest_full_suite_after_external_provider": "reports/phase3/134-full-suite-after-external-provider-20261115.json",
   "validation": {
     "focused_tests_passed": 71,
     "full_suite_initial": {
@@ -144,7 +145,7 @@
     "automatic_retries": false,
     "destructive_actions": false,
     "playwright_version": "@playwright/mcp@0.0.85",
-    "latest_commit": "b37a5d7"
+    "latest_commit": "43d874f"
   },
   "limitations": [
     "Local Ollama measurements are not Codex provider certification.",

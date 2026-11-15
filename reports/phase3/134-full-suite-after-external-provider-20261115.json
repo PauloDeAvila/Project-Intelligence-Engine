@@ -1,0 +1,19 @@
+{
+  "schema": "pie-phase3-validation-run-v1",
+  "timestamp_utc": "2026-11-15T23:52:22.3598148Z",
+  "command": "uv run python -m unittest discover -s tests -q",
+  "status": "PASS",
+  "tests_run": 644,
+  "skipped": 5,
+  "errors": 0,
+  "duration_seconds": 63.037,
+  "working_tree_commit": "43d874f",
+  "codex_sessions_started": 0,
+  "quota_consumed": false,
+  "warnings": [
+    "ResourceWarning entries for simulated HTTP 500, 401 and 403 responses were emitted by tests and did not fail the suite."
+  ],
+  "notes": [
+    "The internal BLOCKED_WITH_EVIDENCE/disk full diagnostic was emitted by an existing diagnostic component; unittest completed OK with zero errors."
+  ]
+}
