@@ -124,4 +124,11 @@ uv run python -m unittest tests.test_blender_choice_agent tests.test_blender_cho
 
 Evidências detalhadas: [109-local-routing-and-web-measurement-20261115.md](109-local-routing-and-web-measurement-20261115.md).
 
+Uma nova tentativa Web local foi encerrada sem retry após dois pares válidos:
+1.668 tokens em cada condição, 0% de economia e 4/4 oráculos aprovados. O
+terceiro par falhou porque o Ollama ficou indisponível ou retornou JSON
+inválido. Essa falha foi preservada e não substitui o relatório Web anterior
+de três pares válidos; os resultados não devem ser combinados sem investigar
+o problema de configuração/parsing. Evidência: [127-web-local-run-failed-after-two-pairs-20261115.json](127-web-local-run-failed-after-two-pairs-20261115.json).
+
 Auditoria requisito‑por‑requisito: [115-completion-audit-20261115.json](115-completion-audit-20261115.json).
