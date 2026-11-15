@@ -1,7 +1,8 @@
 """Fail-closed Codex real token accounting. Never persist prompts, answers or traces."""
 from __future__ import annotations
-import hashlib,json,math,os,shutil,subprocess,time,tomllib
+import hashlib,json,math,os,re,shutil,subprocess,time,tomllib
 from pathlib import Path
+from datetime import datetime,timezone
 
 SCHEMA="pie-live-codex-usage-v1"
 CONDITIONS=frozenset(("baseline","optimized"))
@@ -14,6 +15,109 @@ class CodexCaptureError(RuntimeError):
 
 def _sha(v):
     return hashlib.sha256(v if isinstance(v,bytes) else v.encode("utf-8")).hexdigest()
+
+def _utc_now():
+    return datetime.now(timezone.utc).isoformat()
+
+def _sanitize_text(value, *, limit=200_000):
+    """Keep diagnostics useful without retaining credentials or transcripts."""
+    text=value.decode("utf-8",errors="replace") if isinstance(value,bytes) else str(value or "")
+    text=re.sub(r"(?i)(authorization\s*[:=]\s*bearer\s+)[^\s,;]+", r"\1[REDACTED]", text)
+    text=re.sub(r"(?i)(bearer\s+)[^\s,;]+", r"\1[REDACTED]", text)
+    text=re.sub(r"(?i)(api[_-]?key|access[_-]?token|refresh[_-]?token|cookie|set-cookie)\s*[:=]\s*[^\s,;]+", r"\1=[REDACTED]", text)
+    text=re.sub(r"\bsk-[A-Za-z0-9_-]{12,}\b", "[REDACTED_KEY]", text)
+    return text[:limit]
+
+def _forensic_dir(store:Path, run_id:str)->Path:
+    if not re.fullmatch(r"[A-Za-z0-9_-]{8,128}",run_id):
+        raise ValueError("Invalid forensic run_id")
+    return store/"runs"/run_id
+
+def _write_json(path:Path,value:dict):
+    path.write_text(json.dumps(value,ensure_ascii=False,indent=2,sort_keys=True)+"\n",encoding="utf-8")
+
+def _forensic_start(store:Path, *, scenario:dict, condition:str, repetition:int,
+                    run_id:str, pair_id:str, workspace_commit:str, configsha:str,
+                    expected_server:str|None, profile:str|None)->Path:
+    root=_forensic_dir(store,run_id)
+    root.mkdir(parents=True,exist_ok=False)
+    expected=scenario["expected_exact"].strip()
+    _write_json(root/"manifest.json",{
+        "schema":"pie-forensic-capture-v1","capture_status":"started",
+        "created_at":_utc_now(),"run_id":run_id,"pair_id":pair_id,
+        "scenario_id":scenario["scenario_id"],"condition":condition,
+        "repetition":repetition,"application":_scenario_app(scenario),
+        "model":scenario["model"],"profile":profile,
+        "prompt_sha256":_sha(scenario["prompt"]),"expected_sha256":_sha(expected),
+        "workspace_commit":workspace_commit,"configuration_sha256":configsha,
+        "expected_mcp_server":expected_server,
+    })
+    for name in ("codex-stdout.log","codex-stderr.log","codex-events.jsonl","mcp-tool-events.jsonl"):
+        (root/name).write_text("",encoding="utf-8")
+    _write_json(root/"provider-usage.json",{
+        "schema":"pie-forensic-provider-usage-v1","run_id":run_id,
+        "provider_usage_status":"unavailable","reason":"not_observed_yet"})
+    _write_json(root/"oracle-result.json",{"status":"not_evaluated","run_id":run_id})
+    _write_json(root/"run-result.json",{
+        "schema":"pie-forensic-run-result-v1","run_id":run_id,"pair_id":pair_id,
+        "status":"started","started_at":_utc_now()})
+    return root
+
+def _forensic_event(event:dict)->dict:
+    item=event.get("item") if isinstance(event.get("item"),dict) else {}
+    out={"event_type":_sanitize_text(event.get("type","unknown"),limit=80)}
+    if isinstance(event.get("usage"),dict):
+        usage=event["usage"]
+        out["usage"]={k:usage[k] for k in ("input_tokens","cached_input_tokens","output_tokens","reasoning_output_tokens")
+                      if type(usage.get(k)) is int and usage[k]>=0}
+    if item:
+        for key in ("type","server","tool","status"):
+            value=item.get(key)
+            if isinstance(value,str):out["item_"+key if key=="type" else key]=_sanitize_text(value,limit=120)
+    return out
+
+def _forensic_capture_process(root:Path, *, stdout, stderr, returncode, duration_ms, timed_out=False):
+    events=[];mcp=[]
+    source=_sanitize_text(stdout,limit=2_000_000)
+    for line in source.splitlines():
+        if not line.strip():continue
+        try:
+            event=json.loads(line)
+            if not isinstance(event,dict):raise ValueError
+            safe=_forensic_event(event);events.append(safe)
+            if safe.get("event_type") == "item.completed" and safe.get("item_type") == "mcp_tool_call":
+                mcp.append(safe)
+        except (ValueError,json.JSONDecodeError):
+            events.append({"type":"malformed","sha256":_sha(line),"length":len(line)})
+    (root/"codex-stdout.log").write_text("\n".join(json.dumps(e,ensure_ascii=False) for e in events)+("\n" if events else ""),encoding="utf-8")
+    (root/"codex-events.jsonl").write_text("\n".join(json.dumps(e,ensure_ascii=False) for e in events)+("\n" if events else ""),encoding="utf-8")
+    (root/"mcp-tool-events.jsonl").write_text("\n".join(json.dumps(e,ensure_ascii=False) for e in mcp)+("\n" if mcp else ""),encoding="utf-8")
+    (root/"codex-stderr.log").write_text(_sanitize_text(stderr),encoding="utf-8")
+    usage=[]
+    for event in events:
+        value=event.get("usage")
+        if isinstance(value,dict) and all(type(value.get(k)) is int and value[k]>=0 for k in ("input_tokens","cached_input_tokens","output_tokens")):
+            usage.append(value)
+    if len(usage)==1 and usage[0]["cached_input_tokens"]<=usage[0]["input_tokens"]:
+        _write_json(root/"provider-usage.json",{
+            "schema":"pie-forensic-provider-usage-v1","run_id":json.loads((root/"run-result.json").read_text(encoding="utf-8"))["run_id"],
+            "provider_usage_status":"available","provider_reported":True,"usage":usage[0]})
+    else:
+        _write_json(root/"provider-usage.json",{
+            "schema":"pie-forensic-provider-usage-v1","run_id":json.loads((root/"run-result.json").read_text(encoding="utf-8"))["run_id"],
+            "provider_usage_status":"unavailable","reason":"missing_or_ambiguous_turn_completed_usage"})
+    return len(events),len(mcp)
+
+def _forensic_finish(root:Path, *, status:str, returncode=None, duration_ms=None, error=None, timed_out=False):
+    path=root/"run-result.json"
+    result=json.loads(path.read_text(encoding="utf-8"))
+    result.update({"status":status,"finished_at":_utc_now(),"returncode":returncode,
+                   "duration_ms":duration_ms,"timed_out":timed_out})
+    if error:result["error"]=_sanitize_text(error,limit=2_000)
+    _write_json(path,result)
+    manifest=json.loads((root/"manifest.json").read_text(encoding="utf-8"))
+    manifest.update({"capture_status":status,"finished_at":result["finished_at"]})
+    _write_json(root/"manifest.json",manifest)
 def _count(x,k):
     if type(x) is not int or x<0: raise ValueError("Missing/invalid provider "+k)
     return x
@@ -44,7 +148,9 @@ def parse_codex_jsonl(source:str)->dict:
                 if e["type"]=="item.completed" and item.get("type")=="mcp_tool_call":
                     server=item.get("server");tool=item.get("tool");status=item.get("status")
                     if all(isinstance(v,str) for v in (server,tool,status)):
-                        mcp_tools.append({"server":server[:120],"tool":tool[:120],"status":status[:40]})
+                        mcp_tools.append({"server":_sanitize_text(server,limit=120),
+                                          "tool":_sanitize_text(tool,limit=120),
+                                          "status":_sanitize_text(status,limit=40)})
                 if e["type"]=="item.started" and item.get("type") in ("command_execution","mcp_tool_call","web_search","file_change"):
                     calls+=1
     if failed or len(usage)!=1:raise ValueError("Need one successful turn.completed event")
@@ -225,34 +331,80 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
     telemetry_store.mkdir(parents=True,exist_ok=True)
     env["PIE_GLOBAL_STORAGE_ROOT"]=str(telemetry_store)
     env["PIE_MCP_DIAGNOSTICS_PATH"]=str(telemetry_store/"mcp-lifecycle.jsonl")
-    preflight=preflight_codex(scenario,condition=condition,workspace=workspace,
-                              codex_home=Path(codex_home),codex_bin=codex_bin,profile=profile)
+    forensic_root=_forensic_start(telemetry_store,scenario=scenario,condition=condition,
+                                   repetition=repetition,run_id=run_id,pair_id=pair_id,
+                                   workspace_commit=commit,configsha=configsha,
+                                   expected_server=expected_server,profile=profile)
+    try:
+        preflight=preflight_codex(scenario,condition=condition,workspace=workspace,
+                                  codex_home=Path(codex_home),codex_bin=codex_bin,profile=profile)
+    except Exception as exc:
+        _forensic_finish(forensic_root,status="preflight_failed",error=str(exc))
+        raise
     if preflight["state"]!="READY_FOR_BENCHMARK":
-        raise RuntimeError(preflight["errors"][0] if preflight["errors"] else "PRECHECK_CONFIG_INVALID")
+        error=preflight["errors"][0] if preflight["errors"] else "PRECHECK_CONFIG_INVALID"
+        _forensic_finish(forensic_root,status="preflight_failed",error=error)
+        raise RuntimeError(error)
     executable=shutil.which(codex_bin)
-    if executable is None:raise RuntimeError("Codex executable unavailable")
-    ver=subprocess.run([executable,"--version"],capture_output=True,text=True,timeout=10,check=False)
-    if ver.returncode or not ver.stdout.strip():raise RuntimeError("Codex version unavailable")
+    if executable is None:
+        _forensic_finish(forensic_root,status="executor_failed",error="Codex executable unavailable")
+        raise RuntimeError("Codex executable unavailable")
+    try:ver=subprocess.run([executable,"--version"],capture_output=True,text=True,timeout=10,check=False)
+    except (OSError,subprocess.TimeoutExpired) as exc:
+        _forensic_finish(forensic_root,status="executor_failed",error="Codex version unavailable")
+        raise RuntimeError("Codex version unavailable") from exc
+    if ver.returncode or not ver.stdout.strip():
+        _forensic_finish(forensic_root,status="executor_failed",error="Codex version unavailable")
+        raise RuntimeError("Codex version unavailable")
     version=ver.stdout.strip().splitlines()[0][:120]
     args=[executable,"exec","--json","--ephemeral","--sandbox","read-only",
           "--cd",str(workspace),"--model",scenario["model"]]
     if profile is not None:args += ["--profile",profile]
     args += ["-"]
     t0=time.perf_counter()
-    try:run=subprocess.run(args,cwd=workspace,env=env,input=scenario["prompt"],
+    try:
+        run=subprocess.run(args,cwd=workspace,env=env,input=scenario["prompt"],
                            text=True,capture_output=True,timeout=timeout,check=False)
-    except (FileNotFoundError,subprocess.TimeoutExpired) as ex:
+    except subprocess.TimeoutExpired as ex:
+        _forensic_capture_process(forensic_root,stdout=getattr(ex,"output","") or "",
+                                  stderr=getattr(ex,"stderr","") or "",returncode=None,
+                                  duration_ms=round((time.perf_counter()-t0)*1000,3),timed_out=True)
+        _forensic_finish(forensic_root,status="timeout",duration_ms=round((time.perf_counter()-t0)*1000,3),
+                         error="Codex execution timeout",timed_out=True)
         raise RuntimeError("Codex execution unavailable/timeout") from ex
+    except FileNotFoundError as ex:
+        _forensic_finish(forensic_root,status="executor_failed",duration_ms=round((time.perf_counter()-t0)*1000,3),
+                         error="Codex execution unavailable")
+        raise RuntimeError("Codex execution unavailable/timeout") from ex
+    event_count,mcp_count=_forensic_capture_process(
+        forensic_root,stdout=run.stdout,stderr=run.stderr,returncode=run.returncode,
+        duration_ms=round((time.perf_counter()-t0)*1000,3))
     if run.returncode:
-        raise CodexCaptureError(f"Codex failed with exit code {run.returncode}; no certification")
-    parsed=parse_codex_jsonl(run.stdout)
+        _forensic_finish(forensic_root,status="process_failed",returncode=run.returncode,
+                         duration_ms=round((time.perf_counter()-t0)*1000,3),
+                         error=f"Codex failed with exit code {run.returncode}")
+        raise CodexCaptureError(f"Codex failed with exit code {run.returncode}; no certification",
+                                evidence={"run_id":run_id,"pair_id":pair_id,"forensic_path":str(forensic_root),
+                                          "event_count":event_count,"mcp_event_count":mcp_count})
+    try:parsed=parse_codex_jsonl(run.stdout)
+    except (ValueError,TypeError) as exc:
+        _forensic_finish(forensic_root,status="provider_usage_failed",returncode=run.returncode,
+                         duration_ms=round((time.perf_counter()-t0)*1000,3),error=str(exc))
+        raise CodexCaptureError("Codex JSONL/provider usage evidence unavailable",
+                                evidence={"run_id":run_id,"pair_id":pair_id,"forensic_path":str(forensic_root)}) from exc
     if not parsed["mcp_tools"]:
+        _forensic_finish(forensic_root,status="route_evidence_failed",returncode=run.returncode,
+                         duration_ms=round((time.perf_counter()-t0)*1000,3),
+                         error="MCP route evidence unavailable; no mcp_tool_call records")
         raise RuntimeError("MCP route evidence unavailable; no mcp_tool_call records")
     if expected_server is not None and any(
         item.get("server")!=expected_server or item.get("status")!="completed"
         for item in parsed["mcp_tools"]):
         observed=";".join("/".join(str(item.get(k,"")) for k in ("server","tool","status"))
                           for item in parsed["mcp_tools"])
+        _forensic_finish(forensic_root,status="route_evidence_failed",returncode=run.returncode,
+                         duration_ms=round((time.perf_counter()-t0)*1000,3),
+                         error=f"MCP route evidence failed; expected {expected_server}; observed {observed}")
         raise CodexCaptureError(
             f"MCP route evidence failed; expected {expected_server}; observed {observed}",
             evidence={"run_id":run_id,"pair_id":pair_id,"condition":condition,
@@ -260,8 +412,16 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
                       "expected_mcp_server":expected_server,"runtime_ms":round((time.perf_counter()-t0)*1000,3),
                       "tool_events":parsed["tool_events"],"mcp_tools":parsed["mcp_tools"],
                       "usage":parsed["usage"],"provider_reported":True,
-                      "certification_status":"INVALID_ROUTE_EVIDENCE"})
+                      "certification_status":"INVALID_ROUTE_EVIDENCE",
+                      "forensic_path":str(forensic_root)})
     actual=parsed.pop("answer").strip();expected=scenario["expected_exact"].strip()
+    _write_json(forensic_root/"oracle-result.json",{
+        "status":"evaluated","run_id":run_id,"oracle_kind":"exact_text",
+        "oracle_pass":actual==expected,"answer_sha256":_sha(actual),
+        "expected_sha256":_sha(expected)})
+    _forensic_finish(forensic_root,status="completed" if actual==expected else "oracle_failed",
+                     returncode=run.returncode,duration_ms=round((time.perf_counter()-t0)*1000,3),
+                     error=None if actual==expected else "Exact-text oracle mismatch")
     return {"schema":SCHEMA,"condition":condition,"scenario_id":scenario["scenario_id"],
             "repetition":repetition,"run_id":run_id,"pair_id":pair_id,"model":scenario["model"],"codex_version":version,
             "prompt_sha256":_sha(scenario["prompt"]),"expected_sha256":_sha(expected),
@@ -271,6 +431,7 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
             "tool_events":parsed["tool_events"],"mcp_tools":parsed["mcp_tools"],"usage":parsed["usage"],
             "expected_mcp_server":expected_server,"mcp_route_verified":True,
             "provider_reported":parsed["provider_reported"],"source":parsed["source"],
+            "forensic_path":str(forensic_root),
             "note":"Codex provider usage, not billing or a raw transcript"}
 
 def _read_records(paths:list[Path])->list[dict]:
