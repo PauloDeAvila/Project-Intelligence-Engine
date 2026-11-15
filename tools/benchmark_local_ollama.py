@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import subprocess
 import time
+import uuid
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
@@ -276,7 +277,8 @@ class MCPReplaySession:
     """One isolated MCP process reused across repetitions for one condition."""
 
     def __init__(self, profile: Path, workspace: Path, scenario: dict,
-                 condition: str, schema_scope: str, blender_mode: str) -> None:
+                 condition: str, schema_scope: str, blender_mode: str,
+                 identity: dict[str, str] | None = None) -> None:
         self.app = scenario["application"]
         self.scenario = scenario
         self.condition = condition
@@ -289,6 +291,13 @@ class MCPReplaySession:
         self.server = server
         env = dict(os.environ)
         env.update(configured_env)
+        if identity:
+            env.update({
+                key: value for key, value in identity.items()
+                if key in {"PIE_RUN_ID", "PIE_PAIR_ID", "PIE_TASK_ID",
+                           "PIE_CONDITION", "PIE_APP", "PIE_GATEWAY_SERVER"}
+                and isinstance(value, str) and value
+            })
         process = subprocess.Popen([config["command"], *args], cwd=workspace, env=env,
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE, text=True, bufsize=1, encoding="utf-8")
@@ -493,28 +502,43 @@ def main(argv: list[str] | None = None) -> int:
               "prompt_modified_for_experiment": local_scenario["prompt"] != scenario["prompt"],
               "codex_sessions_started": 0, "codex_quota_consumed": False,
               "codex_certification": "NOT_CERTIFIED", "runs": []}
-    sessions: dict[str, MCPReplaySession] = {}
     failure = None
     try:
-        for condition in ("baseline", "optimized"):
-            sessions[condition] = MCPReplaySession(
-                profiles[condition], workspace, scenario, condition,
-                args.schema_scope, args.blender_mode)
         for rep in range(1, args.repetitions + 1):
             order = ("baseline", "optimized") if rep % 2 else ("optimized", "baseline")
-            pair = {"repetition": rep, "order": list(order), "arms": {}}
-            for condition in order:
-                obs = sessions[condition].collect()
-                arm = {key: value for key, value in obs.items()
-                       if key not in {"schema_json", "observations_json", "grounded_answer"}}
-                if obs.get("grounded_answer") is not None:
-                    arm["source_answer_sha256"] = sha(obs["grounded_answer"])
-                    arm["source_oracle_pass"] = correct_answer(
-                        scenario, obs["grounded_answer"])[0]
-                    arm["source_rendering"] = "DETERMINISTIC_TOOL_DATA_NOT_MODEL_OUTPUT"
-                if not args.probe_only:
-                    arm.update(run_local_model(local_scenario, obs, args.model, args.timeout, args.num_ctx))
-                pair["arms"][condition] = arm
+            pair_id = f"pair-{scenario['scenario_id']}-{uuid.uuid4().hex[:12]}-r{rep}"
+            pair = {"repetition": rep, "pair_id": pair_id,
+                    "task_id": scenario["scenario_id"],
+                    "order": list(order), "arms": {}}
+            sessions: dict[str, MCPReplaySession] = {}
+            try:
+                for condition in order:
+                    sessions[condition] = MCPReplaySession(
+                        profiles[condition], workspace, scenario, condition,
+                        args.schema_scope, args.blender_mode,
+                        identity={
+                            "PIE_RUN_ID": f"{condition}-{scenario['scenario_id']}-{uuid.uuid4().hex[:12]}-r{rep}",
+                            "PIE_PAIR_ID": pair_id,
+                            "PIE_TASK_ID": scenario["scenario_id"],
+                            "PIE_CONDITION": condition,
+                            "PIE_APP": scenario["application"],
+                            "PIE_GATEWAY_SERVER": EXPECTED_SERVERS[scenario["application"]][condition],
+                        })
+                for condition in order:
+                    obs = sessions[condition].collect()
+                    arm = {key: value for key, value in obs.items()
+                           if key not in {"schema_json", "observations_json", "grounded_answer"}}
+                    if obs.get("grounded_answer") is not None:
+                        arm["source_answer_sha256"] = sha(obs["grounded_answer"])
+                        arm["source_oracle_pass"] = correct_answer(
+                            scenario, obs["grounded_answer"])[0]
+                        arm["source_rendering"] = "DETERMINISTIC_TOOL_DATA_NOT_MODEL_OUTPUT"
+                    if not args.probe_only:
+                        arm.update(run_local_model(local_scenario, obs, args.model, args.timeout, args.num_ctx))
+                    pair["arms"][condition] = arm
+            finally:
+                for session in reversed(list(sessions.values())):
+                    session.close()
             pair["comparison"] = (compare_pair(pair["arms"]["baseline"], pair["arms"]["optimized"])
                                   if not args.probe_only else {"state": "MCP_ONLY_NO_MODEL"})
             report["runs"].append(pair)
@@ -530,8 +554,7 @@ def main(argv: list[str] | None = None) -> int:
             "automatic_retry": False,
         }
     finally:
-        for session in reversed(list(sessions.values())):
-            session.close()
+        pass
     if failure is not None:
         report["failure"] = failure
     output.parent.mkdir(parents=True, exist_ok=True)

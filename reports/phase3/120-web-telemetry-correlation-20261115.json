@@ -1,0 +1,25 @@
+{
+  "schema": "pie-phase3-telemetry-correlation-v1",
+  "status": "PARTIAL_COVERAGE_WITH_CORRELATED_PIE_EVENTS",
+  "source_log": ".pie-live-store/mcp-lifecycle.jsonl",
+  "execution_id": "pair-web-large-page-cert-v1-c74c41eeb698-r1",
+  "optimized": {
+    "task_id": "web-large-page-cert-v1",
+    "gateway_server": "pie-web-optimized",
+    "calls_with_run_id": 2,
+    "calls_with_pair_id": 2,
+    "calls_with_task_id": 2,
+    "successful_tool_responses": 2,
+    "tools": ["browser_navigate", "browser_snapshot"],
+    "durations_ms": [354.739, 30.398],
+    "teardown_exit_code": 0
+  },
+  "baseline": {
+    "expected_tool_calls": 2,
+    "telemetry_events": 0,
+    "coverage": "UNINSTRUMENTED_ORIGINAL_SERVER",
+    "reason": "The baseline uses the original Playwright MCP process directly and intentionally bypasses the PIE gateway."
+  },
+  "runner_note": "The inner MCP probe produced a valid baseline/optimized result; the outer PowerShell cleanup wrapper returned exit code -1 while stopping the disposable fixture child. No model was started.",
+  "certification": "NOT_CERTIFIED"
+}

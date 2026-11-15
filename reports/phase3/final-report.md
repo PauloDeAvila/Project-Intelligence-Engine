@@ -54,6 +54,16 @@ classificada como `UNINSTRUMENTED_ORIGINAL_SERVER`. Um encerramento upstream com
 `exit_code=1` ocorreu depois de uma resposta MCP válida e foi preservado para
 investigação. Evidência: [118-telemetry-correlation-live-routing-20261115.json](118-telemetry-correlation-live-routing-20261115.json).
 
+No probe Web de uma repetição, `browser_navigate` e `browser_snapshot` também
+foram persistidos com identidade completa no gateway otimizado. O baseline
+permanece sem eventos PIE por usar o servidor original. O wrapper de limpeza
+retornou `-1` ao encerrar a fixture, embora o probe interno tenha produzido o
+resultado MCP válido; isso não é tratado como certificação. Evidência:
+[120-web-telemetry-correlation-20261115.json](120-web-telemetry-correlation-20261115.json).
+
+A suíte completa após a instrumentação Web passou novamente com 641 testes,
+5 ignorados e 0 erros. Evidência: [121-web-correlation-full-suite-20261115.json](121-web-correlation-full-suite-20261115.json).
+
 O overhead estrutural de catálogo foi medido sem modelo: Blender reduziu
 `tools/list` de 18.982 para 3.792 caracteres e Web de 21.177 para 1.738.
 Esses valores são tamanho estrutural, não latência nem tokens cobrados. A
