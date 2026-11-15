@@ -10,6 +10,7 @@ param(
     [int]$NumCtx = 8192,
     [ValidateSet("profile", "server")][string]$SchemaScope = "profile",
     [int]$BlenderPort = 9877,
+    [string]$NpxExe = "",
     [string]$OutputDirectory = $env:TEMP,
     [switch]$ProbeOnly
 )
@@ -34,6 +35,31 @@ if ($Domain -eq "blender") {
 } else {
     $profileArgs.BaselineExposeTool = @("browser_navigate", "browser_snapshot")
     $profileArgs.OptimizedExposeTool = @("browser_navigate", "browser_snapshot", "pie_gateway_output_get")
+    $npxCandidate = $null
+    if ($NpxExe) {
+        $npxCandidate = Get-Command $NpxExe -ErrorAction SilentlyContinue
+        if (-not $npxCandidate -and (Test-Path -LiteralPath $NpxExe -PathType Leaf)) {
+            $npxCandidate = Get-Item -LiteralPath $NpxExe
+        }
+    } else {
+        $npxCandidate = Get-Command npx.cmd -ErrorAction SilentlyContinue
+        if (-not $npxCandidate) {
+            foreach ($candidate in @(
+                (Join-Path $env:ProgramFiles 'nodejs\\npx.cmd'),
+                (Join-Path $env:APPDATA 'npm\\npx.cmd'),
+                (Join-Path $env:LOCALAPPDATA 'Programs\\nodejs\\npx.cmd')
+            )) {
+                if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+                    $npxCandidate = Get-Item -LiteralPath $candidate
+                    break
+                }
+            }
+        }
+    }
+    if (-not $npxCandidate) {
+        throw 'npx.cmd unavailable. Install Node.js LTS (winget install -e --id OpenJS.NodeJS.LTS), reopen PowerShell, or pass -NpxExe with its full path.'
+    }
+    $profileArgs.NpxExe = if ($npxCandidate.Source) { $npxCandidate.Source } else { $npxCandidate.FullName }
 }
 & (Join-Path $PSScriptRoot "prepare_phase3_profiles.ps1") @profileArgs
 
