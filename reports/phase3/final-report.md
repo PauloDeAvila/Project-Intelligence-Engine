@@ -65,6 +65,24 @@ Evidência: [`69-web-pair-comparison.md`](69-web-pair-comparison.md) e
 Auditoria independente da rota optimized: [`70-web-route-audit.json`](70-web-route-audit.json),
 resultado `EVIDENCE_CERTIFIED`.
 
+## Diagnóstico diferencial da regressão
+
+A análise offline dos dois pares válidos não encontrou chamadas MCP adicionais: ambos fizeram
+2 chamadas em cada condição. Também não encontrou aumento relevante de reasoning: Blender
+`209 → 211` e Web `151 → 119`.
+
+O gateway optimized registrou `PASSTHROUGH` em todas as respostas observadas. Blender devolveu
+359 caracteres, exatamente os 359 recebidos; Web devolveu 824, exatamente os 824 recebidos.
+Logo, a compactação não foi acionada e não houve recuperação de conteúdo.
+
+O Blender teve `+52.402` tokens de input e `+52.475` tokens totais, principalmente por aumento
+de input cacheado (`35.840 → 94.336`). A Web teve uma regressão pequena de `+443` tokens totais,
+com `+320` tokens não-cacheados. A hipótese principal para Blender é overhead de contexto/schema
+optimized, mas a decomposição exata em tokens do provedor ainda não está disponível.
+
+Evidência completa: [`71-differential-regression-analysis.md`](71-differential-regression-analysis.md)
+e [`71-differential-regression-analysis.json`](71-differential-regression-analysis.json).
+
 ## A/B estrito (repetições 2 e 3)
 
 | Domínio | Pares | Input B/O | Cache B/O | Output B/O | Total B/O | Economia total | Latência média B/O | MCP B/O |
