@@ -80,3 +80,20 @@ python -m unittest discover -s tests -p test_local_ollama_benchmark.py -v
 
 O branch experimental não modifica os cenários, fixtures, manifesto 106,
 plano 107 nem a certificação NOT_CERTIFIED.
+
+
+## Atalho PowerShell (recomendado)
+
+Depois de ligar o Blender MCP com a fixture ou o servidor HTTP Web,
+um único comando configura perfis separados e executa o runner:
+
+~~~powershell
+.\tools\run_phase3_local.ps1 -Domain blender -ProbeOnly
+.\tools\run_phase3_local.ps1 -Domain blender -Model qwen3:4b -Repetitions 3
+.\tools\run_phase3_local.ps1 -Domain web -Model qwen3:4b -Repetitions 3
+~~~
+
+Cada execução cria um arquivo JSON único no diretório temporário. O primeiro
+comando não chama nenhum modelo. Os dois seguintes usam exclusivamente
+o Ollama local. A disponibilidade do Blender, Web e Ollama reais precisa
+ser verificada no computador do usuário antes de interpretar os números.
