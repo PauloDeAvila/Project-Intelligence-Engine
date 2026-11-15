@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 from benchmark_local_ollama import (
     _check_response, _provider_usage, _tool_calls, compare_pair, correct_answer,
-    fixture_pass, run_local_model, ensure_local_model, collect_mcp,
+    fixture_pass, run_local_model, ensure_local_model, collect_mcp, _recover_web_when_required,
 )
 
 
@@ -76,6 +76,35 @@ class LocalOllamaBenchmarkTests(unittest.TestCase):
             ensure_local_model("qwen3:4b")
             with self.assertRaises(RuntimeError):
                 ensure_local_model("missing:2b")
+
+    def test_web_recovers_compacted_snapshot_only_if_required(self):
+        scenario = {"application": "web"}
+        compact = [{"content": [{"type": "text", "text": json.dumps({
+            "pie_gateway": "v1", "output_id": "valid-fixture-output", "preview": "PIE Web Fixture"})}]}]
+        text = ("PIE Web Fixture Inspect materials "
+                "Deterministic browser certification fixture.")
+        class FakeProbe:
+            def __init__(self):
+                self.calls = []
+            def call(self, identifier, method, params):
+                self.calls.append((identifier, params))
+                return {"result": {"content": [{"type": "text", "text": json.dumps({
+                    "text": text, "next_start": None, "output_id": "valid-fixture-output"})}]}}
+        probe = FakeProbe()
+        result, count = _recover_web_when_required(
+            probe, list(compact), {"pie_gateway_output_get"}, scenario, 5)
+        self.assertEqual(count, 1)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(probe.calls[0][1]["arguments"]["output_id"], "valid-fixture-output")
+        self.assertTrue(fixture_pass(scenario, result))
+        no_tool, no_calls = _recover_web_when_required(
+            probe, list(compact), set(), scenario, 5)
+        self.assertEqual(no_calls, 0)
+        self.assertEqual(no_tool, compact)
+        complete = [{"content": [{"type": "text", "text": text}]}]
+        _, count = _recover_web_when_required(probe, complete, {"pie_gateway_output_get"}, scenario, 5)
+        self.assertEqual(count, 0)
+        self.assertEqual(len(probe.calls), 1)
 
     def test_blender_mcp_protocol_is_replayed_for_both_arms(self):
         scenario = {"application": "blender", "expected_exact": json.dumps({
