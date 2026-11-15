@@ -95,6 +95,21 @@ Após a correção do ciclo de vida, o runner passou a manter um processo Playwr
 - Recuperações: 0; cada snapshot compactado preservou os fatos exigidos.
 - Nenhuma sessão Codex foi iniciada.
 
+### Blender — três pares locais com sessão persistente
+
+Relatório: `C:\Users\phsra\AppData\Local\Temp\pie-blender-ollama-2292e3ef755f.json`.
+
+- Fixture real Blender 5.3 carregada; gate MCP passou.
+- 3/3 pares válidos e 6/6 oráculos aprovados.
+- Ordem alternada: baseline→PIE, PIE→baseline, baseline→PIE.
+- Baseline: 1.941 tokens totais agregados (647 por par).
+- PIE `pie_blender_query_scene`: 2.340 tokens totais agregados (780 por par).
+- Economia agregada: **−20,556%**; entrada: **−22,774%**.
+- Saída: 63 tokens em todos os braços.
+- Respostas semânticas idênticas; a regressão vem da entrada.
+
+Esse resultado não é uma falha do runner: ele demonstra que esse contrato seletivo ainda tem overhead maior que o benefício para a consulta A. O modo `pie_blender_get_object` permanece separado; sua execução anterior com Qwen falhou no oráculo por transcrição do identificador e não foi promovida.
+
 Relatório opt-in: `C:\Users\phsra\AppData\Local\Temp\pie-web-ollama-dca357203a5c.json`. O gateway voltou a anunciar 3 ferramentas no braço otimizado, confirmando que a capacidade de recuperação não foi removida; o caminho não foi usado porque a fixture não exigiu compactação.
 
 Repetição local posterior (3 pares, ordem alternada): `C:\Users\phsra\AppData\Local\Temp\pie-web-ollama-9f975951651d.json`.
