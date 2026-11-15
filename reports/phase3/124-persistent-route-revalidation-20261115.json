@@ -1,0 +1,31 @@
+{
+  "schema": "pie-phase3-persistent-route-revalidation-v1",
+  "timestamp_utc": "2026-11-15T22:06:11.7609795Z",
+  "status": "PASS_PREFLIGHT_PERSISTENT_ROUTES",
+  "model_started": false,
+  "quota_consumed": false,
+  "workspace": "C:/Users/phsra/OneDrive/Documents/ChatGPT/Korum/PIE-Local-MCP",
+  "route_workspace": "C:/Users/phsra/OneDrive/Documents/ChatGPT/Korum/PIE-Local-MCP",
+  "blender": {
+    "status": "PREFLIGHT_PASS",
+    "enabled_tools": ["get_addon_status", "get_scene_info"],
+    "other_mcp_servers": "disabled_in_profile",
+    "approval_policy": "never",
+    "sandbox": "read-only"
+  },
+  "web": {
+    "status": "PREFLIGHT_PASS",
+    "enabled_tools": ["browser_navigate", "browser_snapshot"],
+    "other_mcp_servers": "disabled_in_profile",
+    "approval_policy": "never",
+    "sandbox": "read-only",
+    "fixture_http": "PASS",
+    "fixture_url": "http://127.0.0.1:8766/index.html"
+  },
+  "commands": [
+    "tools/run_codex_mcp_restricted_probe.ps1 -PreflightOnly",
+    "tools/run_codex_mcp_restricted_web_probe.ps1 -PreflightOnly"
+  ],
+  "certification": "NOT_CERTIFIED",
+  "limitation": "Preflight verifies routing and MCP startup only; it does not execute a Codex model session or certify token savings."
+}

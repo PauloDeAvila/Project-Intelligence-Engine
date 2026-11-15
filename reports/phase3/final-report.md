@@ -75,6 +75,12 @@ para este checkout. O arquivo original foi preservado com SHA-256 registrado;
 Blender e Web passaram novamente no preflight sem iniciar modelo. O rollback
 está documentado no relatório [123-persistent-codex-routing-activation-20261115.json](123-persistent-codex-routing-activation-20261115.json).
 
+Uma revalidação posterior das rotas persistentes também passou para Blender e
+Web, sem iniciar modelo e sem consumir quota. O Blender expôs somente
+`get_addon_status` e `get_scene_info`; o Web expôs somente
+`browser_navigate` e `browser_snapshot`, com a fixture HTTP respondendo.
+Evidência: [124-persistent-route-revalidation-20261115.json](124-persistent-route-revalidation-20261115.json).
+
 O overhead estrutural de catálogo foi medido sem modelo: Blender reduziu
 `tools/list` de 18.982 para 3.792 caracteres e Web de 21.177 para 1.738.
 Esses valores são tamanho estrutural, não latência nem tokens cobrados. A
