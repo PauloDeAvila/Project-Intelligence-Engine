@@ -1,0 +1,33 @@
+{
+  "schema": "pie-phase3-cli-compatibility-v1",
+  "status": "OFFLINE_VALIDATED",
+  "codex_version": "codex-cli 0.169.0-alpha.11.1",
+  "help_observed": {
+    "sandbox_values": ["read-only", "workspace-write", "danger-full-access"],
+    "approve_for_me": true,
+    "approve_for_me_semantics": "Route approval requests through automatic review using the workspace-write sandbox"
+  },
+  "compatibility": {
+    "read_only_plus_approve_for_me": "incompatible; observed exit_code=2 in the authorized probe",
+    "read_only_without_approve_for_me": "argument combination accepted by CLI help; runtime MCP approval remains unverified",
+    "workspace_write_plus_approve_for_me": "consistent with CLI help; no model execution performed",
+    "danger_full_access": "not tested and not permitted by this phase"
+  },
+  "implementation": {
+    "executor_guard": "tools/run_codex_mcp_diagnostic.ps1",
+    "offline_validator": "tools/validate_codex_cli_compatibility.ps1",
+    "model_sessions": 0,
+    "quota_consumed": false,
+    "validator_result": "PASS",
+    "executor_guard_result": "PASS: invalid read-only + approve-for-me combination rejected before preflight/model start",
+    "compileall": "passed",
+    "pytest": {"passed": 536, "skipped": 5, "subtests": 133}
+  },
+  "pie_index": {
+    "available_index_status": "CURRENT",
+    "root_mismatch": true,
+    "expected_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+    "observed_root": "C:\\Users\\phsra\\Documents\\Codex\\2026-11-14\\contrato-de-uso-ativo-do-project"
+  },
+  "certification": "NOT_CERTIFIED"
+}

@@ -16,10 +16,15 @@ param(
     [int]$TimeoutSeconds = 240,
     [ValidateSet("never", "on-request", "untrusted", "unless-trusted")]
     [string]$ApprovalPolicy = "never",
+    [ValidateSet("read-only", "workspace-write", "danger-full-access")]
+    [string]$SandboxMode = "read-only",
     [switch]$ApproveForMe
 )
 $ErrorActionPreference = "Stop"
 if ($TimeoutSeconds -lt 20 -or $TimeoutSeconds -gt 3600) { throw "TimeoutSeconds must be between 20 and 3600" }
+if ($ApproveForMe -and $SandboxMode -eq "read-only") {
+    throw "Invalid Codex CLI combination: --approve-for-me selects workspace-write and cannot be combined with --sandbox read-only. Choose SandboxMode=workspace-write explicitly or omit ApproveForMe."
+}
 $workspacePath = (Resolve-Path -LiteralPath $Workspace).Path
 $homePath = (Resolve-Path -LiteralPath $CodexHome).Path
 $outputPath = [IO.Path]::GetFullPath($OutputDirectory)
@@ -40,10 +45,10 @@ if ($routeArgs -notmatch "pie\.gateway\.domain" -or $routeArgs -notmatch "--work
 $env:CODEX_HOME = $homePath
 $env:PIE_MCP_DIAGNOSTICS_PATH = $diagPath
 $prompt = "Use only the MCP server named pie-blender-optimized for Blender. Do not use node_repl or any other MCP server. Inspect the current scene with the Blender MCP tools. Read the selected object's material and its Principled BSDF roughness and metallic values. Reply with exactly this single line and nothing else: PIE_BLENDER_DIAGNOSTIC_ORACLE_44"
-$meta = [ordered]@{schema="pie-phase3-codex-mcp-diagnostic-v1";run_id=$runId;model=$Model;workspace=$workspacePath;codex_home=$homePath;diagnostics_path=$diagPath;stdout_path=$stdoutPath;stderr_path=$stderrPath;retries=0;preflight="PASS"}
+$meta = [ordered]@{schema="pie-phase3-codex-mcp-diagnostic-v1";run_id=$runId;model=$Model;workspace=$workspacePath;codex_home=$homePath;diagnostics_path=$diagPath;stdout_path=$stdoutPath;stderr_path=$stderrPath;retries=0;preflight="PASS";sandbox_mode=$SandboxMode}
 $meta | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $metaPath -Encoding UTF8
 $timer = [Diagnostics.Stopwatch]::StartNew()
-$codexArgs = @("exec", "--json", "--ephemeral", "--sandbox", "read-only",
+$codexArgs = @("exec", "--json", "--ephemeral", "--sandbox", $SandboxMode,
     "--cd", $workspacePath, "--model", $Model,
     "-c", "approval_policy=`"$ApprovalPolicy`"")
 if ($ApproveForMe) { $codexArgs += "--approve-for-me" }

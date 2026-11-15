@@ -35,6 +35,8 @@ Na Fase 3.7, o gateway foi validado offline com as duas ferramentas reais. O boo
 
 A Fase 3.10 confirmou que a versão instalada aceita políticas de aprovação temporárias e oferece `--approve-for-me` para `codex exec`. A sonda Fase 3.11 tentou `on-request` + `--approve-for-me`, mas o próprio CLI retornou `exit_code=2`: `the argument '--sandbox <SANDBOX_MODE>' cannot be used with '--approve-for-me'`. Resultado: 0 turnos do modelo, 0 tokens, 0 `tools/call` e nenhuma alteração persistente. Evidência detalhada: `28-approval-policy-probe.json`.
 
+A Fase 3.12 adicionou um guard no executor e um validador offline. O guard rejeita a combinação antes do preflight; o validador consulta apenas `codex exec --help`. O resultado foi `PASS`, sem modelo iniciado ou quota consumida. `read-only` sem `--approve-for-me` foi aceito apenas pela análise de argumentos; o comportamento de aprovação MCP em runtime continua não validado.
+
 ## Custos
 
 `null`: não foi fornecida tarifa verificável para `gpt-5.6-luna`. Quota/assinatura não foi convertida em preço.
@@ -46,4 +48,4 @@ A Fase 3.10 confirmou que a versão instalada aceita políticas de aprovação t
 3. Reexecutar somente os pares faltantes com nova autorização, pois o limite de 12 chamadas da autorização A/B foi consumido.
 4. Medir overhead real por operação e verificar inicialização contínua dos dois gateways.
 
-Relatórios detalhados: [`09-blender-real-ab.json`](09-blender-real-ab.json), [`10-web-real-ab.json`](10-web-real-ab.json), [`11-token-certification.json`](11-token-certification.json), [`12-cost-efficiency.json`](12-cost-efficiency.json), [`14-offline-root-cause.md`](14-offline-root-cause.md), [`22-codex-mcp-probe-result.json`](22-codex-mcp-probe-result.json), [`23-mcp-offline-forensics.md`](23-mcp-offline-forensics.md), [`24-mcp-bootstrap-validation.json`](24-mcp-bootstrap-validation.json) e [`25-mcp-offline-integration.json`](25-mcp-offline-integration.json).
+Relatórios detalhados: [`09-blender-real-ab.json`](09-blender-real-ab.json), [`10-web-real-ab.json`](10-web-real-ab.json), [`11-token-certification.json`](11-token-certification.json), [`12-cost-efficiency.json`](12-cost-efficiency.json), [`14-offline-root-cause.md`](14-offline-root-cause.md), [`22-codex-mcp-probe-result.json`](22-codex-mcp-probe-result.json), [`23-mcp-offline-forensics.md`](23-mcp-offline-forensics.md), [`24-mcp-bootstrap-validation.json`](24-mcp-bootstrap-validation.json), [`25-mcp-offline-integration.json`](25-mcp-offline-integration.json), [`28-approval-policy-probe.json`](28-approval-policy-probe.json) e [`29-cli-compatibility.json`](29-cli-compatibility.json).

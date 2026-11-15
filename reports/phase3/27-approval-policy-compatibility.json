@@ -19,6 +19,6 @@
     "default_behavior_preserved": true,
     "dangerously_bypass_approvals_and_sandbox": false
   },
-  "recommendation": "For the next separately authorized single probe, use ApprovalPolicy=on-request with ApproveForMe. Keep sandbox read-only and do not alter config.toml. Do not run A/B yet.",
+  "recommendation": "Do not combine ApproveForMe with the executor's read-only sandbox. For a future authorized probe, choose either on-request with read-only and an interactive approval mechanism, or ApproveForMe with its workspace-write sandbox after explicit review. Do not run A/B yet.",
   "status": "READY_FOR_CONTROLLED_APPROVAL_PROBE"
 }
