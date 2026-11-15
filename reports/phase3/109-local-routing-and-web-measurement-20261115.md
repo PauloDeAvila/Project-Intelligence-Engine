@@ -130,6 +130,28 @@ Repetição local posterior (3 pares, ordem alternada): `C:\Users\phsra\AppData\
 - Zero recuperações e hashes de resposta idênticos.
 - A amostra confirma estabilidade/neutralidade desta fixture, não economia.
 
+### Modo `model_target` — Blender real
+
+O novo modo permite que o Qwen escolha somente `target_index`; o código
+escolhe deterministicamente a ferramenta exata autorizada para cada braço.
+O modo `model` legado permanece disponível e continua falhando fechado quando
+o modelo escolhe a ferramenta ampla.
+
+Execução: `C:\Users\phsra\AppData\Local\Temp\pie-blender-multi-choice-45e7dcdc55e4.json`.
+Foi usada a fixture Blender 5.3, porta isolada `9991`, Ollama `qwen3:4b`,
+`num_ctx=8192`, três tarefas, sessões MCP persistentes e sem retries.
+
+- 3/3 pares válidos, 6/6 oráculos aprovados e uma chamada MCP por braço.
+- Cada braço: 137 tokens de entrada + 11 de saída = 148 tokens de planejamento.
+- Economia de planejamento: **0,0%**.
+- O modo eliminou a decisão insegura da ferramenta, mas não reduziu tokens
+  nesta tarefa porque a seleção de alvo permaneceu equivalente nos dois braços.
+
+A tentativa anterior em `9987` foi preservada em
+`C:\Users\phsra\AppData\Local\Temp\pie-blender-multi-choice-655ef1f6fc27.json`:
+timeout de inicialização MCP por porta ocupada, sem modelo ou chamada MCP
+concluída; não foi usada como evidência de economia.
+
 ## Validação de código
 
 Comando:

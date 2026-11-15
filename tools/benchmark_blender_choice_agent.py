@@ -58,6 +58,12 @@ SYSTEM = (
     "Reply with exactly one JSON object containing integer tool_index "
     "and target_index. No tool call, explanation, object data, or code."
 )
+TARGET_SYSTEM = (
+    "You are a strict target index selector. A target name is given in the TASK. "
+    "Select the candidate whose name exactly matches that target. "
+    "Reply with exactly one JSON object containing integer target_index. "
+    "No tool_index, explanation, object data, or code."
+)
 
 
 PLAN_ERROR_CODES = {
@@ -81,6 +87,23 @@ class ChoicePlanError(AgentPlanError):
         self.plan_sha256 = plan_sha256
         self.indices = indices
         self.model_request_attempted = model_request_attempted
+
+
+def _parse_target_plan(response: dict, *, target_count: int) -> int:
+    message = response.get("message") if isinstance(response, dict) else None
+    content = message.get("content") if isinstance(message, dict) else None
+    if not isinstance(content, str):
+        raise AgentPlanError("Ollama did not return planning JSON")
+    try:
+        plan = json.loads(content)
+    except json.JSONDecodeError as exc:
+        raise AgentPlanError("Planning response is not JSON") from exc
+    if not isinstance(plan, dict) or set(plan) != {"target_index"}:
+        raise AgentPlanError("Planning response must contain only target_index")
+    index = plan["target_index"]
+    if type(index) is not int or not 0 <= index < target_count:
+        raise AgentPlanError("Invalid target index")
+    return index
 
 
 def safe_plan_failure(exc: AgentPlanError, condition: str) -> dict:
@@ -226,6 +249,68 @@ def plan_choice(model: str, catalog: list[dict], task: dict, *,
     }
 
 
+def plan_target_choice(model: str, catalog: list[dict], task: dict, *,
+                       num_ctx: int = 8192, timeout: int = 240) -> dict:
+    """Let the model choose only a target; code selects the safe exact tool."""
+    target, candidates = validate_task(task)
+    if len(catalog) != 2:
+        raise ChoicePlanError("INVALID_CATALOG_SIZE")
+    choices = [{"index": index, "name": name}
+               for index, name in enumerate(candidates)]
+    messages = [
+        {"role": "system", "content": TARGET_SYSTEM},
+        {"role": "user", "content":
+         "TASK: Look up object named " + json.dumps(target) +
+         ". CANDIDATES=" + compact_json(choices)},
+    ]
+    payload = {"model": model, "messages": messages, "stream": False,
+               "format": "json", "think": False,
+               "options": {"temperature": 0, "seed": 42, "num_ctx": num_ctx,
+                           "num_predict": 32}}
+    wire = compact_json(payload).encode("utf-8")
+    if len(wire) > 100_000:
+        raise ChoicePlanError("PLANNING_PAYLOAD_OVERSIZED")
+    started = time.perf_counter()
+    try:
+        with urlopen(Request(OLLAMA_URL, wire,
+                             {"Content-Type": "application/json"}, method="POST"),
+                     timeout=timeout) as response:
+            body = json.loads(response.read(500_000))
+    except (URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
+        raise ChoicePlanError(
+            "OLLAMA_TRANSPORT_FAILURE", model_request_attempted=True) from exc
+    usage = _provider_usage(body)
+    message = body.get("message") if isinstance(body, dict) else None
+    response_text = message.get("content") if isinstance(message, dict) else None
+    fingerprint = sha(response_text) if isinstance(response_text, str) else None
+    if usage["input_tokens"] >= num_ctx - 64:
+        raise ChoicePlanError(
+            "POSSIBLE_CONTEXT_TRUNCATION", usage=usage,
+            plan_sha256=fingerprint, model_request_attempted=True)
+    try:
+        target_index = _parse_target_plan(body, target_count=len(candidates))
+    except AgentPlanError as exc:
+        code = str(exc)
+        code = {
+            "Ollama did not return planning JSON": "MISSING_TARGET_PLAN_CONTENT",
+            "Planning response is not JSON": "INVALID_TARGET_PLAN_JSON",
+            "Planning response must contain only target_index": "INVALID_TARGET_PLAN_SHAPE",
+            "Invalid target index": "INVALID_TARGET_INDEX",
+        }.get(code, "INVALID_TARGET_PLAN")
+        raise ChoicePlanError(code, usage=usage, plan_sha256=fingerprint,
+                              model_request_attempted=True) from exc
+    if candidates[target_index] != target:
+        raise ChoicePlanError(
+            "WRONG_TARGET_SELECTED", usage=usage, plan_sha256=fingerprint,
+            indices=(0, target_index), model_request_attempted=True)
+    return {
+        "target_index": target_index, "usage": usage,
+        "planning_ms": round((time.perf_counter() - started) * 1000, 3),
+        "plan_sha256": fingerprint,
+        "routing_strategy": "OLLAMA_MODEL_TARGET_ONLY",
+    }
+
+
 def deterministic_choice(catalog: list[dict], task: dict, condition: str) -> dict:
     """Use the reusable PIE exact router before any model call.
 
@@ -301,6 +386,14 @@ class ChoiceMcpSession:
             plan = deterministic_choice(catalog, task, self.condition)
         elif route_mode == "model":
             plan = plan_choice(model, catalog, task, num_ctx=num_ctx, timeout=timeout)
+        elif route_mode == "model_target":
+            target_plan = plan_target_choice(model, catalog, task,
+                                              num_ctx=num_ctx, timeout=timeout)
+            exact_indices = [index for index, spec in enumerate(catalog)
+                             if spec.get("name") == SELECTED_TOOL[self.condition]]
+            if len(exact_indices) != 1:
+                raise ChoicePlanError("EXACT_TOOL_NOT_AVAILABLE")
+            plan = {**target_plan, "tool_index": exact_indices[0]}
         else:
             raise ValueError("Unknown routing mode")
         selected_tool = catalog[plan["tool_index"]]["name"]
@@ -324,9 +417,9 @@ class ChoiceMcpSession:
         oracle = parsed == independent_fixture_oracle(target)
         return {
             "condition": self.condition, "task_id": task["task_id"],
-            "model": model if route_mode == "model" else None,
+            "model": model if route_mode in ("model", "model_target") else None,
             "plan_valid": True,
-            "model_plan_valid": True if route_mode == "model" else None,
+            "model_plan_valid": True if route_mode in ("model", "model_target") else None,
             "oracle_pass": oracle,
             "tool_index": plan["tool_index"], "target_index": plan["target_index"],
             "selected_tool": selected_tool, "mcp_calls": 1,
@@ -335,9 +428,9 @@ class ChoiceMcpSession:
             "answer_sha256": sha(answer),
             "plan_sha256": plan["plan_sha256"],
             "usage": plan["usage"], "planning_ms": plan["planning_ms"],
-            "routing_strategy": ("DETERMINISTIC_EXACT_MATCH_NO_MODEL"
-                                  if route_mode == "deterministic"
-                                  else "OLLAMA_MODEL_INDEX_SELECTION"),
+            "routing_strategy": plan.get("routing_strategy") or
+            ("DETERMINISTIC_EXACT_MATCH_NO_MODEL"
+             if route_mode == "deterministic" else "OLLAMA_MODEL_INDEX_SELECTION"),
             "provider_requests": 0 if route_mode == "deterministic" else 1,
             "total_ms": round((time.perf_counter() - started) * 1000, 3),
         }
@@ -387,9 +480,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--optimized-profile", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--model", default="qwen3:4b")
-    parser.add_argument("--route-mode", choices=("deterministic", "model"),
+    parser.add_argument("--route-mode", choices=("deterministic", "model", "model_target"),
                         default="deterministic",
-                        help="deterministic: exact-name fast path, zero model requests; model: strict legacy Qwen planning")
+                        help="deterministic: exact-name fast path; model: legacy tool+target planning; model_target: Qwen chooses target only")
     parser.add_argument("--num-ctx", type=int, default=8192)
     parser.add_argument("--max-tasks", type=int, default=3)
     parser.add_argument("--timeout", type=int, default=240)
@@ -402,13 +495,13 @@ def main(argv: list[str] | None = None) -> int:
     workspace = options.workspace.resolve(strict=True)
     profiles = {"baseline": options.baseline_profile.resolve(strict=True),
                 "optimized": options.optimized_profile.resolve(strict=True)}
-    if options.route_mode == "model":
+    if options.route_mode in ("model", "model_target"):
         ensure_local_model(options.model)
     report = {
         "schema": "pie-blender-multi-choice-v1",
-        "method": "one_model_index_decision_per_arm_then_exact_mcp_then_source_renderer",
+        "method": "one_routing_decision_per_arm_then_exact_mcp_then_source_renderer",
         "fixture": "64 deterministic Blender cubes, 3 tasks, 2 tools per arm",
-        "model": options.model if options.route_mode == "model" else None,
+        "model": options.model if options.route_mode in ("model", "model_target") else None,
         "route_mode": options.route_mode,
         "execution_schedule": ["baseline_batch", "optimized_batch"],
         "schedule_reason": "Blender addon exposes one shared upstream port; arms are isolated sequentially",
