@@ -1,0 +1,43 @@
+{
+  "state": "BLOCKED",
+  "checks": {
+    "scenario": "PASS",
+    "condition": "PASS",
+    "worktree": {
+      "state": "PASS",
+      "commit": "efee3658f1ad138ec8a1578a9e1408374b19bcf7"
+    },
+    "config": "PASS",
+    "profile": "PASS",
+    "codex_executable": "PASS",
+    "model": "PASS",
+    "mcp": {
+      "state": "PASS",
+      "required_server": "playwright-baseline"
+    },
+    "mcp_tools": {
+      "state": "FAIL",
+      "expected": [
+        "browser_navigate",
+        "browser_snapshot"
+      ],
+      "configured": null
+    },
+    "mcp_command": "PASS",
+    "gateway_workspace": "NOT_APPLICABLE",
+    "mcp_runtime": {
+      "state": "PASS",
+      "enabled_servers": [
+        "playwright-baseline"
+      ]
+    },
+    "authentication": {
+      "state": "AUTH_VALIDATED_LOCAL"
+    }
+  },
+  "errors": [
+    "PRECHECK_MCP_ISOLATION_FAILED"
+  ],
+  "model": "gpt-5.6-luna",
+  "condition": "baseline"
+}
