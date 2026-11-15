@@ -46,13 +46,15 @@ def parse_codex_jsonl(source:str)->dict:
             "source":"codex_exec_json_turn_completed","provider_reported":True}
 
 def validate_scenario(s:dict)->dict:
-    allowed={"scenario_id","prompt","expected_exact","model","description","required_mcp_server"}
+    allowed={"scenario_id","prompt","expected_exact","model","description","required_mcp_server","oracle"}
     if not isinstance(s,dict) or set(s)-allowed:
         raise ValueError("Invalid scenario fields")
     if any(not isinstance(s.get(k),str) or not s[k].strip() for k in ("scenario_id","prompt","expected_exact","model")):
         raise ValueError("Scenario needs ID, prompt, expected exact answer, model")
     if "CONFIGURE_BEFORE_USE" in s["model"] or len(s["prompt"])>12000 or len(s["expected_exact"])>4000:
         raise ValueError("Unconfigured or oversized scenario")
+    if "oracle" in s and (not isinstance(s["oracle"],dict) or not isinstance(s["oracle"].get("kind"),str)):
+        raise ValueError("Invalid oracle specification")
     return s
 
 def _auth_state(home:Path, executable:str, env:dict)->str:
@@ -207,9 +209,11 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
     env,configsha=_codex_environment(Path(codex_home),profile=profile)
     run_id=_capture_run_id(scenario,condition,repetition)
     pair_id=_capture_pair_id(scenario)
+    expected_server=_expected_mcp_server(scenario,condition)
     env.update({"PIE_RUN_ID":run_id,"PIE_PAIR_ID":pair_id,
                 "PIE_TASK_ID":scenario["scenario_id"],"PIE_CONDITION":condition,
-                "PIE_APP":_scenario_app(scenario),"PIE_SCENARIO_ID":scenario["scenario_id"]})
+                "PIE_APP":_scenario_app(scenario),"PIE_SCENARIO_ID":scenario["scenario_id"],
+                "PIE_GATEWAY_SERVER":expected_server or ""})
     telemetry_store=_telemetry_store(workspace)
     telemetry_store.mkdir(parents=True,exist_ok=True)
     env["PIE_GLOBAL_STORAGE_ROOT"]=str(telemetry_store)
@@ -234,7 +238,6 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
         raise RuntimeError("Codex execution unavailable/timeout") from ex
     if run.returncode:raise RuntimeError(f"Codex failed with exit code {run.returncode}; no certification")
     parsed=parse_codex_jsonl(run.stdout)
-    expected_server=_expected_mcp_server(scenario,condition)
     if not parsed["mcp_tools"]:
         raise RuntimeError("MCP route evidence unavailable; no mcp_tool_call records")
     if expected_server is not None and any(

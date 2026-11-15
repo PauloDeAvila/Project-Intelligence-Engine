@@ -1,0 +1,15 @@
+{
+  "scenario_id": "blender-material-cert-v1",
+  "description": "Read selected disposable Blender fixture and inspect material properties without mutation.",
+  "model": "gpt-5.6-luna",
+  "required_mcp_server": "blender",
+  "prompt": "Use only the configured Blender MCP server. Read the selected object's material properties without changing the scene. Reply with exactly: PIE_BLENDER_CERT_ORACLE_V1",
+  "expected_exact": "PIE_BLENDER_CERT_ORACLE_V1",
+  "oracle": {
+    "kind": "blender_material_properties",
+    "object_name": "PIE_AB_Cube",
+    "material_name": "PIE_AB_Material",
+    "roughness": 0.35,
+    "metallic": 0.2
+  }
+}

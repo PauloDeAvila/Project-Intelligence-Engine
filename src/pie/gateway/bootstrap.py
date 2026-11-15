@@ -43,7 +43,7 @@ def event(name: str, **fields: Any) -> None:
     if path is None:
         return
     row = {"ts_utc": datetime.now(timezone.utc).isoformat(), "event": name, "pid": os.getpid()}
-    for key in ("PIE_RUN_ID", "PIE_PAIR_ID", "PIE_TASK_ID", "PIE_CONDITION", "PIE_SCENARIO_ID"):
+    for key in ("PIE_RUN_ID", "PIE_PAIR_ID", "PIE_TASK_ID", "PIE_CONDITION", "PIE_SCENARIO_ID", "PIE_GATEWAY_SERVER"):
         value=os.environ.get(key)
         if value:
             row[key.lower().replace("pie_", "")]=value[:120]
