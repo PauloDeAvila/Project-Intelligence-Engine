@@ -70,3 +70,5 @@ uv run python -m pie.certification.controller single `
 ## Próxima ação
 
 Não executar optimized. Corrigir ou restaurar a fixture Blender de forma autorizada, gerar um novo par e repetir somente após o oráculo independente passar. Esta execução permanece evidência de dispatch/usage, mas está excluída de qualquer cálculo A/B.
+
+Validação posterior do checkout: `uv run python -m unittest discover -s tests -q` — `564` testes passaram, `5` ignorados.
