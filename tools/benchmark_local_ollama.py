@@ -95,6 +95,16 @@ def fixture_pass(scenario: dict, responses: list[dict]) -> bool:
     if scenario["application"] == "blender":
         expected = json.loads(scenario["expected_exact"])
         for result in responses:
+            # The experimental exact-object contract uses one JSON text payload.
+            for part in result.get("content", []):
+                if not isinstance(part, dict) or not isinstance(part.get("text"), str):
+                    continue
+                try:
+                    direct = json.loads(part["text"])
+                except json.JSONDecodeError:
+                    continue
+                if direct == expected:
+                    return True
             structured = result.get("structuredContent")
             if isinstance(structured, dict) and isinstance(structured.get("items"), list):
                 for item in structured["items"]:
@@ -122,11 +132,16 @@ def fixture_pass(scenario: dict, responses: list[dict]) -> bool:
     return all(text in visible for text in required)
 
 
-def _tool_calls(application: str, condition: str) -> list[tuple[str, dict]]:
+def _tool_calls(application: str, condition: str,
+                blender_mode: str = "query") -> list[tuple[str, dict]]:
     if application == "blender":
         if condition == "baseline":
             return [("execute_blender_code", {"code": BLENDER_CODE})]
-        return [("pie_blender_query_scene", BLENDER_QUERY)]
+        if blender_mode == "exact":
+            return [("pie_blender_get_object", {"name": "PIE_Large_Cube_00"})]
+        if blender_mode == "query":
+            return [("pie_blender_query_scene", BLENDER_QUERY)]
+        raise ValueError("Invalid Blender benchmark mode")
     return [("browser_navigate", {"url": WEB_URL}), ("browser_snapshot", {})]
 
 
@@ -199,7 +214,7 @@ def _visible_tool_schemas(tools: list[dict], config: dict,
 
 
 def collect_mcp(profile: Path, workspace: Path, scenario: dict, condition: str,
-                schema_scope: str = "profile") -> dict:
+                schema_scope: str = "profile", blender_mode: str = "query") -> dict:
     app = scenario["application"]
     config, server, args, configured_env = _profile(profile, workspace)
     if server != EXPECTED_SERVERS[app][condition]:
@@ -219,7 +234,7 @@ def collect_mcp(profile: Path, workspace: Path, scenario: dict, condition: str,
         tools = _check_response(probe.call(2, "tools/list", {}), "tools/list").get("tools", [])
         if not isinstance(tools, list):
             raise RuntimeError("Invalid MCP tools/list response")
-        calls = _tool_calls(app, condition)
+        calls = _tool_calls(app, condition, blender_mode=blender_mode)
         available = {tool.get("name") for tool in tools if isinstance(tool, dict)}
         if any(name not in available for name, _ in calls):
             raise RuntimeError("Required MCP tool not exposed")
@@ -333,6 +348,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--num-ctx", type=int, default=16384)
     parser.add_argument("--schema-scope", choices=("profile", "server"), default="profile",
                         help="profile: advertise only enabled_tools; server: raw tools/list legacy replay")
+    parser.add_argument("--blender-mode", choices=("query", "exact"), default="query",
+                        help="exact is an experimental four-field lookup; query preserves legacy comparison")
     parser.add_argument("--timeout", type=int, default=240)
     parser.add_argument("--probe-only", action="store_true")
     parser.add_argument("--output", type=Path, required=True)
@@ -354,6 +371,7 @@ def main(argv: list[str] | None = None) -> int:
               "model": None if args.probe_only else args.model, "provider": "local_ollama",
               "methodology": "deterministic_mcp_tool_replay_not_codex_agent",
               "schema_scope": args.schema_scope,
+              "blender_mode": args.blender_mode if scenario["application"] == "blender" else None,
               "codex_sessions_started": 0, "codex_quota_consumed": False,
               "codex_certification": "NOT_CERTIFIED", "runs": []}
     for rep in range(1, args.repetitions + 1):
@@ -361,7 +379,7 @@ def main(argv: list[str] | None = None) -> int:
         pair = {"repetition": rep, "order": list(order), "arms": {}}
         for condition in order:
             obs = collect_mcp(profiles[condition], workspace, scenario, condition,
-                              schema_scope=args.schema_scope)
+                              schema_scope=args.schema_scope, blender_mode=args.blender_mode)
             arm = {key: value for key, value in obs.items() if key not in {"schema_json", "observations_json"}}
             if not args.probe_only:
                 arm.update(run_local_model(scenario, obs, args.model, args.timeout, args.num_ctx))
