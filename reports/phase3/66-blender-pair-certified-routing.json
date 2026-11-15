@@ -1,0 +1,54 @@
+{
+  "schema": "pie-phase3-blender-pair-routing-v1",
+  "status": "VALID_PAIR_ROUTING",
+  "application": "blender",
+  "scenario_id": "blender-material-cert-v1",
+  "pair_id": "pair-deda0256ba284175ade5d58d",
+  "baseline_run_id": "baseline-f073f14415ad490fa15490ef",
+  "optimized_run_id": "optimized-e84764ba0fa64ef08d2cb5c6",
+  "same_model": "gpt-5.6-luna",
+  "same_prompt_sha256": "1712111b5774e4c2ecb3be84623d568b2013e7a5ad6b3469ebe61da218ae74da",
+  "same_workspace_commit": "a95760a9ca0ef53088ae6b2375d9b9571fd3a12b",
+  "baseline": {
+    "input_tokens": 58889,
+    "cached_input_tokens": 35840,
+    "uncached_input_tokens": 23049,
+    "output_tokens": 685,
+    "reasoning_output_tokens": 209,
+    "total_tokens": 59574,
+    "duration_ms": 17451.21,
+    "mcp_calls": 2,
+    "oracle_pass": true,
+    "route_decision": "VALID"
+  },
+  "optimized": {
+    "input_tokens": 111291,
+    "cached_input_tokens": 94336,
+    "uncached_input_tokens": 16955,
+    "output_tokens": 758,
+    "reasoning_output_tokens": 211,
+    "total_tokens": 112049,
+    "duration_ms": 20743.83,
+    "mcp_calls": 2,
+    "oracle_pass": true,
+    "route_decision": "VALID"
+  },
+  "savings": {
+    "input_percent": -88.98436040686715,
+    "uncached_input_percent": 26.439324916482278,
+    "total_percent": -88.08372780071842,
+    "latency_delta_ms": 3292.62,
+    "latency_delta_percent": 18.867574225512172,
+    "mcp_call_delta": 0
+  },
+  "cost": {
+    "status": "unavailable",
+    "total_estimated": null
+  },
+  "evidence": {
+    "baseline": "reports/phase3/62-single-baseline-blender-fixed-result-record.json",
+    "optimized": "reports/phase3/66-single-optimized-blender-correlation-result-record.json",
+    "optimized_result": "reports/phase3/66-single-optimized-blender-correlation-result.json",
+    "optimized_ledger": "reports/phase3/66-single-optimized-blender-correlation-result-budget-ledger.json"
+  }
+}

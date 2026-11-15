@@ -2,11 +2,14 @@
 
 ## Veredito
 
-**NOT_CERTIFIED — o par Blender atual não é certificável.** A baseline corrigida passou uso do provedor, ferramentas esperadas e oráculo independente. A sessão optimized executou o modelo e as duas ferramentas pelo servidor `pie-blender-optimized`, mas não produziu correlação exata no lifecycle próprio do gateway. O controlador preservou os artefatos, marcou a sessão como falha de certificação e não fez retry.
+**NOT_CERTIFIED — roteamento Blender validado, economia A/B ainda não certificada.** A baseline corrigida e uma nova sessão optimized passaram uso do provedor, ferramentas esperadas, oráculos e correlação lifecycle exata. Porém, este é apenas um par válido e o resultado optimized aumentou os tokens totais.
 
 Os números A/B históricos abaixo são mantidos como evidência preliminar e não devem ser confundidos com o piloto atual. Eles não promovem a certificação porque não satisfazem a cobertura causal e de correlação exigida.
 
 O par usou o mesmo modelo, esforço, prompt, commit e estado inicial. A baseline foi válida; a optimized tem uso real e oráculo textual/Blender aprovados, mas route evidence `INSUFFICIENT_EVIDENCE`. Não houve execução Web nesta etapa nem retry automático.
+
+O par corrigido posterior passou route evidence. A tentativa anterior permanece preservada como
+`INSUFFICIENT_EVIDENCE` e não foi promovida nem usada nos cálculos.
 
 ## Par Blender corrigido — 2026-11-15
 
@@ -28,7 +31,24 @@ caminho de telemetria. A correção foi validada sem iniciar modelo ou consumir 
 [`65-runtime-profile-correlation-fix.json`](65-runtime-profile-correlation-fix.json).
 
 Ainda falta uma nova sonda real para provar a correlação no gateway. A execução otimizada
-anterior não foi repetida automaticamente.
+anterior foi seguida por uma sonda corrigida, que passou a correlação exata. Evidência:
+[`66-single-optimized-blender-correlation.md`](66-single-optimized-blender-correlation.md) e
+[`66-blender-pair-certified-routing.json`](66-blender-pair-certified-routing.json).
+
+## Par Blender com roteamento certificado
+
+| Condição | Input | Cache | Uncached | Output | Total | Latência | MCP | Oráculo | Rota |
+|---|---:|---:|---:|---:|---:|---:|---:|---|---|
+| Baseline | 58,889 | 35,840 | 23,049 | 685 | 59,574 | 17,451.210 ms | 2 | PASS | VALID |
+| Optimized | 111,291 | 94,336 | 16,955 | 758 | 112,049 | 20,743.830 ms | 2 | PASS | VALID |
+
+Economia input: **-88.984360%**. Economia de input não armazenado em cache: **26.439325%**.
+Economia total: **-88.083728%**. Latência: **+3,292.620 ms (+18.867574%)**.
+O PIE reduziu o input não-cacheado, mas aumentou o custo total reportado pelo provedor neste
+par. Isso é um resultado desfavorável válido e não deve ser descartado.
+
+Auditoria independente do registro otimizado: [`66-route-audit.json`](66-route-audit.json),
+resultado `EVIDENCE_CERTIFIED`.
 
 ## A/B estrito (repetições 2 e 3)
 
