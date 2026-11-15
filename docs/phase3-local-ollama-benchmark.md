@@ -200,3 +200,33 @@ falhar o oráculo*, mas a comparação formal deve usar o baseline
 recapturado do próprio relatório exact (o prompt local foi alterado).
 Repetições iguais na fixture determinística são evidência de estabilidade
 local, não de generalização estatística ou certificação Codex.
+
+
+## Integridade do resultado: modelo alterou um identificador
+
+Em 15/11, o Blender 5.3 real retornou o JSON correto no modo exact,
+mas Qwen3:4B mudou PIE_Large_Cube_00 para PIE_Large_Cube_0:00.
+O modelo consumiu 419 tokens, porém o oráculo falhou: **não há economia
+válida nesse par**. Falhar o oráculo interrompe os demais pares sem retry.
+
+A partir desta alteração, no modo exact/optimized, o runner produz
+internamente uma representação canônica **derivada apenas do MCP**,
+validando quatro campos e o nome solicitado. O renderer preserva os
+bytes sem redigitação do modelo. Ele não lê expected_exact para montar
+o resultado nem insere a resposta correta no prompt.
+
+O relatório diferencia:
+- oracle_pass: qualidade da resposta **gerada pelo modelo**. Continua
+  FAIL quando o Qwen alterar nomes, sem reparos ou segunda tentativa.
+- source_oracle_pass: qualidade dos dados obtidos **diretamente do MCP**.
+- model_vs_source_equal e model_mismatch_fields: divergência do modelo
+  em relação à evidência, sem registrar dados brutos.
+- source_answer_sha256: fingerprint da resposta canônica do MCP.
+
+A fonte canônica pode ser usada por consumidores de ferramentas que
+precisem apresentar valores exatos sem repassá-los por geração textual.
+Isso não é um resultado do modelo e **não pode ser somado a sua taxa
+de acerto ou contabilizado como economia válida**.
+
+O runner permanece um replay local; a integração dessa renderização
+a um agente de produção exige outro teste, separado do A/B Codex.
