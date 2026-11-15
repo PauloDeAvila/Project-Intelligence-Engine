@@ -1,0 +1,61 @@
+{
+  "schema": "pie-phase3-local-ollama-summary-v1",
+  "certification": {
+    "status": "NOT_CERTIFIED",
+    "reason": "Local Ollama measurements are not Codex provider certification",
+    "codex_sessions_started": 0,
+    "codex_quota_consumed": false
+  },
+  "provider": {
+    "name": "local_ollama",
+    "model": "qwen3:4b",
+    "context": 8192,
+    "usage_source": "Ollama prompt_eval_count and eval_count"
+  },
+  "applications": {
+    "web_large_fixture": {
+      "scenario": "web-large-page-cert-v1",
+      "valid_pairs": 3,
+      "oracle_passes": 6,
+      "baseline_total_tokens": 9259,
+      "optimized_total_tokens": 4417,
+      "total_savings_percent": 52.295,
+      "input_savings_percent": 53.017,
+      "recovery_calls": 0,
+      "observation_chars": {
+        "baseline": [8006, 8061, 8061],
+        "optimized": [2905, 2774, 2774]
+      },
+      "status": "VALID_LOCAL_PAIRS"
+    },
+    "web_small_fixture": {
+      "scenario": "web-local-page-cert-v2",
+      "valid_pairs": 3,
+      "oracle_passes": 6,
+      "baseline_total_tokens": 2502,
+      "optimized_total_tokens": 2502,
+      "total_savings_percent": 0.0,
+      "input_savings_percent": 0.0,
+      "recovery_calls": 0,
+      "status": "VALID_LOCAL_PAIRS_NO_GAIN"
+    },
+    "blender_query": {
+      "scenario": "blender-selective-location-v3",
+      "valid_pairs": 3,
+      "oracle_passes": 6,
+      "baseline_total_tokens": 1941,
+      "optimized_total_tokens": 2340,
+      "total_savings_percent": -20.556,
+      "input_savings_percent": -22.774,
+      "status": "VALID_LOCAL_PAIRS_REGRESSION"
+    }
+  },
+  "coverage": {
+    "mcp_routing": "verified locally",
+    "persistent_session_lifecycle": "verified locally",
+    "provider_usage": "verified for Ollama only",
+    "structured_content": "not certified for Codex billing",
+    "real_codex_ab": "pending quota and provider execution"
+  },
+  "evidence_report": "reports/phase3/109-local-routing-and-web-measurement-20261115.md"
+}
