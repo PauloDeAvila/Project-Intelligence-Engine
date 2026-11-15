@@ -254,6 +254,12 @@ O probe foi repetido após carregar uma fixture descartável real no Blender 5.3
 
 ## Próximos passos seguros
 
+## Revalidação final sem modelo — 2026-11-15
+
+Os perfis baseline e optimized passaram novamente por `initialize`, `tools/list` e `tools/call` usando a fixture descartável real do Blender 5.3. O baseline expôs 10 ferramentas e o optimized expôs somente `pie_blender_query_scene`; ambos localizaram `PIE_Large_Cube_00` e retornaram `structuredContent`. A tentativa proibida de `get_scene_info` foi rejeitada por `PIE_TOOL_NOT_EXPOSED` antes do upstream. Nenhuma sessão de modelo ou quota foi consumida. Evidência: [`86-no-model-profile-revalidation.md`](86-no-model-profile-revalidation.md).
+
+O preflight passou a validar a identidade da árvore `src/`, permitindo commits posteriores apenas de relatórios sem invalidar perfis. A suíte completa foi executada novamente: `583` aprovados e `5` ignorados. Tokens reais de provedor e economia A/B continuam pendentes; o veredito permanece `NOT_CERTIFIED`.
+
 1. Escolher, com nova autorização, uma combinação de aprovação suportada pela versão instalada: ou `--approve-for-me` sem `--sandbox`, ou uma sessão interativa `on-request` que aceite a aprovação manual. Não remover proteções indiscriminadamente.
 2. Fazer cada captura Codex autorizada usar `--telemetry-workspace`, para que o import validado ocorra automaticamente no mesmo fluxo da execução.
 3. Corrigir offline a captura Codex→MCP e repetir somente uma sonda controlada antes de retomar os pares; a bateria atual foi interrompida na primeira captura.
