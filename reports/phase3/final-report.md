@@ -27,7 +27,7 @@ Valores `B/O` são baseline/optimized. A economia de input não armazenado em ca
 
 ## Testes
 
-`pytest`: **543 passed, 5 skipped, 133 subtests** (via `uv run --with pytest python -m pytest -q`). A execução sem o caso HTTP intermitente conhecido passou anteriormente com **537 passed, 5 skipped, 1 deselected, 133 subtests**. `compileall`: passou. O preflight agora bloqueia overlays com workspace divergente. O status local do checkout retornou `CURRENT`, com `workspace_match=true` e `index_root` igual a `workspace_root`. O servidor PIE MCP disponível nesta sessão continua reportando outra raiz (`C:\\Users\\phsra\\Documents\\Codex\\2026-11-14\\contrato-de-uso-ativo-do-project`), portanto não foi tratado como evidência deste checkout. Evidência adicional: `50-offline-controller-acceptance.json`.
+`pytest`: **544 passed, 5 skipped, 133 subtests** (via `uv run --with pytest python -m pytest -q`). A execução sem o caso HTTP intermitente conhecido passou anteriormente com **537 passed, 5 skipped, 1 deselected, 133 subtests**. `compileall`: passou. O preflight agora bloqueia overlays com workspace divergente. O status local do checkout retornou `CURRENT`, com `workspace_match=true` e `index_root` igual a `workspace_root`. O servidor PIE MCP disponível nesta sessão continua reportando outra raiz (`C:\\Users\\phsra\\Documents\\Codex\\2026-11-14\\contrato-de-uso-ativo-do-project`), portanto não foi tratado como evidência deste checkout. Evidência adicional: `50-offline-controller-acceptance.json`.
 
 A revalidação da configuração confirmou `pie-blender-optimized` e `pie-web-optimized` no checkout correto, preservando `blender` e `node_repl`. O detalhe sanitizado e o hash do arquivo estão em `43-routing-state-revalidation.json`. A auditoria SQLite posterior confirmou 3 imports baseline e 3 optimized por domínio, mas apenas 2 pares estritamente comparáveis por domínio; a distinção está em `44-telemetry-count-audit.json`.
 
@@ -42,6 +42,8 @@ A matriz individual das 12 execuções históricas classificou `0 VALID`, `0 INV
 O controlador offline, o manifesto 4+8 e os cenários com oráculos independentes estão documentados em `49-controller-plan.json` e `50-offline-controller-acceptance.json`. A decisão desta etapa é `BLOCKED_WITH_EVIDENCE`; nenhum modelo foi iniciado.
 
 O piloto autorizado foi iniciado pelo controlador, mas abortado na primeira sessão Blender baseline após uma chamada `execute_blender_code` falhar. Foram consumidas `1/4` sessões; não houve retry nem execução Web. Evidência: `52-pilot-failure.json`. A certificação permanece `NOT_CERTIFIED`.
+
+O commit `ecd3158` passou a preservar uso agregado e metadados sanitizados quando uma execução inválida já produziu `turn.completed`; isso melhora a observabilidade sem promover a execução a evidência certificada.
 
 ## Diagnóstico Codex/MCP
 
