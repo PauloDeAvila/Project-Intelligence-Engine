@@ -1,0 +1,22 @@
+{
+  "schema": "pie-phase3-blender-material-oracle-v1",
+  "status": "PASS_INDEPENDENT_ORACLE_ONLY",
+  "source": "direct bpy read through Blender MCP",
+  "mutated_scene": false,
+  "scene": {
+    "active_object": "PIE_AB_Cube",
+    "material": "PIE_AB_Material",
+    "principled_bsdf": {
+      "roughness": 0.3499999940395355,
+      "metallic": 0.20000000298023224
+    }
+  },
+  "benchmark_scenario_prepared": {
+    "required_server_baseline": "blender",
+    "required_server_optimized": "pie-blender-optimized",
+    "prompt_requirement": "Call execute_blender_code exactly once with read-only material inspection; do not modify the scene",
+    "expected_exact_answer": "PIE_BLENDER_MATERIAL_ORACLE_42"
+  },
+  "provider_tokens_measured": false,
+  "certification": "NOT_CERTIFIED"
+}
