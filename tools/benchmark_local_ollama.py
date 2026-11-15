@@ -130,6 +130,54 @@ def _tool_calls(application: str, condition: str) -> list[tuple[str, dict]]:
     return [("browser_navigate", {"url": WEB_URL}), ("browser_snapshot", {})]
 
 
+def _recover_web_when_required(probe: Probe, responses: list[dict],
+                               available: set[str], scenario: dict,
+                               identifier: int) -> tuple[list[dict], int]:
+    """Recover up to four bounded pages only if the optimized preview omits facts."""
+    if fixture_pass(scenario, responses) or "pie_gateway_output_get" not in available:
+        return responses, 0
+    output_id = None
+    for result in reversed(responses):
+        for part in result.get("content", []):
+            if not isinstance(part, dict) or not isinstance(part.get("text"), str):
+                continue
+            try:
+                body = json.loads(part["text"])
+            except json.JSONDecodeError:
+                continue
+            if (isinstance(body, dict) and body.get("pie_gateway") == "v1"
+                    and isinstance(body.get("output_id"), str) and body["output_id"]):
+                output_id = body["output_id"]
+                break
+        if output_id:
+            break
+    if not output_id:
+        return responses, 0
+    start = 0
+    for page in range(4):
+        result = _check_response(probe.call(identifier + page, "tools/call", {
+            "name": "pie_gateway_output_get",
+            "arguments": {"output_id": output_id, "start": start, "max_chars": 16000},
+        }), "tools/call pie_gateway_output_get")
+        responses.append(result)
+        if fixture_pass(scenario, responses):
+            return responses, page + 1
+        parts = result.get("content")
+        if not isinstance(parts, list) or len(parts) != 1 or not isinstance(parts[0], dict):
+            raise RuntimeError("Invalid PIE recovery response")
+        try:
+            page_data = json.loads(parts[0]["text"])
+        except (KeyError, TypeError, json.JSONDecodeError) as exc:
+            raise RuntimeError("Invalid PIE recovery page") from exc
+        next_start = page_data.get("next_start")
+        if next_start is None:
+            break
+        if type(next_start) is not int or next_start <= start:
+            raise RuntimeError("Invalid PIE recovery pagination")
+        start = next_start
+    return responses, page + 1
+
+
 def collect_mcp(profile: Path, workspace: Path, scenario: dict, condition: str) -> dict:
     app = scenario["application"]
     config, server, args, configured_env = _profile(profile, workspace)
@@ -158,12 +206,18 @@ def collect_mcp(profile: Path, workspace: Path, scenario: dict, condition: str) 
         for index, (name, arguments) in enumerate(calls, start=3):
             responses.append(_check_response(probe.call(index, "tools/call", {
                 "name": name, "arguments": arguments}), f"tools/call {name}"))
+        recovery_calls = 0
+        if app == "web" and condition == "optimized":
+            responses, recovery_calls = _recover_web_when_required(
+                probe, responses, available, scenario, len(calls) + 3)
         if not fixture_pass(scenario, responses):
             raise RuntimeError("MCP fixture facts unavailable; no local model will start")
         schema_json = compact_json(tools)
         observations_json = compact_json(responses)
         return {
-            "server": server, "tool_names": [name for name, _ in calls],
+            "server": server,
+            "tool_names": [name for name, _ in calls] + (["pie_gateway_output_get"] * recovery_calls),
+            "recovery_calls": recovery_calls,
             "tool_count": len(tools), "tool_schema_chars": len(schema_json),
             "observation_chars": len(observations_json),
             "tool_elapsed_ms": round((time.perf_counter() - start) * 1000, 3),
