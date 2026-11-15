@@ -131,4 +131,9 @@ inválido. Essa falha foi preservada e não substitui o relatório Web anterior
 de três pares válidos; os resultados não devem ser combinados sem investigar
 o problema de configuração/parsing. Evidência: [127-web-local-run-failed-after-two-pairs-20261115.json](127-web-local-run-failed-after-two-pairs-20261115.json).
 
+Após tornar os erros do Ollama distinguíveis por status HTTP e JSON inválido,
+uma sondagem única Web passou nos dois braços: 834 tokens baseline e 834 PIE,
+0% de economia, 2 chamadas MCP por braço e oráculos semânticos aprovados.
+Evidência: [128-web-local-single-pair-after-diagnostic-fix-20261115.json](128-web-local-single-pair-after-diagnostic-fix-20261115.json).
+
 Auditoria requisito‑por‑requisito: [115-completion-audit-20261115.json](115-completion-audit-20261115.json).

@@ -14,7 +14,7 @@ from pathlib import Path
 import subprocess
 import time
 import uuid
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from verify_phase3_mcp_profiles import Probe, _profile
@@ -425,9 +425,20 @@ def run_local_model(scenario: dict, observation: dict, model: str,
     req = Request(OLLAMA_URL, encoded, {"Content-Type": "application/json"}, method="POST")
     try:
         with urlopen(req, timeout=timeout) as response:
-            result = json.loads(response.read(4_000_000))
-    except (URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
-        raise RuntimeError("Local Ollama unavailable or returned invalid JSON") from exc
+            raw = response.read(4_000_000)
+            try:
+                result = json.loads(raw)
+            except json.JSONDecodeError as exc:
+                status = getattr(response, "status", None) or response.getcode()
+                raise RuntimeError(
+                    f"Local Ollama returned invalid JSON (HTTP {status})"
+                ) from exc
+    except HTTPError as exc:
+        raise RuntimeError(
+            f"Local Ollama HTTP error {exc.code}: {exc.reason}"
+        ) from exc
+    except (URLError, TimeoutError, OSError) as exc:
+        raise RuntimeError("Local Ollama unavailable") from exc
     usage = _provider_usage(result)
     if usage["input_tokens"] >= num_ctx - 256:
         raise RuntimeError("Local context may have been truncated; increase --num-ctx")

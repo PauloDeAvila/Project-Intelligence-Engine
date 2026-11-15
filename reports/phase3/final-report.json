@@ -96,6 +96,7 @@
   "latest_full_suite_revalidation": "reports/phase3/125-full-suite-revalidation-20261115.json",
   "latest_local_blender_model_run": "reports/phase3/126-blender-model-target-evidence-live-20261115.json",
   "latest_local_web_run": "reports/phase3/127-web-local-run-failed-after-two-pairs-20261115.json",
+  "latest_local_web_single_pair": "reports/phase3/128-web-local-single-pair-after-diagnostic-fix-20261115.json",
   "validation": {
     "focused_tests_passed": 71,
     "full_suite_initial": {

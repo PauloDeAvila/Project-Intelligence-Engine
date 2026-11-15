@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 import unittest
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
@@ -292,6 +293,32 @@ class LocalOllamaBenchmarkTests(unittest.TestCase):
             result = run_local_model(scenario, obs, "qwen3:4b", 20, 4096)
         self.assertTrue(result["oracle_pass"])
         self.assertEqual(result["usage"]["total_tokens"], 525)
+
+    def test_local_model_reports_http_status_without_response_body(self):
+        scenario = {"application": "web", "expected_exact": '{"title":"T"}',
+                    "prompt": "Extract title."}
+        obs = {"schema_json": "[]", "observations_json": "[]"}
+        error = HTTPError("http://127.0.0.1:11434/api/chat", 500,
+                          "server error", hdrs=None, fp=None)
+        with patch("benchmark_local_ollama.urlopen", side_effect=error):
+            with self.assertRaisesRegex(RuntimeError, r"HTTP error 500: server error"):
+                run_local_model(scenario, obs, "qwen3:4b", 20, 4096)
+
+    def test_local_model_distinguishes_invalid_json_from_unavailable(self):
+        scenario = {"application": "web", "expected_exact": '{"title":"T"}',
+                    "prompt": "Extract title."}
+        obs = {"schema_json": "[]", "observations_json": "[]"}
+
+        class FakeResponse:
+            status = 200
+            def __enter__(self): return self
+            def __exit__(self, *_): return False
+            def getcode(self): return self.status
+            def read(self, _): return b"not-json"
+
+        with patch("benchmark_local_ollama.urlopen", return_value=FakeResponse()):
+            with self.assertRaisesRegex(RuntimeError, r"invalid JSON \(HTTP 200\)"):
+                run_local_model(scenario, obs, "qwen3:4b", 20, 4096)
 
 
 if __name__ == "__main__":
