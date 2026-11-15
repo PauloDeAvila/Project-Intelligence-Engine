@@ -16,7 +16,10 @@ import sys
 import threading
 from typing import Any
 
-from pie.integrations.blender_delta import SceneDeltaCache, snapshot_code, parse_execution_reply
+from pie.integrations.blender_delta import (
+    SceneDeltaCache, snapshot_code, parse_execution_reply, parse_query_reply,
+    query_scene_code, validate_query_arguments,
+)
 
 OBSERVATION_TOOLS = frozenset({"get_scene_info", "get_object_info"})
 MAX_SNAPSHOTS = 32
@@ -38,6 +41,43 @@ SCENE_DELTA_TOOL: dict[str, Any] = {
             "max_chars": {"type": "integer", "minimum": 1000, "maximum": 64000},
         },
         "additionalProperties": False,
+    },
+}
+
+QUERY_SCENE_TOOL: dict[str, Any] = {
+    "name": "pie_blender_query_scene",
+    "description": "Read-only, deterministic scene query with bounded fields and pagination. "
+                   "This is a PIE-owned contract and does not replace get_scene_info.",
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "query": {"type": "string", "enum": ["find_objects"]},
+            "filters": {"type": "object", "properties": {
+                "name_prefix": {"type": "string", "maxLength": 128},
+                "name_contains": {"type": "string", "maxLength": 128},
+            }, "additionalProperties": False},
+            "fields": {"type": "array", "items": {"type": "string", "enum": [
+                "name", "type", "material_count", "material_names", "location"
+            ]}, "minItems": 1, "maxItems": 8, "uniqueItems": True},
+            "limit": {"type": "integer", "minimum": 1, "maximum": 100},
+            "offset": {"type": "integer", "minimum": 0, "maximum": 10000},
+        },
+        "additionalProperties": False,
+    },
+    "outputSchema": {
+        "type": "object",
+        "required": ["schema", "query", "scene", "items", "total", "offset", "limit", "next_offset", "complete"],
+        "properties": {
+            "schema": {"const": "pie-blender-query-scene-v1"},
+            "query": {"type": "string", "const": "find_objects"},
+            "scene": {"type": "string"},
+            "items": {"type": "array", "items": {"type": "object"}},
+            "total": {"type": "integer", "minimum": 0},
+            "offset": {"type": "integer", "minimum": 0},
+            "limit": {"type": "integer", "minimum": 1, "maximum": 100},
+            "next_offset": {"type": ["integer", "null"]},
+            "complete": {"type": "boolean"},
+        },
     },
 }
 
@@ -140,7 +180,7 @@ def extend_tools(message: dict[str, Any], exposed_tools: frozenset[str] = frozen
     if isinstance(result, dict) and isinstance(result.get("tools"), list):
         values = [tool for tool in result["tools"]
                   if not exposed_tools or (isinstance(tool, dict) and tool.get("name") in exposed_tools)]
-        for extra in (EXPAND_TOOL, SCENE_DELTA_TOOL):
+        for extra in (EXPAND_TOOL, SCENE_DELTA_TOOL, QUERY_SCENE_TOOL):
             if ((not exposed_tools or extra["name"] in exposed_tools) and
                     not any(isinstance(t, dict) and t.get("name") == extra["name"] for t in values)):
                 values.append(extra)
@@ -219,6 +259,7 @@ class BlenderMcpBridge:
         self.snapshots = SnapshotStore()
         self.delta_cache = SceneDeltaCache()
         self.delta_options: dict[str, int] = {}
+        self.query_clients: dict[str, Any] = {}
         self.pending: dict[str, str] = {}
         self.output_schema_tools: set[str] = set()
         self.pending_lock = threading.Lock()
@@ -246,6 +287,28 @@ class BlenderMcpBridge:
                             isinstance(params, dict) and params.get("name") not in self.exposed_tools):
                         self._write({"jsonrpc": "2.0", "id": message["id"],
                                      "result": _error("PIE_TOOL_NOT_EXPOSED")})
+                        continue
+                    if (method == "tools/call" and isinstance(params, dict)
+                            and params.get("name") == QUERY_SCENE_TOOL["name"]):
+                        try:
+                            query_args = validate_query_arguments(params.get("arguments", {}))
+                        except ValueError as exc:
+                            self._write({"jsonrpc": "2.0", "id": message["id"],
+                                         "result": _error(str(exc))})
+                            continue
+                        internal_id = "__pie_query__" + _key(message["id"])
+                        with self.pending_lock:
+                            self.pending[_key(internal_id)] = "__blender_query__"
+                            self.query_clients[_key(internal_id)] = message["id"]
+                        raw = _json({"jsonrpc": "2.0", "id": internal_id,
+                                     "method": "tools/call",
+                                     "params": {"name": "execute_blender_code",
+                                                 "arguments": {"code": query_scene_code(query_args)}}}) + "\n"
+                        try:
+                            process.stdin.write(raw)
+                            process.stdin.flush()
+                        except (BrokenPipeError, OSError):
+                            break
                         continue
                     if method == "tools/call" and isinstance(params, dict) and params.get("name") == "pie_blender_expand":
                         self._write({
@@ -338,6 +401,15 @@ class BlenderMcpBridge:
                         except (ValueError, KeyError, TypeError, OverflowError) as exc:
                             result = _error("PIE_DELTA_UNAVAILABLE: " + str(exc)[:250])
                         self._write({"jsonrpc": "2.0", "id": message["id"], "result": result})
+                    elif tool_name == "__blender_query__":
+                        with self.pending_lock:
+                            client_id = self.query_clients.pop(_key(message["id"]), None)
+                        try:
+                            query = parse_query_reply(message)
+                            result = {"content": [{"type": "text", "text": _json(query)}]}
+                        except (ValueError, KeyError, TypeError, OverflowError) as exc:
+                            result = _error("PIE_QUERY_UNAVAILABLE: " + str(exc)[:250])
+                        self._write({"jsonrpc": "2.0", "id": client_id, "result": result})
                     elif tool_name in OBSERVATION_TOOLS:
                         before = _json(message)
                         result = compact_observation(

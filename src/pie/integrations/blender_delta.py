@@ -16,7 +16,9 @@ MAX_SNAPSHOT_CHARS = 2_000_000
 MAX_ITEMS = 500
 MAX_CHANGES = 200
 DELTA_SCHEMA = "pie-blender-scene-delta-v1"
+QUERY_SCHEMA = "pie-blender-query-scene-v1"
 MARKER = "PIE_SCENE_SNAPSHOT_V1="
+QUERY_MARKER = "PIE_QUERY_SCENE_V1="
 
 # This code runs inside the Blender addon's Python process through its normal
 # execute_blender_code path. No file/network access, blender operators or writes.
@@ -152,6 +154,98 @@ def parse_execution_reply(message: dict[str, Any]) -> dict[str, Any]:
     value, _ = json.JSONDecoder().raw_decode(payload)
     if not isinstance(value, dict) or value.get("schema") != "pie-blender-scene-snapshot-v1":
         raise ValueError("Unsupported Blender snapshot schema")
+    return value
+
+
+QUERY_TOOL_NAMES = frozenset({"find_objects"})
+QUERY_FIELDS = frozenset({"name", "type", "material_count", "material_names", "location"})
+
+
+def validate_query_arguments(arguments: Any) -> dict[str, Any]:
+    if not isinstance(arguments, dict):
+        raise ValueError("Query arguments must be an object")
+    allowed = {"query", "filters", "fields", "limit", "offset"}
+    if set(arguments) - allowed:
+        raise ValueError("Unknown query argument")
+    query = arguments.get("query", "find_objects")
+    if query not in QUERY_TOOL_NAMES:
+        raise ValueError("Unsupported scene query")
+    filters = arguments.get("filters", {})
+    if not isinstance(filters, dict) or set(filters) - {"name_prefix", "name_contains"}:
+        raise ValueError("Invalid scene query filters")
+    for key in ("name_prefix", "name_contains"):
+        if key in filters and (not isinstance(filters[key], str) or len(filters[key]) > 128):
+            raise ValueError("Invalid scene query filter")
+    fields = arguments.get("fields", ["name", "type", "material_count"])
+    if not isinstance(fields, list) or not fields or len(fields) > 8 or any(
+        field not in QUERY_FIELDS for field in fields
+    ) or len(set(fields)) != len(fields):
+        raise ValueError("Invalid scene query fields")
+    limit = arguments.get("limit", 20)
+    offset = arguments.get("offset", 0)
+    if type(limit) is not int or not 1 <= limit <= 100:
+        raise ValueError("limit must be between 1 and 100")
+    if type(offset) is not int or not 0 <= offset <= 10000:
+        raise ValueError("offset must be between 0 and 10000")
+    return {"query": query, "filters": filters, "fields": fields,
+            "limit": limit, "offset": offset}
+
+
+def query_scene_code(arguments: Any) -> str:
+    args = validate_query_arguments(arguments)
+    # Only validated JSON literals are embedded; no model-provided Python is executed.
+    query = json.dumps(args["query"], ensure_ascii=False)
+    filters = json.dumps(args["filters"], ensure_ascii=False, sort_keys=True)
+    fields = json.dumps(args["fields"], ensure_ascii=False)
+    limit, offset = args["limit"], args["offset"]
+    return f'''import bpy, json
+pie_query = {query}
+pie_filters = {filters}
+pie_fields = {fields}
+pie_limit = {limit}
+pie_offset = {offset}
+pie_scene = bpy.context.scene
+pie_objects = sorted(list(pie_scene.objects), key=lambda item: item.name)
+if pie_query == "find_objects":
+    pie_objects = [obj for obj in pie_objects
+                   if (not pie_filters.get("name_prefix") or obj.name.startswith(pie_filters["name_prefix"]))
+                   and (not pie_filters.get("name_contains") or pie_filters["name_contains"].lower() in obj.name.lower())]
+pie_total = len(pie_objects)
+pie_page = pie_objects[pie_offset:pie_offset + pie_limit]
+pie_items = []
+for obj in pie_page:
+    pie_item = {{}}
+    if "name" in pie_fields: pie_item["name"] = obj.name
+    if "type" in pie_fields: pie_item["type"] = obj.type
+    if "material_count" in pie_fields:
+        pie_item["material_count"] = len(obj.data.materials) if obj.type == "MESH" and obj.data else 0
+    if "material_names" in pie_fields:
+        pie_item["material_names"] = [m.name for m in obj.data.materials if m] if obj.type == "MESH" and obj.data else []
+    if "location" in pie_fields:
+        pie_item["location"] = [round(float(value), 6) for value in obj.location]
+    pie_items.append(pie_item)
+pie_data = {{"schema": "{QUERY_SCHEMA}", "query": pie_query, "scene": pie_scene.name,
+            "items": pie_items, "total": pie_total, "offset": pie_offset, "limit": pie_limit,
+            "next_offset": pie_offset + pie_limit if pie_offset + pie_limit < pie_total else None,
+            "complete": pie_offset + len(pie_page) >= pie_total}}
+print("{QUERY_MARKER}" + json.dumps(pie_data, ensure_ascii=False, sort_keys=True, separators=(",", ":")))'''
+
+
+def parse_query_reply(message: dict[str, Any]) -> dict[str, Any]:
+    result = message.get("result")
+    if not isinstance(result, dict) or result.get("isError"):
+        raise ValueError("Blender scene query failed")
+    parts = result.get("content")
+    text = next((part.get("text", "") for part in parts or []
+                 if isinstance(part, dict) and part.get("type") == "text"), "")
+    if not isinstance(text, str):
+        raise ValueError("Blender scene query returned no text")
+    where = text.find(QUERY_MARKER)
+    if where == -1:
+        raise ValueError("Blender did not return the expected scene query marker")
+    value, _ = json.JSONDecoder().raw_decode(text[where + len(QUERY_MARKER):])
+    if not isinstance(value, dict) or value.get("schema") != QUERY_SCHEMA:
+        raise ValueError("Unsupported scene query schema")
     return value
 
 

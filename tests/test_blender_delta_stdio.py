@@ -6,8 +6,23 @@ import subprocess
 import sys
 import unittest
 
+from pie.integrations.blender_delta import query_scene_code, validate_query_arguments
+
 
 class BlenderDeltaTransportTest(unittest.TestCase):
+    def test_scene_query_contract_is_bounded_and_literal(self):
+        args = validate_query_arguments({
+            "query": "find_objects", "filters": {"name_prefix": "PIE_"},
+            "fields": ["name", "type"], "limit": 10, "offset": 20,
+        })
+        code = query_scene_code(args)
+        self.assertIn("PIE_QUERY_SCENE_V1=", code)
+        self.assertIn('pie_limit = 10', code)
+        with self.assertRaises(ValueError):
+            validate_query_arguments({"query": "execute_blender_code"})
+        with self.assertRaises(ValueError):
+            validate_query_arguments({"filters": {"name_prefix": "x"}, "fields": ["secret"]})
+
     def test_three_observations_with_manual_edit_between_calls(self):
         upstream = r'''
 import json,sys
@@ -62,6 +77,7 @@ for line in sys.stdin:
         messages={item["id"]:item for item in (json.loads(s) for s in run.stdout.splitlines())}
         tools=[item["name"] for item in messages[2]["result"]["tools"]]
         self.assertIn("pie_blender_scene_delta", tools)
+        self.assertIn("pie_blender_query_scene", tools)
         result=[json.loads(messages[n]["result"]["content"][0]["text"]) for n in (3,4,5)]
         self.assertEqual([x["state"] for x in result], ["INITIAL","UNCHANGED","DELTA"])
         self.assertEqual(result[2]["materials"]["counts"]["changed"],1)

@@ -222,6 +222,12 @@ O probe com Blender 5.3 GUI descartável e a fixture real passou nos dois braço
 
 Conclusão: o A/B Blender não deve ser liberado como teste de economia enquanto esse contrato exigir a observação textual integral. A solução correta passa por uma ferramenta/contrato resumido próprio ou por uma resposta upstream sem essa exigência; remover `structuredContent` seria uma violação do contrato.
 
+## Consulta seletiva Blender — 2026-11-15
+
+Foi implementada e validada a ferramenta PIE-owned `pie_blender_query_scene`, sem alterar `get_scene_info`. Ela declara contrato de entrada/saída próprio, filtros allowlisted, campos selecionáveis e paginação determinística. Na fixture real de 64 objetos, quatro páginas retornaram `20/20/20/4` itens, com offsets `0/20/40/60`, `next_offset=null` na última página e tipos aprovados pelo oráculo. Cada consulta do cliente gerou uma única execução interna read-only. Evidência: [`80-real-blender-selective-query.md`](80-real-blender-selective-query.md).
+
+Essa é uma capacidade seletiva, não compactação transparente. O payload da primeira página foi 1.692 caracteres contra 3.213 de `get_scene_info`, mas essa diferença entre contratos não é economia de tokens certificada. O A/B Blender continua bloqueado até definir uma tarefa comparável que use esse contrato de forma explícita.
+
 ## Próximos passos seguros
 
 1. Escolher, com nova autorização, uma combinação de aprovação suportada pela versão instalada: ou `--approve-for-me` sem `--sandbox`, ou uma sessão interativa `on-request` que aceite a aprovação manual. Não remover proteções indiscriminadamente.
