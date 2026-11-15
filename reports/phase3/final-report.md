@@ -136,4 +136,11 @@ uma sondagem única Web passou nos dois braços: 834 tokens baseline e 834 PIE,
 0% de economia, 2 chamadas MCP por braço e oráculos semânticos aprovados.
 Evidência: [128-web-local-single-pair-after-diagnostic-fix-20261115.json](128-web-local-single-pair-after-diagnostic-fix-20261115.json).
 
+Depois foi executada a bateria correta da fixture Web large declarada pelo
+cenário (`fixtures/phase3/web-large/index.html`): 3 pares, ordem alternada,
+8.967 tokens baseline contra 4.455 PIE, economia local de 50,318%, 6/6
+oráculos e zero recuperações. O ensaio anterior de 0% serviu a fixture
+`fixtures/phase3/web` por engano e permanece separado. Evidência:
+[129-web-large-correct-fixture-live-20261115.json](129-web-large-correct-fixture-live-20261115.json).
+
 Auditoria requisito‑por‑requisito: [115-completion-audit-20261115.json](115-completion-audit-20261115.json).

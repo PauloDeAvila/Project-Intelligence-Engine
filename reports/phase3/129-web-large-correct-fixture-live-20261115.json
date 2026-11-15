@@ -1,0 +1,40 @@
+{
+  "schema": "pie-phase3-local-ollama-live-v1",
+  "timestamp_utc": "2026-11-15T23:21:26.3780645Z",
+  "domain": "web",
+  "scenario": "web-large-page-cert-v1",
+  "fixture": "fixtures/phase3/web-large/index.html",
+  "fixture_url": "http://127.0.0.1:8767/index.html",
+  "model": "qwen3:4b",
+  "schema_scope": "profile",
+  "valid_pairs": 3,
+  "order": ["baseline-optimized", "optimized-baseline", "baseline-optimized"],
+  "baseline": {
+    "input_tokens": 8841,
+    "output_tokens": 126,
+    "total_tokens": 8967,
+    "observation_chars_per_run": 8006,
+    "mcp_calls": 6,
+    "oracle_passes": 3
+  },
+  "optimized": {
+    "input_tokens": 4329,
+    "output_tokens": 126,
+    "total_tokens": 4455,
+    "observation_chars_per_run": 2905,
+    "mcp_calls": 6,
+    "oracle_passes": 3
+  },
+  "comparison": {
+    "total_savings_percent": 50.318,
+    "input_savings_percent": 51.035,
+    "output_savings_percent": 0.0,
+    "recovery_calls": 0,
+    "semantic_oracles": "6/6"
+  },
+  "source_report": "C:/Users/phsra/AppData/Local/Temp/pie-web-ollama-f975857e5768.json",
+  "codex_sessions_started": 0,
+  "quota_consumed": false,
+  "codex_certification": "NOT_CERTIFIED",
+  "note": "This is the valid large-fixture run. The earlier 0% run served fixtures/phase3/web instead of the scenario-declared web-large fixture and is not combined here."
+}
