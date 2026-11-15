@@ -43,6 +43,8 @@ O controlador offline, o manifesto 4+8 e os cenários com oráculos independente
 
 O piloto autorizado foi iniciado pelo controlador, mas abortado na primeira sessão Blender baseline após uma chamada `execute_blender_code` falhar. Foram consumidas `1/4` sessões; não houve retry nem execução Web. Evidência: `52-pilot-failure.json`. A certificação permanece `NOT_CERTIFIED`.
 
+A auditoria de recuperação em [`56-failure-recovery-audit.md`](56-failure-recovery-audit.md) classificou a primeira falha como `TOOL_RESULT_FAILURE`, mas marcou a causa raiz como `INCONCLUSIVE`: o Codex JSONL, stderr interno, respostas MCP, lifecycle e uso SQLite dessa execução não foram persistidos pelo executor original.
+
 O commit `ecd3158` passou a preservar uso agregado e metadados sanitizados quando uma execução inválida já produziu `turn.completed`; isso melhora a observabilidade sem promover a execução a evidência certificada.
 
 ## Diagnóstico Codex/MCP

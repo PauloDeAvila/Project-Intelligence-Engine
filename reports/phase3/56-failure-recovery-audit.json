@@ -1,0 +1,67 @@
+{
+  "schema": "pie-phase3-failure-recovery-audit-v1",
+  "result": "ROOT_CAUSE_UNRESOLVED",
+  "model_calls_in_this_audit": 0,
+  "quota_consumed_in_this_audit": false,
+  "execution": {
+    "manifest": "reports/phase3/51-pilot-manifest.json",
+    "workspace": "C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase3-pilot-530f8e1",
+    "workspace_commit": "1aef8e3",
+    "application": "blender",
+    "condition": "baseline",
+    "repetition": 1,
+    "task_id": "blender-material-cert-v1",
+    "run_id": "baseline-409e2a71803509b546248d24",
+    "pair_id": "pair-d4b179952cf4570b9d7d97f7",
+    "outer_command_exit_code": 1,
+    "sessions_consumed": 1,
+    "sessions_not_run": 3
+  },
+  "commands": {
+    "observed_outer": "uv run python -m pie.certification.controller pilot --manifest reports/phase3/51-pilot-manifest.json --scenario benchmarks/phase3/blender-certification-scenario.json --scenario benchmarks/phase3/web-certification-scenario.json --workspace <pilot-worktree> --baseline-home <baseline-home> --optimized-home <optimized-home> --baseline-profile pie-phase3-baseline --optimized-profile pie-phase3-optimized --authorized-sessions 4 --output reports/phase3/52-pilot-result.json --timeout 240",
+    "inner_codex_reconstructed_from_source": "codex exec --json --ephemeral --sandbox read-only --cd <pilot-worktree> --model gpt-5.6-luna --profile pie-phase3-baseline -",
+    "reconstruction_status": "The inner argv was not persisted as a process artifact; it is derived from capture_codex at the executed checkout."
+  },
+  "timeline": [
+    {"order": 1, "event": "MCP_TOOL_CALL", "server": "blender", "tool": "get_addon_status", "status": "completed"},
+    {"order": 2, "event": "MCP_TOOL_CALL", "server": "blender", "tool": "get_scene_info", "status": "completed"},
+    {"order": 3, "event": "MCP_TOOL_CALL", "server": "blender", "tool": "execute_blender_code", "status": "failed", "first_failure": true},
+    {"order": 4, "event": "EXECUTOR_GATE", "status": "failed", "message": "MCP route evidence failed; expected blender; observed blender/get_addon_status/completed;blender/get_scene_info/completed;blender/execute_blender_code/failed"},
+    {"order": 5, "event": "BATCH_CONTROL", "status": "aborted", "retries": 0, "web_started": false}
+  ],
+  "failure_classification": {
+    "first_failure": "TOOL_RESULT_FAILURE",
+    "executor_secondary_failure": "EXECUTOR_FAILURE",
+    "provider_error_message": null,
+    "evidence_for_first_failure": "Codex item metadata reported execute_blender_code status=failed after two completed Blender calls.",
+    "root_cause": "INCONCLUSIVE"
+  },
+  "artifacts": {
+    "manifest": "present_and_preserved",
+    "run_and_pair_ids": "present",
+    "outer_command_and_exit_code": "present_in_Codex_session_log",
+    "codex_jsonl": "MISSING; capture_codex held stdout in memory and did not persist it",
+    "codex_stderr": "MISSING; capture_codex did not persist subprocess stderr",
+    "gateway_lifecycle_for_this_run": "MISSING; no matching lifecycle file or run_id was found",
+    "sqlite_events_for_this_run": "MISSING; read-only query returned no row for run_id",
+    "raw_mcp_responses": "MISSING",
+    "oracle": "NOT_EVALUATED",
+    "provider_usage": "NOT_PERSISTED",
+    "historical_artifacts_reused": false
+  },
+  "offline_reproduction": {
+    "pie_gateway_initialize": "PASS",
+    "pie_gateway_tools_list": "PASS",
+    "read_only_execute_blender_code_probe": "PASS",
+    "live_fixture_presence": "PASS",
+    "model_failure_reproduced": false,
+    "interpretation": "The transport, bridge and basic fixture were verified independently; this does not prove the Codex-generated request was correct."
+  },
+  "changes_after_failure": [
+    "ddc31cd: deterministic read-only Blender scenario code",
+    "ecd3158: retain sanitized provider evidence on invalid capture",
+    "a76a651: reject stale manifest/scenario identity"
+  ],
+  "tests": {"pytest_passed": 546, "pytest_skipped": 5, "subtests_passed": 133},
+  "certification": "NOT_CERTIFIED"
+}
