@@ -1,0 +1,11 @@
+{
+  "schema": "pie-phase3-budget-ledger-v1",
+  "state": "failed",
+  "authorized_sessions": 1,
+  "consumed_sessions": 1,
+  "remaining_sessions": 0,
+  "run_id": "optimized-fa59ea6b612a471391cd5f34",
+  "pair_id": "pair-deda0256ba284175ade5d58d",
+  "automatic_retry": false,
+  "error": "No exact optimized gateway correlation"
+}
