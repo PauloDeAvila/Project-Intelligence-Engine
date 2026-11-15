@@ -304,6 +304,15 @@ def main(argv: list[str] | None = None) -> int:
     audit.add_argument("--record", action="append", type=Path, required=True)
     audit.add_argument("--lifecycle", type=Path, required=True)
     audit.add_argument("--output", type=Path, required=True)
+    pre = sub.add_parser("preflight")
+    pre.add_argument("--scenario", action="append", type=Path, required=True)
+    pre.add_argument("--workspace", type=Path, required=True)
+    pre.add_argument("--baseline-home", type=Path, required=True)
+    pre.add_argument("--optimized-home", type=Path, required=True)
+    pre.add_argument("--baseline-profile", required=True)
+    pre.add_argument("--optimized-profile", required=True)
+    pre.add_argument("--output", type=Path, required=True)
+    pre.add_argument("--codex-bin", default="codex")
     pilot = sub.add_parser("pilot")
     pilot.add_argument("--manifest", type=Path, required=True)
     pilot.add_argument("--scenario", action="append", type=Path, required=True)
@@ -333,6 +342,18 @@ def main(argv: list[str] | None = None) -> int:
             result["state"] = "EVIDENCE_CERTIFIED" if result["decisions"] and all(
                 item["decision"] == "VALID" for item in result["decisions"]
             ) else "BLOCKED_WITH_EVIDENCE"
+        elif args.action == "preflight":
+            scenarios = [load_scenario(path) for path in args.scenario]
+            rows=[]
+            for scenario in scenarios:
+                for condition, home, profile in (("baseline",args.baseline_home,args.baseline_profile),
+                                                  ("optimized",args.optimized_home,args.optimized_profile)):
+                    result=preflight_codex(scenario,condition=condition,workspace=args.workspace,
+                                           codex_home=home,codex_bin=args.codex_bin,profile=profile)
+                    rows.append({"scenario_id":scenario["scenario_id"],"condition":condition,**result})
+            result={"schema":"pie-phase3-preflight-v1","state":"READY_FOR_BENCHMARK" if all(
+                row["state"]=="READY_FOR_BENCHMARK" for row in rows) else "BLOCKED",
+                    "model_started":False,"quota_consumed":False,"arms":rows}
         else:
             scenarios = [load_scenario(path) for path in args.scenario]
             manifest_document = json.loads(args.manifest.read_text(encoding="utf-8"))
