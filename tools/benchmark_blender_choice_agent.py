@@ -315,7 +315,15 @@ def run_arm(profile: Path, workspace: Path, condition: str, task: dict,
             "total_ms": round((time.perf_counter() - started) * 1000, 3),
         }
     finally:
-        probe.close()
+        try:
+            probe.close()
+        finally:
+            # Probe.close() waits for the child but does not close its pipes.
+            # Closing both ends here prevents leaked file descriptors on
+            # repeated MCP profile runs (including Windows CI).
+            for stream in (process.stdout, process.stderr):
+                if stream is not None and not stream.closed:
+                    stream.close()
 
 
 def compare_pair(baseline: dict, optimized: dict) -> dict:
