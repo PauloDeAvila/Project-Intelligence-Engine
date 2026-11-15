@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import time
 from pathlib import Path
 
@@ -44,16 +45,33 @@ def command_init(root: Path) -> dict[str, str]:
 
 def command_status(root: Path) -> dict[str, object]:
     path = require_initialized(root)
+    workspace_root = Path(root).resolve(strict=True)
     connection = connect(path)
     try:
         metadata = {row["key"]: row["value"] for row in connection.execute("SELECT key, value FROM metadata")}
+        index_root = metadata.get("root")
+        workspace_key = os.path.normcase(str(workspace_root))
+        index_key = os.path.normcase(str(Path(index_root).resolve(strict=False))) if index_root else None
+        workspace_match = None if index_key is None else workspace_key == index_key
+        index_state = metadata.get("index_state", "UNINDEXED")
+        diagnostics = json.loads(metadata.get("index_diagnostics", "[]"))
+        if workspace_match is False:
+            index_state = "WRONG_WORKSPACE"
+            diagnostics = [*diagnostics, {
+                "code": "index_root_mismatch",
+                "index_root": str(Path(index_root).resolve(strict=False)),
+                "workspace_root": str(workspace_root),
+            }]
         return {
-            "project": str(root),
+            "project": str(workspace_root),
             "files": connection.execute("SELECT COUNT(*) FROM files").fetchone()[0],
             "symbols": connection.execute("SELECT COUNT(*) FROM symbols").fetchone()[0],
             "imports": connection.execute("SELECT COUNT(*) FROM imports").fetchone()[0],
-            "index_state": metadata.get("index_state", "UNINDEXED"),
-            "diagnostics": json.loads(metadata.get("index_diagnostics", "[]")),
+            "index_state": index_state,
+            "diagnostics": diagnostics,
+            "workspace_root": str(workspace_root),
+            "index_root": str(Path(index_root).resolve(strict=False)) if index_root else None,
+            "workspace_match": workspace_match,
         }
     finally:
         connection.close()

@@ -68,6 +68,27 @@ class IndexPersistenceTests(unittest.TestCase):
             self.assertEqual((result["files"], result["symbols"], result["index_state"]), (1, 3, "CURRENT"))
             matches = command_status(root)
             self.assertEqual(matches["symbols"], 3)
+            self.assertEqual(matches["index_state"], "CURRENT")
+            self.assertTrue(matches["workspace_match"])
+
+    def test_status_rejects_index_from_different_workspace(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            (root / "app.py").write_text("def run():\n    return 1\n", encoding="utf-8")
+            index_project(root)
+            connection = connect(root / ".pie" / "index.sqlite3")
+            try:
+                connection.execute(
+                    "UPDATE metadata SET value = ? WHERE key = 'root'",
+                    (str(root / "other-project"),),
+                )
+                connection.commit()
+            finally:
+                connection.close()
+            status = command_status(root)
+            self.assertEqual(status["index_state"], "WRONG_WORKSPACE")
+            self.assertFalse(status["workspace_match"])
+            self.assertEqual(status["diagnostics"][-1]["code"], "index_root_mismatch")
 
     def test_index_persists_symbols_and_updates_changed_files(self):
         with tempfile.TemporaryDirectory() as directory:

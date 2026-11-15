@@ -25,7 +25,7 @@ Valores `B/O` são baseline/optimized. A economia de input não armazenado em ca
 
 ## Testes
 
-`pytest`: **536 passed, 5 skipped, 133 subtests** (via `PYTHONPATH=. uv run --with pytest pytest -q`). `compileall`: passou. O preflight agora bloqueia overlays com workspace divergente. O índice local/Graphify do checkout foi usado para navegação estrutural; o servidor PIE MCP disponível nesta sessão reportou `CURRENT`, porém para outra raiz (`C:\\Users\\phsra\\Documents\\Codex\\2026-11-14\\contrato-de-uso-ativo-do-project`), portanto não foi tratado como evidência deste checkout.
+`pytest`: **537 passed, 5 skipped, 133 subtests** (via `PYTHONPATH=. uv run --with pytest pytest -q`). `compileall`: passou. O preflight agora bloqueia overlays com workspace divergente. O status local do checkout retornou `CURRENT`, com `workspace_match=true` e `index_root` igual a `workspace_root`. O servidor PIE MCP disponível nesta sessão continua reportando outra raiz (`C:\\Users\\phsra\\Documents\\Codex\\2026-11-14\\contrato-de-uso-ativo-do-project`), portanto não foi tratado como evidência deste checkout.
 
 ## Diagnóstico Codex/MCP
 
@@ -36,6 +36,8 @@ Na Fase 3.7, o gateway foi validado offline com as duas ferramentas reais. O boo
 A Fase 3.10 confirmou que a versão instalada aceita políticas de aprovação temporárias e oferece `--approve-for-me` para `codex exec`. A sonda Fase 3.11 tentou `on-request` + `--approve-for-me`, mas o próprio CLI retornou `exit_code=2`: `the argument '--sandbox <SANDBOX_MODE>' cannot be used with '--approve-for-me'`. Resultado: 0 turnos do modelo, 0 tokens, 0 `tools/call` e nenhuma alteração persistente. Evidência detalhada: `28-approval-policy-probe.json`.
 
 A Fase 3.12 adicionou um guard no executor e um validador offline. O guard rejeita a combinação antes do preflight; o validador consulta apenas `codex exec --help`. O resultado foi `PASS`, sem modelo iniciado ou quota consumida. `read-only` sem `--approve-for-me` foi aceito apenas pela análise de argumentos; o comportamento de aprovação MCP em runtime continua não validado.
+
+A Fase 3.13 adicionou `tools/run_codex_mcp_interactive_probe.ps1`, usando `--ask-for-approval on-request` com `--sandbox read-only`, sem `--approve-for-me`. A execução permanece preparada, não iniciada. O status local também passou a comparar caminhos normalizados e resolvidos; divergências retornam `WRONG_WORKSPACE`. Na raiz correta, a verificação retornou `CURRENT`, `workspace_match=true`, 250 arquivos, 1789 símbolos e 2410 imports.
 
 ## Custos
 
