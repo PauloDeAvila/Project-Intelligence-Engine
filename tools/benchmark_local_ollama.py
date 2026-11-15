@@ -265,6 +265,18 @@ def collect_mcp(profile: Path, workspace: Path, scenario: dict, condition: str,
         probe.close()
 
 
+def local_experiment_scenario(scenario: dict, blender_mode: str) -> dict:
+    """Update the *local replay prompt only* to match the opt-in exact tool."""
+    local = dict(scenario)
+    if local.get("application") == "blender" and blender_mode == "exact":
+        old = "in the optimized configuration, use pie_blender_query_scene only"
+        new = "in the optimized configuration, use pie_blender_get_object only"
+        if old not in local["prompt"]:
+            raise ValueError("Frozen scenario prompt lacks expected selective-query clause")
+        local["prompt"] = local["prompt"].replace(old, new)
+    return local
+
+
 def _provider_usage(response: dict) -> dict:
     if not isinstance(response, dict) or response.get("done") is not True:
         raise RuntimeError("Ollama response is incomplete")
@@ -363,6 +375,7 @@ def main(argv: list[str] | None = None) -> int:
     scenario = json.loads(args.scenario.read_text(encoding="utf-8"))
     if scenario.get("application") not in EXPECTED_SERVERS or not isinstance(scenario.get("expected_exact"), str):
         parser.error("unsupported benchmark scenario")
+    local_scenario = local_experiment_scenario(scenario, args.blender_mode)
     profiles = {"baseline": args.baseline_profile.resolve(strict=True),
                 "optimized": args.optimized_profile.resolve(strict=True)}
     if not args.probe_only:
@@ -372,6 +385,8 @@ def main(argv: list[str] | None = None) -> int:
               "methodology": "deterministic_mcp_tool_replay_not_codex_agent",
               "schema_scope": args.schema_scope,
               "blender_mode": args.blender_mode if scenario["application"] == "blender" else None,
+              "local_prompt_sha256": sha(local_scenario["prompt"]),
+              "prompt_modified_for_experiment": local_scenario["prompt"] != scenario["prompt"],
               "codex_sessions_started": 0, "codex_quota_consumed": False,
               "codex_certification": "NOT_CERTIFIED", "runs": []}
     for rep in range(1, args.repetitions + 1):
@@ -382,7 +397,7 @@ def main(argv: list[str] | None = None) -> int:
                               schema_scope=args.schema_scope, blender_mode=args.blender_mode)
             arm = {key: value for key, value in obs.items() if key not in {"schema_json", "observations_json"}}
             if not args.probe_only:
-                arm.update(run_local_model(scenario, obs, args.model, args.timeout, args.num_ctx))
+                arm.update(run_local_model(local_scenario, obs, args.model, args.timeout, args.num_ctx))
             pair["arms"][condition] = arm
         pair["comparison"] = (compare_pair(pair["arms"]["baseline"], pair["arms"]["optimized"])
                               if not args.probe_only else {"state": "MCP_ONLY_NO_MODEL"})
