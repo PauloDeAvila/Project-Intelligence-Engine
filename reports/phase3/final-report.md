@@ -39,6 +39,8 @@ A matriz individual das 12 execuções históricas classificou `0 VALID`, `0 INV
 
 O controlador offline, o manifesto 4+8 e os cenários com oráculos independentes estão documentados em `49-controller-plan.json` e `50-offline-controller-acceptance.json`. A decisão desta etapa é `BLOCKED_WITH_EVIDENCE`; nenhum modelo foi iniciado.
 
+O piloto autorizado foi iniciado pelo controlador, mas abortado na primeira sessão Blender baseline após uma chamada `execute_blender_code` falhar. Foram consumidas `1/4` sessões; não houve retry nem execução Web. Evidência: `52-pilot-failure.json`. A certificação permanece `NOT_CERTIFIED`.
+
 ## Diagnóstico Codex/MCP
 
 A chamada diagnóstica inicial falhou no parsing do override transitório `-c`. A tentativa corrigida usando `tools/run_codex_mcp_diagnostic.ps1` iniciou uma sessão real, selecionou `pie-blender-optimized` e reportou tokens (`136207` input, `115968` cache, `691` output), mas `get_addon_status` e `get_scene_info` falharam. Nenhum lifecycle JSONL foi produzido; o ponto interno da falha permanece inconclusivo. Resultado detalhado: `22-codex-mcp-probe-result.json`. Não há certificação nem nova tentativa automática.
