@@ -56,6 +56,49 @@ SYSTEM = (
 )
 
 
+PLAN_ERROR_CODES = {
+    "Ollama did not return planning JSON": "MISSING_MODEL_CONTENT",
+    "Planning response is not JSON": "INVALID_MODEL_JSON",
+    "Planning response must contain only tool_index and target_index": "INVALID_PLAN_SHAPE",
+    "Invalid tool index": "INVALID_TOOL_INDEX",
+    "Invalid target index": "INVALID_TARGET_INDEX",
+}
+
+
+class ChoicePlanError(AgentPlanError):
+    """Known failure code plus safe diagnostics; never store model response text."""
+
+    def __init__(self, code: str, *, usage: dict | None = None,
+                 plan_sha256: str | None = None, indices: tuple[int, int] | None = None,
+                 model_request_attempted: bool = False) -> None:
+        super().__init__(code)
+        self.code = code
+        self.usage = usage
+        self.plan_sha256 = plan_sha256
+        self.indices = indices
+        self.model_request_attempted = model_request_attempted
+
+
+def safe_plan_failure(exc: AgentPlanError, condition: str) -> dict:
+    """Persist classification, without fabricating success or leaking model text."""
+    diagnostic = {
+        "failed_condition": condition, "failure_stage": "MODEL_PLAN",
+        "failure_code": exc.code if isinstance(exc, ChoicePlanError)
+        else "UNCLASSIFIED_AGENT_PLAN_ERROR",
+        "mcp_tool_calls_executed": 0,
+    }
+    if isinstance(exc, ChoicePlanError):
+        diagnostic["model_request_attempted"] = exc.model_request_attempted
+        if exc.usage is not None:
+            diagnostic["failed_plan_usage"] = exc.usage
+        if exc.plan_sha256 is not None:
+            diagnostic["failed_plan_sha256"] = exc.plan_sha256
+        if exc.indices is not None:
+            diagnostic["selected_tool_index"] = exc.indices[0]
+            diagnostic["selected_target_index"] = exc.indices[1]
+    return diagnostic
+
+
 def validate_task(task: dict) -> tuple[str, tuple[str, ...]]:
     target, names = task.get("target"), task.get("candidates")
     if not isinstance(target, str) or not TARGET_PATTERN.fullmatch(target):
@@ -100,7 +143,7 @@ def plan_choice(model: str, catalog: list[dict], task: dict, *,
                 num_ctx: int = 8192, timeout: int = 240) -> dict:
     target, candidates = validate_task(task)
     if len(catalog) != 2:
-        raise AgentPlanError("Exactly two tools required")
+        raise ChoicePlanError("INVALID_CATALOG_SIZE")
     choices = [{"index": index, "name": name} for index, name in enumerate(candidates)]
     messages = [
         {"role": "system", "content": SYSTEM},
@@ -117,7 +160,7 @@ def plan_choice(model: str, catalog: list[dict], task: dict, *,
                            "num_predict": 64}}
     wire = compact_json(payload).encode("utf-8")
     if len(wire) > 100_000:
-        raise AgentPlanError("Planning payload oversized")
+        raise ChoicePlanError("PLANNING_PAYLOAD_OVERSIZED")
     started = time.perf_counter()
     try:
         with urlopen(Request(OLLAMA_URL, wire,
@@ -125,19 +168,38 @@ def plan_choice(model: str, catalog: list[dict], task: dict, *,
                      timeout=timeout) as response:
             body = json.loads(response.read(500_000))
     except (URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
-        raise AgentPlanError("Local Ollama planning transport failed") from exc
+        raise ChoicePlanError(
+            "OLLAMA_TRANSPORT_FAILURE", model_request_attempted=True) from exc
     usage = _provider_usage(body)
+    message = body.get("message") if isinstance(body, dict) else None
+    response_text = message.get("content") if isinstance(message, dict) else None
+    fingerprint = sha(response_text) if isinstance(response_text, str) else None
     if usage["input_tokens"] >= num_ctx - 64:
-        raise AgentPlanError("Possible local model context truncation")
-    tool_index, target_index = _parse_plan(
-        body, allowed_tool_count=len(catalog), target_count=len(candidates))
+        raise ChoicePlanError(
+            "POSSIBLE_CONTEXT_TRUNCATION", usage=usage,
+            plan_sha256=fingerprint, model_request_attempted=True)
+    try:
+        tool_index, target_index = _parse_plan(
+            body, allowed_tool_count=len(catalog), target_count=len(candidates))
+    except AgentPlanError as exc:
+        raise ChoicePlanError(
+            PLAN_ERROR_CODES.get(str(exc), "INVALID_MODEL_PLAN"),
+            usage=usage, plan_sha256=fingerprint,
+            model_request_attempted=True) from exc
+    chosen = (tool_index, target_index)
     selected_name = catalog[tool_index]["name"]
     if selected_name not in TOOL_NAMES["baseline"] | TOOL_NAMES["optimized"]:
-        raise AgentPlanError("Unrecognized tool selected")
+        raise ChoicePlanError(
+            "UNRECOGNIZED_TOOL", usage=usage, plan_sha256=fingerprint,
+            indices=chosen, model_request_attempted=True)
     if selected_name not in ("execute_blender_code", "pie_blender_get_object"):
-        raise AgentPlanError("Model selected non-exact lookup")
+        raise ChoicePlanError(
+            "NON_EXACT_TOOL_SELECTED", usage=usage, plan_sha256=fingerprint,
+            indices=chosen, model_request_attempted=True)
     if candidates[target_index] != target:
-        raise AgentPlanError("Model selected wrong target")
+        raise ChoicePlanError(
+            "WRONG_TARGET_SELECTED", usage=usage, plan_sha256=fingerprint,
+            indices=chosen, model_request_attempted=True)
     return {
         "tool_index": tool_index, "target_index": target_index,
         "usage": usage, "planning_ms": round((time.perf_counter() - started) * 1000, 3),
@@ -187,7 +249,11 @@ def run_arm(profile: Path, workspace: Path, condition: str, task: dict,
         selected_tool = catalog[plan["tool_index"]]["name"]
         selected_target = candidates[plan["target_index"]]
         if selected_tool != SELECTED_TOOL[condition] or selected_target != target:
-            raise AgentPlanError("Invalid arm-specific model selection")
+            raise ChoicePlanError(
+                "ARM_SELECTION_MISMATCH", usage=plan["usage"],
+                plan_sha256=plan["plan_sha256"],
+                indices=(plan["tool_index"], plan["target_index"]),
+                model_request_attempted=True)
         arguments = ({"code": _read_only_blender_code(selected_target)}
                      if condition == "baseline" else {"name": selected_target})
         observation = _check_response(probe.call(3, "tools/call", {
@@ -264,9 +330,17 @@ def main(argv: list[str] | None = None) -> int:
                 pair["arms"][condition] = arm
                 if not arm["oracle_pass"]:
                     raise ValueError("Independent fixture oracle failed")
-            except (AgentPlanError, ValueError, RuntimeError, OSError) as exc:
+            except AgentPlanError as exc:
+                pair["status"] = "FAILED_CLOSED"
+                pair["reason_type"] = "AgentPlanError"
+                pair.update(safe_plan_failure(exc, condition))
+                status = 2
+                break
+            except (ValueError, RuntimeError, OSError) as exc:
                 pair["status"] = "FAILED_CLOSED"
                 pair["reason_type"] = type(exc).__name__
+                pair["failed_condition"] = condition
+                pair["failure_code"] = "NON_PLAN_FAILURE"
                 status = 2
                 break
         if not status:
