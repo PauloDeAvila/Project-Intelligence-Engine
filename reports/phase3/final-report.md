@@ -28,6 +28,7 @@ caracteres. A regressão Blender `query_scene` é válida e foi mantida.
   por braço e duas inferências locais por braço.
 - Web grande: 3 pares válidos com Playwright MCP `@playwright/mcp@0.0.85` e
   zero recuperações adicionais.
+- Web MCP real: 3 repetições alternadas, 12 chamadas de ferramenta, zero recuperações e zero inferências; baseline e PIE usaram `browser_navigate` e `browser_snapshot` contra a fixture local. Evidência: [117-web-live-mcp-routing-20261115.json](117-web-live-mcp-routing-20261115.json).
 - Respostas incorretas do modelo fecham a execução sem retry.
 - Nenhuma alteração destrutiva foi feita na cena Blender ou em páginas externas.
 - A primeira suíte completa executou 641 testes, 5 ignorados e teve 1 erro
