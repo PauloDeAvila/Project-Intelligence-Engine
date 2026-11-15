@@ -47,6 +47,26 @@ class Phase3ProfileGenerationTests(unittest.TestCase):
             self.assertIn("pie.gateway.domain",
                           optimized["mcp_servers"]["pie-blender-optimized"]["args"])
 
+    def test_optimized_exposed_tools_are_opt_in(self):
+        powershell = shutil.which("pwsh") or shutil.which("powershell")
+        if powershell is None:
+            self.skipTest("PowerShell is unavailable")
+        with tempfile.TemporaryDirectory(prefix="pie-phase3-profile-expose-test-") as tmp:
+            output = Path(tmp)
+            command = [powershell, "-NoProfile", "-File",
+                       str(ROOT / "tools" / "prepare_phase3_profiles.ps1"),
+                       "-Workspace", str(ROOT), "-OutputDirectory", str(output),
+                       "-OptimizedExposeTool", "get_scene_info"]
+            result = subprocess.run(command, cwd=ROOT, text=True,
+                                    capture_output=True, timeout=30, check=False)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            optimized = tomllib.loads(
+                (output / "pie-phase3-optimized.config.toml").read_text(encoding="utf-8")
+            )
+            args = optimized["mcp_servers"]["pie-blender-optimized"]["args"]
+            self.assertIn("--expose-tool", args)
+            self.assertIn("get_scene_info", args)
+
 
 if __name__ == "__main__":
     unittest.main()

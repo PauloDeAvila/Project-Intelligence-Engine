@@ -11,7 +11,8 @@ param(
     [string]$BlenderUpstream = "uvx",
     [string]$NpxExe = "npx.cmd",
     [string]$PlaywrightVersion = "@playwright/mcp@0.0.85",
-    [string]$DiagnosticsDirectory = ""
+    [string]$DiagnosticsDirectory = "",
+    [string[]]$OptimizedExposeTool = @()
 )
 $ErrorActionPreference = "Stop"
 $resolvedWorkspace = (Resolve-Path -LiteralPath $Workspace).Path
@@ -19,6 +20,9 @@ $resolvedOutput = [IO.Path]::GetFullPath($OutputDirectory)
 if ($resolvedWorkspace.Contains("'")) { throw "Workspace path cannot contain a single quote for literal TOML" }
 foreach ($value in @($PythonExe,$BlenderUpstream,$NpxExe,$PlaywrightVersion)) {
     if ($value.Contains("'")) { throw "Executable/version cannot contain a single quote" }
+}
+foreach ($value in $OptimizedExposeTool) {
+    if (-not $value -or $value.Contains("'")) { throw "Optimized exposed tool cannot be empty or contain a single quote" }
 }
 if ($DiagnosticsDirectory -and $DiagnosticsDirectory.Contains("'")) { throw "Diagnostics path cannot contain a single quote" }
 New-Item -ItemType Directory -Force -Path $resolvedOutput | Out-Null
@@ -31,6 +35,12 @@ if ($diagnosticsWeb -and $diagnosticsWeb.Contains("'")) { throw "Diagnostics pat
 function TomlArray([string[]]$values) {
     return "[" + (($values | ForEach-Object { "'" + $_ + "'" }) -join ", ") + "]"
 }
+$optimizedBlenderArgs = @("-m", "pie.gateway.domain", "serve", "--domain", "blender", "--workspace", $root, "--max-chars", "2400")
+foreach ($tool in $OptimizedExposeTool) { $optimizedBlenderArgs += @("--expose-tool", $tool) }
+$optimizedBlenderArgs += @("--", $BlenderUpstream, "mcp-for-blender")
+$optimizedWebArgs = @("-m", "pie.gateway.domain", "serve", "--domain", "web", "--workspace", $root, "--max-chars", "2400")
+foreach ($tool in $OptimizedExposeTool) { $optimizedWebArgs += @("--expose-tool", $tool) }
+$optimizedWebArgs += @("--", $NpxExe, "--yes", $PlaywrightVersion, "--headless", "--browser", "chrome")
 $baseline = @(
     "# Generated overlay; no credentials.",
     "model = 'gpt-5.6-luna'",
@@ -71,12 +81,12 @@ $optimized = @(
     "[mcp_servers.pie-blender-optimized]",
     ("command = '{0}'" -f $py),
     $(if ($diagnosticsBlender) { "env = { PIE_MCP_DIAGNOSTICS_PATH = '$diagnosticsBlender' }" }),
-    ("args = {0}" -f (TomlArray @("-m", "pie.gateway.domain", "serve", "--domain", "blender", "--workspace", $root, "--max-chars", "2400", "--", $BlenderUpstream, "mcp-for-blender"))),
+    ("args = {0}" -f (TomlArray $optimizedBlenderArgs)),
     "",
     "[mcp_servers.pie-web-optimized]",
     ("command = '{0}'" -f $py),
     $(if ($diagnosticsWeb) { "env = { PIE_MCP_DIAGNOSTICS_PATH = '$diagnosticsWeb' }" }),
-    ("args = {0}" -f (TomlArray @("-m", "pie.gateway.domain", "serve", "--domain", "web", "--workspace", $root, "--max-chars", "2400", "--", $NpxExe, "--yes", $PlaywrightVersion, "--headless", "--browser", "chrome"))),
+    ("args = {0}" -f (TomlArray $optimizedWebArgs)),
     "",
     "[mcp_servers.pie-blender-optimized.tools.get_scene_info]",
     "approval_mode = 'approve'",

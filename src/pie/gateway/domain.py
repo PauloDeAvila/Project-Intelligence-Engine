@@ -30,19 +30,25 @@ from pie.storage.locations import ENV_HOME, global_home
 
 
 def domain_route(domain: str, upstream: list[str], *, python: str,
-                 max_chars: int) -> tuple[list[str], tuple[str,...], str]:
+                 max_chars: int, exposed_tools: tuple[str, ...] = ()) -> tuple[list[str], tuple[str,...], str]:
     if domain not in ("blender","web"):
         raise ValueError("Only blender and web domains are implemented")
     if not upstream or not all(isinstance(x,str) and x for x in upstream):
         raise ValueError("Upstream MCP server command is required")
+    if any(not isinstance(tool, str) or not tool for tool in exposed_tools):
+        raise ValueError("Invalid exposed tool allowlist")
     if type(max_chars) is not int or not 800<=max_chars<=64000:
         raise ValueError("Invalid output budget")
     if domain=="blender":
         # Existing Blender bridge adds pie_blender_scene_delta and
         # pie_blender_expand. Keep its specialized observation compaction.
         # The outer gateway forwards all data without a second lossy pass.
-        return ([python,"-m","pie.integrations.blender_mcp_bridge",
-                "--max-chars",str(max_chars),"--",*upstream],
+        bridge=[python,"-m","pie.integrations.blender_mcp_bridge",
+                "--max-chars",str(max_chars)]
+        for tool in exposed_tools:
+            bridge += ["--expose-tool", tool]
+        bridge += ["--",*upstream]
+        return (bridge,
                 (),"generic")
     # Web profile applies only to recognizable Playwright accessibility
     # snapshot replies; other web actions, errors and image results pass through.
@@ -93,6 +99,7 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--max-chars",type=int,default=2400)
         p.add_argument("--workspace",type=Path,default=Path.cwd())
         p.add_argument("--store",type=Path)
+        p.add_argument("--expose-tool", action="append", default=[])
         if action=="register":
             p.add_argument("--name",required=True)
             p.add_argument("--apply",action="store_true")
@@ -110,14 +117,16 @@ def main(argv: list[str] | None = None) -> int:
             exit_code=0
             return exit_code
         command,tools,profile=domain_route(args.domain,upstream,
-                                          python=sys.executable,max_chars=args.max_chars)
+                                          python=sys.executable,max_chars=args.max_chars,
+                                          exposed_tools=tuple(args.expose_tool))
         os.environ.setdefault("PIE_APP", args.domain)
         if os.environ.get("PIE_MCP_DIAGNOSTICS_PATH"):
             print(json.dumps({"event":"domain_gateway_start","domain":args.domain,
                               "upstream_executable":Path(upstream[0]).name},
                              separators=(",",":")),file=sys.stderr,flush=True)
         exit_code=MCPStdioGateway(args.workspace,command,max_chars=args.max_chars,
-                                  compress_tools=tools,profile=profile).run()
+                                  compress_tools=tools,profile=profile,
+                                  exposed_tools=tuple(args.expose_tool)).run()
         return exit_code
     except (OSError,ValueError,RuntimeError,subprocess.TimeoutExpired) as exc:
         # Never write protocol failures to MCP stdout.

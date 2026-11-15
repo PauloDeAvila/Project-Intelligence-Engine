@@ -126,12 +126,14 @@ def _error(reason: str) -> dict[str, Any]:
     return {"isError": True, "content": [{"type": "text", "text": reason}]}
 
 
-def extend_tools(message: dict[str, Any]) -> dict[str, Any]:
+def extend_tools(message: dict[str, Any], exposed_tools: frozenset[str] = frozenset()) -> dict[str, Any]:
     result = message.get("result")
     if isinstance(result, dict) and isinstance(result.get("tools"), list):
-        values = list(result["tools"])
+        values = [tool for tool in result["tools"]
+                  if not exposed_tools or (isinstance(tool, dict) and tool.get("name") in exposed_tools)]
         for extra in (EXPAND_TOOL, SCENE_DELTA_TOOL):
-            if not any(isinstance(t, dict) and t.get("name") == extra["name"] for t in values):
+            if ((not exposed_tools or extra["name"] in exposed_tools) and
+                    not any(isinstance(t, dict) and t.get("name") == extra["name"] for t in values)):
                 values.append(extra)
         result["tools"] = values
     return message
@@ -191,13 +193,15 @@ def compact_observation(
 class BlenderMcpBridge:
     """Forward MCP JSON-RPC frames; intercept only tool discovery and read results."""
 
-    def __init__(self, upstream: list[str], max_chars: int = 2400) -> None:
+    def __init__(self, upstream: list[str], max_chars: int = 2400,
+                 exposed_tools: frozenset[str] = frozenset()) -> None:
         if not upstream:
             raise ValueError("upstream command is required")
         if type(max_chars) is not int or not MIN_BUDGET <= max_chars <= MAX_BUDGET:
             raise ValueError("max_chars out of range")
         self.upstream = upstream
         self.max_chars = max_chars
+        self.exposed_tools = exposed_tools
         self.snapshots = SnapshotStore()
         self.delta_cache = SceneDeltaCache()
         self.delta_options: dict[str, int] = {}
@@ -223,6 +227,11 @@ class BlenderMcpBridge:
                 if isinstance(message, dict) and "id" in message:
                     method = message.get("method")
                     params = message.get("params") or {}
+                    if (method == "tools/call" and self.exposed_tools and
+                            isinstance(params, dict) and params.get("name") not in self.exposed_tools):
+                        self._write({"jsonrpc": "2.0", "id": message["id"],
+                                     "result": _error("PIE_TOOL_NOT_EXPOSED")})
+                        continue
                     if method == "tools/call" and isinstance(params, dict) and params.get("name") == "pie_blender_expand":
                         self._write({
                             "jsonrpc": "2.0",
@@ -295,7 +304,7 @@ class BlenderMcpBridge:
                     with self.pending_lock:
                         tool_name = self.pending.pop(_key(message["id"]), "")
                     if tool_name == "__tools_list__":
-                        self._write(extend_tools(message))
+                        self._write(extend_tools(message, self.exposed_tools))
                     elif tool_name == "__blender_delta__":
                         with self.pending_lock:
                             budget = self.delta_options.pop(_key(message["id"]), 4000)
@@ -343,6 +352,7 @@ class BlenderMcpBridge:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Transparent PIE Blender MCP bridge")
     parser.add_argument("--max-chars", type=int, default=2400)
+    parser.add_argument("--expose-tool", action="append", default=[])
     parser.add_argument(
         "upstream", nargs=argparse.REMAINDER,
         help="Command after --; default: uvx mcp-for-blender",
@@ -351,7 +361,8 @@ def main(argv: list[str] | None = None) -> int:
     upstream = args.upstream
     if upstream and upstream[0] == "--":
         upstream = upstream[1:]
-    return BlenderMcpBridge(upstream or ["uvx", "mcp-for-blender"], args.max_chars).run()
+    return BlenderMcpBridge(upstream or ["uvx", "mcp-for-blender"], args.max_chars,
+                            frozenset(args.expose_tool)).run()
 
 
 if __name__ == "__main__":

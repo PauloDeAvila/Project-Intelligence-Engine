@@ -122,13 +122,16 @@ class DomainStdioTests(unittest.TestCase):
                       PIE_GLOBAL_STORAGE_ROOT=str(self.store),
                       PYTHONPATH=str(Path(__file__).resolve().parents[1]/"src"))
 
-    def _run(self,domain,upstream,inputs,max_chars="1200",mark=None,env_extra=None):
+    def _run(self,domain,upstream,inputs,max_chars="1200",mark=None,env_extra=None,expose_tools=()):
         env=dict(self.env)
         if mark:env["PIE_TEST_DOMAIN_MARKER"]=str(mark)
         if env_extra:env.update(env_extra)
         cmd=[sys.executable,"-m","pie.gateway.domain","serve",
              "--domain",domain,"--max-chars",max_chars,
-             "--workspace",str(self.root),"--store",str(self.store),
+             "--workspace",str(self.root),"--store",str(self.store)]
+        for tool in expose_tools:
+            cmd += ["--expose-tool",tool]
+        cmd += [
              "--",sys.executable,"-u","-c",upstream]
         proc=subprocess.run(cmd,input="\n".join(json.dumps(x) for x in inputs)+"\n",
                             text=True,env=env,capture_output=True,timeout=22)
@@ -172,6 +175,33 @@ for line in sys.stdin:
         self.assertEqual(call["pair_id"],"pair-web-v1")
         self.assertEqual(call["condition"],"optimized")
         self.assertNotIn("content",diagnostics.read_text())
+
+    def test_task_tool_allowlist_reduces_discovery_and_blocks_hidden_calls(self):
+        upstream=r'''
+import json,sys
+for line in sys.stdin:
+  q=json.loads(line)
+  if "id" not in q: continue
+  if q.get("method")=="tools/list":
+    result={"tools":[{"name":"browser_navigate","inputSchema":{"type":"object"}},
+            {"name":"browser_snapshot","inputSchema":{"type":"object"}},
+            {"name":"browser_click","inputSchema":{"type":"object"}}]}
+  elif q.get("method")=="tools/call":
+    result={"content":[{"type":"text","text":"### Snapshot\n- heading [ref=e1]: Products"}]}
+  else:
+    result={"serverInfo":{"name":"mock","version":"1"},"protocolVersion":"2025-03-26","capabilities":{"tools":{}}}
+  print(json.dumps({"jsonrpc":"2.0","id":q["id"],"result":result}),flush=True)
+'''
+        requests=[request(1,"initialize",{}),request(2,"tools/list",{}),
+                  request(3,"tools/call",{"name":"browser_navigate","arguments":{}}),
+                  request(4,"tools/call",{"name":"browser_click","arguments":{}})]
+        run=self._run("web",upstream,requests,expose_tools=("browser_navigate","browser_snapshot"))
+        self.assertEqual(run.returncode,0,run.stderr)
+        responses={m["id"]:m for m in (json.loads(line) for line in run.stdout.splitlines())}
+        self.assertEqual([tool["name"] for tool in responses[2]["result"]["tools"]],
+                         ["browser_navigate","browser_snapshot"])
+        self.assertFalse(responses[3]["result"].get("isError",False))
+        self.assertTrue(responses[4]["result"].get("isError",False))
 
     def test_web_navigation_is_called_once_and_recoverable(self):
         upstream=r"""

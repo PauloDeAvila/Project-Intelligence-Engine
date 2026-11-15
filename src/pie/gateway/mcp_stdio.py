@@ -99,7 +99,8 @@ class MCPStdioGateway:
     def __init__(self, root: Path, command: list[str], *,
                  max_chars: int = 2500, compress_tools: tuple[str,...] =
                  ("get_scene_info","get_object_info"), profile: str = "generic",
-                 request_timeout_sec: float = 120.0) -> None:
+                 request_timeout_sec: float = 120.0,
+                 exposed_tools: tuple[str, ...] = ()) -> None:
         self.root=detect_workspace(root)
         if not command or not all(isinstance(v,str) and v for v in command):
             raise ValueError("Upstream server command is required")
@@ -114,6 +115,9 @@ class MCPStdioGateway:
         self.command=list(command)
         self.max_chars=max_chars
         self.compress_tools=frozenset(compress_tools)
+        if any(not isinstance(tool, str) or not tool for tool in exposed_tools):
+            raise ValueError("Invalid exposed tool allowlist")
+        self.exposed_tools=frozenset(exposed_tools)
         self._write_lock=threading.RLock()
         self._pending_lock=threading.RLock()
         self._pending:dict[str,tuple[str,str,float,threading.Timer]]={}
@@ -196,6 +200,9 @@ class MCPStdioGateway:
         if method=="tools/list":
             body=response.get("result")
             if isinstance(body,dict) and isinstance(body.get("tools"),list):
+                if self.exposed_tools:
+                    body["tools"]=[spec for spec in body["tools"]
+                                   if isinstance(spec,dict) and spec.get("name") in self.exposed_tools]
                 for spec in body["tools"]:
                     if isinstance(spec,dict):
                         name=spec.get("name")
@@ -205,7 +212,7 @@ class MCPStdioGateway:
                             self._output_schema_tools.add(name)
                         if name==RECOVERY_NAME:
                             self._collision=True
-                if not self._collision and not any(t.get("name")==RECOVERY_NAME
+                if (not self.exposed_tools or RECOVERY_NAME in self.exposed_tools) and not self._collision and not any(t.get("name")==RECOVERY_NAME
                                                    for t in body["tools"] if isinstance(t,dict)):
                     body["tools"].append(dict(RECOVERY_TOOL))
                 self._diagnostic("tools_list_complete", tool_count=len(body["tools"]),
@@ -362,6 +369,10 @@ class MCPStdioGateway:
                 if isinstance(request,dict) and "id" in request:
                     params=request.get("params")
                     method=request.get("method", "")
+                    if (method == "tools/call" and self.exposed_tools and
+                            isinstance(params, dict) and params.get("name") not in self.exposed_tools):
+                        self._send(stdout, _tool_error(request["id"], "PIE_TOOL_NOT_EXPOSED"))
+                        continue
                     if method == "initialize":
                         self._diagnostic("MCP_INITIALIZE_RECEIVED")
                     elif method == "tools/list":

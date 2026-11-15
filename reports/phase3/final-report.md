@@ -83,6 +83,18 @@ optimized, mas a decomposição exata em tokens do provedor ainda não está dis
 Evidência completa: [`71-differential-regression-analysis.md`](71-differential-regression-analysis.md)
 e [`71-differential-regression-analysis.json`](71-differential-regression-analysis.json).
 
+## Medição estrutural e correção offline
+
+O diff direto de `tools/list` confirmou overhead estrutural: Blender `18.750 → 20.045`
+caracteres e Web `21.177 → 21.583`, com ferramentas adicionais de recuperação/expansão.
+Evidência: [`72-structural-overhead-diff.md`](72-structural-overhead-diff.md).
+
+Foi implementada uma exposição seletiva opt-in por tarefa. Nos probes offline, o perfil seletivo
+reduziu as listas para 3.792 caracteres no Blender e 1.738 na Web, mantendo explicitamente a
+recuperação necessária. Chamadas a ferramentas ocultas falham fechadas e não são encaminhadas.
+O comportamento padrão do gateway não mudou. Evidência:
+[`73-selective-exposure-diff.md`](73-selective-exposure-diff.md).
+
 ## A/B estrito (repetições 2 e 3)
 
 | Domínio | Pares | Input B/O | Cache B/O | Output B/O | Total B/O | Economia total | Latência média B/O | MCP B/O |
