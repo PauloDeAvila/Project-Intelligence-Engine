@@ -1,0 +1,62 @@
+{
+  "schema": "pie-phase3-ab-offline-audit-v1",
+  "status": "AUDITED_NOT_CERTIFIED",
+  "source": "C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase3-3-cert\\ab-evidence",
+  "historical_pairs": {
+    "blender": {
+      "scenario": "blender-material-inspection-v1",
+      "usable_usage_pairs": [2, 3],
+      "rep1": "EXCLUDED_PROMPT_HASH_MISMATCH",
+      "rep4": "EXCLUDED_MCP_FAILURES_IN_BOTH_ARMS",
+      "prompt_hash_rep2_rep3": "0666cc153b983ac9401c4b602bde7903c0e66de9c133f4a762d09b9efa08e478",
+      "expected_answer_hash": "13ae7b838036799f31cc3aeaa4053d3c6042a7dc15d6d214b7b80e2e19429187",
+      "oracle_passes": 4,
+      "provider_usage_records": 4,
+      "aggregate": {"baseline_input": 226951, "optimized_input": 196052, "baseline_total": 228377, "optimized_total": 197253, "total_savings_percent": 13.628343}
+    },
+    "web": {
+      "scenario": "web-local-element-inspection-v1",
+      "usable_usage_pairs": [2, 3],
+      "rep1": "EXCLUDED_PROMPT_HASH_MISMATCH",
+      "rep4": "NOT_PRESENT",
+      "prompt_hash_rep2_rep3": "61078f5daf99b6c061bcefbfc3b3c06a17c36c4b3ef9b7464136f080e5a3eaeb",
+      "expected_answer_hash": "cbd7ccf1e8de869e9af10f7f522837d9db6508c0b7424f0acca5bcfb2dba54f8",
+      "oracle_passes": 4,
+      "provider_usage_records": 4,
+      "aggregate": {"baseline_input": 355463, "optimized_input": 399269, "baseline_total": 356796, "optimized_total": 400941, "total_savings_percent": -12.372616}
+    }
+  },
+  "comparability": {
+    "model": "gpt-5.6-luna",
+    "effort": "medium",
+    "historical_workspace_commit": "dda927725c021ce7b11279d60aeef48cf7798b38",
+    "current_workspace_commit": "5d17151",
+    "historical_prompt_oracle_equivalence": "PASS_FOR_REPETITIONS_2_AND_3",
+    "historical_provider_usage": "PASS",
+    "historical_gateway_route_proof": "INCOMPLETE",
+    "historical_gateway_sqlite": {"blender": 0, "web": 2},
+    "current_code_changed_since_historical_runs": true,
+    "certification_reuse": "REJECTED_FOR_FINAL_CERTIFICATION"
+  },
+  "new_calls_plan": {
+    "strict_current_commit": {
+      "blender_pairs": 3,
+      "web_pairs": 3,
+      "baseline_calls": 6,
+      "optimized_calls": 6,
+      "total_model_sessions": 12,
+      "reason": "Historical optimized route coverage is incomplete and the gateway code changed after the historical commit. A current-commit paired run is required."
+    },
+    "minimum_if_historical_version_were_accepted": {
+      "additional_pairs": 2,
+      "total_model_sessions": 4,
+      "not_sufficient_for_current_certification": true
+    }
+  },
+  "observed_metrics_are_not_certification": {
+    "blender_total_savings_percent": 13.628343,
+    "web_total_savings_percent": -12.372616,
+    "character_compaction_is_token_savings": false
+  },
+  "certification": "NOT_CERTIFIED"
+}

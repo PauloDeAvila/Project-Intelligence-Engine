@@ -1,0 +1,24 @@
+{
+  "schema": "pie-phase3-auth-probe-v1",
+  "status": "AUTH_REMOTE_VALIDATED",
+  "scope": "single minimal Codex call; no MCP; no Blender/Web",
+  "model": "gpt-5.6-luna",
+  "preflight": "PASS",
+  "codex_home": "original authenticated CODEX_HOME; credentials not copied",
+  "config_mode": "--ignore-user-config",
+  "provider_reported": true,
+  "tool_events": 0,
+  "answer_matches_oracle": true,
+  "answer_sha256": "6441420ef47be08a7bc771102801644c65d9bd8569e6fb95dadfc4626468d489",
+  "usage": {
+    "input_tokens": 19935,
+    "cached_input_tokens": 0,
+    "uncached_input_tokens": 19935,
+    "output_tokens": 10,
+    "reasoning_output_tokens": 0,
+    "total_tokens": 19945
+  },
+  "isolated_profiles": "not remotely validated by this probe",
+  "retries": 0,
+  "credentials_exported": false
+}

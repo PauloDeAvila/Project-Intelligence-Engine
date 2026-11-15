@@ -1,0 +1,8 @@
+{
+  "schema": "pie-phase3-cost-efficiency-v1",
+  "status": "NOT_AVAILABLE",
+  "tariffs": null,
+  "baseline": null,
+  "optimized": null,
+  "reason": "No provider token records and no explicit verified tariffs."
+}

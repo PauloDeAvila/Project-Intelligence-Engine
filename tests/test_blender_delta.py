@@ -7,7 +7,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from pie.integrations.blender_delta import (
-    SceneDeltaCache, parse_execution_reply, snapshot_code,
+    QUERY_SCHEMA, QUERY_MARKER, SceneDeltaCache, parse_execution_reply, parse_query_reply, snapshot_code,
 )
 
 
@@ -29,6 +29,19 @@ def fixture():
 
 
 class BlenderDeltaTests(unittest.TestCase):
+    def test_query_parser_accepts_structured_content_result(self):
+        query = {"schema": QUERY_SCHEMA, "query": "find_objects", "scene": "Scene",
+                 "items": [], "total": 0, "offset": 0, "limit": 20,
+                 "next_offset": None, "complete": True}
+        encoded = QUERY_MARKER + json.dumps(query, separators=(",", ":"))
+        self.assertEqual(parse_query_reply({"result": {"structuredContent": {"result": encoded}}}), query)
+
+    def test_query_parser_reports_structured_execution_failure(self):
+        message = {"result": {"content": [{"type": "text", "text": "Error executing code: failed"}],
+                               "structuredContent": {"result": "Error executing code: failed"}}}
+        with self.assertRaisesRegex(ValueError, "execution failed"):
+            parse_query_reply(message)
+
     def test_first_unchanged_changed_and_manual_change(self):
         cache = SceneDeltaCache()
         old = fixture()

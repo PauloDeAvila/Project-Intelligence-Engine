@@ -1,0 +1,21 @@
+{
+  "schema": "pie-mcp-lifecycle-events-v1",
+  "source": "real direct Blender gateway probe with PIE_MCP_DIAGNOSTICS_PATH enabled",
+  "model_calls": 0,
+  "events": [
+    {"event": "gateway_constructed", "profile": "generic", "upstream_executable": "uvx.exe"},
+    {"event": "upstream_spawn_start"},
+    {"event": "upstream_spawned"},
+    {"event": "downstream_request", "method": "initialize", "tool": ""},
+    {"event": "downstream_request", "method": "tools/list", "tool": ""},
+    {"event": "tools_list_complete", "recovery_collision": false},
+    {"event": "downstream_request", "method": "tools/call", "tool": "get_scene_info"},
+    {"event": "tools_call_response", "tool": "get_scene_info", "status": "result"},
+    {"event": "upstream_stdout_eof"},
+    {"event": "upstream_exit", "exit_code": 0}
+  ],
+  "stdout_protocol_clean": true,
+  "payloads_recorded": false,
+  "credentials_recorded": false,
+  "diagnostic_file_format": "JSONL"
+}

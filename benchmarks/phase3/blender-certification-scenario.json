@@ -1,0 +1,16 @@
+{
+  "scenario_id": "blender-material-cert-v1",
+  "description": "Read selected disposable Blender fixture and inspect material properties without mutation.",
+  "model": "gpt-5.6-luna",
+  "required_mcp_server": "blender",
+  "expected_mcp_tools": ["get_scene_info", "execute_blender_code"],
+  "prompt": "Use only the configured Blender MCP server. Do not modify the scene. Call get_scene_info once, then call execute_blender_code once with this read-only code exactly (without the surrounding backticks): `import bpy, json; obj = bpy.data.objects.get('PIE_AB_Cube'); mat = bpy.data.materials.get('PIE_AB_Material'); node = next((n for n in mat.node_tree.nodes if n.type == 'BSDF_PRINCIPLED'), None) if mat and mat.use_nodes else None; print(json.dumps({'object': obj.name if obj else None, 'material': mat.name if mat else None, 'roughness': float(node.inputs['Roughness'].default_value) if node and node.inputs.get('Roughness') else None, 'metallic': float(node.inputs['Metallic'].default_value) if node and node.inputs.get('Metallic') else None}))`. After the tool calls, reply with exactly: PIE_BLENDER_CERT_ORACLE_V1",
+  "expected_exact": "PIE_BLENDER_CERT_ORACLE_V1",
+  "oracle": {
+    "kind": "blender_material_properties",
+    "object_name": "PIE_AB_Cube",
+    "material_name": "PIE_AB_Material",
+    "roughness": 0.35,
+    "metallic": 0.2
+  }
+}

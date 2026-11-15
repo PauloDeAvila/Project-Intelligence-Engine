@@ -166,7 +166,8 @@ class Phase1GatewayTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             registration_plan("bad command!",["x"],python=sys.executable)
 
-    def _mcp(self, inputs: list[dict], marker: Path | None = None):
+    def _mcp(self, inputs: list[dict], marker: Path | None = None,
+             diagnostics: Path | None = None):
         script=r"""
 import json,os,sys
 from pathlib import Path
@@ -212,6 +213,8 @@ for line in sys.stdin:
         env["PYTHONPATH"]=str(Path(__file__).resolve().parents[1]/"src")
         if marker:
             env["PIE_MCP_TEST_MARKER"]=str(marker)
+        if diagnostics:
+            env["PIE_MCP_DIAGNOSTICS_PATH"]=str(diagnostics)
         cmd=[sys.executable,"-m","pie.gateway.mcp_stdio",
              "--workspace",str(self.root),"--store",str(self.store),
              "--max-chars","1000","--compress-tool","get_scene_info",
@@ -220,6 +223,23 @@ for line in sys.stdin:
              sys.executable,"-u","-c",script]
         return subprocess.run(cmd,input="\n".join(json.dumps(x) for x in inputs)+"\n",
                               env=env,timeout=25,text=True,capture_output=True)
+
+    def test_lifecycle_diagnostics_stay_outside_mcp_stdout(self):
+        diagnostics=self.root/"mcp-lifecycle.jsonl"
+        done=self._mcp([req(1,"initialize",{}),req(2,"tools/list",{}),
+                        req(3,"tools/call",{"name":"get_scene_info","arguments":{}})],
+                       diagnostics=diagnostics)
+        self.assertEqual(done.returncode,0,done.stderr)
+        messages=[json.loads(line) for line in done.stdout.splitlines() if line.strip()]
+        self.assertTrue(all(message.get("jsonrpc")=="2.0" for message in messages))
+        events=[json.loads(line) for line in diagnostics.read_text().splitlines()]
+        names={event["event"] for event in events}
+        self.assertIn("upstream_spawned",names)
+        self.assertIn("downstream_request",names)
+        self.assertIn("tools_list_complete",names)
+        self.assertIn("tools_call_response",names)
+        self.assertIn("upstream_exit",names)
+        self.assertNotIn("content",diagnostics.read_text())
 
     def test_stdio_end_to_end_no_double_execution(self):
         marker=self.root/"calls.txt"
@@ -275,6 +295,39 @@ for line in sys.stdin:
         observed=data["result"]["content"][0]["text"]
         self.assertFalse(observed.startswith('{"pie_gateway"'))
         self.assertIn("Cube roughness",observed)
+
+    def test_duplicate_inflight_request_is_suppressed_and_timeout_is_explicit(self):
+        marker=self.root/"timeout-calls.txt"
+        script=r"""
+import json,sys,time
+from pathlib import Path
+marker=Path(sys.argv[1])
+for line in sys.stdin:
+    req=json.loads(line)
+    if req.get("method")=="tools/list":
+        body={"tools":[{"name":"slow_tool","inputSchema":{"type":"object"}}]}
+    elif req.get("method")=="tools/call":
+        time.sleep(1.5)
+        marker.write_text(marker.read_text()+"x" if marker.exists() else "x")
+        body={"content":[{"type":"text","text":"done"}]}
+    else:
+        body={}
+    print(json.dumps({"jsonrpc":"2.0","id":req["id"],"result":body}),flush=True)
+"""
+        cmd=[sys.executable,"-m","pie.gateway.mcp_stdio","--workspace",str(self.root),
+             "--store",str(self.store),"--request-timeout-sec","1","--",
+             sys.executable,"-u","-c",script,str(marker)]
+        calls=[req(1,"tools/list",{}),
+               req(2,"tools/call",{"name":"slow_tool","arguments":{}}),
+               req(2,"tools/call",{"name":"slow_tool","arguments":{}})]
+        done=subprocess.run(cmd,input="\n".join(json.dumps(x) for x in calls)+"\n",
+                            env=dict(os.environ,PYTHONPATH=str(Path(__file__).resolve().parents[1]/"src")),
+                            timeout=5,text=True,capture_output=True)
+        self.assertEqual(done.returncode,0,done.stderr)
+        messages=[json.loads(s) for s in done.stdout.splitlines() if s.strip()]
+        timeout=[x for x in messages if x.get("id")==2 and "error" in x]
+        self.assertEqual(timeout[0]["error"]["message"],"PIE_GATEWAY_TIMEOUT")
+        self.assertEqual(marker.read_text(),"x")
 
     def test_recovery_pages_exact_and_cross_project_isolation(self):
         content="REDUCED "+("x"*3200)

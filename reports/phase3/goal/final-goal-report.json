@@ -1,0 +1,15 @@
+{
+  "schema": "pie-phase3-goal-final-v1",
+  "status": "BLOCKED",
+  "desired_state": "CERTIFIED_AND_MONITORED",
+  "current_state": "BLOCKED",
+  "architecture": "Codex -> PIE Gateway -> MCP -> Blender/Web is locally operational for registered gateways.",
+  "authentication": {"original": "AUTH_REMOTE_VALIDATED", "benchmark_profiles": "AUTH_VALIDATED_LOCAL_VIA_ORIGINAL_HOME_PROFILE", "credentials_exposed": false, "phase1_state": "READY_FOR_BENCHMARK", "probe_tokens": 19945},
+  "routing": {"configured_ratio": 0.4, "effective_preference_proven": false, "node_repl_bypass": true},
+  "telemetry": {"status": "ACTIVE_FOR_REGISTERED_GATEWAYS", "provider_tokens": false},
+  "certification": {"status": "NOT_CERTIFIED", "blender_pairs": 0, "web_pairs": 0, "tokens": null, "costs": null},
+  "tests": {"passed": 532, "skipped": 5, "subtests": 133},
+  "limitation": "Profiles pass local validation over the original authenticated CODEX_HOME; profile MCP execution and token A/B evidence remain unreleased pending authorization.",
+  "commits": ["48b6a25"],
+  "reports": ["00-environment-baseline.json", "01-auth-root-cause.md", "02-auth-strategy.md", "03-auth-validation.json", "auth-probe-result.json", "profile-preflight-validation.json", "04-ab-environment-equivalence.json", "05-index-root-validation.json", "06-live-routing-coverage.json", "07-telemetry-validation.json", "08-certification-readiness.json", "12-cost-efficiency.json", "13-regression-monitoring.md"]
+}

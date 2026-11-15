@@ -1,0 +1,15 @@
+{
+  "scenario_id": "blender-large-observation-cert-v1",
+  "description": "Read the real disposable 64-object/16-material Blender fixture through get_scene_info without mutation.",
+  "model": "gpt-5.6-luna",
+  "required_mcp_server": "blender",
+  "expected_mcp_tools": ["get_scene_info"],
+  "prompt": "Use only the configured Blender MCP server. Do not modify the scene. Call get_scene_info exactly once. Verify from the returned scene data that the object PIE_Large_Cube_00 is present, then reply with exactly: PIE_LARGE_SCENE_ORACLE_V1",
+  "expected_exact": "PIE_LARGE_SCENE_ORACLE_V1",
+  "oracle": {
+    "kind": "blender_large_fixture_presence",
+    "required_object_name": "PIE_Large_Cube_00",
+    "expected_object_count": 64,
+    "expected_material_count": 16
+  }
+}

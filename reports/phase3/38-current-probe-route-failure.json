@@ -1,0 +1,21 @@
+{
+  "schema": "pie-phase3-current-probe-route-failure-v1",
+  "status": "NOT_CERTIFIED",
+  "attempt": "blender-baseline-isolated-01",
+  "commit": "361e79d55728fe5a32372bcbdc72faa9806906da",
+  "preflight": "READY_FOR_BENCHMARK",
+  "provider_usage_record": false,
+  "capture_error": "MCP route evidence failed; unexpected server or incomplete tool call",
+  "lifecycle_evidence": "MISSING_BEFORE_FIX",
+  "diagnosis": {
+    "authentication": "PASS",
+    "direct_gateway_handshake": "PASS",
+    "codex_capture_started": true,
+    "route_or_tool_status": "FAILED_OR_UNEXPECTED",
+    "exact_observed_server_and_status": "UNAVAILABLE_BECAUSE_CAPTURE_DID_NOT_EXPORT_GATEWAY_DIAGNOSTICS"
+  },
+  "fix_commit": "ed759c9edc5cb5bb8f7bf0c07b373f163f1c25b8",
+  "fix": "Capture now exports PIE_MCP_DIAGNOSTICS_PATH and PIE_GLOBAL_STORAGE_ROOT and includes sanitized observed route details in the failure reason",
+  "retries": 0,
+  "certification": "NOT_CERTIFIED"
+}

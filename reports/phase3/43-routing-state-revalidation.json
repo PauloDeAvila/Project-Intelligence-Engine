@@ -1,0 +1,21 @@
+{
+  "schema": "pie-phase3-routing-state-v1",
+  "checkout": "C:/Users/phsra/OneDrive/Documents/ChatGPT/Korum/Project-Intelligence-Engine",
+  "branch": "feat/pie-phase3-task-telemetry-20261114",
+  "config": {
+    "path": "C:/Users/phsra/.codex/config.toml",
+    "sha256": "850C2E3559A58B205958B82DF08FD195AAC4D5A3C8D63B10DC8A2399E4D8416C",
+    "original_blender_preserved": true,
+    "node_repl_modified": false,
+    "pie_blender_optimized": {"present": true, "domain": "blender", "workspace": "C:/Users/phsra/OneDrive/Documents/ChatGPT/Korum/Project-Intelligence-Engine"},
+    "pie_web_optimized": {"present": true, "domain": "web", "workspace": "C:/Users/phsra/OneDrive/Documents/ChatGPT/Korum/Project-Intelligence-Engine"}
+  },
+  "pie_server": {
+    "configured_root": "C:/Users/phsra/Documents/Codex/2026-11-14/contrato-de-uso-ativo-do-project",
+    "requested_root": "C:/Users/phsra/OneDrive/Documents/ChatGPT/Korum/Project-Intelligence-Engine",
+    "workspace_match": false,
+    "used_as_checkout_evidence": false
+  },
+  "status": "PARTIAL_ROUTING_CONFIRMED",
+  "certification": "NOT_CERTIFIED"
+}

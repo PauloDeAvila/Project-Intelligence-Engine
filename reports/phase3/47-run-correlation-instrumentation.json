@@ -1,0 +1,11 @@
+{
+  "schema": "pie-phase3-run-correlation-v2",
+  "status": "OFFLINE_VALIDATED",
+  "fields_generated_before_codex": ["run_id", "pair_id", "task_id", "condition", "application", "scenario_id"],
+  "propagation": ["Codex child environment", "gateway process environment", "gateway lifecycle JSONL", "SQLite task ledger"],
+  "provider_record_requires": ["run_id", "pair_id", "prompt_sha256", "workspace_commit", "expected_mcp_server", "mcp_route_verified"],
+  "duplicate_import_protection": "deterministic source_event_id with INSERT OR IGNORE",
+  "tests": {"targeted": "25 passed, 7 subtests", "full": "539 passed, 5 skipped, 133 subtests"},
+  "real_provider_runs_after_change": 0,
+  "certification": "NOT_CERTIFIED"
+}

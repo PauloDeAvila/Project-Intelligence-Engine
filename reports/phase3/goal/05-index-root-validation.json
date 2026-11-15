@@ -1,0 +1,19 @@
+{
+  "schema": "pie-phase3-index-root-v1",
+  "status": "PARTIAL",
+  "local_project": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+  "local_index": {
+    "command": "uv run --project . pie index --root .",
+    "status": "CURRENT",
+    "files": 250,
+    "symbols": 1782,
+    "imports": 2404,
+    "diagnostics": []
+  },
+  "configured_pie_server": {
+    "name": "pie-def7be8e70",
+    "root": "C:\\Users\\phsra\\Documents\\Codex\\2026-11-14\\contrato-de-uso-ativo-do-project",
+    "status": "WRONG_ROOT_NOT_MODIFIED"
+  },
+  "conclusion": "Local project index is current; the registered external PIE server still points elsewhere and must not be silently used as evidence."
+}

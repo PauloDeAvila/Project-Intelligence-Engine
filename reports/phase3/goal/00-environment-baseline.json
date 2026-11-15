@@ -1,0 +1,21 @@
+{
+  "schema": "pie-phase3-goal-environment-v1",
+  "status": "PASS_WITH_LIMITATIONS",
+  "repository": "Project-Intelligence-Engine",
+  "branch": "feat/pie-phase3-task-telemetry-20261114",
+  "head": "48b6a25",
+  "working_tree": "CLEAN_TRACKED_FILES_ONLY",
+  "untracked_existing": ["graphify-out/", "pie-blender-probe.json", "uv.lock"],
+  "versions": {
+    "codex_cli": "0.169.0-alpha.11.1",
+    "uv": "0.13.6",
+    "python": "project .venv available; python not on PATH",
+    "blender": "5.3.0",
+    "node": "26.13.1",
+    "npm": "11.20.0",
+    "git": "2.55.0.windows.5",
+    "sqlite_cli": "unavailable; Python sqlite3 used by PIE"
+  },
+  "credentials": "not exported or inspected",
+  "result": "No destructive changes; original Codex configuration preserved"
+}

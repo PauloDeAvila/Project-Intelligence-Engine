@@ -1,0 +1,31 @@
+{
+  "schema": "pie-phase3-current-offline-prep-v1",
+  "commit": "fe5f236",
+  "isolated_profiles": {
+    "blender_baseline": "READY_FOR_BENCHMARK",
+    "blender_optimized": "READY_FOR_BENCHMARK",
+    "web_baseline": "READY_FOR_BENCHMARK",
+    "web_optimized": "READY_FOR_BENCHMARK",
+    "model": "gpt-5.6-luna",
+    "effort": "medium",
+    "approval_policy": "never",
+    "sandbox": "read-only",
+    "other_servers": "omitted",
+    "enabled_tools_declared": true
+  },
+  "offline_gateway": {
+    "blender": "PASS",
+    "web": "PASS",
+    "web_source_chars": 17585,
+    "web_model_facing_chars": 1256,
+    "web_saved_chars": 16329,
+    "web_character_reduction_percent": 92.858,
+    "provider_tokens_measured": false
+  },
+  "paid_capture": {
+    "status": "NOT_RETRIED",
+    "reason": "Initial Codex capture failed and the authorized battery required interruption",
+    "next_required_sessions": 12
+  },
+  "note": "Character reduction is not token savings. Current A/B remains NOT_CERTIFIED."
+}

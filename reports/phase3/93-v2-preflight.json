@@ -1,0 +1,89 @@
+{
+  "schema": "pie-phase3-preflight-v1",
+  "state": "READY_FOR_BENCHMARK",
+  "model_started": false,
+  "quota_consumed": false,
+  "arms": [
+    {
+      "scenario_id": "blender-selective-location-v2",
+      "condition": "baseline",
+      "state": "READY_FOR_BENCHMARK",
+      "checks": {
+        "scenario": "PASS",
+        "condition": "PASS",
+        "worktree": {
+          "state": "PASS",
+          "commit": "5433551aae2dd73426d350a1e91214f874932cc9"
+        },
+        "config": "PASS",
+        "profile": "PASS",
+        "codex_executable": "PASS",
+        "model": "PASS",
+        "mcp": {
+          "state": "PASS",
+          "required_server": "blender"
+        },
+        "mcp_tools": {
+          "state": "PASS",
+          "enabled_tools": [
+            "get_scene_info"
+          ]
+        },
+        "mcp_command": "PASS",
+        "gateway_workspace": "NOT_APPLICABLE",
+        "mcp_runtime": {
+          "state": "PASS",
+          "enabled_servers": [
+            "blender"
+          ]
+        },
+        "authentication": {
+          "state": "AUTH_VALIDATED_LOCAL"
+        }
+      },
+      "errors": [],
+      "model": "gpt-5.6-luna"
+    },
+    {
+      "scenario_id": "blender-selective-location-v2",
+      "condition": "optimized",
+      "state": "READY_FOR_BENCHMARK",
+      "checks": {
+        "scenario": "PASS",
+        "condition": "PASS",
+        "worktree": {
+          "state": "PASS",
+          "commit": "5433551aae2dd73426d350a1e91214f874932cc9"
+        },
+        "config": "PASS",
+        "profile": "PASS",
+        "codex_executable": "PASS",
+        "model": "PASS",
+        "mcp": {
+          "state": "PASS",
+          "required_server": "pie-blender-optimized"
+        },
+        "mcp_tools": {
+          "state": "PASS",
+          "enabled_tools": [
+            "pie_blender_query_scene"
+          ]
+        },
+        "mcp_command": "PASS",
+        "pie_source": "PASS",
+        "gateway_workspace": "PASS",
+        "mcp_runtime": {
+          "state": "PASS",
+          "enabled_servers": [
+            "pie-blender-optimized"
+          ]
+        },
+        "authentication": {
+          "state": "AUTH_VALIDATED_LOCAL"
+        }
+      },
+      "errors": [],
+      "model": "gpt-5.6-luna"
+    }
+  ]
+}

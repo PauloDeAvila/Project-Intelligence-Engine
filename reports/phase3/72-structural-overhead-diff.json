@@ -1,0 +1,55 @@
+{
+  "schema": "pie-phase3-structural-overhead-v1",
+  "status": "OFFLINE_VERIFIED",
+  "model_sessions_started": 0,
+  "measurement": "MCP initialize/tools/list via stdio; no Codex model process",
+  "blender": {
+    "baseline": {
+      "tool_count": 10,
+      "tools_list_json_chars": 18750,
+      "description_chars": 11039,
+      "input_schema_chars": 5613,
+      "tools": ["get_addon_status", "disable_telemetry", "get_scene_info", "execute_blender_code", "record_trajectory_feedback", "look", "generate_3d", "generate_gaussian_world", "search_assets", "import_asset"]
+    },
+    "optimized": {
+      "tool_count": 13,
+      "tools_list_json_chars": 20045,
+      "description_chars": 11528,
+      "input_schema_chars": 6224,
+      "tools": ["get_addon_status", "disable_telemetry", "get_scene_info", "execute_blender_code", "record_trajectory_feedback", "look", "generate_3d", "generate_gaussian_world", "search_assets", "import_asset", "pie_blender_expand", "pie_blender_scene_delta", "pie_gateway_output_get"]
+    },
+    "delta": {
+      "tool_count": 3,
+      "tools_list_json_chars": 1295,
+      "description_chars": 489,
+      "input_schema_chars": 611,
+      "additional_tools": ["pie_blender_expand", "pie_blender_scene_delta", "pie_gateway_output_get"]
+    }
+  },
+  "web": {
+    "baseline": {
+      "tool_count": 25,
+      "tools_list_json_chars": 21177,
+      "description_chars": 1979,
+      "input_schema_chars": 14967
+    },
+    "optimized": {
+      "tool_count": 26,
+      "tools_list_json_chars": 21583,
+      "description_chars": 2103,
+      "input_schema_chars": 15183,
+      "additional_tools": ["pie_gateway_output_get"]
+    },
+    "delta": {
+      "tool_count": 1,
+      "tools_list_json_chars": 406,
+      "description_chars": 124,
+      "input_schema_chars": 216
+    }
+  },
+  "interpretation": {
+    "token_caveat": "Serialized characters are not provider tokens.",
+    "confirmed": "The optimized gateway exposes recovery/expansion capabilities absent from the corresponding upstream lists.",
+    "not_proven": "The structural deltas alone do not explain the 52,402 Blender provider-input-token delta."
+  }
+}

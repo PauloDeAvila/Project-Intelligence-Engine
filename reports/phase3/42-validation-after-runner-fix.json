@@ -1,0 +1,14 @@
+{
+  "schema": "pie-phase3-validation-v1",
+  "commit": "cd3d7fb",
+  "change": "Paired benchmark runner supports clean per-condition/per-repetition workspaces and rejects mixed commits or dirty workspaces.",
+  "paid_codex_calls": 0,
+  "powershell_parse": "PASS",
+  "git_diff_check": "PASS",
+  "tests": {
+    "full": {"passed": 538, "skipped": 5, "subtests": 133, "status": "PASS"},
+    "without_known_flaky_http_case": {"passed": 537, "skipped": 5, "deselected": 1, "subtests": 133, "status": "PASS"}
+  },
+  "certification": "NOT_CERTIFIED",
+  "reason": "Only two strictly comparable A/B pairs per domain are available; three are required."
+}

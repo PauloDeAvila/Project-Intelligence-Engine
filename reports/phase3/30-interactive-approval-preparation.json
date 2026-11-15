@@ -1,0 +1,20 @@
+{
+  "schema": "pie-phase3-interactive-approval-preparation-v1",
+  "status": "PREPARED_NOT_EXECUTED",
+  "quota_consumed": false,
+  "model_sessions": 0,
+  "cli_contract": {
+    "interactive_approval_flag": "--ask-for-approval on-request",
+    "sandbox": "read-only",
+    "approve_for_me": false,
+    "persistent_config_modified": false
+  },
+  "executor": "tools/run_codex_mcp_interactive_probe.ps1",
+  "scope": ["pie-blender-optimized", "pie-web-optimized"],
+  "human_action_required": "A separately authorized interactive session must approve each MCP tool call; this phase did not launch it.",
+  "workspace_validation": {
+    "required_fields": ["workspace_root", "index_root", "workspace_match"],
+    "wrong_workspace_state": "WRONG_WORKSPACE"
+  },
+  "certification": "NOT_CERTIFIED"
+}

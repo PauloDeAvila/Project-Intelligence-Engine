@@ -1,0 +1,15 @@
+{
+  "schema": "pie-phase3-no-model-profile-revalidation-v1",
+  "status": "PASS_NO_MODEL_GATE",
+  "model_sessions_started": 0,
+  "quota_consumed": false,
+  "workspace": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+  "branch": "feat/pie-phase3-task-telemetry-20261114",
+  "head": "1de38ca242a45b90bdca1241b833318b2e3d5587",
+  "source_tree_identity": "PASS",
+  "fixture": {"objects": 64, "materials": 16, "target": "PIE_Large_Cube_00"},
+  "baseline": {"server": "blender", "tool": "get_scene_info", "status": "PASS", "tool_count": 10, "required_text_present": true, "structured_content_present": true, "response_text_chars": 1522, "duration_ms": 1248.94},
+  "optimized": {"server": "pie-blender-optimized", "tool": "pie_blender_query_scene", "status": "PASS", "tool_count": 1, "required_text_present": true, "structured_content_present": true, "response_text_chars": 265, "duration_ms": 1183.157},
+  "forbidden_tool_rejection": {"status": "PASS", "tool": "get_scene_info", "expected_error": "PIE_TOOL_NOT_EXPOSED", "upstream_reached": false},
+  "interpretation": "Real MCP initialize/tools/list/tools/call and allowlist isolation passed without a model. Provider tokens and A/B savings remain unmeasured."
+}

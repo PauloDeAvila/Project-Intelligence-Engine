@@ -1,0 +1,19 @@
+{
+  "schema": "pie-phase3-single-result-v1",
+  "state": "OPTIMIZED_WEB_VALID",
+  "run_id": "optimized-c57a44a00a1142f493469534",
+  "pair_id": "pair-web-20261115-a",
+  "ledger": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine\\reports\\phase3\\68-web-optimized-result-budget-ledger.json",
+  "record": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine\\reports\\phase3\\68-web-optimized-result-record.json",
+  "oracle": {
+    "passed": true,
+    "kind": "web_local_page",
+    "missing": []
+  },
+  "route": {
+    "decision": "VALID",
+    "reason": "Provider, oracle and exact route evidence matched"
+  },
+  "quota_consumed": true,
+  "automatic_retry": false
+}

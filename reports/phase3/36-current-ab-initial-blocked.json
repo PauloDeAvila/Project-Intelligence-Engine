@@ -1,0 +1,28 @@
+{
+  "schema": "pie-phase3-current-ab-probe-v1",
+  "status": "BLOCKED",
+  "certification": "NOT_CERTIFIED",
+  "commit": "d122e7494a6cb43dce1b0ecfb7fcef5920219575",
+  "preflight": {
+    "blender_baseline": "READY_FOR_BENCHMARK",
+    "blender_optimized": "READY_FOR_BENCHMARK",
+    "web_baseline": "READY_FOR_BENCHMARK",
+    "web_optimized": "READY_FOR_BENCHMARK"
+  },
+  "direct_gateway_probe": {
+    "blender_handshake": "PASS",
+    "blender_tools_list": "PASS",
+    "blender_get_scene_info": "PASS",
+    "provider_tokens_measured": false
+  },
+  "codex_probe": {
+    "attempted": "blender-baseline-01",
+    "state": "NOT_CERTIFIED",
+    "error": "RuntimeError",
+    "record_written": false,
+    "mcp_lifecycle_written": false,
+    "sqlite_event_written": false,
+    "retry_performed": false
+  },
+  "limitation": "The CLI did not expose a sanitized cause beyond RuntimeError; no provider usage record exists from this attempt."
+}

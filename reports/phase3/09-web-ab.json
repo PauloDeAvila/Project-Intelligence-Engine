@@ -1,0 +1,13 @@
+{
+  "schema": "pie-phase3-ab-v1",
+  "application": "web",
+  "status": "NOT_RUN",
+  "planned_pairs": 3,
+  "completed_pairs": 0,
+  "executions_attempted": 0,
+  "executions_valid": 0,
+  "records": [],
+  "reason": "Battery stopped after the first Blender baseline capture failure, before any Web Codex call.",
+  "tokens": null,
+  "oracle": null
+}

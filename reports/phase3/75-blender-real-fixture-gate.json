@@ -1,0 +1,31 @@
+{
+  "schema": "pie-phase3-blender-real-fixture-gate-v1",
+  "status": "PASS",
+  "execution": "headless-disposable-blend",
+  "model_sessions_started": 0,
+  "quota_consumed": false,
+  "fixture": {
+    "spec": "fixtures/phase3/blender/large_scene_spec.json",
+    "object_count": 64,
+    "material_count": 16,
+    "blend_output": "%TEMP%/pie-phase3-blender-fixture/large-scene.blend",
+    "observation_output": "%TEMP%/pie-phase3-blender-fixture/large-observation.json"
+  },
+  "oracle": {
+    "required_objects_present": true,
+    "required_materials_present": true,
+    "counts_match_spec": true
+  },
+  "compaction": {
+    "state": "PARTIAL",
+    "source_chars": 14543,
+    "returned_chars": 3806,
+    "sha256": "525388fbd0e458c321015c0501e2b9e11ce337b97d2b18f704c4f019d5479425",
+    "source_equals_recovery": "verified by compact_output digest"
+  },
+  "remaining_gates": [
+    "Provider-reported usage for a real paired A/B pilot",
+    "Parity proof between original selective and PIE selective profiles",
+    "MCP event correlation for the paid pilot"
+  ]
+}

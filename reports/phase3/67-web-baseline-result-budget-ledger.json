@@ -1,0 +1,10 @@
+{
+  "schema": "pie-phase3-budget-ledger-v1",
+  "state": "completed",
+  "authorized_sessions": 1,
+  "consumed_sessions": 1,
+  "remaining_sessions": 0,
+  "run_id": "baseline-344ffe4aca4a4f679709d2e4",
+  "pair_id": "pair-web-20261115-a",
+  "automatic_retry": false
+}

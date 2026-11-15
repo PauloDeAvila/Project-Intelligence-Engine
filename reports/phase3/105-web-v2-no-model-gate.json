@@ -1,0 +1,14 @@
+{
+  "schema": "pie-phase3-web-preflight-v1",
+  "state": "PASS_NO_MODEL_GATE",
+  "commit": "7477c90af527be9b61439bf8af965c35bdf6d78d",
+  "fixture": "http://127.0.0.1:8766/index.html",
+  "quota_consumed": false,
+  "model_sessions_started": 0,
+  "arms": {
+    "baseline": {"server": "playwright-baseline", "tools": ["browser_navigate", "browser_snapshot"], "tool_count": 25, "fixture_texts": "PASS", "duration_ms": 1601.419},
+    "optimized": {"server": "pie-web-optimized", "tools": ["browser_navigate", "browser_snapshot", "pie_gateway_output_get"], "tool_count": 3, "fixture_texts": "PASS", "duration_ms": 1809.746}
+  },
+  "real_gateway_probe": {"state": "PASS", "navigation": true, "snapshot": true, "recovery": true, "native_refs": true, "source_chars": 17585, "model_facing_chars": 1256, "character_reduction_percent": 92.858, "provider_tokens_measured": false},
+  "certification": "NOT_CERTIFIED"
+}

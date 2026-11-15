@@ -1,0 +1,40 @@
+{
+  "state": "READY_FOR_BENCHMARK",
+  "checks": {
+    "scenario": "PASS",
+    "condition": "PASS",
+    "worktree": {
+      "state": "PASS",
+      "commit": "7477c90af527be9b61439bf8af965c35bdf6d78d"
+    },
+    "config": "PASS",
+    "profile": "PASS",
+    "codex_executable": "PASS",
+    "model": "PASS",
+    "mcp": {
+      "state": "PASS",
+      "required_server": "playwright-baseline"
+    },
+    "mcp_tools": {
+      "state": "PASS",
+      "enabled_tools": [
+        "browser_navigate",
+        "browser_snapshot"
+      ]
+    },
+    "mcp_command": "PASS",
+    "gateway_workspace": "NOT_APPLICABLE",
+    "mcp_runtime": {
+      "state": "PASS",
+      "enabled_servers": [
+        "playwright-baseline"
+      ]
+    },
+    "authentication": {
+      "state": "AUTH_VALIDATED_LOCAL"
+    }
+  },
+  "errors": [],
+  "model": "gpt-5.6-luna",
+  "condition": "baseline"
+}

@@ -1,0 +1,62 @@
+{
+  "schema": "pie-phase3-preflight-v1",
+  "state": "READY_FOR_BENCHMARK",
+  "model_started": false,
+  "quota_consumed": false,
+  "arms": [
+    {
+      "scenario_id": "blender-material-cert-v1",
+      "condition": "baseline",
+      "state": "READY_FOR_BENCHMARK",
+      "checks": {
+        "scenario": "PASS",
+        "condition": "PASS",
+        "worktree": {
+          "state": "PASS",
+          "commit": "a95760a9ca0ef53088ae6b2375d9b9571fd3a12b"
+        },
+        "config": "PASS",
+        "profile": "PASS",
+        "codex_executable": "PASS",
+        "model": "PASS",
+        "mcp": {
+          "state": "PASS",
+          "required_server": "blender"
+        },
+        "gateway_workspace": "NOT_APPLICABLE",
+        "authentication": {
+          "state": "AUTH_VALIDATED_LOCAL"
+        }
+      },
+      "errors": [],
+      "model": "gpt-5.6-luna"
+    },
+    {
+      "scenario_id": "blender-material-cert-v1",
+      "condition": "optimized",
+      "state": "READY_FOR_BENCHMARK",
+      "checks": {
+        "scenario": "PASS",
+        "condition": "PASS",
+        "worktree": {
+          "state": "PASS",
+          "commit": "a95760a9ca0ef53088ae6b2375d9b9571fd3a12b"
+        },
+        "config": "PASS",
+        "profile": "PASS",
+        "codex_executable": "PASS",
+        "model": "PASS",
+        "mcp": {
+          "state": "PASS",
+          "required_server": "pie-blender-optimized"
+        },
+        "gateway_workspace": "PASS",
+        "authentication": {
+          "state": "AUTH_VALIDATED_LOCAL"
+        }
+      },
+      "errors": [],
+      "model": "gpt-5.6-luna"
+    }
+  ]
+}

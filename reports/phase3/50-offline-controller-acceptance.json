@@ -1,0 +1,24 @@
+{
+  "schema": "pie-phase3-offline-controller-acceptance-v1",
+  "decision": "BLOCKED_WITH_EVIDENCE",
+  "reason": "Offline controller, manifests, correlation and negative tests pass; no paid session is authorized in this stage and current persistent profiles are not altered.",
+  "controller": "reports/phase3/49-controller-plan.json",
+  "planned_sessions": {"total": 12, "blender": 6, "web": 6, "pilot": 4, "complement": 8},
+  "execution": "PLAN_ONLY_NO_MODEL_EXECUTION",
+  "versions": {
+    "codex": "codex-cli 0.169.0-alpha.11.1",
+    "node": "v26.13.1",
+    "npm": "11.20.0",
+    "npx": "11.20.0",
+    "uvx": "0.13.6",
+    "git": "2.55.0.windows.5"
+  },
+  "config_sha256": "850C2E3559A58B205958B82DF08FD195AAC4D5A3C8D63B10DC8A2399E4D8416C",
+  "tests": {"full": "543 passed, 5 skipped, 133 subtests", "model_sessions": 0},
+  "remaining_before_pilot": [
+    "Run the offline controller audit against final capture fixtures.",
+    "Create current-HEAD clean worktrees and temporary gateway overlays.",
+    "Obtain independent authorization for the four-session pilot."
+  ],
+  "certification": "NOT_CERTIFIED"
+}

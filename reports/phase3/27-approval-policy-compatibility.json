@@ -1,0 +1,24 @@
+{
+  "schema": "pie-phase3-approval-policy-compatibility-v1",
+  "codex_version": "codex-cli 0.169.0-alpha.11.1",
+  "persistent_config": {
+    "path": "C:\\Users\\phsra\\.codex\\config.toml",
+    "approval_policy": "never",
+    "modified": false
+  },
+  "accepted_by_cli_help_invocation": ["never", "on-request", "untrusted", "unless-trusted"],
+  "noninteractive_option": {
+    "flag": "--approve-for-me",
+    "available": true,
+    "description": "Route approval requests through automatic review using the workspace-write sandbox"
+  },
+  "prepared_executor": {
+    "path": "tools/run_codex_mcp_diagnostic.ps1",
+    "temporary_override": "-c approval_policy=\"on-request\"",
+    "optional_approval_routing": "--approve-for-me",
+    "default_behavior_preserved": true,
+    "dangerously_bypass_approvals_and_sandbox": false
+  },
+  "recommendation": "Do not combine ApproveForMe with the executor's read-only sandbox. For a future authorized probe, choose either on-request with read-only and an interactive approval mechanism, or ApproveForMe with its workspace-write sandbox after explicit review. Do not run A/B yet.",
+  "status": "READY_FOR_CONTROLLED_APPROVAL_PROBE"
+}

@@ -18,6 +18,10 @@ from threading import Thread
 
 SCHEMA="pie-playwright-mcp-real-browser-v1"
 
+def safe_error(exc:Exception)->str:
+    message=" ".join(str(exc).split())[:240]
+    return message if message else type(exc).__name__
+
 
 class Fixture(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -87,10 +91,10 @@ def main()->int:
     runner=Thread(target=server.serve_forever,daemon=True)
     runner.start()
     with tempfile.TemporaryDirectory(prefix="pie-real-web-") as folder:
-        root=Path(folder)/"project"
-        root.mkdir()
+        root=Path(os.environ.get("PIE_PROBE_WORKSPACE", str(Path(folder)/"project")))
+        root.mkdir(parents=True, exist_ok=True)
         (root/"pyproject.toml").write_text("[project]\nname='real-browser'\n",encoding="utf-8")
-        store=Path(folder)/"pie-global"
+        store=Path(os.environ.get("PIE_PROBE_STORE", str(Path(folder)/"pie-global")))
         args=[sys.executable,"-m","pie.gateway.domain","serve","--domain","web",
               "--workspace",str(root),"--store",str(store),
               "--max-chars","1300","--",*sys.argv[1:]]
@@ -155,6 +159,7 @@ def main()->int:
         except Exception as exc:
             print("PIE_WEB_LIVE_REPORT="+json.dumps({
                 "schema":SCHEMA,"state":"FAIL","error_type":type(exc).__name__,
+                "error":safe_error(exc),
                 "provider_tokens_measured":False}),flush=True)
             return 1
         finally:

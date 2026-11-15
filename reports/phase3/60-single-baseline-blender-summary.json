@@ -1,0 +1,50 @@
+{
+  "schema": "pie-phase3-single-baseline-report-v1",
+  "state": "BASELINE_BLENDER_FAILED_ORACLE",
+  "certification": "NOT_CERTIFIED",
+  "application": "blender",
+  "condition": "baseline",
+  "scenario_id": "blender-material-cert-v1",
+  "model": "gpt-5.6-luna",
+  "effort": "medium",
+  "task_id": "blender-material-cert-v1",
+  "run_id": "baseline-1c07733a5e3840e3ad9a9b79",
+  "pair_id": "pair-81c43938155843a8bb299912",
+  "server": "blender",
+  "mcp_tools": [
+    {"tool": "get_scene_info", "status": "completed"},
+    {"tool": "execute_blender_code", "status": "completed"}
+  ],
+  "oracle_pass": false,
+  "controller_text_oracle_pass": true,
+  "independent_blender_oracle": {
+    "pass": false,
+    "observed": {
+      "object": "PIE_AB_Cube",
+      "material": "PIE_AB_Material",
+      "roughness": 0.4000000059604645,
+      "metallic": 0.0
+    },
+    "expected": {
+      "object": "PIE_AB_Cube",
+      "material": "PIE_AB_Material",
+      "roughness": 0.35,
+      "metallic": 0.2
+    },
+    "reason": "INDEPENDENT_BLENDER_ORACLE_MISMATCH"
+  },
+  "provider_usage_status": "available",
+  "input_tokens": 95925,
+  "cached_input_tokens": 82560,
+  "uncached_input_tokens": 13365,
+  "output_tokens": 672,
+  "reasoning_output_tokens": 150,
+  "total_tokens": 96597,
+  "duration_ms": 19964.993,
+  "mcp_calls": 2,
+  "estimated_cost_usd": null,
+  "forensic_artifacts": "C:\\Users\\phsra\\AppData\\Local\\Temp\\.pie-phase3-single-blender-ee107cd0331b480684414968ca174c21-pie-live-store\\runs\\baseline-1c07733a5e3840e3ad9a9b79",
+  "automatic_retry": false,
+  "optimized_arm": "not_run_after_oracle_failure",
+  "savings_percent": null
+}

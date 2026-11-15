@@ -1,0 +1,39 @@
+{
+  "schema": "pie-phase3-mcp-bootstrap-validation-v1",
+  "status": "PASS",
+  "implementation": {
+    "module": "src/pie/gateway/bootstrap.py",
+    "stdout_protocol_preserved": true,
+    "flush_immediate": true,
+    "payloads_logged": false,
+    "credentials_logged": false
+  },
+  "events": [
+    "PROCESS_STARTED",
+    "BOOTSTRAP_INITIALIZED",
+    "IMPORT_STARTED",
+    "IMPORT_SUCCEEDED",
+    "UPSTREAM_STARTED",
+    "MCP_INITIALIZE_RECEIVED",
+    "MCP_TOOLS_LIST_RECEIVED",
+    "MCP_TOOL_CALL_RECEIVED",
+    "PROCESS_EXITING"
+  ],
+  "offline_runs": {
+    "get_scene_info": {"status": "PASS", "event_count": 19, "upstream_exit_code": 0},
+    "get_addon_status": {"status": "PASS", "event_count": 19, "upstream_exit_code": 0}
+  },
+  "fallback_without_environment_variable": {"status": "PASS", "event_count": 38, "path": "<workspace>/.pie-live-store/mcp-lifecycle.jsonl"},
+  "codex_session": {
+    "status": "NO_LIFECYCLE_FILE",
+    "interpretation": "The Codex child did not expose the diagnostic path to the gateway, or the gateway failed before opening it."
+  },
+  "tests": {
+    "bootstrap_focused": "32 passed, 1 skipped",
+    "full_unittest": "541 run, 5 skipped, 1 intermittent HTTP error",
+    "full_unittest_failures": ["test_pie_evidence_gateway.CertifiedGatewayTests.test_http_health_and_ask_and_block_browser_origin (WinError 10053)"],
+    "blender_bridge_regression": "PASS; the three prior Blender bridge failures now pass.",
+    "isolated_retry": "PASS",
+    "pytest_availability": "pytest executable/module unavailable in current environment; unittest was used for offline validation."
+  }
+}

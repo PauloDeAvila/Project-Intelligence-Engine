@@ -1,0 +1,45 @@
+{
+  "schema": "pie-phase3-real-ab-v1",
+  "application": "blender",
+  "scenario_id": "blender-material-inspection-v1",
+  "model": "gpt-5.6-luna",
+  "effort": "medium",
+  "strict_comparable_pairs": 2,
+  "required_pairs": 3,
+  "certification_eligible": false,
+  "baseline": {
+    "runs": 2,
+    "input_tokens": 226951,
+    "cached_input_tokens": 186752,
+    "uncached_input_tokens": 40199,
+    "output_tokens": 1426,
+    "total_tokens": 228377,
+    "duration_ms_total": 39282.02,
+    "duration_ms_average": 19641.01,
+    "mcp_calls": 4,
+    "oracle_passes": 2
+  },
+  "optimized": {
+    "runs": 2,
+    "input_tokens": 196052,
+    "cached_input_tokens": 156416,
+    "uncached_input_tokens": 39636,
+    "output_tokens": 1201,
+    "total_tokens": 197253,
+    "duration_ms_total": 34271.031,
+    "duration_ms_average": 17135.5155,
+    "mcp_calls": 5,
+    "oracle_passes": 2
+  },
+  "savings_percent": {
+    "input": 13.614833,
+    "cached_input": 16.244003,
+    "uncached_input": 1.400532,
+    "output": 15.778401,
+    "total": 13.628343
+  },
+  "latency_delta_percent_optimized_vs_baseline": -12.756444,
+  "mcp_call_delta": 1,
+  "provider_usage_status": "available",
+  "evidence": "Temporary sanitized records under ab-evidence; repetitions 2 and 3 only. Repetition 1 was a non-comparable pilot because prompt hashes differed."
+}

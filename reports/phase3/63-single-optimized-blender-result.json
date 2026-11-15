@@ -1,0 +1,62 @@
+{
+  "schema": "pie-phase3-single-result-v1",
+  "state": "OPTIMIZED_BLENDER_FAILED",
+  "run_id": "optimized-fa59ea6b612a471391cd5f34",
+  "pair_id": "pair-deda0256ba284175ade5d58d",
+  "ledger": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine\\reports\\phase3\\63-single-optimized-blender-result-budget-ledger.json",
+  "quota_consumed": true,
+  "automatic_retry": false,
+  "record": {
+    "schema": "pie-live-codex-usage-v1",
+    "condition": "optimized",
+    "scenario_id": "blender-material-cert-v1",
+    "repetition": 1,
+    "run_id": "optimized-fa59ea6b612a471391cd5f34",
+    "pair_id": "pair-deda0256ba284175ade5d58d",
+    "model": "gpt-5.6-luna",
+    "codex_version": "codex-cli 0.169.0-alpha.11.1",
+    "prompt_sha256": "1712111b5774e4c2ecb3be84623d568b2013e7a5ad6b3469ebe61da218ae74da",
+    "expected_sha256": "f1f2b58064eef4166dd1f8aac7ebee75dac8005a6cc368e714be1855ae28a2ce",
+    "answer_sha256": "f1f2b58064eef4166dd1f8aac7ebee75dac8005a6cc368e714be1855ae28a2ce",
+    "oracle_kind": "exact_text",
+    "oracle_pass": true,
+    "workspace_commit": "a95760a9ca0ef53088ae6b2375d9b9571fd3a12b",
+    "configuration_sha256": "ce3d321603a88e330615a9fa71a9492f5a4ac2f18ce8d4bca845dc020b99566b",
+    "profile": "pie-phase3-single-optimized",
+    "runtime_ms": 22418.533,
+    "tool_events": 2,
+    "mcp_tools": [
+      {
+        "server": "pie-blender-optimized",
+        "tool": "get_scene_info",
+        "status": "completed"
+      },
+      {
+        "server": "pie-blender-optimized",
+        "tool": "execute_blender_code",
+        "status": "completed"
+      }
+    ],
+    "usage": {
+      "input_tokens": 76792,
+      "cached_input_tokens": 62336,
+      "output_tokens": 855,
+      "reasoning_output_tokens": 334
+    },
+    "expected_mcp_server": "pie-blender-optimized",
+    "mcp_route_verified": true,
+    "provider_reported": true,
+    "source": "codex_exec_json_turn_completed",
+    "forensic_path": "C:\\Users\\phsra\\AppData\\Local\\Temp\\.pie-phase3-single-blender-fixed-d23a211ad98c4f7cb2bafc0f7006882c-pie-live-store\\runs\\optimized-fa59ea6b612a471391cd5f34",
+    "note": "Codex provider usage, not billing or a raw transcript"
+  },
+  "oracle": {
+    "passed": true,
+    "kind": "blender_material_properties",
+    "independent_live_probe_required": true
+  },
+  "route": {
+    "decision": "INSUFFICIENT_EVIDENCE",
+    "reason": "No exact optimized gateway correlation"
+  }
+}

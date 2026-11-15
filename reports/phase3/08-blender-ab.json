@@ -1,0 +1,13 @@
+{
+  "schema": "pie-phase3-ab-v1",
+  "application": "blender",
+  "status": "NOT_CERTIFIED",
+  "planned_pairs": 3,
+  "completed_pairs": 0,
+  "executions_attempted": 1,
+  "executions_valid": 0,
+  "records": [],
+  "reason": "The first baseline Codex capture failed before producing provider usage. The isolated CODEX_HOME contained config.toml but no auth.json; capture returned RuntimeError and the authorized battery was stopped.",
+  "tokens": null,
+  "oracle": null
+}

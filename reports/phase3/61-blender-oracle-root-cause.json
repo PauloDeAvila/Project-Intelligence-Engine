@@ -1,0 +1,11 @@
+{
+  "schema": "pie-phase3-blender-oracle-root-cause-v1",
+  "status": "ROOT_CAUSE_FIXED_OFFLINE",
+  "previous_run": "baseline-1c07733a5e3840e3ad9a9b79",
+  "previous_run_reusable": false,
+  "observed_material_level": {"roughness": 0.4000000059604645, "metallic": 0.0},
+  "observed_principled_node": {"roughness": 0.3499999940395355, "metallic": 0.20000000298023224},
+  "scenario_corrected": true,
+  "new_model_run_started": false,
+  "certification": "NOT_CERTIFIED"
+}

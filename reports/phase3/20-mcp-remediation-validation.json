@@ -1,0 +1,51 @@
+{
+  "schema": "pie-mcp-remediation-validation-v1",
+  "model_calls": 0,
+  "instrumentation": {
+    "status": "PASS",
+    "channel": "stderr/file; stdout remains JSON-RPC",
+    "events": ["gateway_constructed", "upstream_spawn_start", "upstream_spawned", "downstream_request", "tools_list_complete", "tools_call_response", "request_timeout", "upstream_stdout_eof", "upstream_exit"],
+    "payloads_logged": false,
+    "credentials_logged": false
+  },
+  "direct_runtime_probe": {
+    "status": "PASS",
+    "handshake": true,
+    "tools_list": true,
+    "get_scene_info": true,
+    "diagnostic_events": 10,
+    "exit_code": 0
+  },
+  "tests": {"focused": "38 passed, 7 subtests", "full": "535 passed, 5 skipped, 133 subtests"},
+  "codex_equivalence": "NOT_VERIFIED",
+  "authorized_codex_diagnostic": {
+    "status": "FAILED_BEFORE_MCP_SPAWN",
+    "diagnostic_id": "codex-mcp-diag-8b39ca34284a4835a6d6e7ac5c8cb074",
+    "codex_exit_code": 1,
+    "config_error": "mcp_servers.pie-blender-optimized.args expected a sequence",
+    "gateway_events": 0,
+    "provider_usage_status": "unavailable",
+    "retries": 0,
+    "interpretation": "The transient -c array override was parsed as a string. This explains this diagnostic invocation only and does not identify the original Codex-session MCP failure."
+  },
+  "corrected_codex_probe": {
+    "status": "CODEX_MCP_PROBE_FAILED",
+    "report": "reports/phase3/26-codex-mcp-probe-fase38.json",
+    "provider_usage_status": "available",
+    "gateway_lifecycle_events": 26,
+    "gateway_instances": 2,
+    "mcp_tool_statuses": ["failed", "failed", "failed"],
+    "failure_phase": "after_tools_list_before_tools_call",
+    "root_cause_status": "CONFIRMED_CODEX_APPROVAL_POLICY"
+  },
+  "offline_remediation": {
+    "status": "PASS",
+    "bootstrap_without_environment": true,
+    "get_scene_info": "PASS",
+    "get_addon_status": "PASS",
+    "focused_tests": "50 passed, 1 skipped"
+  },
+  "ready_for_codex_probe": false,
+  "reason": "Codex item errors explicitly state that each MCP tool call requires approval while approval_policy is never. The gateway reached tools/list; dispatch was blocked before tools/call.",
+  "next_action": "Do not retry automatically. Prepare a separately authorized configuration change for an approval policy compatible with MCP tool calls; do not resume A/B."
+}

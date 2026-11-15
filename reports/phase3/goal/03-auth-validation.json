@@ -1,0 +1,12 @@
+{
+  "schema": "pie-phase3-auth-validation-v1",
+  "status": "AUTH_REMOTE_VALIDATED_ORIGINAL_ONLY",
+  "original": {"mechanism": "ChatGPT account", "login_status": "AUTH_VALIDATED_LOCAL", "credentials_exported": false},
+  "baseline_isolated": {"login_status": "AUTH_MISSING", "preflight": "BLOCKED"},
+  "optimized_isolated": {"login_status": "AUTH_MISSING", "preflight": "BLOCKED"},
+  "model_calls": 1,
+  "remote_session_validated": true,
+  "remote_validation_scope": "original CODEX_HOME with --ignore-user-config; no MCP",
+  "usage": {"input_tokens": 19935, "cached_input_tokens": 0, "output_tokens": 10, "total_tokens": 19945},
+  "next_action": "Establish a supported authenticated isolated profile or request authorization for the next controlled benchmark step."
+}

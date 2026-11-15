@@ -1,0 +1,27 @@
+{
+  "schema": "pie-phase3-pilot-result-v1",
+  "state": "AB_PILOT_FAILED",
+  "authorization": {"maximum_sessions": 4, "consumed_sessions": 1, "remaining_sessions_not_run": 3, "complement_executed": false, "automatic_retry": false},
+  "commit": "1aef8e3",
+  "manifest": "reports/phase3/51-pilot-manifest.json",
+  "preflight": {"state": "READY_FOR_BENCHMARK", "arms": 4, "model_started": false, "quota_consumed": false},
+  "failed_execution": {
+    "application": "blender",
+    "condition": "baseline",
+    "repetition": 1,
+    "run_id": "baseline-409e2a71803509b546248d24",
+    "pair_id": "pair-d4b179952cf4570b9d7d97f7",
+    "expected_server": "blender",
+    "observed_tools": [
+      {"server": "blender", "tool": "get_addon_status", "status": "completed"},
+      {"server": "blender", "tool": "get_scene_info", "status": "completed"},
+      {"server": "blender", "tool": "execute_blender_code", "status": "failed"}
+    ],
+    "failure": "MCP route evidence failed because an unexpected failed tool call was observed.",
+    "provider_usage": "not_persisted_fail_closed",
+    "oracle": "not_evaluated",
+    "lifecycle_correlation": "not_persisted"
+  },
+  "config_persistent_modified": false,
+  "certification": "NOT_CERTIFIED"
+}

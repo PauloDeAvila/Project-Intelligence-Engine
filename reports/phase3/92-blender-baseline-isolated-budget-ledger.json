@@ -1,0 +1,11 @@
+{
+  "schema": "pie-phase3-budget-ledger-v1",
+  "state": "failed",
+  "authorized_sessions": 1,
+  "consumed_sessions": 1,
+  "remaining_sessions": 0,
+  "run_id": "baseline-iso-32bb-blender-a",
+  "pair_id": "pair-iso-32bb-blender-a",
+  "automatic_retry": false,
+  "error": "Condition/oracle absent"
+}

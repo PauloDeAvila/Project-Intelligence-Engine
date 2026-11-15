@@ -1,0 +1,8 @@
+{
+  "schema": "pie-phase3-cost-analysis-v1",
+  "status": "UNAVAILABLE",
+  "currency": null,
+  "tariff_source": null,
+  "reason": "No verified tariff for gpt-5.6-luna was supplied; subscription/quota usage is not converted into API cost.",
+  "applications": {"blender": {"baseline": null, "optimized": null, "difference": null}, "web": {"baseline": null, "optimized": null, "difference": null}}
+}

@@ -1,0 +1,30 @@
+{
+  "schema": "pie-phase3-blender-execution-diagnosis-v1",
+  "status": "ROOT_CAUSE_NARROWED",
+  "model_calls": 0,
+  "quota_consumed": false,
+  "pie_gateway": {
+    "initialize": "PASS",
+    "tools_list": "PASS",
+    "tool_count": 13,
+    "execute_blender_code_read_only_probe": "PASS",
+    "probe_output": "PIE_READ_ONLY_EXECUTE_PROBE"
+  },
+  "live_scene": {
+    "source": "read-only Blender scene inspection",
+    "object": "PIE_AB_Cube",
+    "selected": true,
+    "active": true,
+    "material": "PIE_AB_Material"
+  },
+  "failed_pilot_call": {
+    "application": "blender",
+    "condition": "baseline",
+    "tool": "execute_blender_code",
+    "status": "failed",
+    "provider_usage": "not_persisted_fail_closed"
+  },
+  "conclusion": "The local PIE bridge, upstream transport and Blender fixture are functional. The remaining failure is specific to the Codex-generated execute_blender_code request or its runtime response; no provider retry was made.",
+  "remediation": "The Blender scenario now supplies a deterministic read-only code body while preserving the same task and oracle.",
+  "certification": "NOT_CERTIFIED"
+}

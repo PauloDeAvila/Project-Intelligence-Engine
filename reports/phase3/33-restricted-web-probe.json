@@ -1,0 +1,69 @@
+{
+  "schema": "pie-phase3-restricted-web-probe-v1",
+  "status": "CODEX_PIE_WEB_INTEGRATION_PASSED",
+  "run_id": "codex-mcp-restricted-web-c9ac83cb38304e99a2b568f141494e9b",
+  "session": {
+    "model": "gpt-5.6-luna",
+    "effort": "medium",
+    "sandbox": "read-only",
+    "approval_policy": "never",
+    "approve_for_me": false,
+    "retries": 0,
+    "model_sessions": 1,
+    "quota_consumed": true
+  },
+  "preflight": {
+    "temporary_profile": true,
+    "persistent_config_modified": false,
+    "other_mcp_servers_in_profile": 0,
+    "enabled_tools": ["browser_navigate", "browser_snapshot"],
+    "profile_mcp_get": "PASS",
+    "route_workspace": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+    "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+    "index_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+    "workspace_match": true,
+    "fixture_url": "http://127.0.0.1:8766/index.html"
+  },
+  "mcp_gate": {
+    "initialize": "PASS",
+    "tools_list": "PASS",
+    "tools_list_upstream_count": 26,
+    "tool_calls_received": 2,
+    "unauthorized_tools_executed": 0,
+    "pie_routing_verified": true,
+    "calls": [
+      {"server": "pie-web-optimized", "tool": "browser_navigate", "codex_status": "completed", "oracle": "PASS", "gateway_duration_ms": 444.925},
+      {"server": "pie-web-optimized", "tool": "browser_snapshot", "codex_status": "completed", "oracle": "PASS", "gateway_duration_ms": 7.474}
+    ]
+  },
+  "provider_usage": {
+    "status": "available",
+    "input_tokens": 59695,
+    "cached_input_tokens": 54144,
+    "uncached_input_tokens": 5551,
+    "output_tokens": 746,
+    "reasoning_output_tokens": 528,
+    "total_tokens": 60441,
+    "duration_ms": 19777.7447
+  },
+  "offline_playwright_probe": {
+    "status": "PASS",
+    "source_chars": 17585,
+    "model_facing_chars": 1256,
+    "saved_chars": 16329,
+    "reduction_percent": 92.858,
+    "provider_tokens_measured": false,
+    "native_refs_retained": true,
+    "interpretation": "Character reduction only; not token savings."
+  },
+  "lifecycle_evidence": {
+    "events": ["MCP_INITIALIZE_RECEIVED", "MCP_TOOLS_LIST_RECEIVED", "MCP_TOOL_CALL_RECEIVED:browser_navigate", "tools_call_response:browser_navigate", "MCP_TOOL_CALL_RECEIVED:browser_snapshot", "tools_call_response:browser_snapshot"],
+    "sqlite_or_lifecycle": "workspace .pie-live-store/mcp-lifecycle.jsonl"
+  },
+  "limitations": [
+    "This proves the restricted Web path only; it is not an A/B benchmark.",
+    "The Web fixture was local and deterministic; no public page was used.",
+    "Persistent config byte hash remains 850C2E3559A58B205958B82DF08FD195AAC4D5A3C8D63B10DC8A2399E4D8416C; the restricted probe did not modify it."
+  ],
+  "certification": "NOT_CERTIFIED"
+}

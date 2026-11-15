@@ -23,7 +23,9 @@ pie-terminal = "pie.gateway.terminal:main"
 pie-mcp-proxy = "pie.gateway.mcp_stdio:main"
 pie-phase1 = "pie.gateway.install:main"
 pie-live = "pie.certification.cli:main"
+pie-phase3-controller = "pie.certification.controller:main"
 pie-domain = "pie.gateway.domain:main"
+pie-usage = "pie.certification.task_telemetry:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

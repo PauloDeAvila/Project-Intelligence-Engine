@@ -13,25 +13,42 @@ import shutil
 import subprocess
 import sys
 
-from pie.gateway.mcp_stdio import MCPStdioGateway
+from pie.gateway.bootstrap import event as bootstrap_event
+
+bootstrap_event("PROCESS_STARTED", module=__name__)
+bootstrap_event("BOOTSTRAP_INITIALIZED")
+bootstrap_event("IMPORT_STARTED", module="pie.gateway.mcp_stdio")
+try:
+    from pie.gateway.mcp_stdio import MCPStdioGateway
+except Exception as exc:
+    bootstrap_event("IMPORT_FAILED", error_type=type(exc).__name__)
+    raise
+bootstrap_event("IMPORT_SUCCEEDED", module="pie.gateway.mcp_stdio")
+
 from pie.gateway.web_results import SNAPSHOT_RESULT_TOOLS
 from pie.storage.locations import ENV_HOME, global_home
 
 
 def domain_route(domain: str, upstream: list[str], *, python: str,
-                 max_chars: int) -> tuple[list[str], tuple[str,...], str]:
+                 max_chars: int, exposed_tools: tuple[str, ...] = ()) -> tuple[list[str], tuple[str,...], str]:
     if domain not in ("blender","web"):
         raise ValueError("Only blender and web domains are implemented")
     if not upstream or not all(isinstance(x,str) and x for x in upstream):
         raise ValueError("Upstream MCP server command is required")
+    if any(not isinstance(tool, str) or not tool for tool in exposed_tools):
+        raise ValueError("Invalid exposed tool allowlist")
     if type(max_chars) is not int or not 800<=max_chars<=64000:
         raise ValueError("Invalid output budget")
     if domain=="blender":
         # Existing Blender bridge adds pie_blender_scene_delta and
         # pie_blender_expand. Keep its specialized observation compaction.
         # The outer gateway forwards all data without a second lossy pass.
-        return ([python,"-m","pie.integrations.blender_mcp_bridge",
-                "--max-chars",str(max_chars),"--",*upstream],
+        bridge=[python,"-m","pie.integrations.blender_mcp_bridge",
+                "--max-chars",str(max_chars)]
+        for tool in exposed_tools:
+            bridge += ["--expose-tool", tool]
+        bridge += ["--",*upstream]
+        return (bridge,
                 (),"generic")
     # Web profile applies only to recognizable Playwright accessibility
     # snapshot replies; other web actions, errors and image results pass through.
@@ -82,11 +99,13 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--max-chars",type=int,default=2400)
         p.add_argument("--workspace",type=Path,default=Path.cwd())
         p.add_argument("--store",type=Path)
+        p.add_argument("--expose-tool", action="append", default=[])
         if action=="register":
             p.add_argument("--name",required=True)
             p.add_argument("--apply",action="store_true")
         p.add_argument("upstream",nargs=argparse.REMAINDER)
     args=parser.parse_args(argv)
+    exit_code=2
     upstream=args.upstream[1:] if args.upstream and args.upstream[0]=="--" else args.upstream
     try:
         os.environ[ENV_HOME]=str((args.store or global_home()).expanduser().resolve())
@@ -95,15 +114,26 @@ def main(argv: list[str] | None = None) -> int:
                                   python=sys.executable,max_chars=args.max_chars,
                                   apply=args.apply)
             print(json.dumps(result,ensure_ascii=False,indent=2))
-            return 0
+            exit_code=0
+            return exit_code
         command,tools,profile=domain_route(args.domain,upstream,
-                                          python=sys.executable,max_chars=args.max_chars)
-        return MCPStdioGateway(args.workspace,command,max_chars=args.max_chars,
-                               compress_tools=tools,profile=profile).run()
+                                          python=sys.executable,max_chars=args.max_chars,
+                                          exposed_tools=tuple(args.expose_tool))
+        os.environ.setdefault("PIE_APP", args.domain)
+        if os.environ.get("PIE_MCP_DIAGNOSTICS_PATH"):
+            print(json.dumps({"event":"domain_gateway_start","domain":args.domain,
+                              "upstream_executable":Path(upstream[0]).name},
+                             separators=(",",":")),file=sys.stderr,flush=True)
+        exit_code=MCPStdioGateway(args.workspace,command,max_chars=args.max_chars,
+                                  compress_tools=tools,profile=profile,
+                                  exposed_tools=tuple(args.expose_tool)).run()
+        return exit_code
     except (OSError,ValueError,RuntimeError,subprocess.TimeoutExpired) as exc:
         # Never write protocol failures to MCP stdout.
         print("PIE domain gateway unavailable: "+type(exc).__name__,file=sys.stderr)
-        return 2
+        return exit_code
+    finally:
+        bootstrap_event("PROCESS_EXITING", exit_code=exit_code)
 
 
 if __name__=="__main__":

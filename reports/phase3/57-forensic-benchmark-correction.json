@@ -1,0 +1,37 @@
+{
+  "schema": "pie-phase3-forensic-correction-v1",
+  "status": "ROOT_CAUSE_UNRESOLVED",
+  "certification": "NOT_CERTIFIED",
+  "quota_consumed": false,
+  "codex_sessions_started": 0,
+  "cause": {
+    "scenario_requires": "execute_blender_code",
+    "approval_prepared_for": ["get_scene_info", "get_addon_status"],
+    "allowlist_enforced": false,
+    "historical_runtime_evidence_complete": false
+  },
+  "forensic_capture": {
+    "implemented": true,
+    "per_run_id": true,
+    "partial_artifacts_preserved": true,
+    "automatic_retry": false,
+    "sensitive_transcripts_persisted": false
+  },
+  "validation": {
+    "focused_unittest": {"passed": 10, "failed": 0},
+    "full_unittest": {"passed": 561, "failed": 0, "skipped": 5},
+    "compileall": "PASS",
+    "diff_check": "PASS",
+    "pie_index_state": "CURRENT",
+    "pie_workspace_match": true,
+    "graphify_nodes": 3394
+  },
+  "benchmark": {
+    "new_runs": 0,
+    "baseline": null,
+    "optimized": null,
+    "provider_usage": "unavailable",
+    "savings_percent": null
+  },
+  "next_gate": "Resolve Blender tool approval/allowlist and run one controlled real probe before A/B."
+}

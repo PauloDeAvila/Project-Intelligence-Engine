@@ -1,0 +1,42 @@
+{
+  "schema": "pie-phase3-final-attempt-v1",
+  "authorization_limit": 4,
+  "calls_consumed_in_this_authorization": 2,
+  "calls_not_run": 2,
+  "application": "blender",
+  "repetition": 4,
+  "pair_comparable": true,
+  "provider_usage_available": true,
+  "baseline": {
+    "input_tokens": 80513,
+    "cached_input_tokens": 62080,
+    "output_tokens": 621,
+    "reasoning_output_tokens": 392,
+    "runtime_ms": 16832.016,
+    "mcp_tools": [
+      {"server": "pie-phase3-blender", "tool": "get_addon_status", "status": "failed"},
+      {"server": "pie-phase3-blender", "tool": "get_scene_info", "status": "failed"}
+    ],
+    "oracle_pass": true,
+    "valid_for_certification": false
+  },
+  "optimized": {
+    "input_tokens": 166343,
+    "cached_input_tokens": 133504,
+    "output_tokens": 878,
+    "reasoning_output_tokens": 378,
+    "runtime_ms": 24612.059,
+    "mcp_tools": [
+      {"server": "pie-phase3-blender", "tool": "get_addon_status", "status": "failed"},
+      {"server": "pie-phase3-blender", "tool": "get_scene_info", "status": "failed"},
+      {"server": "pie-phase3-blender", "tool": "execute_blender_code", "status": "failed"}
+    ],
+    "oracle_pass": true,
+    "valid_for_certification": false
+  },
+  "reason": "Expected MCP tools failed in both arms. A fixed-text oracle pass cannot override failed tool execution.",
+  "diagnostic_followup": "Direct non-Codex PIE Blender probe passed afterward; this proves the upstream can work, but does not identify the Codex-session failure cause.",
+  "web_calls_executed": false,
+  "retries": 0,
+  "verdict": "NOT_CERTIFIED"
+}

@@ -1,0 +1,29 @@
+{
+  "schema": "pie-phase3-live-gateway-runtime-v1",
+  "model_calls": 0,
+  "provider_tokens_measured": false,
+  "blender": {
+    "state": "PASS",
+    "server": "mcp-for-blender",
+    "handshake": true,
+    "tools_list": true,
+    "tool": "get_scene_info",
+    "telemetry": [{"app": "blender", "tool": "get_scene_info", "state": "PASSTHROUGH", "source_chars": 208, "returned_chars": 208}]
+  },
+  "web": {
+    "state": "PASS",
+    "server": "@playwright/mcp@0.0.85",
+    "browser_navigation_executed": true,
+    "browser_snapshot_executed": true,
+    "recovery_executed": true,
+    "source_chars": 17585,
+    "model_facing_chars": 1256,
+    "native_refs_preserved": true,
+    "telemetry": [
+      {"app": "web", "tool": "browser_navigate", "state": "PASSTHROUGH", "source_chars": 355, "returned_chars": 355},
+      {"app": "web", "tool": "browser_snapshot", "state": "COMPACTED", "source_chars": 17585, "returned_chars": 1256},
+      {"app": "web", "tool": "pie_gateway_output_get", "state": "RECOVERY", "source_chars": 17585, "returned_chars": 1204}
+    ]
+  },
+  "interpretation": "This proves real local gateway/upstream behavior and persistence, not provider-token savings."
+}

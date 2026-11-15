@@ -1,0 +1,16 @@
+{
+  "schema": "pie-phase3-selective-query-code-audit-v1",
+  "status": "APPROVED_WITH_RESERVATIONS",
+  "published_base": "059483c3b0dac725fc4d1267a51fc9046a788081",
+  "model_sessions": 0,
+  "quota_consumed": false,
+  "simulation_arm": "optimized_only",
+  "ab_comparison": "NOT_RUN",
+  "oracle_strength": "EXACT_FIXTURE_VALUES",
+  "bridge_audited": true,
+  "duplicate_upstream_regression": "PASS",
+  "invalid_query_no_dispatch_regression": "PASS",
+  "tests": {"focused_passed": 15, "full_passed": 575, "full_skipped": 5},
+  "certification": "NOT_CERTIFIED",
+  "paid_ab": "PENDING"
+}

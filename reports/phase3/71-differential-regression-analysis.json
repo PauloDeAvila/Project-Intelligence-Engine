@@ -1,0 +1,64 @@
+{
+  "schema": "pie-phase3-differential-regression-v1",
+  "status": "OFFLINE_ANALYSIS_COMPLETE",
+  "model_sessions_started": 0,
+  "pairs": {
+    "blender": {
+      "valid": true,
+      "input_baseline": 58889,
+      "input_optimized": 111291,
+      "cached_baseline": 35840,
+      "cached_optimized": 94336,
+      "uncached_baseline": 23049,
+      "uncached_optimized": 16955,
+      "output_baseline": 685,
+      "output_optimized": 758,
+      "reasoning_baseline": 209,
+      "reasoning_optimized": 211,
+      "total_baseline": 59574,
+      "total_optimized": 112049,
+      "duration_baseline_ms": 17451.21,
+      "duration_optimized_ms": 20743.83,
+      "mcp_calls_baseline": 2,
+      "mcp_calls_optimized": 2,
+      "optimized_gateway_metrics": {
+        "source_chars": 359,
+        "returned_chars": 359,
+        "state_counts": {"PASSTHROUGH": 2},
+        "compression_chars_saved": 0,
+        "tool_list_count": 13
+      },
+      "finding": "Large input increase with no MCP call increase and no compaction; likely optimized context/schema overhead, exact decomposition unavailable."
+    },
+    "web": {
+      "valid": true,
+      "input_baseline": 66027,
+      "input_optimized": 66475,
+      "cached_baseline": 56704,
+      "cached_optimized": 56832,
+      "uncached_baseline": 9323,
+      "uncached_optimized": 9643,
+      "output_baseline": 305,
+      "output_optimized": 300,
+      "reasoning_baseline": 151,
+      "reasoning_optimized": 119,
+      "total_baseline": 66332,
+      "total_optimized": 66775,
+      "duration_baseline_ms": 11878.006,
+      "duration_optimized_ms": 11681.315,
+      "mcp_calls_baseline": 2,
+      "mcp_calls_optimized": 2,
+      "optimized_gateway_metrics": {
+        "source_chars": 824,
+        "returned_chars": 824,
+        "state_counts": {"PASSTHROUGH": 2},
+        "compression_chars_saved": 0,
+        "tool_list_count": 26
+      },
+      "finding": "Small input increase, mostly uncached, with no call or reasoning increase and no compaction."
+    }
+  },
+  "causal_conclusion": "No additional MCP calls or reasoning increase caused the regression. Compression was not activated. Context/schema overhead is the leading Blender hypothesis but is not yet decomposed into provider tokens.",
+  "cost": {"status": "unavailable", "total_estimated": null},
+  "next_measurement": "Offline tools/list baseline-versus-optimized schema size comparison"
+}

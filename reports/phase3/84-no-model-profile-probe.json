@@ -1,0 +1,42 @@
+{
+  "schema": "pie-phase3-no-model-profile-probe-v1",
+  "status": "BLOCKED_FOR_PAID_EXECUTION",
+  "model_sessions_started": 0,
+  "quota_consumed": false,
+  "profiles": {
+    "baseline": {
+      "status": "PASS",
+      "initialize": "PASS",
+      "tools_list": "PASS",
+      "tool_call": "PASS",
+      "server": "blender",
+      "tool": "get_scene_info",
+      "tool_count": 10,
+      "structured_content_present": true,
+      "fixture_marker_check": "FAILED_OUTSIDE_PROBE: PIE_Large_Cube_00 not present in current live scene"
+    },
+    "optimized": {
+      "status": "BLOCKED",
+      "initialize": "PASS",
+      "tools_list": "PASS",
+      "server": "pie-blender-optimized",
+      "tool": "pie_blender_query_scene",
+      "tool_call": "MCP_ERROR",
+      "error": "PIE_QUERY_UNAVAILABLE: Blender did not return the expected scene query marker"
+    }
+  },
+  "forbidden_tool_rejection": {
+    "status": "PASS_REAL_GATEWAY_NO_MODEL",
+    "tools_list": ["pie_blender_query_scene"],
+    "result": "PIE_TOOL_NOT_EXPOSED",
+    "upstream_called": false,
+    "model_sessions_started": 0,
+    "quota_consumed": false
+  },
+  "structured_content_contract": {
+    "status": "PASS_OFFLINE_MOCK",
+    "content_preserved": true,
+    "structuredContent_returned": true
+  },
+  "interpretation": "The gateway handshake and discovery are available without a model, but the real selective query cannot be certified against the current live Blender scene. No paid execution is permitted."
+}

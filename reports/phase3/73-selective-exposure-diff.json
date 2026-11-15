@@ -1,0 +1,26 @@
+{
+  "schema": "pie-phase3-selective-exposure-v1",
+  "status": "OFFLINE_VERIFIED",
+  "model_sessions_started": 0,
+  "blender": {
+    "baseline_chars": 18750,
+    "optimized_default_chars": 20045,
+    "optimized_selective_chars": 3792,
+    "default_to_selective_chars_saved": 16253,
+    "selective_tools": ["get_scene_info", "execute_blender_code", "pie_blender_expand", "pie_gateway_output_get"]
+  },
+  "web": {
+    "baseline_chars": 21177,
+    "optimized_default_chars": 21583,
+    "optimized_selective_chars": 1738,
+    "default_to_selective_chars_saved": 19845,
+    "selective_tools": ["browser_navigate", "browser_snapshot", "pie_gateway_output_get"]
+  },
+  "safety": {
+    "hidden_calls_forwarded": false,
+    "mcp_protocol_preserved": true,
+    "default_behavior_changed": false,
+    "recovery_preserved_when_allowlisted": true
+  },
+  "token_caveat": "Serialized schema characters are not provider token counts."
+}

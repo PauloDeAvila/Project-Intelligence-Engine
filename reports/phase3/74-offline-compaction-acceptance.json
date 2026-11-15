@@ -1,0 +1,67 @@
+{
+  "schema": "pie-phase3-offline-compaction-acceptance-v1",
+  "result": "COMPACTION_READY_FOR_AB",
+  "scope": "offline-only",
+  "model_sessions_started": 0,
+  "quota_consumed": false,
+  "fixtures": {
+    "web": {
+      "path": "fixtures/phase3/web/large.html",
+      "purpose": "stable local product page with deterministic ids and labels",
+      "bytes": 5973,
+      "external_network": false
+    },
+    "blender": {
+      "path": "fixtures/phase3/blender/large_scene_spec.json",
+      "purpose": "deterministic scene specification; no live scene mutation",
+      "object_count": 64,
+      "material_count": 16,
+      "real_fixture_gate": "PASS",
+      "observation_source_chars": 14543,
+      "observation_returned_chars": 3806,
+      "compaction_state": "PARTIAL",
+      "evidence": "reports/phase3/75-blender-real-fixture-gate.json"
+    }
+  },
+  "acceptance": {
+    "small_passthrough": {
+      "status": "PASS",
+      "evidence": "reports/phase3/71-differential-regression-analysis.json",
+      "observed_state": "PASSTHROUGH",
+      "source_equals_returned": true
+    },
+    "large_blender_compaction": {
+      "status": "PASS",
+      "test": "DomainStdioTests.test_blender_bridge_tools_and_write_outputs_are_preserved",
+      "observed_state": "PARTIAL",
+      "write_result_preserved": true,
+      "duplicate_upstream_calls": false
+    },
+    "large_web_compaction": {
+      "status": "PASS",
+      "test": "DomainStdioTests.test_web_navigation_is_called_once_and_recoverable",
+      "observed_state": "PARTIAL",
+      "required_refs_preserved": true,
+      "original_url_recoverable": true,
+      "recovery_sha256_verified": true,
+      "duplicate_upstream_calls": false,
+      "error_and_image_passthrough": true
+    },
+    "hidden_tool_blocking": {
+      "status": "PASS",
+      "test": "DomainStdioTests.test_task_tool_allowlist_reduces_discovery_and_blocks_hidden_calls",
+      "hidden_calls_forwarded": false,
+      "protocol_response_preserved": true
+    },
+    "provider_usage": {
+      "status": "NOT_RUN_BY_DESIGN",
+      "provider_usage_status": "unavailable",
+      "reason": "This acceptance phase deliberately made no Codex/model calls."
+    }
+  },
+  "limitations": [
+    "Character reduction and serialized schema size are not provider token counts.",
+    "The Blender fixture is a versioned specification, not a live Blender benchmark.",
+    "A/B certification remains pending until fresh paired provider-reported usage is collected."
+  ]
+}

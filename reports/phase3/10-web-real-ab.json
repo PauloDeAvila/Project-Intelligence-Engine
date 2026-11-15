@@ -1,0 +1,45 @@
+{
+  "schema": "pie-phase3-real-ab-v1",
+  "application": "web",
+  "scenario_id": "web-navigation-snapshot-v1",
+  "model": "gpt-5.6-luna",
+  "effort": "medium",
+  "strict_comparable_pairs": 2,
+  "required_pairs": 3,
+  "certification_eligible": false,
+  "baseline": {
+    "runs": 2,
+    "input_tokens": 355463,
+    "cached_input_tokens": 318720,
+    "uncached_input_tokens": 36743,
+    "output_tokens": 1333,
+    "total_tokens": 356796,
+    "duration_ms_total": 42535.485,
+    "duration_ms_average": 21267.7425,
+    "mcp_calls": 8,
+    "oracle_passes": 2
+  },
+  "optimized": {
+    "runs": 2,
+    "input_tokens": 399269,
+    "cached_input_tokens": 356992,
+    "uncached_input_tokens": 42277,
+    "output_tokens": 1672,
+    "total_tokens": 400941,
+    "duration_ms_total": 47455.615,
+    "duration_ms_average": 23727.8075,
+    "mcp_calls": 8,
+    "oracle_passes": 2
+  },
+  "savings_percent": {
+    "input": -12.323645,
+    "cached_input": -12.008032,
+    "uncached_input": -15.061372,
+    "output": -25.431358,
+    "total": -12.372616
+  },
+  "latency_delta_percent_optimized_vs_baseline": 11.567119,
+  "mcp_call_delta": 0,
+  "provider_usage_status": "available",
+  "evidence": "Temporary sanitized records under ab-evidence; repetitions 2 and 3 only. Repetition 1 was a non-comparable pilot because prompt hashes differed."
+}

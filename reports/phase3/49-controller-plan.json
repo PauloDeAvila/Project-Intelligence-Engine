@@ -1,0 +1,610 @@
+{
+  "manifest": {
+    "schema": "pie-phase3-certification-controller-v1",
+    "state": "READY_FOR_AB_PILOT",
+    "model_sessions": 12,
+    "max_authorized_sessions": 12,
+    "pilot_sessions": 4,
+    "pilot_repetitions": [
+      1
+    ],
+    "no_automatic_retry": true,
+    "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+    "scenarios": [
+      {
+        "application": "blender",
+        "scenario_id": "blender-material-cert-v1",
+        "pair_id": "pair-d4b179952cf4570b9d7d97f7",
+        "run_id": "baseline-409e2a71803509b546248d24",
+        "repetition": 1,
+        "condition": "baseline",
+        "model": "gpt-5.6-luna",
+        "prompt_sha256": "b691eb46bb15da3ad9a7aa090ef133b6f2c8ad9ac59cb6e39d9b0a4bb35e5a36",
+        "expected_sha256": "f1f2b58064eef4166dd1f8aac7ebee75dac8005a6cc368e714be1855ae28a2ce",
+        "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+        "profile": "pie-phase3-baseline",
+        "expected_mcp_server": "blender",
+        "oracle": {
+          "kind": "blender_material_properties",
+          "object_name": "PIE_AB_Cube",
+          "material_name": "PIE_AB_Material",
+          "roughness": 0.35,
+          "metallic": 0.2
+        }
+      },
+      {
+        "application": "blender",
+        "scenario_id": "blender-material-cert-v1",
+        "pair_id": "pair-d4b179952cf4570b9d7d97f7",
+        "run_id": "optimized-6244e2004f912a0a3bde77aa",
+        "repetition": 1,
+        "condition": "optimized",
+        "model": "gpt-5.6-luna",
+        "prompt_sha256": "b691eb46bb15da3ad9a7aa090ef133b6f2c8ad9ac59cb6e39d9b0a4bb35e5a36",
+        "expected_sha256": "f1f2b58064eef4166dd1f8aac7ebee75dac8005a6cc368e714be1855ae28a2ce",
+        "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+        "profile": "pie-phase3-optimized",
+        "expected_mcp_server": "pie-blender-optimized",
+        "oracle": {
+          "kind": "blender_material_properties",
+          "object_name": "PIE_AB_Cube",
+          "material_name": "PIE_AB_Material",
+          "roughness": 0.35,
+          "metallic": 0.2
+        }
+      },
+      {
+        "application": "blender",
+        "scenario_id": "blender-material-cert-v1",
+        "pair_id": "pair-d4b179952cf4570b9d7d97f7",
+        "run_id": "baseline-6fa8aac0141dbda1f657b902",
+        "repetition": 2,
+        "condition": "baseline",
+        "model": "gpt-5.6-luna",
+        "prompt_sha256": "b691eb46bb15da3ad9a7aa090ef133b6f2c8ad9ac59cb6e39d9b0a4bb35e5a36",
+        "expected_sha256": "f1f2b58064eef4166dd1f8aac7ebee75dac8005a6cc368e714be1855ae28a2ce",
+        "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+        "profile": "pie-phase3-baseline",
+        "expected_mcp_server": "blender",
+        "oracle": {
+          "kind": "blender_material_properties",
+          "object_name": "PIE_AB_Cube",
+          "material_name": "PIE_AB_Material",
+          "roughness": 0.35,
+          "metallic": 0.2
+        }
+      },
+      {
+        "application": "blender",
+        "scenario_id": "blender-material-cert-v1",
+        "pair_id": "pair-d4b179952cf4570b9d7d97f7",
+        "run_id": "optimized-b67325b05be8c74e7c5f6717",
+        "repetition": 2,
+        "condition": "optimized",
+        "model": "gpt-5.6-luna",
+        "prompt_sha256": "b691eb46bb15da3ad9a7aa090ef133b6f2c8ad9ac59cb6e39d9b0a4bb35e5a36",
+        "expected_sha256": "f1f2b58064eef4166dd1f8aac7ebee75dac8005a6cc368e714be1855ae28a2ce",
+        "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+        "profile": "pie-phase3-optimized",
+        "expected_mcp_server": "pie-blender-optimized",
+        "oracle": {
+          "kind": "blender_material_properties",
+          "object_name": "PIE_AB_Cube",
+          "material_name": "PIE_AB_Material",
+          "roughness": 0.35,
+          "metallic": 0.2
+        }
+      },
+      {
+        "application": "blender",
+        "scenario_id": "blender-material-cert-v1",
+        "pair_id": "pair-d4b179952cf4570b9d7d97f7",
+        "run_id": "baseline-e1745bb603400ceb3ec17439",
+        "repetition": 3,
+        "condition": "baseline",
+        "model": "gpt-5.6-luna",
+        "prompt_sha256": "b691eb46bb15da3ad9a7aa090ef133b6f2c8ad9ac59cb6e39d9b0a4bb35e5a36",
+        "expected_sha256": "f1f2b58064eef4166dd1f8aac7ebee75dac8005a6cc368e714be1855ae28a2ce",
+        "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+        "profile": "pie-phase3-baseline",
+        "expected_mcp_server": "blender",
+        "oracle": {
+          "kind": "blender_material_properties",
+          "object_name": "PIE_AB_Cube",
+          "material_name": "PIE_AB_Material",
+          "roughness": 0.35,
+          "metallic": 0.2
+        }
+      },
+      {
+        "application": "blender",
+        "scenario_id": "blender-material-cert-v1",
+        "pair_id": "pair-d4b179952cf4570b9d7d97f7",
+        "run_id": "optimized-6a1b13915d4ba497eca6320a",
+        "repetition": 3,
+        "condition": "optimized",
+        "model": "gpt-5.6-luna",
+        "prompt_sha256": "b691eb46bb15da3ad9a7aa090ef133b6f2c8ad9ac59cb6e39d9b0a4bb35e5a36",
+        "expected_sha256": "f1f2b58064eef4166dd1f8aac7ebee75dac8005a6cc368e714be1855ae28a2ce",
+        "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+        "profile": "pie-phase3-optimized",
+        "expected_mcp_server": "pie-blender-optimized",
+        "oracle": {
+          "kind": "blender_material_properties",
+          "object_name": "PIE_AB_Cube",
+          "material_name": "PIE_AB_Material",
+          "roughness": 0.35,
+          "metallic": 0.2
+        }
+      },
+      {
+        "application": "web",
+        "scenario_id": "web-local-page-cert-v1",
+        "pair_id": "pair-4b9216410ea0787c1a093421",
+        "run_id": "baseline-ee968ee36357c37191a0acae",
+        "repetition": 1,
+        "condition": "baseline",
+        "model": "gpt-5.6-luna",
+        "prompt_sha256": "6f7f7aa700964e1eb10b21ff5be1126b80851924b5e1ee2fdeebb56faa4bb0d2",
+        "expected_sha256": "f51f18e091e5480910aa31e54488f48cc6dcd75661265f32520c735a717af685",
+        "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+        "profile": "pie-phase3-baseline",
+        "expected_mcp_server": "playwright-baseline",
+        "oracle": {
+          "kind": "web_local_page",
+          "fixture_id": "pie-phase3-local-products-v1",
+          "required_refs": [
+            "e1",
+            "e2",
+            "e10"
+          ],
+          "required_text": [
+            "Products",
+            "Add to cart"
+          ]
+        }
+      },
+      {
+        "application": "web",
+        "scenario_id": "web-local-page-cert-v1",
+        "pair_id": "pair-4b9216410ea0787c1a093421",
+        "run_id": "optimized-0f5013bea305eeb772285fa8",
+        "repetition": 1,
+        "condition": "optimized",
+        "model": "gpt-5.6-luna",
+        "prompt_sha256": "6f7f7aa700964e1eb10b21ff5be1126b80851924b5e1ee2fdeebb56faa4bb0d2",
+        "expected_sha256": "f51f18e091e5480910aa31e54488f48cc6dcd75661265f32520c735a717af685",
+        "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+        "profile": "pie-phase3-optimized",
+        "expected_mcp_server": "pie-web-optimized",
+        "oracle": {
+          "kind": "web_local_page",
+          "fixture_id": "pie-phase3-local-products-v1",
+          "required_refs": [
+            "e1",
+            "e2",
+            "e10"
+          ],
+          "required_text": [
+            "Products",
+            "Add to cart"
+          ]
+        }
+      },
+      {
+        "application": "web",
+        "scenario_id": "web-local-page-cert-v1",
+        "pair_id": "pair-4b9216410ea0787c1a093421",
+        "run_id": "baseline-a0f173b9867493d52f1d8d2a",
+        "repetition": 2,
+        "condition": "baseline",
+        "model": "gpt-5.6-luna",
+        "prompt_sha256": "6f7f7aa700964e1eb10b21ff5be1126b80851924b5e1ee2fdeebb56faa4bb0d2",
+        "expected_sha256": "f51f18e091e5480910aa31e54488f48cc6dcd75661265f32520c735a717af685",
+        "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+        "profile": "pie-phase3-baseline",
+        "expected_mcp_server": "playwright-baseline",
+        "oracle": {
+          "kind": "web_local_page",
+          "fixture_id": "pie-phase3-local-products-v1",
+          "required_refs": [
+            "e1",
+            "e2",
+            "e10"
+          ],
+          "required_text": [
+            "Products",
+            "Add to cart"
+          ]
+        }
+      },
+      {
+        "application": "web",
+        "scenario_id": "web-local-page-cert-v1",
+        "pair_id": "pair-4b9216410ea0787c1a093421",
+        "run_id": "optimized-3868682a3da2c8f05a846d30",
+        "repetition": 2,
+        "condition": "optimized",
+        "model": "gpt-5.6-luna",
+        "prompt_sha256": "6f7f7aa700964e1eb10b21ff5be1126b80851924b5e1ee2fdeebb56faa4bb0d2",
+        "expected_sha256": "f51f18e091e5480910aa31e54488f48cc6dcd75661265f32520c735a717af685",
+        "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+        "profile": "pie-phase3-optimized",
+        "expected_mcp_server": "pie-web-optimized",
+        "oracle": {
+          "kind": "web_local_page",
+          "fixture_id": "pie-phase3-local-products-v1",
+          "required_refs": [
+            "e1",
+            "e2",
+            "e10"
+          ],
+          "required_text": [
+            "Products",
+            "Add to cart"
+          ]
+        }
+      },
+      {
+        "application": "web",
+        "scenario_id": "web-local-page-cert-v1",
+        "pair_id": "pair-4b9216410ea0787c1a093421",
+        "run_id": "baseline-b86b3f2fa8da2caf74f7fd86",
+        "repetition": 3,
+        "condition": "baseline",
+        "model": "gpt-5.6-luna",
+        "prompt_sha256": "6f7f7aa700964e1eb10b21ff5be1126b80851924b5e1ee2fdeebb56faa4bb0d2",
+        "expected_sha256": "f51f18e091e5480910aa31e54488f48cc6dcd75661265f32520c735a717af685",
+        "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+        "profile": "pie-phase3-baseline",
+        "expected_mcp_server": "playwright-baseline",
+        "oracle": {
+          "kind": "web_local_page",
+          "fixture_id": "pie-phase3-local-products-v1",
+          "required_refs": [
+            "e1",
+            "e2",
+            "e10"
+          ],
+          "required_text": [
+            "Products",
+            "Add to cart"
+          ]
+        }
+      },
+      {
+        "application": "web",
+        "scenario_id": "web-local-page-cert-v1",
+        "pair_id": "pair-4b9216410ea0787c1a093421",
+        "run_id": "optimized-b8f22b3aaac0cfbb0d81a7bc",
+        "repetition": 3,
+        "condition": "optimized",
+        "model": "gpt-5.6-luna",
+        "prompt_sha256": "6f7f7aa700964e1eb10b21ff5be1126b80851924b5e1ee2fdeebb56faa4bb0d2",
+        "expected_sha256": "f51f18e091e5480910aa31e54488f48cc6dcd75661265f32520c735a717af685",
+        "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+        "profile": "pie-phase3-optimized",
+        "expected_mcp_server": "pie-web-optimized",
+        "oracle": {
+          "kind": "web_local_page",
+          "fixture_id": "pie-phase3-local-products-v1",
+          "required_refs": [
+            "e1",
+            "e2",
+            "e10"
+          ],
+          "required_text": [
+            "Products",
+            "Add to cart"
+          ]
+        }
+      }
+    ],
+    "execution": "PLAN_ONLY_NO_MODEL_EXECUTION"
+  },
+  "batches": {
+    "state": "READY_FOR_AB_PILOT",
+    "pilot": {
+      "sessions": 4,
+      "authorization_required": true,
+      "entries": [
+        {
+          "application": "blender",
+          "scenario_id": "blender-material-cert-v1",
+          "pair_id": "pair-d4b179952cf4570b9d7d97f7",
+          "run_id": "baseline-409e2a71803509b546248d24",
+          "repetition": 1,
+          "condition": "baseline",
+          "model": "gpt-5.6-luna",
+          "prompt_sha256": "b691eb46bb15da3ad9a7aa090ef133b6f2c8ad9ac59cb6e39d9b0a4bb35e5a36",
+          "expected_sha256": "f1f2b58064eef4166dd1f8aac7ebee75dac8005a6cc368e714be1855ae28a2ce",
+          "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+          "profile": "pie-phase3-baseline",
+          "expected_mcp_server": "blender",
+          "oracle": {
+            "kind": "blender_material_properties",
+            "object_name": "PIE_AB_Cube",
+            "material_name": "PIE_AB_Material",
+            "roughness": 0.35,
+            "metallic": 0.2
+          }
+        },
+        {
+          "application": "blender",
+          "scenario_id": "blender-material-cert-v1",
+          "pair_id": "pair-d4b179952cf4570b9d7d97f7",
+          "run_id": "optimized-6244e2004f912a0a3bde77aa",
+          "repetition": 1,
+          "condition": "optimized",
+          "model": "gpt-5.6-luna",
+          "prompt_sha256": "b691eb46bb15da3ad9a7aa090ef133b6f2c8ad9ac59cb6e39d9b0a4bb35e5a36",
+          "expected_sha256": "f1f2b58064eef4166dd1f8aac7ebee75dac8005a6cc368e714be1855ae28a2ce",
+          "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+          "profile": "pie-phase3-optimized",
+          "expected_mcp_server": "pie-blender-optimized",
+          "oracle": {
+            "kind": "blender_material_properties",
+            "object_name": "PIE_AB_Cube",
+            "material_name": "PIE_AB_Material",
+            "roughness": 0.35,
+            "metallic": 0.2
+          }
+        },
+        {
+          "application": "web",
+          "scenario_id": "web-local-page-cert-v1",
+          "pair_id": "pair-4b9216410ea0787c1a093421",
+          "run_id": "baseline-ee968ee36357c37191a0acae",
+          "repetition": 1,
+          "condition": "baseline",
+          "model": "gpt-5.6-luna",
+          "prompt_sha256": "6f7f7aa700964e1eb10b21ff5be1126b80851924b5e1ee2fdeebb56faa4bb0d2",
+          "expected_sha256": "f51f18e091e5480910aa31e54488f48cc6dcd75661265f32520c735a717af685",
+          "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+          "profile": "pie-phase3-baseline",
+          "expected_mcp_server": "playwright-baseline",
+          "oracle": {
+            "kind": "web_local_page",
+            "fixture_id": "pie-phase3-local-products-v1",
+            "required_refs": [
+              "e1",
+              "e2",
+              "e10"
+            ],
+            "required_text": [
+              "Products",
+              "Add to cart"
+            ]
+          }
+        },
+        {
+          "application": "web",
+          "scenario_id": "web-local-page-cert-v1",
+          "pair_id": "pair-4b9216410ea0787c1a093421",
+          "run_id": "optimized-0f5013bea305eeb772285fa8",
+          "repetition": 1,
+          "condition": "optimized",
+          "model": "gpt-5.6-luna",
+          "prompt_sha256": "6f7f7aa700964e1eb10b21ff5be1126b80851924b5e1ee2fdeebb56faa4bb0d2",
+          "expected_sha256": "f51f18e091e5480910aa31e54488f48cc6dcd75661265f32520c735a717af685",
+          "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+          "profile": "pie-phase3-optimized",
+          "expected_mcp_server": "pie-web-optimized",
+          "oracle": {
+            "kind": "web_local_page",
+            "fixture_id": "pie-phase3-local-products-v1",
+            "required_refs": [
+              "e1",
+              "e2",
+              "e10"
+            ],
+            "required_text": [
+              "Products",
+              "Add to cart"
+            ]
+          }
+        }
+      ]
+    },
+    "complement": {
+      "sessions": 8,
+      "authorization_required": true,
+      "entries": [
+        {
+          "application": "blender",
+          "scenario_id": "blender-material-cert-v1",
+          "pair_id": "pair-d4b179952cf4570b9d7d97f7",
+          "run_id": "baseline-6fa8aac0141dbda1f657b902",
+          "repetition": 2,
+          "condition": "baseline",
+          "model": "gpt-5.6-luna",
+          "prompt_sha256": "b691eb46bb15da3ad9a7aa090ef133b6f2c8ad9ac59cb6e39d9b0a4bb35e5a36",
+          "expected_sha256": "f1f2b58064eef4166dd1f8aac7ebee75dac8005a6cc368e714be1855ae28a2ce",
+          "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+          "profile": "pie-phase3-baseline",
+          "expected_mcp_server": "blender",
+          "oracle": {
+            "kind": "blender_material_properties",
+            "object_name": "PIE_AB_Cube",
+            "material_name": "PIE_AB_Material",
+            "roughness": 0.35,
+            "metallic": 0.2
+          }
+        },
+        {
+          "application": "blender",
+          "scenario_id": "blender-material-cert-v1",
+          "pair_id": "pair-d4b179952cf4570b9d7d97f7",
+          "run_id": "optimized-b67325b05be8c74e7c5f6717",
+          "repetition": 2,
+          "condition": "optimized",
+          "model": "gpt-5.6-luna",
+          "prompt_sha256": "b691eb46bb15da3ad9a7aa090ef133b6f2c8ad9ac59cb6e39d9b0a4bb35e5a36",
+          "expected_sha256": "f1f2b58064eef4166dd1f8aac7ebee75dac8005a6cc368e714be1855ae28a2ce",
+          "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+          "profile": "pie-phase3-optimized",
+          "expected_mcp_server": "pie-blender-optimized",
+          "oracle": {
+            "kind": "blender_material_properties",
+            "object_name": "PIE_AB_Cube",
+            "material_name": "PIE_AB_Material",
+            "roughness": 0.35,
+            "metallic": 0.2
+          }
+        },
+        {
+          "application": "blender",
+          "scenario_id": "blender-material-cert-v1",
+          "pair_id": "pair-d4b179952cf4570b9d7d97f7",
+          "run_id": "baseline-e1745bb603400ceb3ec17439",
+          "repetition": 3,
+          "condition": "baseline",
+          "model": "gpt-5.6-luna",
+          "prompt_sha256": "b691eb46bb15da3ad9a7aa090ef133b6f2c8ad9ac59cb6e39d9b0a4bb35e5a36",
+          "expected_sha256": "f1f2b58064eef4166dd1f8aac7ebee75dac8005a6cc368e714be1855ae28a2ce",
+          "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+          "profile": "pie-phase3-baseline",
+          "expected_mcp_server": "blender",
+          "oracle": {
+            "kind": "blender_material_properties",
+            "object_name": "PIE_AB_Cube",
+            "material_name": "PIE_AB_Material",
+            "roughness": 0.35,
+            "metallic": 0.2
+          }
+        },
+        {
+          "application": "blender",
+          "scenario_id": "blender-material-cert-v1",
+          "pair_id": "pair-d4b179952cf4570b9d7d97f7",
+          "run_id": "optimized-6a1b13915d4ba497eca6320a",
+          "repetition": 3,
+          "condition": "optimized",
+          "model": "gpt-5.6-luna",
+          "prompt_sha256": "b691eb46bb15da3ad9a7aa090ef133b6f2c8ad9ac59cb6e39d9b0a4bb35e5a36",
+          "expected_sha256": "f1f2b58064eef4166dd1f8aac7ebee75dac8005a6cc368e714be1855ae28a2ce",
+          "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+          "profile": "pie-phase3-optimized",
+          "expected_mcp_server": "pie-blender-optimized",
+          "oracle": {
+            "kind": "blender_material_properties",
+            "object_name": "PIE_AB_Cube",
+            "material_name": "PIE_AB_Material",
+            "roughness": 0.35,
+            "metallic": 0.2
+          }
+        },
+        {
+          "application": "web",
+          "scenario_id": "web-local-page-cert-v1",
+          "pair_id": "pair-4b9216410ea0787c1a093421",
+          "run_id": "baseline-a0f173b9867493d52f1d8d2a",
+          "repetition": 2,
+          "condition": "baseline",
+          "model": "gpt-5.6-luna",
+          "prompt_sha256": "6f7f7aa700964e1eb10b21ff5be1126b80851924b5e1ee2fdeebb56faa4bb0d2",
+          "expected_sha256": "f51f18e091e5480910aa31e54488f48cc6dcd75661265f32520c735a717af685",
+          "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+          "profile": "pie-phase3-baseline",
+          "expected_mcp_server": "playwright-baseline",
+          "oracle": {
+            "kind": "web_local_page",
+            "fixture_id": "pie-phase3-local-products-v1",
+            "required_refs": [
+              "e1",
+              "e2",
+              "e10"
+            ],
+            "required_text": [
+              "Products",
+              "Add to cart"
+            ]
+          }
+        },
+        {
+          "application": "web",
+          "scenario_id": "web-local-page-cert-v1",
+          "pair_id": "pair-4b9216410ea0787c1a093421",
+          "run_id": "optimized-3868682a3da2c8f05a846d30",
+          "repetition": 2,
+          "condition": "optimized",
+          "model": "gpt-5.6-luna",
+          "prompt_sha256": "6f7f7aa700964e1eb10b21ff5be1126b80851924b5e1ee2fdeebb56faa4bb0d2",
+          "expected_sha256": "f51f18e091e5480910aa31e54488f48cc6dcd75661265f32520c735a717af685",
+          "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+          "profile": "pie-phase3-optimized",
+          "expected_mcp_server": "pie-web-optimized",
+          "oracle": {
+            "kind": "web_local_page",
+            "fixture_id": "pie-phase3-local-products-v1",
+            "required_refs": [
+              "e1",
+              "e2",
+              "e10"
+            ],
+            "required_text": [
+              "Products",
+              "Add to cart"
+            ]
+          }
+        },
+        {
+          "application": "web",
+          "scenario_id": "web-local-page-cert-v1",
+          "pair_id": "pair-4b9216410ea0787c1a093421",
+          "run_id": "baseline-b86b3f2fa8da2caf74f7fd86",
+          "repetition": 3,
+          "condition": "baseline",
+          "model": "gpt-5.6-luna",
+          "prompt_sha256": "6f7f7aa700964e1eb10b21ff5be1126b80851924b5e1ee2fdeebb56faa4bb0d2",
+          "expected_sha256": "f51f18e091e5480910aa31e54488f48cc6dcd75661265f32520c735a717af685",
+          "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+          "profile": "pie-phase3-baseline",
+          "expected_mcp_server": "playwright-baseline",
+          "oracle": {
+            "kind": "web_local_page",
+            "fixture_id": "pie-phase3-local-products-v1",
+            "required_refs": [
+              "e1",
+              "e2",
+              "e10"
+            ],
+            "required_text": [
+              "Products",
+              "Add to cart"
+            ]
+          }
+        },
+        {
+          "application": "web",
+          "scenario_id": "web-local-page-cert-v1",
+          "pair_id": "pair-4b9216410ea0787c1a093421",
+          "run_id": "optimized-b8f22b3aaac0cfbb0d81a7bc",
+          "repetition": 3,
+          "condition": "optimized",
+          "model": "gpt-5.6-luna",
+          "prompt_sha256": "6f7f7aa700964e1eb10b21ff5be1126b80851924b5e1ee2fdeebb56faa4bb0d2",
+          "expected_sha256": "f51f18e091e5480910aa31e54488f48cc6dcd75661265f32520c735a717af685",
+          "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+          "profile": "pie-phase3-optimized",
+          "expected_mcp_server": "pie-web-optimized",
+          "oracle": {
+            "kind": "web_local_page",
+            "fixture_id": "pie-phase3-local-products-v1",
+            "required_refs": [
+              "e1",
+              "e2",
+              "e10"
+            ],
+            "required_text": [
+              "Products",
+              "Add to cart"
+            ]
+          }
+        }
+      ]
+    },
+    "automatic_execution": false,
+    "automatic_retry": false
+  }
+}

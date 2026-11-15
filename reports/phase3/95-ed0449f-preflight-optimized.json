@@ -1,0 +1,40 @@
+{
+  "state": "READY_FOR_BENCHMARK",
+  "checks": {
+    "scenario": "PASS",
+    "condition": "PASS",
+    "worktree": {
+      "state": "PASS",
+      "commit": "ed0449f82cf2b1a1a512ae124dc784ceafe3d0da"
+    },
+    "config": "PASS",
+    "profile": "PASS",
+    "codex_executable": "PASS",
+    "model": "PASS",
+    "mcp": {
+      "state": "PASS",
+      "required_server": "pie-blender-optimized"
+    },
+    "mcp_tools": {
+      "state": "PASS",
+      "enabled_tools": [
+        "pie_blender_query_scene"
+      ]
+    },
+    "mcp_command": "PASS",
+    "pie_source": "PASS",
+    "gateway_workspace": "PASS",
+    "mcp_runtime": {
+      "state": "PASS",
+      "enabled_servers": [
+        "pie-blender-optimized"
+      ]
+    },
+    "authentication": {
+      "state": "AUTH_VALIDATED_LOCAL"
+    }
+  },
+  "errors": [],
+  "model": "gpt-5.6-luna",
+  "condition": "optimized"
+}

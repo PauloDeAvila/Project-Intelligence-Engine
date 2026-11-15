@@ -1,0 +1,36 @@
+{
+  "schema": "pie-phase3-preflight-v1",
+  "status": "BLOCKED",
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "model_calls": 0,
+  "profiles": {
+    "baseline": {
+      "config": "PASS",
+      "worktree": "PASS",
+      "model": "PASS",
+      "mcp_blender": "PASS",
+      "mcp_web": "PASS",
+      "authentication": "AUTH_MISSING",
+      "state": "BLOCKED",
+      "errors": ["PRECHECK_AUTH_MISSING"]
+    },
+    "optimized": {
+      "config": "PASS",
+      "worktree": "PASS",
+      "model": "PASS",
+      "mcp_blender": "PASS",
+      "mcp_web": "PASS",
+      "authentication": "AUTH_MISSING",
+      "state": "BLOCKED",
+      "errors": ["PRECHECK_AUTH_MISSING"]
+    }
+  },
+  "original_environment": {
+    "login_status": "AUTH_VALIDATED_LOCAL",
+    "model": "gpt-5.6-luna",
+    "mcp_blender": "PASS"
+  },
+  "preflight_codes": ["PRECHECK_AUTH_MISSING", "PRECHECK_MCP_UNAVAILABLE", "PRECHECK_WORKTREE_DIRTY", "PRECHECK_MODEL_INVALID", "PRECHECK_CONFIG_INVALID"],
+  "credential_safety": "PASS_NO_CREDENTIALS_COPIED_OR_EXPORTED"
+}

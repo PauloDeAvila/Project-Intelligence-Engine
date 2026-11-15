@@ -1,0 +1,98 @@
+{
+  "schema": "pie-phase3-frozen-ab-resume-plan-v1",
+  "state": "READY_FOR_PAID_AB",
+  "model_execution": "DISABLED",
+  "automatic_retry": false,
+  "sessions": [
+    {
+      "sequence": 1,
+      "application": "blender",
+      "scenario": "benchmarks/phase3/blender-selective-task-a-v3-scenario.json",
+      "pair_id": "pair-2928e0249c46abec905c1342",
+      "run_id": "optimized-blender-r2-2a7311c765c6",
+      "repetition": 2,
+      "condition": "optimized"
+    },
+    {
+      "sequence": 2,
+      "application": "blender",
+      "scenario": "benchmarks/phase3/blender-selective-task-a-v3-scenario.json",
+      "pair_id": "pair-2928e0249c46abec905c1342",
+      "run_id": "baseline-blender-r2-dfebe9c85baf",
+      "repetition": 2,
+      "condition": "baseline"
+    },
+    {
+      "sequence": 3,
+      "application": "blender",
+      "scenario": "benchmarks/phase3/blender-selective-task-a-v3-scenario.json",
+      "pair_id": "pair-2928e0249c46abec905c1342",
+      "run_id": "baseline-blender-r3-c1e1a8ef48a5",
+      "repetition": 3,
+      "condition": "baseline"
+    },
+    {
+      "sequence": 4,
+      "application": "blender",
+      "scenario": "benchmarks/phase3/blender-selective-task-a-v3-scenario.json",
+      "pair_id": "pair-2928e0249c46abec905c1342",
+      "run_id": "optimized-blender-r3-fe8021806ab9",
+      "repetition": 3,
+      "condition": "optimized"
+    },
+    {
+      "sequence": 5,
+      "application": "web",
+      "scenario": "benchmarks/phase3/web-local-page-v2-scenario.json",
+      "pair_id": "pair-35caae27f7c73ee2fdafbcfc",
+      "run_id": "baseline-web-r1-4a239ed52ca2",
+      "repetition": 1,
+      "condition": "baseline"
+    },
+    {
+      "sequence": 6,
+      "application": "web",
+      "scenario": "benchmarks/phase3/web-local-page-v2-scenario.json",
+      "pair_id": "pair-35caae27f7c73ee2fdafbcfc",
+      "run_id": "optimized-web-r1-82433ed34fff",
+      "repetition": 1,
+      "condition": "optimized"
+    },
+    {
+      "sequence": 7,
+      "application": "web",
+      "scenario": "benchmarks/phase3/web-local-page-v2-scenario.json",
+      "pair_id": "pair-35caae27f7c73ee2fdafbcfc",
+      "run_id": "optimized-web-r2-b12cb7755bbe",
+      "repetition": 2,
+      "condition": "optimized"
+    },
+    {
+      "sequence": 8,
+      "application": "web",
+      "scenario": "benchmarks/phase3/web-local-page-v2-scenario.json",
+      "pair_id": "pair-35caae27f7c73ee2fdafbcfc",
+      "run_id": "baseline-web-r2-e756af4cb3d9",
+      "repetition": 2,
+      "condition": "baseline"
+    },
+    {
+      "sequence": 9,
+      "application": "web",
+      "scenario": "benchmarks/phase3/web-local-page-v2-scenario.json",
+      "pair_id": "pair-35caae27f7c73ee2fdafbcfc",
+      "run_id": "baseline-web-r3-7ab5e9cfdf3a",
+      "repetition": 3,
+      "condition": "baseline"
+    },
+    {
+      "sequence": 10,
+      "application": "web",
+      "scenario": "benchmarks/phase3/web-local-page-v2-scenario.json",
+      "pair_id": "pair-35caae27f7c73ee2fdafbcfc",
+      "run_id": "optimized-web-r3-f25ff8347fac",
+      "repetition": 3,
+      "condition": "optimized"
+    }
+  ]
+}

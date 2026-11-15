@@ -1,0 +1,745 @@
+{
+  "schema": "pie-phase3-blender-selective-task-simulation-v1",
+  "status": "PASS",
+  "experiment_arm": "optimized_only",
+  "ab_comparison": "NOT_RUN",
+  "model_sessions": 0,
+  "quota_consumed": false,
+  "contract": {
+    "tool": "pie_blender_query_scene",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "enum": [
+            "find_objects"
+          ]
+        },
+        "filters": {
+          "type": "object",
+          "properties": {
+            "name_prefix": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "name_contains": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          "additionalProperties": false
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "name",
+              "type",
+              "material_count",
+              "material_names",
+              "location"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        }
+      },
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "required": [
+        "schema",
+        "query",
+        "scene",
+        "items",
+        "total",
+        "offset",
+        "limit",
+        "next_offset",
+        "complete"
+      ],
+      "properties": {
+        "schema": {
+          "const": "pie-blender-query-scene-v1"
+        },
+        "query": {
+          "type": "string",
+          "const": "find_objects"
+        },
+        "scene": {
+          "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "next_offset": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "complete": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "tasks": {
+    "A_location": {
+      "query_calls": 1,
+      "latency_ms": 60.996,
+      "response_chars": 376,
+      "oracle_pass": true,
+      "expected": {
+        "name": "PIE_Large_Cube_00",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "material_names": [
+          "PIE_Large_Material_00"
+        ]
+      },
+      "result": {
+        "complete": true,
+        "items": [
+          {
+            "location": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "material_names": [
+              "PIE_Large_Material_00"
+            ],
+            "name": "PIE_Large_Cube_00",
+            "type": "MESH"
+          }
+        ],
+        "limit": 1,
+        "next_offset": null,
+        "offset": 0,
+        "query": "find_objects",
+        "scene": "Scene",
+        "schema": "pie-blender-query-scene-v1",
+        "total": 1
+      }
+    },
+    "B_filtering": {
+      "query_calls": 1,
+      "latency_ms": 40.063,
+      "response_chars": 1263,
+      "oracle_pass": true,
+      "expected_names": [
+        "PIE_Large_Cube_00",
+        "PIE_Large_Cube_01",
+        "PIE_Large_Cube_02",
+        "PIE_Large_Cube_03",
+        "PIE_Large_Cube_04",
+        "PIE_Large_Cube_05",
+        "PIE_Large_Cube_06",
+        "PIE_Large_Cube_07",
+        "PIE_Large_Cube_08",
+        "PIE_Large_Cube_09"
+      ],
+      "expected_material_names": [
+        [
+          "PIE_Large_Material_00"
+        ],
+        [
+          "PIE_Large_Material_00"
+        ],
+        [
+          "PIE_Large_Material_00"
+        ],
+        [
+          "PIE_Large_Material_00"
+        ],
+        [
+          "PIE_Large_Material_01"
+        ],
+        [
+          "PIE_Large_Material_01"
+        ],
+        [
+          "PIE_Large_Material_01"
+        ],
+        [
+          "PIE_Large_Material_01"
+        ],
+        [
+          "PIE_Large_Material_02"
+        ],
+        [
+          "PIE_Large_Material_02"
+        ]
+      ],
+      "result": {
+        "complete": true,
+        "items": [
+          {
+            "material_count": 1,
+            "material_names": [
+              "PIE_Large_Material_00"
+            ],
+            "name": "PIE_Large_Cube_00"
+          },
+          {
+            "material_count": 1,
+            "material_names": [
+              "PIE_Large_Material_00"
+            ],
+            "name": "PIE_Large_Cube_01"
+          },
+          {
+            "material_count": 1,
+            "material_names": [
+              "PIE_Large_Material_00"
+            ],
+            "name": "PIE_Large_Cube_02"
+          },
+          {
+            "material_count": 1,
+            "material_names": [
+              "PIE_Large_Material_00"
+            ],
+            "name": "PIE_Large_Cube_03"
+          },
+          {
+            "material_count": 1,
+            "material_names": [
+              "PIE_Large_Material_01"
+            ],
+            "name": "PIE_Large_Cube_04"
+          },
+          {
+            "material_count": 1,
+            "material_names": [
+              "PIE_Large_Material_01"
+            ],
+            "name": "PIE_Large_Cube_05"
+          },
+          {
+            "material_count": 1,
+            "material_names": [
+              "PIE_Large_Material_01"
+            ],
+            "name": "PIE_Large_Cube_06"
+          },
+          {
+            "material_count": 1,
+            "material_names": [
+              "PIE_Large_Material_01"
+            ],
+            "name": "PIE_Large_Cube_07"
+          },
+          {
+            "material_count": 1,
+            "material_names": [
+              "PIE_Large_Material_02"
+            ],
+            "name": "PIE_Large_Cube_08"
+          },
+          {
+            "material_count": 1,
+            "material_names": [
+              "PIE_Large_Material_02"
+            ],
+            "name": "PIE_Large_Cube_09"
+          }
+        ],
+        "limit": 20,
+        "next_offset": null,
+        "offset": 0,
+        "query": "find_objects",
+        "scene": "Scene",
+        "schema": "pie-blender-query-scene-v1",
+        "total": 10
+      }
+    },
+    "C_inventory": {
+      "query_calls": 4,
+      "latency_ms": 199.412,
+      "response_chars": 5620,
+      "oracle_pass": true,
+      "expected_names": [
+        "PIE_Large_Cube_00",
+        "PIE_Large_Cube_01",
+        "PIE_Large_Cube_02",
+        "PIE_Large_Cube_03",
+        "PIE_Large_Cube_04",
+        "PIE_Large_Cube_05",
+        "PIE_Large_Cube_06",
+        "PIE_Large_Cube_07",
+        "PIE_Large_Cube_08",
+        "PIE_Large_Cube_09",
+        "PIE_Large_Cube_10",
+        "PIE_Large_Cube_11",
+        "PIE_Large_Cube_12",
+        "PIE_Large_Cube_13",
+        "PIE_Large_Cube_14",
+        "PIE_Large_Cube_15",
+        "PIE_Large_Cube_16",
+        "PIE_Large_Cube_17",
+        "PIE_Large_Cube_18",
+        "PIE_Large_Cube_19",
+        "PIE_Large_Cube_20",
+        "PIE_Large_Cube_21",
+        "PIE_Large_Cube_22",
+        "PIE_Large_Cube_23",
+        "PIE_Large_Cube_24",
+        "PIE_Large_Cube_25",
+        "PIE_Large_Cube_26",
+        "PIE_Large_Cube_27",
+        "PIE_Large_Cube_28",
+        "PIE_Large_Cube_29",
+        "PIE_Large_Cube_30",
+        "PIE_Large_Cube_31",
+        "PIE_Large_Cube_32",
+        "PIE_Large_Cube_33",
+        "PIE_Large_Cube_34",
+        "PIE_Large_Cube_35",
+        "PIE_Large_Cube_36",
+        "PIE_Large_Cube_37",
+        "PIE_Large_Cube_38",
+        "PIE_Large_Cube_39",
+        "PIE_Large_Cube_40",
+        "PIE_Large_Cube_41",
+        "PIE_Large_Cube_42",
+        "PIE_Large_Cube_43",
+        "PIE_Large_Cube_44",
+        "PIE_Large_Cube_45",
+        "PIE_Large_Cube_46",
+        "PIE_Large_Cube_47",
+        "PIE_Large_Cube_48",
+        "PIE_Large_Cube_49",
+        "PIE_Large_Cube_50",
+        "PIE_Large_Cube_51",
+        "PIE_Large_Cube_52",
+        "PIE_Large_Cube_53",
+        "PIE_Large_Cube_54",
+        "PIE_Large_Cube_55",
+        "PIE_Large_Cube_56",
+        "PIE_Large_Cube_57",
+        "PIE_Large_Cube_58",
+        "PIE_Large_Cube_59",
+        "PIE_Large_Cube_60",
+        "PIE_Large_Cube_61",
+        "PIE_Large_Cube_62",
+        "PIE_Large_Cube_63"
+      ],
+      "expected_object_count": 64,
+      "expected_material_count": 16,
+      "page_counts": [
+        20,
+        20,
+        20,
+        4
+      ],
+      "result_pages": [
+        {
+          "complete": false,
+          "items": [
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_00",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_01",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_02",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_03",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_04",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_05",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_06",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_07",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_08",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_09",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_10",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_11",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_12",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_13",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_14",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_15",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_16",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_17",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_18",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_19",
+              "type": "MESH"
+            }
+          ],
+          "limit": 20,
+          "next_offset": 20,
+          "offset": 0,
+          "query": "find_objects",
+          "scene": "Scene",
+          "schema": "pie-blender-query-scene-v1",
+          "total": 64
+        },
+        {
+          "complete": false,
+          "items": [
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_20",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_21",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_22",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_23",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_24",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_25",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_26",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_27",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_28",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_29",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_30",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_31",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_32",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_33",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_34",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_35",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_36",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_37",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_38",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_39",
+              "type": "MESH"
+            }
+          ],
+          "limit": 20,
+          "next_offset": 40,
+          "offset": 20,
+          "query": "find_objects",
+          "scene": "Scene",
+          "schema": "pie-blender-query-scene-v1",
+          "total": 64
+        },
+        {
+          "complete": false,
+          "items": [
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_40",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_41",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_42",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_43",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_44",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_45",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_46",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_47",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_48",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_49",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_50",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_51",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_52",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_53",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_54",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_55",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_56",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_57",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_58",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_59",
+              "type": "MESH"
+            }
+          ],
+          "limit": 20,
+          "next_offset": 60,
+          "offset": 40,
+          "query": "find_objects",
+          "scene": "Scene",
+          "schema": "pie-blender-query-scene-v1",
+          "total": 64
+        },
+        {
+          "complete": true,
+          "items": [
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_60",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_61",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_62",
+              "type": "MESH"
+            },
+            {
+              "material_count": 1,
+              "name": "PIE_Large_Cube_63",
+              "type": "MESH"
+            }
+          ],
+          "limit": 20,
+          "next_offset": null,
+          "offset": 60,
+          "query": "find_objects",
+          "scene": "Scene",
+          "schema": "pie-blender-query-scene-v1",
+          "total": 64
+        }
+      ]
+    }
+  },
+  "upstream_calls_per_query": 1,
+  "note": "Offline task/oracle validation only; response characters are not provider tokens."
+}

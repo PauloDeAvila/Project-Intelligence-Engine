@@ -1,0 +1,16 @@
+{
+  "schema": "pie-phase3-web-preflight-v1",
+  "state": "BLOCKED",
+  "scenario": "benchmarks/phase3/web-local-page-v2-scenario.json",
+  "fixture": "fixtures/phase3/web/index.html",
+  "fixture_http": "PASS",
+  "fixture_url": "http://127.0.0.1:8766/index.html",
+  "node": "v24.22.1",
+  "npm": "unavailable",
+  "npx": "unavailable",
+  "playwright_mcp": "not_started",
+  "model_sessions_started": 0,
+  "quota_consumed": false,
+  "reason": "The pinned @playwright/mcp upstream cannot be initialized because npm and npx are unavailable. Node.js alone is insufficient for the approved upstream path.",
+  "certification": "NOT_CERTIFIED"
+}

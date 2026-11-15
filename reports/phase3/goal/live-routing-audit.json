@@ -1,0 +1,69 @@
+{
+  "schema": "pie-codex-coverage-audit-v1",
+  "codex_config_sha256": "0c389437225838d120039708d27b0a022e82541b1adcace490f8ef9fe400d3de",
+  "project_config_sha256": null,
+  "hooks_sha256": null,
+  "rtk_binary_in_path": true,
+  "rtk_hook_configured": false,
+  "terminal_interception": "NOT_VERIFIED",
+  "mcp": {
+    "active_servers": 5,
+    "wrapped_stdio": 2,
+    "unwrapped_or_unknown_servers": [
+      "blender",
+      "node_repl",
+      "pie-def7be8e70"
+    ],
+    "routes": [
+      {
+        "name": "blender",
+        "transport": "stdio",
+        "route": "UNWRAPPED_STDIO",
+        "has_environment": true,
+        "has_cwd": false,
+        "enabled": true
+      },
+      {
+        "name": "node_repl",
+        "transport": "stdio",
+        "route": "UNWRAPPED_STDIO",
+        "has_environment": true,
+        "has_cwd": false,
+        "enabled": true
+      },
+      {
+        "name": "pie-blender-optimized",
+        "transport": "stdio",
+        "route": "PIE_STDIO_WRAPPED",
+        "has_environment": false,
+        "has_cwd": false,
+        "enabled": true
+      },
+      {
+        "name": "pie-def7be8e70",
+        "transport": "stdio",
+        "route": "UNWRAPPED_STDIO",
+        "has_environment": false,
+        "has_cwd": false,
+        "enabled": true
+      },
+      {
+        "name": "pie-web-optimized",
+        "transport": "stdio",
+        "route": "PIE_STDIO_WRAPPED",
+        "has_environment": false,
+        "has_cwd": false,
+        "enabled": true
+      }
+    ],
+    "counts": {
+      "UNWRAPPED_STDIO": 3,
+      "PIE_STDIO_WRAPPED": 2
+    },
+    "configured_routing_ratio": 0.4
+  },
+  "coverage_state": "GAPS_OR_NO_ROUTED_SERVERS",
+  "universal_interception_certified": false,
+  "reason": "Native tools, unknown shell commands, remote HTTP and client-specific routes remain unproven",
+  "privacy": "No raw commands, environment secrets, TOML, or credentials exported"
+}

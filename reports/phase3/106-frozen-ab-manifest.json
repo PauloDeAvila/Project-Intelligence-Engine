@@ -1,0 +1,53 @@
+{
+  "schema": "pie-phase3-frozen-ab-manifest-v1",
+  "state": "BLOCKED_BY_QUOTA",
+  "certification": "NOT_CERTIFIED",
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "required_sessions_remaining": 10,
+  "quota_policy": {
+    "additional_paid_calls_allowed_now": 0,
+    "retries": 0,
+    "stop_on_first_gate_failure": true,
+    "reason": "Existing authorization ledger is exhausted. This manifest does not authorize execution."
+  },
+  "common_invariants": [
+    "same prompt hash within each pair",
+    "same model and reasoning effort",
+    "same fixture state",
+    "same workspace commit per pair",
+    "provider usage required",
+    "exact MCP route and tool allowlist required",
+    "independent correctness oracle required"
+  ],
+  "applications": {
+    "blender": {
+      "scenario": "benchmarks/phase3/blender-selective-task-a-v3-scenario.json",
+      "pair_id": "pair-2928e0249c46abec905c1342",
+      "completed_pairs": 1,
+      "remaining_pairs": 2,
+      "completed_pair_report": "reports/phase3/101-blender-v3-pair.json",
+      "orders": [
+        {"repetition": 2, "conditions": ["optimized", "baseline"]},
+        {"repetition": 3, "conditions": ["baseline", "optimized"]}
+      ],
+      "preflight": "PASS_NO_MODEL_GATE",
+      "fixture": "real Blender 5.3 disposable fixture, 64 objects, 16 materials"
+    },
+    "web": {
+      "scenario": "benchmarks/phase3/web-local-page-v2-scenario.json",
+      "pair_id": "pair-35caae27f7c73ee2fdafbcfc",
+      "completed_pairs": 0,
+      "remaining_pairs": 3,
+      "orders": [
+        {"repetition": 1, "conditions": ["baseline", "optimized"]},
+        {"repetition": 2, "conditions": ["optimized", "baseline"]},
+        {"repetition": 3, "conditions": ["baseline", "optimized"]}
+      ],
+      "preflight": "PASS_NO_MODEL_GATE",
+      "fixture": "http://127.0.0.1:8766/index.html",
+      "upstream": "@playwright/mcp@0.0.85"
+    }
+  },
+  "promotion_rule": "Do not promote to CERTIFIED unless all five remaining pairs are valid, provider usage is available, routes are verified, and every oracle passes."
+}

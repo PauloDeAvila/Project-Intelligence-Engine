@@ -1,0 +1,11 @@
+{
+  "schema": "pie-phase3-evidence-audit-v1",
+  "decisions": [
+    {
+      "record": "66-single-optimized-blender-correlation-result-record.json",
+      "decision": "VALID",
+      "reason": "Provider, oracle and exact route evidence matched"
+    }
+  ],
+  "state": "EVIDENCE_CERTIFIED"
+}

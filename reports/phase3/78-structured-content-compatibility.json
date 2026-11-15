@@ -1,0 +1,19 @@
+{
+  "schema": "pie-phase3-structured-content-compatibility-v1",
+  "status": "OFFLINE_VALIDATED",
+  "certification": "NOT_CERTIFIED",
+  "model_sessions": 0,
+  "quota_consumed": false,
+  "policy": {
+    "untyped_structured_content": "COMPACT_TEXT_PRESERVE_STRUCTURED",
+    "schema_declared_structured_content": "PASSTHROUGH",
+    "structured_json_text": "PASSTHROUGH",
+    "errors_and_mixed_content": "PASSTHROUGH"
+  },
+  "tests": {"focused_passed": 28, "full_passed": 573, "full_skipped": 5, "diff_check": "PASS"},
+  "limitations": [
+    "Client-side preference between content and structuredContent is not proven by offline tests.",
+    "No provider token measurement was performed.",
+    "Real Blender A/B remains pending."
+  ]
+}
