@@ -66,6 +66,8 @@ foreach ($tool in $OptimizedExposeTool) { $optimizedWebArgs += @("--expose-tool"
 $optimizedWebArgs += @("--", $NpxExe, "--yes", $PlaywrightVersion, "--headless", "--browser", "chrome")
 $webBaseline = @(
     "[mcp_servers.playwright-baseline]",
+    "enabled = true",
+    "enabled_tools = ['browser_navigate', 'browser_snapshot']",
     ("command = '{0}'" -f $NpxExe),
     $(if ($diagnosticsWeb) { "env = { PIE_MCP_DIAGNOSTICS_PATH = '$diagnosticsWeb' }" }),
     ("args = {0}" -f (TomlArray @("--yes", $PlaywrightVersion, "--headless", "--browser", "chrome"))),
@@ -170,7 +172,7 @@ foreach ($tool in $optimizedBlenderToolNames | Select-Object -Skip 1) {
 $webOptimized = @(
     "[mcp_servers.pie-web-optimized]",
     "enabled = true",
-    "enabled_tools = ['browser_navigate', 'browser_snapshot']",
+    ("enabled_tools = {0}" -f (TomlArray $(if ($OptimizedExposeTool.Count -gt 0 -and $Domain -in @("all", "web")) { $OptimizedExposeTool } else { @("browser_navigate", "browser_snapshot") }))),
     ("command = '{0}'" -f $py),
     (EnvLine $webOptimizedEnv),
     ("args = {0}" -f (TomlArray $optimizedWebArgs)),
@@ -180,6 +182,13 @@ $webOptimized = @(
     "[mcp_servers.pie-web-optimized.tools.browser_snapshot]",
     "approval_mode = 'approve'"
 )
+$webOptimizedToolNames = if ($OptimizedExposeTool.Count -gt 0 -and $Domain -in @("all", "web")) { @($OptimizedExposeTool) } else { @("browser_navigate", "browser_snapshot") }
+foreach ($tool in $webOptimizedToolNames | Where-Object { $_ -notin @("browser_navigate", "browser_snapshot") }) {
+    $webOptimized += @(
+        "[mcp_servers.pie-web-optimized.tools.$tool]",
+        "approval_mode = 'approve'"
+    )
+}
 $baseline = @(
     "# Generated overlay; no credentials.",
     "model = 'gpt-5.6-luna'",
