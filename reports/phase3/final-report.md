@@ -95,6 +95,12 @@ recuperação necessária. Chamadas a ferramentas ocultas falham fechadas e não
 O comportamento padrão do gateway não mudou. Evidência:
 [`73-selective-exposure-diff.md`](73-selective-exposure-diff.md).
 
+## Aceitação offline de compactação
+
+O gate offline foi concluído como `COMPACTION_READY_FOR_AB`, sem iniciar modelo e sem consumir quota. O teste Blender confirmou compactação parcial de uma observação grande sem alterar o resultado de escrita; o teste Web confirmou preservação de referências, recuperação do snapshot sanitizado por `output_id` e igualdade SHA-256; os marcadores confirmaram ausência de chamadas upstream duplicadas. A exposição seletiva também bloqueou chamadas de ferramentas ocultas antes do encaminhamento.
+
+Evidência detalhada: [`74-offline-compaction-acceptance.md`](74-offline-compaction-acceptance.md) e [`74-offline-compaction-acceptance.json`](74-offline-compaction-acceptance.json). Esses resultados são de segurança/recuperação offline e não equivalem a tokens do provedor.
+
 ## A/B estrito (repetições 2 e 3)
 
 | Domínio | Pares | Input B/O | Cache B/O | Output B/O | Total B/O | Economia total | Latência média B/O | MCP B/O |

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 from pathlib import Path
 import subprocess
@@ -251,6 +252,7 @@ for line in sys.stdin:
         recovered=recover_output(self.root,reduced["output_id"])
         self.assertIn("ref=e139",recovered["text"])
         self.assertIn("?sort=popular",recovered["text"])
+        self.assertEqual(recovered["sha256"],hashlib.sha256(SNAPSHOT.encode("utf-8")).hexdigest())
         self.assertTrue(responses[4]["result"]["isError"])
         self.assertEqual(responses[5]["result"]["content"][0]["type"],"image")
         self.assertIn("SECRET:",responses[6]["result"]["content"][0]["text"])

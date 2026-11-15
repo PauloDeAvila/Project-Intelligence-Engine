@@ -1,0 +1,21 @@
+{
+  "schema": "pie-phase3-blender-large-fixture-v1",
+  "purpose": "Offline deterministic fixture specification; does not mutate a live Blender scene.",
+  "object_count": 64,
+  "material_count": 16,
+  "objects_per_material": 4,
+  "object_name_pattern": "PIE_Large_Cube_{index:02d}",
+  "material_name_pattern": "PIE_Large_Material_{index:02d}",
+  "materials": [
+    {"name": "PIE_Large_Material_00", "metallic": 0.0, "roughness": 0.2},
+    {"name": "PIE_Large_Material_01", "metallic": 0.25, "roughness": 0.35},
+    {"name": "PIE_Large_Material_02", "metallic": 0.5, "roughness": 0.5},
+    {"name": "PIE_Large_Material_03", "metallic": 0.75, "roughness": 0.65}
+  ],
+  "oracle": {
+    "required_object_names": ["PIE_Large_Cube_00", "PIE_Large_Cube_63"],
+    "required_material_names": ["PIE_Large_Material_00", "PIE_Large_Material_15"],
+    "expected_object_count": 64,
+    "expected_material_count": 16
+  }
+}
