@@ -6,7 +6,7 @@ import unittest
 
 from pie.certification.controller import (
     ControllerError, audit_record_route, build_manifest, plan_batches,
-    validate_manifest,
+    validate_batch_budget, validate_manifest,
 )
 from pie.certification.live_codex import SCHEMA
 
@@ -41,6 +41,9 @@ class ControllerTests(unittest.TestCase):
         self.assertEqual(batches["complement"]["sessions"], 8)
         self.assertFalse(batches["automatic_execution"])
         self.assertEqual(manifest["execution"], "PLAN_ONLY_NO_MODEL_EXECUTION")
+        self.assertEqual(validate_batch_budget(manifest, "pilot", 4)["sessions"], 4)
+        with self.assertRaises(ControllerError):
+            validate_batch_budget(manifest, "pilot", 12)
 
     def test_manifest_rejects_duplicate_run_id(self):
         with tempfile.TemporaryDirectory() as tmp:

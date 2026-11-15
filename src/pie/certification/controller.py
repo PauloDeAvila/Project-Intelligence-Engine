@@ -16,6 +16,7 @@ from pie.certification.live_codex import _record, _sha, validate_scenario
 
 SCHEMA = "pie-phase3-certification-controller-v1"
 DECISIONS = frozenset(("VALID", "INVALID", "INSUFFICIENT_EVIDENCE"))
+MAX_SESSIONS = 12
 
 
 class ControllerError(ValueError):
@@ -118,13 +119,13 @@ def build_manifest(*, scenarios: Iterable[dict[str, Any]], workspace: Path,
                     "expected_mcp_server": _expected_server(scenario, condition),
                     "oracle": oracle,
                 })
-    if len(entries) != max_sessions:
+    if max_sessions != MAX_SESSIONS or len(entries) != MAX_SESSIONS:
         raise ControllerError("Manifest session count does not equal the fixed budget")
     return {
         "schema": SCHEMA,
         "state": "READY_FOR_AB_PILOT",
         "model_sessions": len(entries),
-        "max_authorized_sessions": max_sessions,
+        "max_authorized_sessions": MAX_SESSIONS,
         "pilot_sessions": pilot_sessions,
         "pilot_repetitions": [1],
         "no_automatic_retry": True,
@@ -138,7 +139,7 @@ def validate_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(manifest, dict) or manifest.get("schema") != SCHEMA:
         raise ControllerError("Invalid controller manifest")
     entries = manifest.get("scenarios")
-    if not isinstance(entries, list) or len(entries) != 12:
+    if not isinstance(entries, list) or len(entries) != MAX_SESSIONS:
         raise ControllerError("Manifest must contain exactly 12 planned sessions")
     seen: set[str] = set()
     pairs: dict[str, set[str]] = {}
@@ -154,6 +155,18 @@ def validate_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
     if len(pairs) != 2 or any(arms != {"baseline", "optimized"} for arms in pairs.values()):
         raise ControllerError("Manifest does not contain complete pairs")
     return {"state": "READY_FOR_AB_PILOT", "sessions": len(entries), "pairs": len(pairs)}
+
+
+def validate_batch_budget(manifest: dict[str, Any], batch: str, authorized_sessions: int) -> dict[str, Any]:
+    """Validate an explicit batch authorization without starting a process."""
+    batches = plan_batches(manifest)
+    if batch not in ("pilot", "complement"):
+        raise ControllerError("Unknown batch")
+    requested = batches[batch]["sessions"]
+    if type(authorized_sessions) is not int or authorized_sessions != requested:
+        raise ControllerError("Batch authorization must exactly equal requested sessions")
+    return {"state": "AUTHORIZED_FOR_PLANNING_ONLY", "batch": batch, "sessions": requested,
+            "model_execution": "DISABLED"}
 
 
 def plan_batches(manifest: dict[str, Any]) -> dict[str, Any]:
