@@ -29,6 +29,10 @@ Economia de input: **0,385%**; de input não cacheado: **3,024%**; total: **0,98
 
 O ledger atual registra 20 chamadas autorizadas e 20 sessões Codex concluídas após os incidentes e o par v3. Nenhuma sessão adicional foi iniciada. Blender tem 1 par v3 válido; Web e os pares adicionais necessários para certificação permanecem pendentes. O veredito continua `NOT_CERTIFIED`.
 
+## Web v2 — bloqueio de dependência
+
+A fixture local respondeu em `127.0.0.1:8766`, mas o ambiente tem Node `v24.22.1` sem `npm` e `npx`. O upstream fixado `@playwright/mcp` não foi iniciado e nenhum benchmark Web consumiu quota. Evidência: [`102-web-v2-preparation-blocked.md`](102-web-v2-preparation-blocked.md). O bloqueio requer fornecer npm/npx ou instalar o componente autorizado antes do gate sem modelo.
+
 Os números A/B históricos abaixo são mantidos como evidência preliminar e não devem ser confundidos com o piloto atual. Eles não promovem a certificação porque não satisfazem a cobertura causal e de correlação exigida.
 
 O par usou o mesmo modelo, esforço, prompt, commit e estado inicial. A baseline foi válida; a optimized tem uso real e oráculo textual/Blender aprovados, mas route evidence `INSUFFICIENT_EVIDENCE`. Não houve execução Web nesta etapa nem retry automático.
