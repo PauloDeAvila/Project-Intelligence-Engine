@@ -97,3 +97,39 @@ Cada execução cria um arquivo JSON único no diretório temporário. O primeir
 comando não chama nenhum modelo. Os dois seguintes usam exclusivamente
 o Ollama local. A disponibilidade do Blender, Web e Ollama reais precisa
 ser verificada no computador do usuário antes de interpretar os números.
+
+
+## Auditoria de fidelidade ao Codex (após primeiro replay Ollama)
+
+O primeiro ensaio Blender local, realizado com Qwen3:4B e num_ctx=8192,
+registrou 84,712% de economia total em três repetições. **Esse ensaio usou o
+catálogo integral de ferramentas anunciado pelo servidor**: 10 ferramentas
+baseline vs 1 PIE. No perfil Codex do cenário Blender, porém, enabled_tools
+restringe o baseline a execute_blender_code e o optimized a
+pie_blender_query_scene. O contexto realmente exibido pelo Codex pode ser
+diferente do catálogo MCP bruto.
+
+Para quantificar esse efeito sem modificar nem sobrescrever os resultados
+anteriores, o launcher agora expõe dois modos independentes:
+
+~~~powershell
+# Prioridade: somente schemas habilitados nos perfis, mais próximo da configuração Codex
+.\tools\run_phase3_local.ps1 -Domain blender -Model qwen3:4b -NumCtx 8192 -Repetitions 3 -SchemaScope profile
+
+# Reprodução da metodologia anterior: todo tools/list bruto (10 vs 1)
+.\tools\run_phase3_local.ps1 -Domain blender -Model qwen3:4b -NumCtx 8192 -Repetitions 3 -SchemaScope server
+~~~
+
+O campo schema_scope é gravado no relatório e cada arquivo tem nome único.
+O modo profile é padrão. O número de ferramentas realmente anunciadas pelo
+servidor permanece em server_tool_count, enquanto tool_count registra as
+ferramentas visíveis no contexto preparado pelo runner.
+
+Essa mudança **não é uma medição do contexto interno do Codex**. Serve para
+identificar o quanto a economia de 84,712% dependia da inclusão de ferramentas
+que já estariam desabilitadas no perfil cliente. As contagens reais do Codex
+continuam dependendo do protocolo pago 106/107.
+
+O contexto padrão do launcher foi reduzido para 8192, pois 16384 causou erro
+CUDA no hardware de referência. Se o runtime/modelo não suportar esse tamanho,
+reduza o contexto apenas após confirmar que o prompt não foi truncado.
