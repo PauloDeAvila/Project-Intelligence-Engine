@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import sys
 import time
 from urllib.error import URLError
 from urllib.request import Request, urlopen
@@ -26,6 +27,9 @@ from benchmark_blender_evidence_agent import (
     AgentPlanError, _parse_plan, render_baseline_source,
 )
 from verify_phase3_mcp_profiles import Probe, _profile
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from pie.integrations.blender_routing import route_exact_object, ExactRouteError
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/chat"
 EXPECTED_SERVER = {"baseline": "blender", "optimized": "pie-blender-optimized"}
@@ -207,6 +211,27 @@ def plan_choice(model: str, catalog: list[dict], task: dict, *,
     }
 
 
+def deterministic_choice(catalog: list[dict], task: dict, condition: str) -> dict:
+    """Use the reusable PIE exact router before any model call.
+
+    An explicit exact object name is already a complete routing instruction.
+    Routing it with Qwen is unnecessary expense and a source of errors.
+    """
+    target, candidates = validate_task(task)
+    route = route_exact_object(catalog, candidates, target)
+    if route.tool_name != SELECTED_TOOL[condition]:
+        raise ExactRouteError("Exact router selected a tool unavailable for this arm")
+    return {
+        "tool_index": route.tool_index,
+        "target_index": route.target_index,
+        "usage": None,
+        "planning_ms": 0.0,
+        "plan_sha256": None,
+        "routing_strategy": route.strategy,
+        "provider_requests": 0,
+    }
+
+
 def _read_only_blender_code(target: str) -> str:
     """Reuse audited read-only extraction, changing only a validated name literal."""
     if not TARGET_PATTERN.fullmatch(target):
@@ -220,7 +245,8 @@ def _read_only_blender_code(target: str) -> str:
 
 
 def run_arm(profile: Path, workspace: Path, condition: str, task: dict,
-            model: str, *, num_ctx: int = 8192, timeout: int = 240) -> dict:
+            model: str, *, num_ctx: int = 8192, timeout: int = 240,
+            route_mode: str = "model") -> dict:
     target, candidates = validate_task(task)
     config, server, args, configured_env = _profile(profile, workspace)
     if server != EXPECTED_SERVER[condition]:
@@ -245,7 +271,12 @@ def run_arm(profile: Path, workspace: Path, condition: str, task: dict,
             raise ValueError("Missing MCP tool list")
         catalog = ordered_catalog(_visible_tool_schemas(tools, config, "profile"),
                                   condition, task)
-        plan = plan_choice(model, catalog, task, num_ctx=num_ctx, timeout=timeout)
+        if route_mode == "deterministic":
+            plan = deterministic_choice(catalog, task, condition)
+        elif route_mode == "model":
+            plan = plan_choice(model, catalog, task, num_ctx=num_ctx, timeout=timeout)
+        else:
+            raise ValueError("Unknown routing mode")
         selected_tool = catalog[plan["tool_index"]]["name"]
         selected_target = candidates[plan["target_index"]]
         if selected_tool != SELECTED_TOOL[condition] or selected_target != target:
@@ -274,6 +305,10 @@ def run_arm(profile: Path, workspace: Path, condition: str, task: dict,
             "answer_sha256": sha(answer),
             "plan_sha256": plan["plan_sha256"],
             "usage": plan["usage"], "planning_ms": plan["planning_ms"],
+            "routing_strategy": ("DETERMINISTIC_EXACT_MATCH_NO_MODEL"
+                                  if route_mode == "deterministic"
+                                  else "OLLAMA_MODEL_INDEX_SELECTION"),
+            "provider_requests": 0 if route_mode == "deterministic" else 1,
             "total_ms": round((time.perf_counter() - started) * 1000, 3),
         }
     finally:
@@ -283,6 +318,14 @@ def run_arm(profile: Path, workspace: Path, condition: str, task: dict,
 def compare_pair(baseline: dict, optimized: dict) -> dict:
     if not baseline.get("oracle_pass") or not optimized.get("oracle_pass"):
         return {"state": "ORACLE_FAILED", "planning_token_savings_percent": None}
+    if baseline.get("usage") is None and optimized.get("usage") is None:
+        return {"state": "DETERMINISTIC_ROUTING_NO_MODEL",
+                "planning_token_savings_percent": None,
+                "provider_requests": 0,
+                "note": "Both arms performed real MCP calls with zero LLM requests"}
+    if not isinstance(baseline.get("usage"), dict) or not isinstance(optimized.get("usage"), dict):
+        return {"state": "INCOMPARABLE_ROUTING_MODES",
+                "planning_token_savings_percent": None}
     a, b = baseline["usage"]["total_tokens"], optimized["usage"]["total_tokens"]
     if type(a) is not int or type(b) is not int or a <= 0:
         raise ValueError("Missing provider token usage")
@@ -298,6 +341,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--optimized-profile", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--model", default="qwen3:4b")
+    parser.add_argument("--route-mode", choices=("deterministic", "model"),
+                        default="deterministic",
+                        help="deterministic: exact-name fast path, zero model requests; model: strict legacy Qwen planning")
     parser.add_argument("--num-ctx", type=int, default=8192)
     parser.add_argument("--max-tasks", type=int, default=3)
     parser.add_argument("--timeout", type=int, default=240)
@@ -310,12 +356,15 @@ def main(argv: list[str] | None = None) -> int:
     workspace = options.workspace.resolve(strict=True)
     profiles = {"baseline": options.baseline_profile.resolve(strict=True),
                 "optimized": options.optimized_profile.resolve(strict=True)}
-    ensure_local_model(options.model)
+    if options.route_mode == "model":
+        ensure_local_model(options.model)
     report = {
         "schema": "pie-blender-multi-choice-v1",
         "method": "one_model_index_decision_per_arm_then_exact_mcp_then_source_renderer",
         "fixture": "64 deterministic Blender cubes, 3 tasks, 2 tools per arm",
-        "model": options.model, "num_ctx": options.num_ctx,
+        "model": options.model if options.route_mode == "model" else None,
+        "route_mode": options.route_mode,
+        "num_ctx": options.num_ctx,
         "codex_sessions_started": 0, "codex_certification": "NOT_CERTIFIED",
         "rows": [],
     }
@@ -326,7 +375,8 @@ def main(argv: list[str] | None = None) -> int:
         for condition in order:
             try:
                 arm = run_arm(profiles[condition], workspace, condition, task,
-                              options.model, num_ctx=options.num_ctx, timeout=options.timeout)
+                              options.model, num_ctx=options.num_ctx, timeout=options.timeout,
+                              route_mode=options.route_mode)
                 pair["arms"][condition] = arm
                 if not arm["oracle_pass"]:
                     raise ValueError("Independent fixture oracle failed")
