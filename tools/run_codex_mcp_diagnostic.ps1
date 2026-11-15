@@ -13,7 +13,10 @@ param(
     [Parameter(Mandatory=$true)][ValidateSet("I_UNDERSTAND_1_MODEL_CALL")][string]$ConfirmQuotaUse,
     [string]$CodexBin = "codex",
     [string]$Model = "gpt-5.6-luna",
-    [int]$TimeoutSeconds = 240
+    [int]$TimeoutSeconds = 240,
+    [ValidateSet("never", "on-request", "untrusted", "unless-trusted")]
+    [string]$ApprovalPolicy = "never",
+    [switch]$ApproveForMe
 )
 $ErrorActionPreference = "Stop"
 if ($TimeoutSeconds -lt 20 -or $TimeoutSeconds -gt 3600) { throw "TimeoutSeconds must be between 20 and 3600" }
@@ -40,7 +43,12 @@ $prompt = "Use only the MCP server named pie-blender-optimized for Blender. Do n
 $meta = [ordered]@{schema="pie-phase3-codex-mcp-diagnostic-v1";run_id=$runId;model=$Model;workspace=$workspacePath;codex_home=$homePath;diagnostics_path=$diagPath;stdout_path=$stdoutPath;stderr_path=$stderrPath;retries=0;preflight="PASS"}
 $meta | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $metaPath -Encoding UTF8
 $timer = [Diagnostics.Stopwatch]::StartNew()
-$prompt | & $CodexBin exec --json --ephemeral --sandbox read-only --cd $workspacePath --model $Model - 1> $stdoutPath 2> $stderrPath
+$codexArgs = @("exec", "--json", "--ephemeral", "--sandbox", "read-only",
+    "--cd", $workspacePath, "--model", $Model,
+    "-c", "approval_policy=`"$ApprovalPolicy`"")
+if ($ApproveForMe) { $codexArgs += "--approve-for-me" }
+$codexArgs += "-"
+$prompt | & $CodexBin @codexArgs 1> $stdoutPath 2> $stderrPath
 $exitCode = $LASTEXITCODE
 $timer.Stop()
 $stderr = if (Test-Path -LiteralPath $stderrPath) { Get-Content -LiteralPath $stderrPath -Raw } else { "" }
@@ -62,6 +70,8 @@ $toolSummary = @($codexEvents | Where-Object {
 $meta.exit_code = $exitCode
 $meta.duration_ms = $timer.Elapsed.TotalMilliseconds
 $meta.provider_usage_status = if ($turn -and $turn.usage) { "available" } else { "unavailable" }
+$meta.approval_policy = $ApprovalPolicy
+$meta.approve_for_me = [bool]$ApproveForMe
 $meta.usage = if ($turn) { $turn.usage } else { $null }
 $meta.mcp_tools = $toolSummary
 $meta.codex_event_count = $codexEvents.Count

@@ -33,6 +33,8 @@ A chamada diagnóstica inicial falhou no parsing do override transitório `-c`. 
 
 Na Fase 3.7, o gateway foi validado offline com as duas ferramentas reais. O bootstrap passou a registrar em `.pie-live-store/mcp-lifecycle.jsonl` mesmo sem variável de ambiente herdada. Também foi corrigido o encerramento do Blender bridge para aguardar saída natural do upstream. Na Fase 3.8, dois gateways Codex chegaram a import, initialize e tools/list, mas nenhum recebeu tools/call; os três erros do Codex confirmam `MCP tool call requires approval, but approval policy is never`. O gate técnico voltou a `READY_FOR_CODEX_PROBE=false` até preparar uma mudança de aprovação explicitamente autorizada.
 
+A Fase 3.10 confirmou que a versão instalada aceita políticas de aprovação temporárias e oferece `--approve-for-me` para `codex exec`. O executor foi preparado para `ApprovalPolicy=on-request` sem alterar `config.toml`; nenhuma nova sessão foi executada.
+
 ## Custos
 
 `null`: não foi fornecida tarifa verificável para `gpt-5.6-luna`. Quota/assinatura não foi convertida em preço.
