@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import tempfile
 import unittest
@@ -51,6 +52,22 @@ class ControllerTests(unittest.TestCase):
             self.assertEqual(result["run_id"], "baseline-plan-fixed")
             self.assertEqual(result["pair_id"], "pair-plan-fixed")
             self.assertFalse(result["quota_consumed"])
+
+    def test_single_run_closes_ledger_on_runtime_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            with patch("pie.certification.controller.preflight_codex",
+                       return_value={"state": "READY_FOR_BENCHMARK"}), \
+                 patch("pie.certification.controller.capture_codex",
+                       side_effect=RuntimeError("MCP timeout")):
+                result = run_single(
+                    scenario=scenario("blender"), application="blender", condition="baseline",
+                    workspace=root, baseline_home=root / "baseline", optimized_home=root / "optimized",
+                    baseline_profile="baseline", optimized_profile="optimized", output=root / "result.json")
+            self.assertEqual(result["state"], "BASELINE_BLENDER_FAILED")
+            self.assertTrue(result["quota_consumed"])
+            ledger = json.loads((root / "result-budget-ledger.json").read_text(encoding="utf-8"))
+            self.assertEqual(ledger["state"], "failed")
 
     def test_pilot_persists_sanitized_usage_on_route_failure(self):
         with tempfile.TemporaryDirectory() as tmp:

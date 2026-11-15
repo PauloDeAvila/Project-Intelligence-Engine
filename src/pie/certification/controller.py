@@ -395,14 +395,15 @@ def run_single(*, scenario: dict[str, Any], application: str, condition: str,
             scenario, condition=condition, repetition=1, workspace=root,
             codex_home=home, codex_bin=codex_bin, profile=profile, timeout=timeout,
             run_id_override=run_id, pair_id_override=pair_id)
-    except CodexCaptureError as exc:
+    except RuntimeError as exc:
         _write_budget_ledger(ledger, state="failed", run_id=run_id, pair_id=pair_id,
                              consumed_sessions=1, authorized_sessions=authorized_sessions,
                              error=str(exc))
         return {"schema": "pie-phase3-single-result-v1", "state": failed_state,
                 "run_id": run_id, "pair_id": pair_id, "ledger": str(ledger),
                 "quota_consumed": True, "automatic_retry": False,
-                "failure": str(exc), "provider_evidence": exc.evidence or "unavailable"}
+                "failure": str(exc),
+                "provider_evidence": getattr(exc, "evidence", None) or "unavailable"}
     if record["run_id"] != run_id or record["pair_id"] != pair_id:
         _write_budget_ledger(ledger, state="failed", run_id=run_id, pair_id=pair_id,
                              consumed_sessions=1, authorized_sessions=authorized_sessions,

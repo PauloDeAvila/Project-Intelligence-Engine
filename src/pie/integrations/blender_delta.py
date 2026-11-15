@@ -235,15 +235,25 @@ def parse_query_reply(message: dict[str, Any]) -> dict[str, Any]:
     result = message.get("result")
     if not isinstance(result, dict) or result.get("isError"):
         raise ValueError("Blender scene query failed")
+    candidates = []
     parts = result.get("content")
-    text = next((part.get("text", "") for part in parts or []
-                 if isinstance(part, dict) and part.get("type") == "text"), "")
-    if not isinstance(text, str):
-        raise ValueError("Blender scene query returned no text")
-    where = text.find(QUERY_MARKER)
-    if where == -1:
+    candidates.extend(part.get("text", "") for part in parts or []
+                      if isinstance(part, dict) and part.get("type") == "text")
+    structured = result.get("structuredContent")
+    if isinstance(structured, dict) and isinstance(structured.get("result"), str):
+        candidates.append(structured["result"])
+    for text in candidates:
+        if not isinstance(text, str):
+            continue
+        where = text.find(QUERY_MARKER)
+        if where != -1:
+            value, _ = json.JSONDecoder().raw_decode(text[where + len(QUERY_MARKER):])
+            break
+    else:
+        if any("Error executing code:" in text or "Could not connect to Blender" in text
+               for text in candidates if isinstance(text, str)):
+            raise ValueError("Blender scene query execution failed")
         raise ValueError("Blender did not return the expected scene query marker")
-    value, _ = json.JSONDecoder().raw_decode(text[where + len(QUERY_MARKER):])
     if not isinstance(value, dict) or value.get("schema") != QUERY_SCHEMA:
         raise ValueError("Unsupported scene query schema")
     return value

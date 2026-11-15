@@ -236,7 +236,7 @@ O próximo piloto pode começar pela tarefa A com um único par real, desde que 
 
 ## Auditoria de código da consulta seletiva — 2026-11-15
 
-Os oráculos foram fortalecidos para comparar valores exatos da fixture, e o simulador agora declara explicitamente `optimized_only`/`NOT_RUN` para A/B. A ponte Blender foi auditada, com regressões para uma execução upstream por consulta e rejeição de argumentos inválidos antes do dispatch. Suíte atual: 580 aprovados e 5 ignorados. Parecer: `APPROVED_WITH_RESERVATIONS`; A/B pago permanece pendente. Evidência: [`82-selective-query-code-audit.md`](82-selective-query-code-audit.md).
+Os oráculos foram fortalecidos para comparar valores exatos da fixture, e o simulador agora declara explicitamente `optimized_only`/`NOT_RUN` para A/B. A ponte Blender foi auditada, com regressões para uma execução upstream por consulta e rejeição de argumentos inválidos antes do dispatch. Suíte atual: 583 aprovados e 5 ignorados. Parecer: `APPROVED_WITH_RESERVATIONS`; A/B pago permanece pendente. Evidência: [`82-selective-query-code-audit.md`](82-selective-query-code-audit.md).
 
 ## Plano do primeiro par A/B Blender — 2026-11-15
 
@@ -249,6 +249,8 @@ Após auditoria do commit `a86fce5`, o plano foi ajustado antes de qualquer exec
 ## Probe sem modelo dos perfis — 2026-11-15
 
 O baseline passou `initialize`, `tools/list` e `get_scene_info` diretamente. O optimized passou `initialize` e `tools/list`, mas `pie_blender_query_scene` retornou `PIE_QUERY_UNAVAILABLE` porque o Blender live não devolveu o marcador esperado; a cena atual também não contém o objeto da fixture `PIE_Large_Cube_00`. Uma chamada real proibida a `get_scene_info` foi rejeitada por `PIE_TOOL_NOT_EXPOSED` sem alcançar o upstream, e o teste de contrato confirmou `structuredContent` junto com `content`. Nenhuma sessão de modelo ou quota foi consumida. Estado: `BLOCKED_FOR_PAID_EXECUTION`. Evidência: [`84-no-model-profile-probe.md`](84-no-model-profile-probe.md).
+
+O probe foi repetido após carregar uma fixture descartável real no Blender 5.3 e regenerar os perfis contra o SHA completo `02e1b4835d2bdcee34812d4effccf7c0e1b4a4ca`. Baseline e optimized passaram `initialize`, `tools/list`, `tools/call` e o oráculo da fixture; optimized anunciou somente uma ferramenta e retornou `structuredContent`. O gate sem modelo passou, mas tokens A/B continuam pendentes. Evidência: [`85-no-model-fixture-probe.md`](85-no-model-fixture-probe.md).
 
 ## Próximos passos seguros
 

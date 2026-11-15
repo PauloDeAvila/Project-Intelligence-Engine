@@ -1,0 +1,20 @@
+{
+  "schema": "pie-phase3-no-model-fixture-probe-v1",
+  "status": "PASS_OFFLINE_MODEL_GATE",
+  "model_sessions_started": 0,
+  "quota_consumed": false,
+  "fixture": {
+    "status": "PASS",
+    "blend": "C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase3-large-fixture\\large_scene.blend",
+    "objects": 64,
+    "materials": 16,
+    "target": "PIE_Large_Cube_00"
+  },
+  "profiles": {
+    "baseline": {"status": "PASS", "server": "blender", "tool": "get_scene_info", "tool_count": 10, "initialize": "PASS", "tools_list": "PASS", "tool_call": "PASS", "fixture_marker": "PASS", "structured_content_present": true},
+    "optimized": {"status": "PASS", "server": "pie-blender-optimized", "tool": "pie_blender_query_scene", "tool_count": 1, "initialize": "PASS", "tools_list": "PASS", "tool_call": "PASS", "fixture_marker": "PASS", "structured_content_present": true}
+  },
+  "forbidden_tool_rejection": {"status": "PASS_REAL_GATEWAY_NO_MODEL", "tool": "get_scene_info", "result": "PIE_TOOL_NOT_EXPOSED", "upstream_called": false},
+  "source_commit": "02e1b4835d2bdcee34812d4effccf7c0e1b4a4ca",
+  "interpretation": "The two isolated MCP profiles and the disposable fixture pass the no-model integration gate. This does not measure provider tokens or certify A/B savings."
+}
