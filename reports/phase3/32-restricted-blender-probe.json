@@ -1,0 +1,59 @@
+{
+  "schema": "pie-phase3-restricted-blender-probe-v1",
+  "status": "CODEX_PIE_BLENDER_INTEGRATION_PASSED",
+  "run_id": "codex-mcp-restricted-672077e02bdd43cf8389e6d7a58d6f12",
+  "session": {
+    "model": "gpt-5.6-luna",
+    "effort": "medium",
+    "sandbox": "read-only",
+    "approval_policy": "never",
+    "approve_for_me": false,
+    "retries": 0,
+    "model_sessions": 1,
+    "quota_consumed": true
+  },
+  "preflight": {
+    "temporary_profile": true,
+    "persistent_config_modified": false,
+    "other_mcp_servers_in_profile": 0,
+    "enabled_tools": ["get_addon_status", "get_scene_info"],
+    "profile_mcp_get": "PASS",
+    "route_workspace": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+    "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+    "index_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+    "workspace_match": true
+  },
+  "mcp_gate": {
+    "initialize": "PASS",
+    "tools_list": "PASS",
+    "tools_list_upstream_count": 13,
+    "tool_calls_received": 2,
+    "unauthorized_tools_executed": 0,
+    "pie_routing_verified": true,
+    "calls": [
+      {"server": "pie-blender-optimized", "tool": "get_addon_status", "codex_status": "completed", "oracle": "PASS", "gateway_duration_ms": 452.236},
+      {"server": "pie-blender-optimized", "tool": "get_scene_info", "codex_status": "completed", "oracle": "PASS", "gateway_duration_ms": 222.767}
+    ]
+  },
+  "provider_usage": {
+    "status": "available",
+    "input_tokens": 67769,
+    "cached_input_tokens": 59136,
+    "uncached_input_tokens": 8633,
+    "output_tokens": 534,
+    "reasoning_output_tokens": 338,
+    "total_tokens": 68303,
+    "duration_ms": 18647.6961
+  },
+  "lifecycle_evidence": {
+    "events": ["MCP_INITIALIZE_RECEIVED", "MCP_TOOLS_LIST_RECEIVED", "MCP_TOOL_CALL_RECEIVED:get_addon_status", "tools_call_response:get_addon_status", "MCP_TOOL_CALL_RECEIVED:get_scene_info", "tools_call_response:get_scene_info"],
+    "sqlite_or_lifecycle": "workspace .pie-live-store/mcp-lifecycle.jsonl",
+    "upstream_exit": "cleanly observed after probe"
+  },
+  "limitations": [
+    "This proves the restricted Blender path only; Web was not executed in this session.",
+    "This is not an A/B benchmark and does not certify token savings.",
+    "Persistent config byte hash remains 850C2E3559A58B205958B82DF08FD195AAC4D5A3C8D63B10DC8A2399E4D8416C after prior EOF normalization; the restricted probe did not modify it."
+  ],
+  "certification": "NOT_CERTIFIED"
+}

@@ -41,6 +41,12 @@ A Fase 3.13 adicionou `tools/run_codex_mcp_interactive_probe.ps1`, usando `--ask
 
 A única sonda interativa autorizada foi iniciada, mas o TUI encerrou antes do modelo por falta do pacote local completo do CLI. Nenhuma aprovação MCP, `tools/call` ou token foi observado. O Codex acrescentou temporariamente apenas `[tui] screen_reader_detection_done = true`; essa configuração foi removida. A normalização de EOF da edição impediu restaurar o hash byte-a-byte anterior (`0C389...`); o hash atual é `850C2E...`, limitação registrada em `31-interactive-probe-blocked.json`. O executor agora inclui `--no-daemon`; não houve segunda tentativa.
 
+## Incidente: integração restrita Codex → PIE → Blender
+
+A única sessão real autorizada com perfil temporário Blender-only passou pelo gateway. `initialize` e `tools/list` passaram; o lifecycle registrou dois `MCP_TOOL_CALL_RECEIVED` e duas respostas `result`, para `get_addon_status` e `get_scene_info`. Os dois oráculos retornaram sucesso, `workspace_match=true` e nenhuma ferramenta não autorizada foi executada. O provedor reportou 67.769 tokens de entrada, 59.136 em cache, 534 de saída, 338 de raciocínio e 18.647,696 ms. Evidência completa: [`32-restricted-blender-probe.json`](32-restricted-blender-probe.json).
+
+Isso comprova o caminho Blender restrito, mas não certifica economia: Web não foi executado nesta sessão e os pares A/B continuam incompletos.
+
 ## Custos
 
 `null`: não foi fornecida tarifa verificável para `gpt-5.6-luna`. Quota/assinatura não foi convertida em preço.
