@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 from benchmark_blender_choice_agent import (
     TASKS, ChoicePlanError, _read_only_blender_code, compare_pair,
+    deterministic_choice,
     independent_fixture_oracle, ordered_catalog, plan_choice, run_arm,
     safe_plan_failure, main, validate_task,
 )
@@ -200,6 +201,81 @@ class MultiChoiceAgentTests(unittest.TestCase):
                     ChoicePlanError(pre_model), "baseline")
                 self.assertFalse(diagnostic["model_request_attempted"])
                 self.assertNotIn("failed_plan_usage", diagnostic)
+
+    def test_deterministic_exact_route_picks_different_indices_without_model(self):
+        for condition, names in (
+            ("baseline", ["get_scene_info", "execute_blender_code"]),
+            ("optimized", ["pie_blender_query_scene", "pie_blender_get_object"]),
+        ):
+            catalog = [{"name": name} for name in names]
+            actual = []
+            for task in TASKS:
+                ordered = ordered_catalog(catalog, condition, task)
+                route = deterministic_choice(ordered, task, condition)
+                actual.append((route["tool_index"], route["target_index"]))
+                self.assertEqual(route["provider_requests"], 0)
+                self.assertIsNone(route["usage"])
+                self.assertIsNone(route["plan_sha256"])
+            self.assertEqual(actual, [(1, 1), (0, 2), (1, 0)])
+
+    def test_deterministic_arm_executes_real_mcp_path_without_ollama(self):
+        for condition, names, server in (
+            ("baseline", ["get_scene_info", "execute_blender_code"], "blender"),
+            ("optimized", ["pie_blender_query_scene", "pie_blender_get_object"],
+             "pie-blender-optimized"),
+        ):
+            for task in TASKS:
+                events = []
+                fixture = independent_fixture_oracle(task["target"])
+                class FakeProbe:
+                    def __init__(self, process): pass
+                    def call(self, identifier, method, params=None):
+                        events.append(method)
+                        if method == "initialize":
+                            return {"result": {}}
+                        if method == "tools/list":
+                            return {"result": {"tools": [
+                                {"name": name, "inputSchema": {"type": "object"}}
+                                for name in names]}}
+                        self_outer.assertEqual(params["name"],
+                            "execute_blender_code" if condition == "baseline"
+                            else "pie_blender_get_object")
+                        if condition == "baseline":
+                            return {"result": {"content": [{"type": "text",
+                                "text": "PIE_LOCAL_OBJECT_V1=" + json.dumps(fixture)}]}}
+                        return {"result": {"content": [{"type": "text",
+                            "text": json.dumps(fixture)}]}}
+                    def notify(self, method): pass
+                    def close(self): pass
+                self_outer = self
+                with (
+                    self.subTest(condition=condition, task=task["task_id"]),
+                    patch("benchmark_blender_choice_agent._profile", return_value=(
+                        {"command": "python", "enabled_tools": names},
+                        server, [], {})),
+                    patch("benchmark_blender_choice_agent.subprocess.Popen"),
+                    patch("benchmark_blender_choice_agent.Probe", FakeProbe),
+                    patch("benchmark_blender_choice_agent.plan_choice") as qwen,
+                ):
+                    arm = run_arm(Path("mcp.toml"), Path.cwd(), condition, task,
+                                  "qwen3:4b", route_mode="deterministic")
+                    qwen.assert_not_called()
+                    self.assertTrue(arm["oracle_pass"])
+                    self.assertEqual(arm["mcp_calls"], 1)
+                    self.assertEqual(arm["provider_requests"], 0)
+                    self.assertIsNone(arm["usage"])
+                    self.assertEqual(events, ["initialize", "tools/list", "tools/call"])
+
+    def test_deterministic_pair_is_not_misreported_as_token_savings(self):
+        baseline = {"oracle_pass": True, "usage": None}
+        optimized = {"oracle_pass": True, "usage": None}
+        result = compare_pair(baseline, optimized)
+        self.assertEqual(result["state"], "DETERMINISTIC_ROUTING_NO_MODEL")
+        self.assertIsNone(result["planning_token_savings_percent"])
+        self.assertEqual(result["provider_requests"], 0)
+        with self.assertRaises(Exception):
+            # A malformed route must never be promoted into a valid model pair.
+            deterministic_choice([{"name": "delete_object"}], TASKS[0], "optimized")
 
     def test_main_preserves_fail_closed_report_without_second_arm_or_retries(self):
         with tempfile.TemporaryDirectory() as temporary:
