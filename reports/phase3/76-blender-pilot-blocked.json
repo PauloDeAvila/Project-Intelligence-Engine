@@ -1,0 +1,40 @@
+{
+  "schema": "pie-phase3-blender-pilot-blocked-v1",
+  "status": "BLOCKED",
+  "reason": "The Codex session started and reported provider usage, but the generated optimized profile pointed command to a nonexistent worktree .venv\\Scripts\\python.exe. Windows returned os error 3 for the MCP servers; no mcp_tool_call event was emitted.",
+  "model_sessions": 1,
+  "quota_consumed": true,
+  "baseline_started": false,
+  "automatic_retry": false,
+  "scenario": "blender-large-observation-cert-v1",
+  "workspace_commit": "00784c906768527993f136190808ec9c1639af94",
+  "pair_id": "pair-ad731c36abf11522eaab857b",
+  "run_id": "optimized-9823d9e4cfbe6d7413f965f0",
+  "condition": "optimized",
+  "provider_usage": {
+    "provider_reported": true,
+    "input_tokens": 230071,
+    "cached_input_tokens": 178176,
+    "uncached_input_tokens": 51895,
+    "output_tokens": 1528,
+    "reasoning_output_tokens": 1103,
+    "total_tokens": 231599
+  },
+  "route": {
+    "expected_server": "pie-blender-optimized",
+    "mcp_tool_events": 0,
+    "mcp_route_verified": false,
+    "codex_status": "route_evidence_failed",
+    "sanitized_error": "MCP route evidence unavailable; no mcp_tool_call records"
+  },
+  "forensic_evidence": {
+    "store": "%TEMP%/.pie-phase3-blender-pilot-00784c9-pie-live-store",
+    "run_result": "runs/optimized-9823d9e4cfbe6d7413f965f0/run-result.json",
+    "provider_usage": "runs/optimized-9823d9e4cfbe6d7413f965f0/provider-usage.json",
+    "events": "runs/optimized-9823d9e4cfbe6d7413f965f0/codex-events.jsonl",
+    "stderr": "runs/optimized-9823d9e4cfbe6d7413f965f0/codex-stderr.log",
+    "stderr_signal": "codex_mcp.rmcp_client: MCP server startup failed server_name=pie-blender-optimized error=os error 3",
+    "profile_root_cause": "command = C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase3-blender-pilot-00784c9\\.venv\\Scripts\\python.exe (missing)"
+  },
+  "certification": "NOT_CERTIFIED"
+}

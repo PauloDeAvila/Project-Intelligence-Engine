@@ -103,6 +103,10 @@ Evidência detalhada: [`74-offline-compaction-acceptance.md`](74-offline-compact
 
 O gate adicional de fixture Blender real passou: uma cena descartável foi gerada pelo Blender 5.3 a partir de `large_scene_spec.json`, com 64 objetos e 16 materiais. A observação de 14.543 caracteres foi reduzida para 3.806 (`PARTIAL`) e teve o digest validado. Evidência: [`75-blender-real-fixture-gate.md`](75-blender-real-fixture-gate.md).
 
+O piloto pago seguinte foi interrompido antes do dispatch MCP. A sessão optimized reportou uso real (`230.071` input, `178.176` cacheados, `1.528` output), mas os servidores `pie-blender-optimized` e `pie-web-optimized` falharam ao iniciar com Windows `os error 3`; foram observados `0` eventos `mcp_tool_call`. Baseline não foi executado e não houve retry. Evidência: [`76-blender-pilot-blocked.md`](76-blender-pilot-blocked.md). Isso não é resultado A/B nem evidência de economia.
+
+Após o diagnóstico, o preflight passou a validar a existência do executável `command` de cada servidor MCP antes de iniciar o Codex. A suíte regressiva atual tem 570 testes aprovados e 5 ignorados.
+
 ## A/B estrito (repetições 2 e 3)
 
 | Domínio | Pares | Input B/O | Cache B/O | Output B/O | Total B/O | Economia total | Latência média B/O | MCP B/O |

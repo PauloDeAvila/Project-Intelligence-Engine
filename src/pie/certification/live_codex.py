@@ -285,6 +285,13 @@ def preflight_codex(scenario:dict,*,condition:str,workspace:Path,codex_home:Path
         else:
             checks["mcp"]={"state":"PASS","required_server":required}
             selected=servers.get(required) if required else None
+            command=selected.get("command") if isinstance(selected,dict) else None
+            command_ok=(isinstance(command,str) and bool(command.strip()) and
+                        (Path(command).is_file() if ("\\" in command or "/" in command)
+                         else shutil.which(command) is not None))
+            checks["mcp_command"]="PASS" if command_ok else {"state":"FAIL"}
+            if not command_ok:
+                errors.append("PRECHECK_MCP_COMMAND_UNAVAILABLE")
             args=selected.get("args",[]) if isinstance(selected,dict) else []
             if not isinstance(args,list) or not all(isinstance(v,str) for v in args):
                 checks["gateway_workspace"]="FAIL";errors.append("PRECHECK_CONFIG_INVALID")
