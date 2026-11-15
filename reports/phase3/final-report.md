@@ -262,6 +262,12 @@ O preflight passou a validar a identidade da árvore `src/`, permitindo commits 
 
 O plano `83-blender-selective-a-plan.json` foi alinhado com essa evidência: `runtime_validation=PASS_NO_MODEL_GATE`, com `tools/list`, `tools/call` e rejeição da ferramenta proibida em `PASS`. O campo `latest_plan_review` do consolidado agora é `READY_FOR_MANUAL_PILOT`; isso não altera o estado de certificação, pois o A/B com modelo ainda não foi executado.
 
+## Correção do isolamento efetivo — 2026-11-15
+
+A auditoria do incidente 88 identificou que o preflight anterior mesclava servidores herdados e verificava apenas a existência do servidor esperado. A correção passou `enabled_tools` para cada servidor, adicionou desabilitação explícita de servidores herdados e passou a consultar `codex mcp list --json` sem modelo. Baseline e optimized agora têm exatamente um servidor habilitado cada, com allowlists distintas. Evidência: [`90-effective-codex-mcp-isolation.md`](90-effective-codex-mcp-isolation.md).
+
+A suíte atualizada passou com `586` testes e `5` ignorados. O incidente 88 continua inválido para A/B; nenhum novo benchmark pago foi iniciado após a correção.
+
 ## Primeiro piloto Blender com modelo — 2026-11-15
 
 O preflight final passou nos dois braços sem iniciar modelo. A primeira sessão baseline, porém, foi invalidada pelo roteamento: observou `pie-blender-optimized/pie_blender_query_scene` com falha antes de `blender/get_scene_info` completar. Foram consumidos `1` sessão e `142.200` tokens de entrada reportados, mas o resultado não é elegível para economia A/B. O optimized não foi executado e não houve retry. Evidência: [`88-blender-baseline-r1.md`](88-blender-baseline-r1.md). A certificação permanece `NOT_CERTIFIED`.
