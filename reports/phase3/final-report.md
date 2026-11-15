@@ -72,3 +72,5 @@ uv run python -m unittest tests.test_blender_choice_agent tests.test_blender_cho
   economia, neutralidade e regressão conforme o workload.
 
 Evidências detalhadas: [109-local-routing-and-web-measurement-20261115.md](109-local-routing-and-web-measurement-20261115.md).
+
+Auditoria requisito‑por‑requisito: [115-completion-audit-20261115.json](115-completion-audit-20261115.json).

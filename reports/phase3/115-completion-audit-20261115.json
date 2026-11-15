@@ -1,0 +1,21 @@
+{
+  "schema": "pie-phase3-completion-audit-v1",
+  "audited_commit": "d31ccea",
+  "index_status": {"state": "CURRENT", "root_match": false, "note": "The configured PIE server indexes another workspace root; it was not used as repository evidence."},
+  "requirements": [
+    {"requirement": "Blender gateway routes real MCP calls", "status": "PASS_LOCAL", "evidence": ["reports/phase3/109-local-routing-and-web-measurement-20261115.md", "C:/Users/phsra/AppData/Local/Temp/pie-blender-multi-choice-d85ba89bc293.json"]},
+    {"requirement": "Web gateway routes real MCP calls", "status": "PASS_LOCAL", "evidence": ["C:/Users/phsra/AppData/Local/Temp/pie-web-ollama-5e706cde9c68.json"]},
+    {"requirement": "Codex provider tokens imported and correlated", "status": "NOT_VERIFIED", "evidence": ["final-report.json"]},
+    {"requirement": "Local provider usage reported without estimation", "status": "PASS", "evidence": ["final-report.json"]},
+    {"requirement": "Three valid local Blender pairs", "status": "PASS", "evidence": ["C:/Users/phsra/AppData/Local/Temp/pie-blender-multi-choice-d85ba89bc293.json"]},
+    {"requirement": "Three valid local Web pairs", "status": "PASS", "evidence": ["C:/Users/phsra/AppData/Local/Temp/pie-web-ollama-5e706cde9c68.json"]},
+    {"requirement": "SQLite persistence and lifecycle recovery", "status": "PASS_TESTS", "evidence": ["reports/phase3/113-telemetry-persistence-validation-20261115.json"]},
+    {"requirement": "Continuous production monitoring coverage", "status": "PARTIAL", "evidence": ["reports/phase3/113-telemetry-persistence-validation-20261115.json"]},
+    {"requirement": "Overhead under 100 ms per operation", "status": "NOT_PROVEN", "evidence": ["reports/phase3/112-tool-overhead-timing-20261115.json"], "note": "Initialization delta exceeded 100 ms in one sample; tools/call overhead was not isolated."},
+    {"requirement": "Verified costs", "status": "UNAVAILABLE", "evidence": ["final-report.json"]},
+    {"requirement": "General savings target", "status": "NOT_MET", "evidence": ["final-report.json"], "note": "Measured workloads range from -20.556% to 52.295%."},
+    {"requirement": "Full regression suite", "status": "PASS_SECOND_RUN", "evidence": ["reports/phase3/114-full-suite-validation-20261115.json"]},
+    {"requirement": "Official certification verdict", "status": "NOT_CERTIFIED", "evidence": ["final-report.json"]}
+  ],
+  "overall_status": "NOT_CERTIFIED"
+}
