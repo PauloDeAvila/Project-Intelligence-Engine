@@ -78,6 +78,21 @@ class ControllerTests(unittest.TestCase):
         with self.assertRaises(ControllerError):
             validate_manifest(manifest)
 
+    def test_pilot_rejects_manifest_for_different_prompt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            manifest=build_manifest(scenarios=[scenario("blender"), scenario("web")],
+                                    workspace=root, baseline_profile="baseline",
+                                    optimized_profile="optimized")
+            changed=scenario("blender")
+            changed["prompt"]="different prompt"
+            with self.assertRaises(ControllerError) as error:
+                run_pilot(manifest=manifest, scenarios=[changed, scenario("web")],
+                          workspace=root, baseline_home=root/"baseline", optimized_home=root/"optimized",
+                          baseline_profile="baseline", optimized_profile="optimized",
+                          output=root/"pilot.json", authorized_sessions=4)
+            self.assertIn("Manifest identity", str(error.exception))
+
     def test_route_audit_requires_exact_ids_not_timestamps(self):
         record = {
             "schema": SCHEMA, "provider_reported": True, "source": "codex_exec_json_turn_completed",

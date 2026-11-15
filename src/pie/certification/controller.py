@@ -224,6 +224,11 @@ def run_pilot(*, manifest: dict[str, Any], scenarios: Iterable[dict[str, Any]],
         scenario=scenario_map.get(entry["scenario_id"])
         if scenario is None:
             raise ControllerError("Manifest scenario is not available")
+        if (entry.get("model") != scenario["model"] or
+            entry.get("prompt_sha256") != _sha(scenario["prompt"]) or
+            entry.get("expected_sha256") != _sha(scenario["expected_exact"].strip()) or
+            entry.get("expected_mcp_server") != _expected_server(scenario, entry["condition"])):
+            raise ControllerError("Manifest identity does not match the loaded scenario")
         home=baseline_home if entry["condition"]=="baseline" else optimized_home
         profile=baseline_profile if entry["condition"]=="baseline" else optimized_profile
         preflight=preflight_codex(scenario,condition=entry["condition"],workspace=root,
