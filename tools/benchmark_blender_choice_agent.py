@@ -246,7 +246,7 @@ def _read_only_blender_code(target: str) -> str:
 
 def run_arm(profile: Path, workspace: Path, condition: str, task: dict,
             model: str, *, num_ctx: int = 8192, timeout: int = 240,
-            route_mode: str = "model") -> dict:
+            route_mode: str = "deterministic") -> dict:
     target, candidates = validate_task(task)
     config, server, args, configured_env = _profile(profile, workspace)
     if server != EXPECTED_SERVER[condition]:
@@ -297,7 +297,10 @@ def run_arm(profile: Path, workspace: Path, condition: str, task: dict,
         oracle = parsed == independent_fixture_oracle(target)
         return {
             "condition": condition, "task_id": task["task_id"],
-            "model": model, "plan_valid": True, "oracle_pass": oracle,
+            "model": model if route_mode == "model" else None,
+            "plan_valid": True,
+            "model_plan_valid": True if route_mode == "model" else None,
+            "oracle_pass": oracle,
             "tool_index": plan["tool_index"], "target_index": plan["target_index"],
             "selected_tool": selected_tool, "mcp_calls": 1,
             "rendering": "DETERMINISTIC_TOOL_DATA_NOT_MODEL_OUTPUT",
