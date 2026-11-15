@@ -72,6 +72,23 @@ $scenario = if ($Domain -eq "web" -and $WebVariant -eq "large") {
 } else {
     $scenario
 }
+if ($Domain -eq "web") {
+    $scenarioDocument = Get-Content -Raw -LiteralPath $scenario | ConvertFrom-Json
+    $fixtureUrl = [string]$scenarioDocument.fixture_url
+    $fixtureMarker = if ($WebVariant -eq "large") {
+        "Entry 099 — material catalog reference CV"
+    } else {
+        "Inspect materials"
+    }
+    try {
+        $fixtureBody = (Invoke-WebRequest -Uri $fixtureUrl -UseBasicParsing -TimeoutSec 10).Content
+    } catch {
+        throw "Web fixture preflight failed for $fixtureUrl before MCP/model execution: $($_.Exception.Message)"
+    }
+    if (-not $fixtureBody.Contains($fixtureMarker)) {
+        throw "Web fixture mismatch for $fixtureUrl before MCP/model execution; expected marker '$fixtureMarker'"
+    }
+}
 & (Join-Path $PSScriptRoot "prepare_phase3_profiles.ps1") @profileArgs
 
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null

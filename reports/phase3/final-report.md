@@ -151,4 +151,9 @@ a testes simulados e não falharam a suíte; o diagnóstico interno de disco che
 também foi preservado sem ser contado como erro unittest. Evidência:
 [130-full-suite-after-ollama-diagnostics-20261115.json](130-full-suite-after-ollama-diagnostics-20261115.json).
 
+O launcher Web agora valida um marcador exclusivo da fixture antes de iniciar
+MCP ou modelo. Servir a fixture pequena no endereço da large foi rejeitado
+antes de qualquer chamada; servir `fixtures/phase3/web-large` passou o
+`ProbeOnly` em 3 repetições. Evidência: [131-web-fixture-preflight-guard-20261115.json](131-web-fixture-preflight-guard-20261115.json).
+
 Auditoria requisito‑por‑requisito: [115-completion-audit-20261115.json](115-completion-audit-20261115.json).
