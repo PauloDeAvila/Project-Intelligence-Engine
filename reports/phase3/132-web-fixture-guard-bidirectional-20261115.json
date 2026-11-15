@@ -1,0 +1,23 @@
+{
+  "schema": "pie-phase3-web-fixture-guard-v1",
+  "timestamp_utc": "2026-11-15T23:28:35.7720153Z",
+  "status": "PASS",
+  "small_variant_default_url": "http://127.0.0.1:8766/index.html",
+  "large_variant_default_url": "http://127.0.0.1:8767/index.html",
+  "large_served_as_small": {
+    "status": "REJECTED_BEFORE_MCP",
+    "error_class": "Web fixture mismatch"
+  },
+  "small_served_as_small": {
+    "status": "MCP_PROBE_PASS",
+    "repetitions": 1,
+    "model_started": false,
+    "quota_consumed": false,
+    "oracle_data_chars": {
+      "baseline": 800,
+      "optimized": 800
+    }
+  },
+  "codex_certification": "NOT_CERTIFIED",
+  "note": "The guard now rejects both accidental large/small fixture mixing directions before MCP/model execution."
+}

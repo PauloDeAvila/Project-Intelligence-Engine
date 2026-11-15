@@ -107,6 +107,7 @@
   "latest_local_web_large_correct_fixture": "reports/phase3/129-web-large-correct-fixture-live-20261115.json",
   "latest_full_suite_after_diagnostics": "reports/phase3/130-full-suite-after-ollama-diagnostics-20261115.json",
   "web_fixture_guard": "reports/phase3/131-web-fixture-preflight-guard-20261115.json",
+  "web_fixture_guard_bidirectional": "reports/phase3/132-web-fixture-guard-bidirectional-20261115.json",
   "validation": {
     "focused_tests_passed": 71,
     "full_suite_initial": {

@@ -156,4 +156,8 @@ MCP ou modelo. Servir a fixture pequena no endereço da large foi rejeitado
 antes de qualquer chamada; servir `fixtures/phase3/web-large` passou o
 `ProbeOnly` em 3 repetições. Evidência: [131-web-fixture-preflight-guard-20261115.json](131-web-fixture-preflight-guard-20261115.json).
 
+O guard também foi validado no sentido inverso: servir a fixture large no
+endereço small foi rejeitado antes do MCP, enquanto a fixture small correta
+passou um `ProbeOnly`. Evidência: [132-web-fixture-guard-bidirectional-20261115.json](132-web-fixture-guard-bidirectional-20261115.json).
+
 Auditoria requisito‑por‑requisito: [115-completion-audit-20261115.json](115-completion-audit-20261115.json).

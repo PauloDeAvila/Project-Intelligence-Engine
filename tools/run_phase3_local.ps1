@@ -74,11 +74,20 @@ $scenario = if ($Domain -eq "web" -and $WebVariant -eq "large") {
 }
 if ($Domain -eq "web") {
     $scenarioDocument = Get-Content -Raw -LiteralPath $scenario | ConvertFrom-Json
-    $fixtureUrl = [string]$scenarioDocument.fixture_url
+    $fixtureUrl = if ($scenarioDocument.fixture_url) {
+        [string]$scenarioDocument.fixture_url
+    } else {
+        "http://127.0.0.1:8766/index.html"
+    }
     $fixtureMarker = if ($WebVariant -eq "large") {
         "Entry 099 — material catalog reference CV"
     } else {
         "Inspect materials"
+    }
+    $forbiddenMarker = if ($WebVariant -eq "small") {
+        "Entry 099 — material catalog reference CV"
+    } else {
+        $null
     }
     try {
         $fixtureBody = (Invoke-WebRequest -Uri $fixtureUrl -UseBasicParsing -TimeoutSec 10).Content
@@ -87,6 +96,9 @@ if ($Domain -eq "web") {
     }
     if (-not $fixtureBody.Contains($fixtureMarker)) {
         throw "Web fixture mismatch for $fixtureUrl before MCP/model execution; expected marker '$fixtureMarker'"
+    }
+    if ($forbiddenMarker -and $fixtureBody.Contains($forbiddenMarker)) {
+        throw "Web fixture mismatch for $fixtureUrl before MCP/model execution; large-fixture marker found in small variant"
     }
 }
 & (Join-Path $PSScriptRoot "prepare_phase3_profiles.ps1") @profileArgs
