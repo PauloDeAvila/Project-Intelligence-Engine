@@ -213,6 +213,54 @@ def _visible_tool_schemas(tools: list[dict], config: dict,
     return [by_name[name] for name in enabled]
 
 
+def grounded_blender_exact_answer(observation: dict, requested_name: str) -> str:
+    """Render exact Blender facts from one MCP result, without LLM transcription.
+
+    This is independent of the model and the benchmark's gold answer.
+    Rejects ambiguous, malformed, missing or otherwise mismatched tool data.
+    """
+    try:
+        responses = json.loads(observation["observations_json"])
+        if not isinstance(responses, list) or len(responses) != 1:
+            raise ValueError("Expected exactly one MCP observation")
+        result = responses[0]
+        if not isinstance(result, dict) or "structuredContent" in result:
+            raise ValueError("Exact-object tool must return only text content")
+        parts = result.get("content")
+        if (not isinstance(parts, list) or len(parts) != 1
+                or not isinstance(parts[0], dict)
+                or parts[0].get("type") != "text"
+                or not isinstance(parts[0].get("text"), str)):
+            raise ValueError("Expected exactly one text content part")
+        value = json.loads(parts[0]["text"])
+    except (KeyError, TypeError, json.JSONDecodeError) as exc:
+        raise ValueError("Invalid exact-object MCP observation") from exc
+    required = {"object_name", "object_type", "location", "material_names"}
+    if (not isinstance(value, dict) or set(value) != required
+            or value.get("object_name") != requested_name
+            or not isinstance(value.get("object_type"), str)
+            or not isinstance(value.get("location"), list)
+            or len(value["location"]) != 3
+            or any(type(x) not in (int, float) for x in value["location"])
+            or not isinstance(value.get("material_names"), list)
+            or any(not isinstance(name, str) for name in value["material_names"])):
+        raise ValueError("Exact-object MCP payload failed strict source validation")
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+
+
+def model_source_mismatches(model_answer: str, grounded_answer: str) -> list[str]:
+    """Name fields differing from source, without logging scene values."""
+    try:
+        actual = json.loads(model_answer)
+        expected = json.loads(grounded_answer)
+    except (TypeError, json.JSONDecodeError):
+        return ["INVALID_MODEL_JSON"]
+    if not isinstance(actual, dict):
+        return ["INVALID_MODEL_SHAPE"]
+    return sorted(key for key in (actual.keys() | expected.keys())
+                  if actual.get(key) != expected.get(key))
+
+
 def collect_mcp(profile: Path, workspace: Path, scenario: dict, condition: str,
                 schema_scope: str = "profile", blender_mode: str = "query") -> dict:
     app = scenario["application"]
@@ -251,6 +299,10 @@ def collect_mcp(profile: Path, workspace: Path, scenario: dict, condition: str,
         visible_tools = _visible_tool_schemas(tools, config, schema_scope)
         schema_json = compact_json(visible_tools)
         observations_json = compact_json(responses)
+        grounded_answer = None
+        if app == "blender" and condition == "optimized" and blender_mode == "exact":
+            grounded_answer = grounded_blender_exact_answer(
+                {"observations_json": observations_json}, "PIE_Large_Cube_00")
         return {
             "server": server,
             "tool_names": [name for name, _ in calls] + (["pie_gateway_output_get"] * recovery_calls),
@@ -260,6 +312,7 @@ def collect_mcp(profile: Path, workspace: Path, scenario: dict, condition: str,
             "observation_chars": len(observations_json),
             "tool_elapsed_ms": round((time.perf_counter() - start) * 1000, 3),
             "schema_json": schema_json, "observations_json": observations_json,
+            "grounded_answer": grounded_answer,
         }
     finally:
         probe.close()
@@ -333,8 +386,19 @@ def run_local_model(scenario: dict, observation: dict, model: str,
     if not isinstance(answer, str):
         raise RuntimeError("Ollama did not provide a text response")
     quality, exact = correct_answer(scenario, answer)
+    evidence = observation.get("grounded_answer")
+    grounded = {}
+    if evidence is not None:
+        source_quality, _ = correct_answer(scenario, evidence)
+        grounded = {
+            "source_oracle_pass": source_quality,
+            "source_answer_sha256": sha(evidence),
+            "model_vs_source_equal": not model_source_mismatches(answer, evidence),
+            "model_mismatch_fields": model_source_mismatches(answer, evidence),
+            "source_rendering": "DETERMINISTIC_TOOL_DATA_NOT_MODEL_OUTPUT",
+        }
     return {"usage": usage, "oracle_pass": quality, "exact_text_pass": exact,
-            "answer_sha256": sha(answer), "model": model}
+            "answer_sha256": sha(answer), "model": model, **grounded}
 
 
 def compare_pair(baseline: dict, optimized: dict) -> dict:
@@ -395,7 +459,8 @@ def main(argv: list[str] | None = None) -> int:
         for condition in order:
             obs = collect_mcp(profiles[condition], workspace, scenario, condition,
                               schema_scope=args.schema_scope, blender_mode=args.blender_mode)
-            arm = {key: value for key, value in obs.items() if key not in {"schema_json", "observations_json"}}
+            arm = {key: value for key, value in obs.items()
+                   if key not in {"schema_json", "observations_json", "grounded_answer"}}
             if not args.probe_only:
                 arm.update(run_local_model(local_scenario, obs, args.model, args.timeout, args.num_ctx))
             pair["arms"][condition] = arm
