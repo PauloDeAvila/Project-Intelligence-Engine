@@ -1,0 +1,11 @@
+{
+  "schema": "pie-phase3-tool-overhead-v1",
+  "method": "MCP initialize and tools/list without Codex or model",
+  "measurements": {
+    "blender": {"baseline": {"tool_count": 10, "tools_list_json_chars": 18982, "description_chars": 11268, "input_schema_chars": 5613}, "optimized": {"tool_count": 4, "tools_list_json_chars": 3792, "description_chars": 2106, "input_schema_chars": 1104}},
+    "web": {"baseline": {"tool_count": 25, "tools_list_json_chars": 21177, "description_chars": 1979, "input_schema_chars": 14967}, "optimized": {"tool_count": 3, "tools_list_json_chars": 1738, "description_chars": 223, "input_schema_chars": 1114}}
+  },
+  "interpretation": "Structural catalog reduction only; no latency or provider-token claim is made.",
+  "codex_sessions_started": 0,
+  "model_requests": 0
+}

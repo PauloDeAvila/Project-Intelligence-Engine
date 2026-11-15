@@ -36,6 +36,11 @@ O uso local vem de `prompt_eval_count` e `eval_count` do Ollama. Não há tarifa
 verificada para converter tokens em dinheiro; custos permanecem `null`. A
 telemetria SQLite/Codex não foi re-certificada por esta bateria local.
 
+O overhead estrutural de catálogo foi medido sem modelo: Blender reduziu
+`tools/list` de 18.982 para 3.792 caracteres e Web de 21.177 para 1.738.
+Esses valores são tamanho estrutural, não latência nem tokens cobrados. A
+evidência está em [111-tool-overhead-20261115.json](111-tool-overhead-20261115.json).
+
 ## Comandos reproduzíveis
 
 ```powershell
