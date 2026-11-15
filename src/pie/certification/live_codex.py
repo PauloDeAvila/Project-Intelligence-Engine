@@ -194,8 +194,8 @@ def _expected_mcp_server(scenario:dict,condition:str)->str|None:
     required=scenario.get("required_mcp_server")
     if not isinstance(required,str):return None
     lowered=required.lower()
-    if "blender" in lowered:return "blender" if condition=="baseline" else "pie-blender-optimized"
-    if "web" in lowered or "playwright" in lowered:
+    if lowered == "blender":return "blender" if condition=="baseline" else "pie-blender-optimized"
+    if lowered in ("web", "playwright"):
         return "playwright-baseline" if condition=="baseline" else "pie-web-optimized"
     return required
 
