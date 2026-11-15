@@ -13,8 +13,8 @@ Foi preparado um único par real para `blender-selective-location-v1`:
 - Optimized: `pie-blender-optimized`, somente `pie_blender_query_scene`.
 - Modelo: `gpt-5.6-luna`, esforço `medium`.
 - Fixture: `large_scene_spec.json`, sem mutação.
-- Pair ID: `pair-df96dc8a482a420fab71c6b8`.
-- Run IDs: `baseline-8e6ee28793ba4130895efbde` e `optimized-5a6aa4a0f5c64923863d8d51`.
+- Pair ID: `pair-3b39f65ee19947a5bf55bfb5`.
+- Run IDs: `baseline-dfc5c964a5184449ae59471b` e `optimized-2daf14f0c2e5435f83589c00`.
 - Sessões planejadas: 2.
 - Retry automático: desabilitado.
 
@@ -35,7 +35,7 @@ O cenário A é de uma página; a limitação de snapshot entre páginas não af
 Profiles gerados em diretório temporário, sem credenciais ou alteração persistente:
 
 - Baseline SHA-256: `597AA14443AD197A2F5BA63E6AA5F7B71882BD2522FB030DD9245D84FE80D76C`.
-- Optimized SHA-256: `DFD079000932629A188E7F12269BB692D6AA1B11B9F119FA5A328F3B99782AFC`.
+- Optimized SHA-256: `9AEB1478E5A60F87B0C2185D224426A67A442AFE1FEA788BD589D2398E188418`.
 
 Evidência de plano: [`83-blender-selective-a-plan.json`](83-blender-selective-a-plan.json).
 
@@ -45,4 +45,8 @@ As allowlists estáticas agora são exatas: `enabled_tools` e as tabelas de ferr
 
 O `pair_id`, `attempt_nonce` e cada `run_id` são gerados por tentativa. Repreparar o plano não reutiliza a identidade anterior.
 
+O cenário usa o mesmo contrato do controlador (`scenario_id`, `expected_mcp_tools_by_condition`); a execução pode receber os IDs congelados com `--run-id` e `--pair-id`. Os perfis apontam para o commit `0e84cf5`.
+
 Só considerar uma execução válida se o handshake `tools/list` e a telemetria `tools/call` comprovarem o servidor e a ferramenta exatos, além de uso reportado pelo provedor, oráculo JSON aprovado, `run_id`/`pair_id` correspondentes e persistência SQLite. Qualquer ferramenta adicional, rota incorreta ou falha interrompe o par sem retry automático.
+
+Probe atual sem modelo: baseline passou a chamada direta; optimized passou descoberta, mas a consulta retornou `PIE_QUERY_UNAVAILABLE` porque o Blender live não devolveu o marcador esperado. O piloto pago permanece bloqueado até a fixture ser carregada/verificada e a consulta seletiva passar.

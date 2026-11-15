@@ -7,13 +7,15 @@
   "experiment_type": "selective_query_product_comparison_not_transparent_compaction",
   "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
   "fixture_spec": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine\\fixtures\\phase3\\blender\\large_scene_spec.json",
-  "pair_id": "pair-df96dc8a482a420fab71c6b8",
-  "attempt_nonce": "df96dc8a482a420fab71c6b8",
+  "pair_id": "pair-3b39f65ee19947a5bf55bfb5",
+  "scenario_id": "blender-selective-location-v1",
+  "attempt_nonce": "3b39f65ee19947a5bf55bfb5",
   "entries": [
     {
       "task_id": "blender-selective-location-v1",
-      "pair_id": "pair-df96dc8a482a420fab71c6b8",
-      "run_id": "baseline-8e6ee28793ba4130895efbde",
+      "scenario_id": "blender-selective-location-v1",
+      "pair_id": "pair-3b39f65ee19947a5bf55bfb5",
+      "run_id": "baseline-dfc5c964a5184449ae59471b",
       "condition": "baseline",
       "application": "blender",
       "model": "gpt-5.6-luna",
@@ -43,8 +45,9 @@
     },
     {
       "task_id": "blender-selective-location-v1",
-      "pair_id": "pair-df96dc8a482a420fab71c6b8",
-      "run_id": "optimized-5a6aa4a0f5c64923863d8d51",
+      "scenario_id": "blender-selective-location-v1",
+      "pair_id": "pair-3b39f65ee19947a5bf55bfb5",
+      "run_id": "optimized-2daf14f0c2e5435f83589c00",
       "condition": "optimized",
       "application": "blender",
       "model": "gpt-5.6-luna",
@@ -73,6 +76,12 @@
       "provider_usage_required": true
     }
   ],
+  "runtime_validation": {
+    "status": "REQUIRED_BEFORE_PAID_EXECUTION",
+    "tools_list": "pending",
+    "tools_call": "pending",
+    "forbidden_tool_rejection": "pending"
+  },
   "limitations": [
     "This compares different product capabilities, not transparent compaction.",
     "Provider-reported usage and exact route evidence are required for validity.",
