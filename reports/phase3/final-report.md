@@ -50,6 +50,21 @@ par. Isso é um resultado desfavorável válido e não deve ser descartado.
 Auditoria independente do registro otimizado: [`66-route-audit.json`](66-route-audit.json),
 resultado `EVIDENCE_CERTIFIED`.
 
+## Par Web com roteamento certificado
+
+| Condição | Input | Cache | Uncached | Output | Total | Latência | MCP | Oráculo | Rota |
+|---|---:|---:|---:|---:|---:|---:|---:|---|---|
+| Baseline | 66,027 | 56,704 | 9,323 | 305 | 66,332 | 11,878.006 ms | 2 | PASS | VALID |
+| Optimized | 66,475 | 56,832 | 9,643 | 300 | 66,775 | 11,681.315 ms | 2 | PASS | VALID |
+
+Economia input: **-0.678510%**. Economia de input não armazenado em cache:
+**-3.432372%**. Economia total: **-0.667853%**. Latência: **-196.691 ms (-1.655926%)**.
+O par Web é válido, mas não demonstra economia de tokens.
+Evidência: [`69-web-pair-comparison.md`](69-web-pair-comparison.md) e
+[`69-web-pair-comparison.json`](69-web-pair-comparison.json).
+Auditoria independente da rota optimized: [`70-web-route-audit.json`](70-web-route-audit.json),
+resultado `EVIDENCE_CERTIFIED`.
+
 ## A/B estrito (repetições 2 e 3)
 
 | Domínio | Pares | Input B/O | Cache B/O | Output B/O | Total B/O | Economia total | Latência média B/O | MCP B/O |

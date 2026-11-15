@@ -1,0 +1,44 @@
+{
+  "schema": "pie-live-codex-usage-v1",
+  "condition": "baseline",
+  "scenario_id": "web-local-page-cert-v1",
+  "repetition": 1,
+  "run_id": "baseline-344ffe4aca4a4f679709d2e4",
+  "pair_id": "pair-web-20261115-a",
+  "model": "gpt-5.6-luna",
+  "codex_version": "codex-cli 0.169.0-alpha.11.1",
+  "prompt_sha256": "0676b5df93a4e10afa4b004bda8add7d6ef61d63a34a6bb1bfa06dc5e54b4537",
+  "expected_sha256": "f51f18e091e5480910aa31e54488f48cc6dcd75661265f32520c735a717af685",
+  "answer_sha256": "f51f18e091e5480910aa31e54488f48cc6dcd75661265f32520c735a717af685",
+  "oracle_kind": "exact_text",
+  "oracle_pass": true,
+  "workspace_commit": "a95760a9ca0ef53088ae6b2375d9b9571fd3a12b",
+  "configuration_sha256": "a6fd742d55613a849041e309dddcffdd5ea740e0c4c6f0cdcb9368ac043c5f6b",
+  "profile": "pie-phase3-web-baseline-run-baseline-344ffe4aca4a4f679709d2e4",
+  "runtime_ms": 11878.006,
+  "tool_events": 2,
+  "mcp_tools": [
+    {
+      "server": "playwright-baseline",
+      "tool": "browser_navigate",
+      "status": "completed"
+    },
+    {
+      "server": "playwright-baseline",
+      "tool": "browser_snapshot",
+      "status": "completed"
+    }
+  ],
+  "usage": {
+    "input_tokens": 66027,
+    "cached_input_tokens": 56704,
+    "output_tokens": 305,
+    "reasoning_output_tokens": 151
+  },
+  "expected_mcp_server": "playwright-baseline",
+  "mcp_route_verified": true,
+  "provider_reported": true,
+  "source": "codex_exec_json_turn_completed",
+  "forensic_path": "C:\\Users\\phsra\\AppData\\Local\\Temp\\.pie-phase3-single-blender-fixed-d23a211ad98c4f7cb2bafc0f7006882c-pie-live-store\\runs\\baseline-344ffe4aca4a4f679709d2e4",
+  "note": "Codex provider usage, not billing or a raw transcript"
+}

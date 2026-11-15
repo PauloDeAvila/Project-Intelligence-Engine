@@ -4,7 +4,7 @@
   "model": "gpt-5.6-luna",
   "required_mcp_server": "web",
   "expected_mcp_tools": ["browser_navigate", "browser_snapshot"],
-  "prompt": "Use only the configured Playwright MCP server. Navigate only to the local Phase 3 fixture, inspect its snapshot and required element references, and reply with exactly: PIE_WEB_CERT_ORACLE_V1",
+  "prompt": "Use only the configured Playwright MCP server. Navigate exactly once to http://127.0.0.1:8766/index.html, inspect its snapshot and required element references, and reply with exactly: PIE_WEB_CERT_ORACLE_V1",
   "expected_exact": "PIE_WEB_CERT_ORACLE_V1",
   "oracle": {
     "kind": "web_local_page",
