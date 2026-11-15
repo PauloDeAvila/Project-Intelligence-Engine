@@ -61,6 +61,8 @@ class TaskTelemetryTests(unittest.TestCase):
             "codex_version": "c", "prompt_sha256": "p", "expected_sha256": "e",
             "workspace_commit": "w", "configuration_sha256": "cfg",
             "oracle_kind": "exact_text", "oracle_pass": True, "tool_events": 1,
+            "expected_mcp_server": "pie-blender-optimized", "mcp_route_verified": True,
+            "mcp_tools": [{"server": "pie-blender-optimized", "tool": "get_scene_info", "status": "completed"}],
             "runtime_ms": 12.5, "usage": {"input_tokens": 100,
                 "cached_input_tokens": 40, "output_tokens": 7}
         }

@@ -172,6 +172,15 @@ def _git_clean_commit(root:Path)->str:
         raise ValueError("Benchmark needs a clean immutable Git checkout")
     return sha
 
+def _expected_mcp_server(scenario:dict,condition:str)->str|None:
+    required=scenario.get("required_mcp_server")
+    if not isinstance(required,str):return None
+    lowered=required.lower()
+    if "blender" in lowered:return "blender" if condition=="baseline" else "pie-blender-optimized"
+    if "web" in lowered or "playwright" in lowered:
+        return "playwright-baseline" if condition=="baseline" else "pie-web-optimized"
+    return required
+
 def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=240,codex_bin="codex",profile=None):
     validate_scenario(scenario)
     if condition not in CONDITIONS or type(repetition) is not int or repetition<1:
@@ -200,6 +209,13 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
         raise RuntimeError("Codex execution unavailable/timeout") from ex
     if run.returncode:raise RuntimeError("Codex failed; inspect locally; no certification")
     parsed=parse_codex_jsonl(run.stdout)
+    expected_server=_expected_mcp_server(scenario,condition)
+    if not parsed["mcp_tools"]:
+        raise RuntimeError("MCP route evidence unavailable; no mcp_tool_call records")
+    if expected_server is not None and any(
+        item.get("server")!=expected_server or item.get("status")!="completed"
+        for item in parsed["mcp_tools"]):
+        raise RuntimeError("MCP route evidence failed; unexpected server or incomplete tool call")
     actual=parsed.pop("answer").strip();expected=scenario["expected_exact"].strip()
     return {"schema":SCHEMA,"condition":condition,"scenario_id":scenario["scenario_id"],
             "repetition":repetition,"model":scenario["model"],"codex_version":version,
@@ -208,6 +224,7 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
             "workspace_commit":commit,"configuration_sha256":configsha,"profile":profile,
             "runtime_ms":round((time.perf_counter()-t0)*1000,3),
             "tool_events":parsed["tool_events"],"mcp_tools":parsed["mcp_tools"],"usage":parsed["usage"],
+            "expected_mcp_server":expected_server,"mcp_route_verified":True,
             "provider_reported":parsed["provider_reported"],"source":parsed["source"],
             "note":"Codex provider usage, not billing or a raw transcript"}
 
@@ -225,7 +242,7 @@ def _record(r):
         raise ValueError("No provider-reported usage evidence")
     if r.get("condition") not in CONDITIONS or r.get("oracle_kind")!="exact_text" or type(r.get("oracle_pass")) is not bool:
         raise ValueError("Condition/oracle absent")
-    for k in ("scenario_id","model","codex_version","prompt_sha256","expected_sha256","workspace_commit","configuration_sha256"):
+    for k in ("scenario_id","model","codex_version","prompt_sha256","expected_sha256","workspace_commit","configuration_sha256","expected_mcp_server"):
         if not isinstance(r.get(k),str) or not r[k]:raise ValueError("Missing "+k)
     if type(r.get("repetition")) is not int or r["repetition"]<1:raise ValueError("Invalid repetition")
     if type(r.get("tool_events")) is not int or r["tool_events"]<0:raise ValueError("Invalid tool count")
@@ -238,6 +255,12 @@ def _record(r):
     ms=r.get("runtime_ms")
     if isinstance(ms,bool) or not isinstance(ms,(float,int)) or not math.isfinite(ms) or ms<0:
         raise ValueError("Invalid runtime")
+    tools=r.get("mcp_tools")
+    if r.get("mcp_route_verified") is not True or not isinstance(tools,list) or not tools:
+        raise ValueError("Missing verified MCP route evidence")
+    if any(not isinstance(item,dict) or item.get("server")!=r["expected_mcp_server"] or
+           item.get("status")!="completed" for item in tools):
+        raise ValueError("MCP route/server/status mismatch")
     return r["scenario_id"],r["repetition"]
 
 def compare(records:list[dict],*,min_pairs=3,prices=None)->dict:

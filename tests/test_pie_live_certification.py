@@ -24,6 +24,8 @@ def row(rep,arm,inp,*,passed=True,config="a"):
             "oracle_kind":"exact_text","oracle_pass":passed,
             "runtime_ms":30.0,"tool_events":2,"source":"codex_exec_json_turn_completed",
             "provider_reported":True,
+            "expected_mcp_server":"pie-web-optimized","mcp_route_verified":True,
+            "mcp_tools":[{"server":"pie-web-optimized","tool":"browser_snapshot","status":"completed"}],
             "usage":{"input_tokens":inp,"cached_input_tokens":100,
                      "output_tokens":50,"reasoning_output_tokens":0}}
 
@@ -75,6 +77,8 @@ class UsageTests(unittest.TestCase):
         self.assertEqual(compare(a,min_pairs=1)["state"],"NOT_CERTIFIED")
         a[1]["provider_reported"]=True
         self.assertEqual(compare(a+[a[0]],min_pairs=1)["state"],"NOT_CERTIFIED")
+        a[1]["mcp_tools"]=[]
+        self.assertEqual(compare(a,min_pairs=1)["state"],"NOT_CERTIFIED")
 
 class CoverageTests(unittest.TestCase):
     def setUp(self):
