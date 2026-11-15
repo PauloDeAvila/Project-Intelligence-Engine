@@ -368,7 +368,8 @@ def main(argv: list[str] | None = None) -> int:
                                timeout=args.timeout)
         _write_json(args.output, result)
         print(json.dumps(result, indent=2, ensure_ascii=False))
-        return 0 if (args.action == "plan" or result.get("state") in ("EVIDENCE_CERTIFIED", "AB_PILOT_PASSED")) else 2
+        return 0 if (args.action == "plan" or result.get("state") in (
+            "EVIDENCE_CERTIFIED", "AB_PILOT_PASSED", "READY_FOR_BENCHMARK")) else 2
     except (ControllerError, OSError, json.JSONDecodeError) as exc:
         print(json.dumps({"state": "BLOCKED_WITH_EVIDENCE", "reason": str(exc)}, ensure_ascii=False))
         return 2
