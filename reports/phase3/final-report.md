@@ -87,6 +87,12 @@ interno `BLOCKED_WITH_EVIDENCE/disk full`, mas o processo unittest terminou
 com `OK`; esse diagnóstico não foi contado como falha de teste. Evidência:
 [125-full-suite-revalidation-20261115.json](125-full-suite-revalidation-20261115.json).
 
+O benchmark local Blender com Qwen3:4B foi reexecutado no Blender 5.3 real
+com 3 pares válidos. Baseline totalizou 1.125 tokens e o PIE 1.077, uma
+economia local de 4,267%; ambos tiveram 3/3 oráculos aprovados, 3 chamadas
+MCP e 6 requisições de modelo por braço. Essa medição não é certificação
+Codex. Evidência: [126-blender-model-target-evidence-live-20261115.json](126-blender-model-target-evidence-live-20261115.json).
+
 O overhead estrutural de catálogo foi medido sem modelo: Blender reduziu
 `tools/list` de 18.982 para 3.792 caracteres e Web de 21.177 para 1.738.
 Esses valores são tamanho estrutural, não latência nem tokens cobrados. A

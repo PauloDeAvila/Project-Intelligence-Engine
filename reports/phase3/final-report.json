@@ -94,6 +94,7 @@
   "persistent_routing_activation": "reports/phase3/123-persistent-codex-routing-activation-20261115.json",
   "persistent_route_revalidation": "reports/phase3/124-persistent-route-revalidation-20261115.json",
   "latest_full_suite_revalidation": "reports/phase3/125-full-suite-revalidation-20261115.json",
+  "latest_local_blender_model_run": "reports/phase3/126-blender-model-target-evidence-live-20261115.json",
   "validation": {
     "focused_tests_passed": 71,
     "full_suite_initial": {
