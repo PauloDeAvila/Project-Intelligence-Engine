@@ -73,9 +73,13 @@ class Probe:
 def _profile(path: Path, workspace: Path) -> tuple[dict, str, list[str], dict[str, str]]:
     data = tomllib.loads(path.read_text(encoding="utf-8"))
     servers = data.get("mcp_servers")
-    if not isinstance(servers, dict) or len(servers) != 1:
-        raise ValueError("Profile must contain exactly one MCP server")
-    name, value = next(iter(servers.items()))
+    if not isinstance(servers, dict):
+        raise ValueError("Profile must contain MCP servers")
+    enabled = {name: value for name, value in servers.items()
+               if isinstance(value, dict) and value.get("enabled", True) is not False}
+    if len(enabled) != 1:
+        raise ValueError("Profile must contain exactly one enabled MCP server")
+    name, value = next(iter(enabled.items()))
     if not isinstance(value, dict) or not isinstance(value.get("command"), str):
         raise ValueError("MCP command missing")
     args = value.get("args")

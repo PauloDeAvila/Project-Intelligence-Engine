@@ -24,6 +24,28 @@ def _expected_mcp_tools(scenario:dict, condition:str)->list[str]|None:
     tools=scenario.get("expected_mcp_tools")
     return list(tools) if isinstance(tools,list) else None
 
+def _enabled_mcp_servers(servers: dict) -> set[str]:
+    return {name for name, value in servers.items()
+            if isinstance(name, str) and
+            (not isinstance(value, dict) or value.get("enabled", True) is not False)}
+
+def _runtime_enabled_mcp_servers(executable: str, codex_home: Path, profile: str | None) -> set[str] | None:
+    """Read Codex's effective MCP registry without starting a model session."""
+    if not profile:
+        return None
+    env = dict(os.environ)
+    env["CODEX_HOME"] = str(codex_home)
+    try:
+        result = subprocess.run([executable, "--profile", profile, "mcp", "list", "--json"],
+                                env=env, capture_output=True, text=True, timeout=30, check=False)
+        payload = json.loads(result.stdout)
+    except (OSError, subprocess.SubprocessError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, list):
+        return None
+    return {item["name"] for item in payload
+            if isinstance(item, dict) and item.get("enabled") is True and isinstance(item.get("name"), str)}
+
 def _utc_now():
     return datetime.now(timezone.utc).isoformat()
 
@@ -318,11 +340,22 @@ def preflight_codex(scenario:dict,*,condition:str,workspace:Path,codex_home:Path
         servers=dict(parsed.get("mcp_servers") if isinstance(parsed.get("mcp_servers"),dict) else {})
         if isinstance(profile_parsed.get("mcp_servers"),dict):servers.update(profile_parsed["mcp_servers"])
         required=_expected_mcp_server(scenario,condition) if scenario.get("required_mcp_server") else None
-        if required and required not in servers:
+        enabled_servers = _enabled_mcp_servers(servers)
+        if required and required not in enabled_servers:
             checks["mcp"]={"state":"FAIL","required_server":required};errors.append("PRECHECK_MCP_UNAVAILABLE")
+        elif required and enabled_servers != {required}:
+            checks["mcp"]={"state":"FAIL","required_server":required,"enabled_servers":sorted(enabled_servers)}
+            errors.append("PRECHECK_MCP_ISOLATION_FAILED")
         else:
             checks["mcp"]={"state":"PASS","required_server":required}
             selected=servers.get(required) if required else None
+            expected_tools = _expected_mcp_tools(scenario, condition)
+            configured_tools = selected.get("enabled_tools") if isinstance(selected, dict) else None
+            if expected_tools is not None and configured_tools != expected_tools:
+                checks["mcp_tools"]={"state":"FAIL","expected":expected_tools,"configured":configured_tools}
+                errors.append("PRECHECK_MCP_ISOLATION_FAILED")
+            else:
+                checks["mcp_tools"]={"state":"PASS","enabled_tools":configured_tools}
             command=selected.get("command") if isinstance(selected,dict) else None
             command_ok=(isinstance(command,str) and bool(command.strip()) and
                         (Path(command).is_file() if ("\\" in command or "/" in command)
@@ -372,6 +405,16 @@ def preflight_codex(scenario:dict,*,condition:str,workspace:Path,codex_home:Path
                 else: checks["gateway_workspace"]="PASS"
             else:
                 checks["gateway_workspace"]="NOT_APPLICABLE"
+        if executable and Path(executable).is_file() and "codex" in Path(executable).name.lower() and required:
+            runtime_servers = _runtime_enabled_mcp_servers(executable, codex_home, profile)
+            if runtime_servers is None:
+                checks["mcp_runtime"]={"state":"FAIL"}
+                errors.append("PRECHECK_MCP_ISOLATION_FAILED")
+            elif runtime_servers != {required}:
+                checks["mcp_runtime"]={"state":"FAIL","required_server":required,"enabled_servers":sorted(runtime_servers)}
+                errors.append("PRECHECK_MCP_ISOLATION_FAILED")
+            else:
+                checks["mcp_runtime"]={"state":"PASS","enabled_servers":sorted(runtime_servers)}
         auth_env=dict(os.environ);auth_env["CODEX_HOME"]=str(codex_home)
         auth=_auth_state(codex_home,executable,auth_env)
         checks["authentication"]={"state":auth}

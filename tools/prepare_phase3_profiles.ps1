@@ -14,6 +14,9 @@ param(
     [string]$DiagnosticsDirectory = "",
     [string[]]$BaselineExposeTool = @(),
     [string[]]$OptimizedExposeTool = @(),
+    [string[]]$DisableServer = @(),
+    [string]$BaselineDisableServer = "",
+    [string]$OptimizedDisableServer = "",
     [ValidateSet("all", "blender", "web")][string]$Domain = "all",
     [int]$MaxChars = 2400,
     [string]$PieSource = "",
@@ -88,6 +91,18 @@ function EnvLine([string[]]$values) {
     if ($values.Count -eq 0) { return $null }
     return "env = { " + ($values -join ", ") + " }"
 }
+function DisableServerLines([string[]]$names) {
+    $lines = @()
+    foreach ($name in ($names | Sort-Object -Unique)) {
+        if (-not $name -or $name -notmatch '^[A-Za-z0-9_-]+$') { throw "Invalid server name: $name" }
+        $lines += @("[mcp_servers.$name]", "enabled = false", "command = 'disabled'", "")
+    }
+    return $lines
+}
+function SplitServerList([string]$value) {
+    if (-not $value) { return @() }
+    return @($value -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+}
 $baselineEnabledTools = if ($BaselineExposeTool.Count -gt 0) {
     "enabled_tools = " + (TomlArray $BaselineExposeTool)
 } elseif ($Domain -eq "blender") {
@@ -120,6 +135,8 @@ if ($BaselineExposeTool.Count -gt 0 -and $Domain -in @("all", "blender")) {
 }
 $blenderBaseline = @(
     "[mcp_servers.blender]",
+    "enabled = true",
+    ("enabled_tools = {0}" -f (TomlArray $baselineBlenderToolNames)),
     ("command = '{0}'" -f $BlenderUpstream),
     $(if ($diagnosticsBlender) { "env = { PIE_MCP_DIAGNOSTICS_PATH = '$diagnosticsBlender' }" }),
     ("args = {0}" -f (TomlArray $blenderUpstreamArgs)),
@@ -135,6 +152,8 @@ foreach ($tool in $baselineBlenderToolNames | Select-Object -Skip 1) {
 }
 $blenderOptimized = @(
     "[mcp_servers.pie-blender-optimized]",
+    "enabled = true",
+    ("enabled_tools = {0}" -f (TomlArray $optimizedBlenderToolNames)),
     ("command = '{0}'" -f $py),
     (EnvLine $blenderOptimizedEnv),
     ("args = {0}" -f (TomlArray $optimizedBlenderArgs)),
@@ -150,6 +169,8 @@ foreach ($tool in $optimizedBlenderToolNames | Select-Object -Skip 1) {
 }
 $webOptimized = @(
     "[mcp_servers.pie-web-optimized]",
+    "enabled = true",
+    "enabled_tools = ['browser_navigate', 'browser_snapshot']",
     ("command = '{0}'" -f $py),
     (EnvLine $webOptimizedEnv),
     ("args = {0}" -f (TomlArray $optimizedWebArgs)),
@@ -165,7 +186,6 @@ $baseline = @(
     "model_reasoning_effort = 'medium'",
     "approval_policy = 'never'",
     "sandbox_mode = 'read-only'",
-    $baselineEnabledTools,
     "default_tools_approval_mode = 'prompt'",
     ""
 ) -join "`r`n"
@@ -175,7 +195,6 @@ $optimized = @(
     "model_reasoning_effort = 'medium'",
     "approval_policy = 'never'",
     "sandbox_mode = 'read-only'",
-    $optimizedEnabledTools,
     "default_tools_approval_mode = 'prompt'",
     ""
 ) -join "`r`n"
@@ -187,6 +206,10 @@ if ($Domain -in @("all", "web")) {
     $baseline = ($baseline -join "`r`n") + "`r`n" + (($webBaseline -join "`r`n"))
     $optimized = ($optimized -join "`r`n") + "`r`n" + (($webOptimized -join "`r`n"))
 }
+$baselineDisableLines = DisableServerLines @($DisableServer + (SplitServerList $BaselineDisableServer))
+$optimizedDisableLines = DisableServerLines @($DisableServer + (SplitServerList $OptimizedDisableServer))
+$baseline = ($baseline -join "`r`n") + "`r`n" + (($baselineDisableLines -join "`r`n"))
+$optimized = ($optimized -join "`r`n") + "`r`n" + (($optimizedDisableLines -join "`r`n"))
 $baselinePath = Join-Path $resolvedOutput "pie-phase3-baseline.config.toml"
 $optimizedPath = Join-Path $resolvedOutput "pie-phase3-optimized.config.toml"
 [IO.File]::WriteAllText($baselinePath, $baseline + "`r`n", [Text.UTF8Encoding]::new($false))

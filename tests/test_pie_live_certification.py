@@ -214,6 +214,49 @@ class PreflightTests(unittest.TestCase):
             self.assertEqual(result["state"],"BLOCKED")
             self.assertIn("PRECHECK_MCP_COMMAND_UNAVAILABLE",result["errors"])
 
+    def test_preflight_rejects_inherited_enabled_mcp_server(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp); home=root/"home"; home.mkdir()
+            (root/"README.md").write_text("fixture")
+            subprocess.run(["git","init","-q"],cwd=root,check=True)
+            subprocess.run(["git","add","."],cwd=root,check=True)
+            subprocess.run(["git","-c","user.email=test@example.invalid","-c","user.name=test","commit","-qm","fixture"],cwd=root,check=True)
+            (home/"config.toml").write_text(
+                "model='test-model'\n[mcp_servers.blender]\ncommand='blender'\n"
+                "[mcp_servers.pie-blender-optimized]\ncommand='pie'\n")
+            (home/"probe.config.toml").write_text(
+                "[mcp_servers.blender]\nenabled=true\n"
+                "[mcp_servers.pie-blender-optimized]\nenabled=true\n")
+            with patch("pie.certification.live_codex.shutil.which",return_value="python"), \
+                 patch("pie.certification.live_codex._auth_state",return_value="AUTH_PRESENT_ENV"):
+                result=preflight_codex({"scenario_id":"blender","prompt":"x",
+                    "expected_exact":"x","model":"test-model",
+                    "required_mcp_server":"blender"},condition="baseline",
+                    workspace=root,codex_home=home,profile="probe")
+            self.assertEqual(result["state"],"BLOCKED")
+            self.assertIn("PRECHECK_MCP_ISOLATION_FAILED",result["errors"])
+
+    def test_preflight_rejects_mcp_tool_allowlist_mismatch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp); home=root/"home"; home.mkdir()
+            (root/"README.md").write_text("fixture")
+            subprocess.run(["git","init","-q"],cwd=root,check=True)
+            subprocess.run(["git","add","."],cwd=root,check=True)
+            subprocess.run(["git","-c","user.email=test@example.invalid","-c","user.name=test","commit","-qm","fixture"],cwd=root,check=True)
+            (home/"config.toml").write_text("model='test-model'\n")
+            (home/"probe.config.toml").write_text(
+                "[mcp_servers.blender]\ncommand='blender'\n"
+                "enabled_tools=['execute_blender_code']\n")
+            scenario={"scenario_id":"blender","prompt":"x","expected_exact":"x",
+                      "model":"test-model","required_mcp_server":"blender",
+                      "expected_mcp_tools":["get_scene_info"]}
+            with patch("pie.certification.live_codex.shutil.which",return_value="python"), \
+                 patch("pie.certification.live_codex._auth_state",return_value="AUTH_PRESENT_ENV"):
+                result=preflight_codex(scenario,condition="baseline",workspace=root,
+                    codex_home=home,profile="probe")
+            self.assertEqual(result["state"],"BLOCKED")
+            self.assertIn("PRECHECK_MCP_ISOLATION_FAILED",result["errors"])
+
     def test_preflight_rejects_pie_source_commit_mismatch(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp); home=root/"home"; home.mkdir(); source=root/"src"; source.mkdir()

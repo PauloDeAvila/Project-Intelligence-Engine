@@ -84,13 +84,35 @@ class Phase3ProfileGenerationTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             baseline = tomllib.loads((output / "pie-phase3-baseline.config.toml").read_text(encoding="utf-8"))
             optimized = tomllib.loads((output / "pie-phase3-optimized.config.toml").read_text(encoding="utf-8"))
-            self.assertEqual(baseline["enabled_tools"], ["get_scene_info"])
-            self.assertEqual(optimized["enabled_tools"], ["pie_blender_query_scene"])
+            self.assertNotIn("enabled_tools", baseline)
+            self.assertNotIn("enabled_tools", optimized)
+            self.assertEqual(baseline["mcp_servers"]["blender"]["enabled_tools"], ["get_scene_info"])
+            self.assertEqual(optimized["mcp_servers"]["pie-blender-optimized"]["enabled_tools"], ["pie_blender_query_scene"])
             self.assertEqual(set(baseline["mcp_servers"]["blender"]["tools"]), {"get_scene_info"})
             self.assertEqual(set(optimized["mcp_servers"]["pie-blender-optimized"]["tools"]),
                              {"pie_blender_query_scene"})
             self.assertIn("pie_blender_query_scene", optimized["mcp_servers"]["pie-blender-optimized"]["args"])
             self.assertIn("pie_blender_query_scene", optimized["mcp_servers"]["pie-blender-optimized"]["tools"])
+
+    def test_profiles_can_disable_inherited_servers(self):
+        powershell = shutil.which("pwsh") or shutil.which("powershell")
+        if powershell is None:
+            self.skipTest("PowerShell is unavailable")
+        with tempfile.TemporaryDirectory(prefix="pie-phase3-profile-isolation-test-") as tmp:
+            output = Path(tmp)
+            command = [powershell, "-NoProfile", "-File",
+                       str(ROOT / "tools" / "prepare_phase3_profiles.ps1"),
+                       "-Workspace", str(ROOT), "-OutputDirectory", str(output),
+                       "-Domain", "blender", "-BaselineDisableServer", "pie-blender-optimized",
+                       "-OptimizedDisableServer", "blender",
+                       "-PieCommit", "0" * 40]
+            result = subprocess.run(command, cwd=ROOT, text=True,
+                                    capture_output=True, timeout=30, check=False)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            baseline = tomllib.loads((output / "pie-phase3-baseline.config.toml").read_text(encoding="utf-8"))
+            optimized = tomllib.loads((output / "pie-phase3-optimized.config.toml").read_text(encoding="utf-8"))
+            self.assertFalse(baseline["mcp_servers"]["pie-blender-optimized"]["enabled"])
+            self.assertFalse(optimized["mcp_servers"]["blender"]["enabled"])
 
 
 if __name__ == "__main__":
