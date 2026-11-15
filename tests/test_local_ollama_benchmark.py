@@ -10,7 +10,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 from benchmark_local_ollama import (
     _check_response, _provider_usage, _tool_calls, compare_pair, correct_answer,
     fixture_pass, run_local_model, ensure_local_model, collect_mcp, _recover_web_when_required,
-    _visible_tool_schemas,
+    _visible_tool_schemas, local_experiment_scenario,
 )
 
 
@@ -200,6 +200,17 @@ class LocalOllamaBenchmarkTests(unittest.TestCase):
             self.assertEqual(result["tool_count"], 1)
             self.assertEqual(result["recovery_calls"], 0)
             self.assertIn("PIE_Large_Cube_00", result["observations_json"])
+
+    def test_exact_mode_changes_only_local_prompt_and_is_paired(self):
+        original = {"application": "blender", "prompt":
+                    "in the optimized configuration, use pie_blender_query_scene only"}
+        revised = local_experiment_scenario(original, "exact")
+        self.assertIn("pie_blender_get_object only", revised["prompt"])
+        self.assertEqual(original["prompt"],
+                         "in the optimized configuration, use pie_blender_query_scene only")
+        self.assertEqual(local_experiment_scenario(original, "query"), original)
+        with self.assertRaises(ValueError):
+            local_experiment_scenario({"application": "blender", "prompt": "unrelated"}, "exact")
 
     def test_local_model_request_is_local_and_records_usage(self):
         scenario = {"application": "web", "expected_exact": '{"title":"T"}', "prompt": "Extract title."}
