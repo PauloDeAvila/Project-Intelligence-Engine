@@ -25,6 +25,7 @@ The machine-readable plan is [107-frozen-resume-plan.json](107-frozen-resume-pla
 
 - Focused controller/live tests: 33 passed.
 - Resume-plan CLI: exit code 0; 10 sessions emitted; run IDs unique.
+- Frozen scenario gate: Blender and Web scenarios load successfully; both fixtures pass their deterministic oracles; model is `gpt-5.6-luna` with `medium` reasoning effort.
 - Provider tokens: not collected in this offline step.
 - Paid Codex sessions: none executed.
 
