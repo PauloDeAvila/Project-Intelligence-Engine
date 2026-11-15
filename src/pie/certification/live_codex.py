@@ -5,6 +5,13 @@ from pathlib import Path
 
 SCHEMA="pie-live-codex-usage-v1"
 CONDITIONS=frozenset(("baseline","optimized"))
+
+class CodexCaptureError(RuntimeError):
+    """Sanitized failure with non-certifying provider/tool evidence."""
+    def __init__(self, message: str, *, evidence: dict | None = None):
+        super().__init__(message)
+        self.evidence = evidence or {}
+
 def _sha(v):
     return hashlib.sha256(v if isinstance(v,bytes) else v.encode("utf-8")).hexdigest()
 def _count(x,k):
@@ -236,7 +243,8 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
                            text=True,capture_output=True,timeout=timeout,check=False)
     except (FileNotFoundError,subprocess.TimeoutExpired) as ex:
         raise RuntimeError("Codex execution unavailable/timeout") from ex
-    if run.returncode:raise RuntimeError(f"Codex failed with exit code {run.returncode}; no certification")
+    if run.returncode:
+        raise CodexCaptureError(f"Codex failed with exit code {run.returncode}; no certification")
     parsed=parse_codex_jsonl(run.stdout)
     if not parsed["mcp_tools"]:
         raise RuntimeError("MCP route evidence unavailable; no mcp_tool_call records")
@@ -245,7 +253,14 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
         for item in parsed["mcp_tools"]):
         observed=";".join("/".join(str(item.get(k,"")) for k in ("server","tool","status"))
                           for item in parsed["mcp_tools"])
-        raise RuntimeError(f"MCP route evidence failed; expected {expected_server}; observed {observed}")
+        raise CodexCaptureError(
+            f"MCP route evidence failed; expected {expected_server}; observed {observed}",
+            evidence={"run_id":run_id,"pair_id":pair_id,"condition":condition,
+                      "scenario_id":scenario["scenario_id"],"model":scenario["model"],
+                      "expected_mcp_server":expected_server,"runtime_ms":round((time.perf_counter()-t0)*1000,3),
+                      "tool_events":parsed["tool_events"],"mcp_tools":parsed["mcp_tools"],
+                      "usage":parsed["usage"],"provider_reported":True,
+                      "certification_status":"INVALID_ROUTE_EVIDENCE"})
     actual=parsed.pop("answer").strip();expected=scenario["expected_exact"].strip()
     return {"schema":SCHEMA,"condition":condition,"scenario_id":scenario["scenario_id"],
             "repetition":repetition,"run_id":run_id,"pair_id":pair_id,"model":scenario["model"],"codex_version":version,

@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from pie.certification.live_codex import _record, _sha, validate_scenario
-from pie.certification.live_codex import capture_codex, preflight_codex
+from pie.certification.live_codex import CodexCaptureError, capture_codex, preflight_codex
 from pie.certification.task_telemetry import import_provider_record
 
 SCHEMA = "pie-phase3-certification-controller-v1"
@@ -230,9 +230,26 @@ def run_pilot(*, manifest: dict[str, Any], scenarios: Iterable[dict[str, Any]],
                                   codex_home=home,codex_bin=codex_bin,profile=profile)
         if preflight["state"]!="READY_FOR_BENCHMARK":
             raise ControllerError("Preflight failed: "+";".join(preflight["errors"]))
-        record=capture_codex(scenario,condition=entry["condition"],repetition=1,
-                             workspace=root,codex_home=home,codex_bin=codex_bin,
-                             profile=profile,timeout=timeout)
+        try:
+            record=capture_codex(scenario,condition=entry["condition"],repetition=1,
+                                 workspace=root,codex_home=home,codex_bin=codex_bin,
+                                 profile=profile,timeout=timeout)
+        except CodexCaptureError as exc:
+            return {"schema":"pie-phase3-pilot-result-v1","state":"AB_PILOT_FAILED",
+                    "authorization":{"maximum_sessions":authorized_sessions,
+                                     "consumed_sessions":len(records)+1,
+                                     "remaining_sessions_not_run":4-(len(records)+1),
+                                     "complement_executed":False,"automatic_retry":False},
+                    "manifest_state":manifest.get("state"),
+                    "failed_execution":{"application":entry["application"],
+                                        "condition":entry["condition"],
+                                        "repetition":entry["repetition"],
+                                        "run_id":entry["run_id"],"pair_id":entry["pair_id"],
+                                        "failure":str(exc),
+                                        "provider_evidence":exc.evidence or "unavailable",
+                                        "oracle":"not_evaluated",
+                                        "lifecycle_correlation":"not_evaluated"},
+                    "records":records}
         if record["run_id"]!=entry["run_id"] or record["pair_id"]!=entry["pair_id"]:
             raise ControllerError("Capture identity differs from frozen manifest")
         oracle=_fixture_oracle(scenario,root)

@@ -4,7 +4,8 @@ import json,sys,tempfile,unittest,subprocess
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"src"))
-from pie.certification.live_codex import SCHEMA,parse_codex_jsonl,compare,validate_scenario,preflight_codex,_capture_pair_id
+from pie.certification.live_codex import (SCHEMA,CodexCaptureError,parse_codex_jsonl,
+    compare,validate_scenario,preflight_codex,_capture_pair_id)
 from pie.certification.cli import _safe_error
 from pie.certification.coverage import audit_codex
 
@@ -32,6 +33,14 @@ def row(rep,arm,inp,*,passed=True,config="a"):
                      "output_tokens":50,"reasoning_output_tokens":0}}
 
 class UsageTests(unittest.TestCase):
+    def test_capture_failure_can_carry_sanitized_provider_evidence(self):
+        error=CodexCaptureError("MCP route evidence failed", evidence={
+            "run_id":"run-1", "pair_id":"pair-1", "usage":{"input_tokens":10},
+            "mcp_tools":[{"server":"blender","tool":"execute_blender_code","status":"failed"}]})
+        self.assertEqual(error.evidence["usage"]["input_tokens"],10)
+        self.assertEqual(error.evidence["mcp_tools"][0]["status"],"failed")
+        self.assertNotIn("prompt", json.dumps(error.evidence).lower())
+
     def test_pair_id_is_deterministic_from_scenario(self):
         scenario={"scenario_id":"web-task-v1"}
         self.assertEqual(_capture_pair_id(scenario),_capture_pair_id(scenario))
