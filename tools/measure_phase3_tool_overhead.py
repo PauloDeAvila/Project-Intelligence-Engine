@@ -37,23 +37,28 @@ def _read_response(stream, identifier: int, timeout: float = 45.0) -> dict:
 
 
 def _probe(label: str, command: list[str], *, store: Path) -> dict:
+    probe_started = time.perf_counter()
     proc = subprocess.Popen(command, cwd=WORKSPACE, stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             text=True, encoding="utf-8", errors="replace",
                             bufsize=1)
     try:
         assert proc.stdin is not None and proc.stdout is not None
+        initialize_started = time.perf_counter()
         proc.stdin.write(_request(1, "initialize", {
             "protocolVersion": "2025-03-26", "capabilities": {},
             "clientInfo": {"name": "pie-phase3-tool-overhead", "version": "1"},
         }) + "\n")
         proc.stdin.flush()
         _read_response(proc.stdout, 1)
+        initialize_ms = round((time.perf_counter() - initialize_started) * 1000, 3)
         proc.stdin.write(json.dumps({"jsonrpc": "2.0", "method": "notifications/initialized",
                                      "params": {}}, separators=(",", ":")) + "\n")
+        tools_list_started = time.perf_counter()
         proc.stdin.write(_request(2, "tools/list", {}) + "\n")
         proc.stdin.flush()
         response = _read_response(proc.stdout, 2)
+        tools_list_ms = round((time.perf_counter() - tools_list_started) * 1000, 3)
         tools = response.get("result", {}).get("tools", [])
         if not isinstance(tools, list):
             raise RuntimeError("tools/list result has no tools array")
@@ -67,6 +72,8 @@ def _probe(label: str, command: list[str], *, store: Path) -> dict:
             "label": label, "command_executable": Path(command[0]).name,
             "tool_count": len(tools), "tools_list_json_chars": len(encoded),
             "description_chars": descriptions, "input_schema_chars": schemas,
+            "initialize_ms": initialize_ms, "tools_list_ms": tools_list_ms,
+            "probe_ms": round((time.perf_counter() - probe_started) * 1000, 3),
             "tool_names": [tool.get("name") for tool in tools if isinstance(tool, dict)],
             "store": str(store),
         }

@@ -1,0 +1,12 @@
+{
+  "schema": "pie-phase3-tool-overhead-timing-v1",
+  "sample_count": 1,
+  "method": "MCP initialize and tools/list timing without Codex or model",
+  "measurements_ms": {
+    "blender": {"baseline": {"initialize": 4657.947, "tools_list": 2.601}, "optimized": {"initialize": 4790.564, "tools_list": 2.905, "initialize_delta": 132.617, "tools_list_delta": 0.304}},
+    "web": {"baseline": {"initialize": 836.848, "tools_list": 7.55}, "optimized": {"initialize": 1012.919, "tools_list": 4.664, "initialize_delta": 176.071, "tools_list_delta": -2.886}}
+  },
+  "interpretation": "Initialization overhead exceeds the 100 ms target in this single sample; tools/list serialization overhead is below 100 ms. This is not a per-tools/call overhead measurement.",
+  "codex_sessions_started": 0,
+  "model_requests": 0
+}

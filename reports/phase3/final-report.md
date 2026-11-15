@@ -41,6 +41,13 @@ O overhead estrutural de catálogo foi medido sem modelo: Blender reduziu
 Esses valores são tamanho estrutural, não latência nem tokens cobrados. A
 evidência está em [111-tool-overhead-20261115.json](111-tool-overhead-20261115.json).
 
+Uma amostra temporal adicional mediu `initialize` em 4.658 ms baseline e
+4.791 ms optimized no Blender, e 837 ms baseline e 1.013 ms optimized no Web.
+O delta de inicialização foi, portanto, aproximadamente +132,6 ms e +176,1 ms.
+`tools/list` ficou abaixo de 100 ms nos dois domínios. Isso mede inicialização
+de sessão, não overhead de cada `tools/call`; a evidência está em
+[112-tool-overhead-timing-20261115.json](112-tool-overhead-timing-20261115.json).
+
 ## Comandos reproduzíveis
 
 ```powershell
