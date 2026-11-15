@@ -72,3 +72,44 @@ uv run python -m unittest discover -s tests -p test_blender_choice_agent.py -v
 ~~~
 
 Não invoca Codex nem APIs pagas. Status Codex: NOT_CERTIFIED.
+
+
+## Falha da primeira execução (preservada)
+
+Na primeira execução real do cenário cube-13-middle, o resultado foi
+FAILED_CLOSED com AgentPlanError, sem chamadas MCP nem oráculo. O relatório
+original não preservou o subtipo do erro. Um diagnóstico posterior, em
+outra inferência, encontrou os índices esperados (1,1), mas não altera
+nem valida a tentativa original. Não houve autorização de retry automático.
+
+O runner foi instrumentado **sem modificar prompt, modelo, seed, ordem de
+ferramentas ou critério de aprovação**. Em futuras falhas de planejamento,
+o relatório passa a incluir campos diagnósticos:
+
+- failed_condition: baseline ou optimized (braço efetivamente interrompido)
+- failure_stage: MODEL_PLAN
+- failure_code: INVALID_MODEL_JSON, INVALID_PLAN_SHAPE,
+  INVALID_TOOL_INDEX, INVALID_TARGET_INDEX, NON_EXACT_TOOL_SELECTED,
+  WRONG_TARGET_SELECTED, OLLAMA_TRANSPORT_FAILURE etc.
+- mcp_tool_calls_executed: 0 quando a falha ocorreu antes de tools/call
+- model_request_attempted: tentativa de requisição ao provedor local
+- failed_plan_usage: tokens realmente reportados pelo Ollama *na tentativa
+  falha*, quando disponíveis; não entram em economia de par válido
+- failed_plan_sha256: impressão digital do texto do modelo, quando disponível
+- selected_tool_index / selected_target_index: somente índices inteiros,
+  quando validados como presentes, nunca payload bruto
+
+Se a resposta nem chegou a ser recebida, não se inventa token usage nem
+hash. Não existe retry/correção automática e a ausência de oráculo continua
+registrada. O erro de execução anterior NÃO pode ser reconstituído dos
+campos genéricos do relatório já emitido.
+
+Para validar a classificação offline sem consumir Ollama:
+
+~~~powershell
+uv run python -m unittest discover -s tests -p test_blender_choice_agent.py -v
+~~~
+
+**Não rode novamente o benchmark real sem nova decisão explícita**:
+esta atualização publica apenas instrumentação prospectiva, não autoriza
+nova execução, não produz nova taxa de economia e não certifica o Codex.
