@@ -2,11 +2,22 @@
 
 ## Veredito
 
-**NOT_CERTIFIED — piloto atual: `AB_PILOT_FAILED`.** O controlador iniciou a bateria autorizada de quatro sessões, consumiu uma sessão real (Blender baseline) e interrompeu imediatamente após `execute_blender_code` falhar. Não houve retry, execução Web ou lote complementar. Portanto, esta bateria não produziu tokens A/B certificáveis.
+**NOT_CERTIFIED — o par Blender atual não é certificável.** A baseline corrigida passou uso do provedor, ferramentas esperadas e oráculo independente. A sessão optimized executou o modelo e as duas ferramentas pelo servidor `pie-blender-optimized`, mas não produziu correlação exata no lifecycle próprio do gateway. O controlador preservou os artefatos, marcou a sessão como falha de certificação e não fez retry.
 
 Os números A/B históricos abaixo são mantidos como evidência preliminar e não devem ser confundidos com o piloto atual. Eles não promovem a certificação porque não satisfazem a cobertura causal e de correlação exigida.
 
-Na autorização complementar, foram consumidas 2 de 4 chamadas: o par Blender teve tokens reportados, mas todas as ferramentas MCP esperadas falharam nos dois braços. O oráculo de texto passou, mas isso não é suficiente para validar a tarefa. A bateria foi interrompida e o par Web não foi executado. Uma autorização posterior para uma única sonda de aprovação não chegou ao modelo: o CLI recusou a combinação `--sandbox read-only` + `--approve-for-me` antes do dispatch. Não houve retry.
+O par usou o mesmo modelo, esforço, prompt, commit e estado inicial. A baseline foi válida; a optimized tem uso real e oráculo textual/Blender aprovados, mas route evidence `INSUFFICIENT_EVIDENCE`. Não houve execução Web nesta etapa nem retry automático.
+
+## Par Blender corrigido — 2026-11-15
+
+| Condição | Input | Cache | Uncached | Output | Total | Latência | MCP | Oráculo | Rota |
+|---|---:|---:|---:|---:|---:|---:|---:|---|---|
+| Baseline | 58,889 | 35,840 | 23,049 | 685 | 59,574 | 17,451.210 ms | 2 | PASS | VALID |
+| Optimized | 76,792 | 62,336 | 14,456 | 855 | 77,647 | 22,418.533 ms | 2 | PASS | INSUFFICIENT_EVIDENCE |
+
+Economia input: **-30.401263%**. Economia de input não armazenado em cache: **37.281443%**. Economia total: **-30.337060%**. Latência: **+4,967.323 ms (+28.464061%)**. A redução de contexto não compensou o aumento de tokens totais neste par. Custos permanecem `null`, sem tarifa verificável.
+
+Evidências: [`63-single-optimized-blender.md`](63-single-optimized-blender.md), [`64-blender-single-pair-comparison.json`](64-blender-single-pair-comparison.json) e o diretório forense registrado no primeiro arquivo. O `mcp-tool-events.jsonl` prova o servidor e as ferramentas observadas pelo Codex; a ausência de evento lifecycle exato impede certificação causal do gateway.
 
 ## A/B estrito (repetições 2 e 3)
 
@@ -103,7 +114,7 @@ O resultado atual é `BASELINE_BLENDER_FAILED_ORACLE`; a certificação geral pe
 
 Após corrigir o prompt para ler o `BSDF_PRINCIPLED`, uma nova execução real independente foi válida. O Codex reportou `58.889` tokens de entrada, `35.840` em cache, `685` de saída e `17.451,210 ms`. As duas ferramentas Blender esperadas concluíram, e a leitura independente confirmou roughness `0.349999994` e metallic `0.200000002`.
 
-Evidência: [`62-single-baseline-blender-fixed.md`](62-single-baseline-blender-fixed.md) e [`62-single-baseline-blender-fixed-summary.json`](62-single-baseline-blender-fixed-summary.json). O par `pair-deda0256ba284175ade5d58d` está pronto para o braço optimized; nenhum optimized foi iniciado nesta operação.
+Evidência: [`62-single-baseline-blender-fixed.md`](62-single-baseline-blender-fixed.md), [`63-single-optimized-blender.md`](63-single-optimized-blender.md) e [`64-blender-single-pair-comparison.json`](64-blender-single-pair-comparison.json). O par `pair-deda0256ba284175ade5d58d` foi executado; a baseline é válida e o braço optimized foi preservado como falha de evidência, sem retry.
 
 ## Custos
 
