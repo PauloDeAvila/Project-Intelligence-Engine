@@ -1,0 +1,34 @@
+{
+  "schema": "pie-phase3-blender-selective-task-v1",
+  "scenario_id": "blender-selective-location-v3",
+  "application": "blender",
+  "required_mcp_server": "blender",
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "fixture_spec": "fixtures/phase3/blender/large_scene_spec.json",
+  "prompt": "Use exactly one read-only call to the configured Blender MCP server. Do not modify the scene and do not call any other server. Locate the object whose exact name is PIE_Large_Cube_00 and read its exact name, type, location coordinates, and material names from the tool result; do not infer or invent values. In the baseline configuration, use execute_blender_code only with read-only bpy access; in the optimized configuration, use pie_blender_query_scene only. Reply with one minified JSON object only, with these keys in this order: object_name, object_type, location, material_names. Copy every value from the tool result.",
+  "expected_exact": "{\"object_name\":\"PIE_Large_Cube_00\",\"object_type\":\"MESH\",\"location\":[0.0,0.0,0.0],\"material_names\":[\"PIE_Large_Material_00\"]}",
+  "expected_mcp_tools_by_condition": {
+    "baseline": ["execute_blender_code"],
+    "optimized": ["pie_blender_query_scene"]
+  },
+  "oracle": {
+    "kind": "blender_scene_json",
+    "expected": {
+      "object_name": "PIE_Large_Cube_00",
+      "object_type": "MESH",
+      "location": [0.0, 0.0, 0.0],
+      "material_names": ["PIE_Large_Material_00"]
+    }
+  },
+  "constraints": {
+    "same_fixture": true,
+    "read_only": true,
+    "max_sessions": 2,
+    "automatic_retry": false,
+    "provider_usage_required": true,
+    "certificate_status": "NOT_CERTIFIED"
+  },
+  "experiment_type": "selective_query_product_comparison_not_transparent_compaction",
+  "methodology_note": "v2 was not eligible because get_scene_info did not expose material_names in its real structured response; v3 uses the original read-only Blender code tool for the baseline capability."
+}
