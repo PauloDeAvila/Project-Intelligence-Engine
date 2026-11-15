@@ -77,7 +77,7 @@ def ordered_catalog(visible: list[dict], condition: str, task: dict) -> list[dic
         raise ValueError("Each arm must expose exactly two expected tools")
     tool_by_name = {tool["name"]: tool for tool in visible}
     primary = SELECTED_TOOL[condition]
-    alternate = (TOOL_NAMES[condition] - {primary}).pop()
+    alternate = next(iter(TOOL_NAMES[condition] - {primary}))
     order = task.get("tool_order")
     if order not in (("exact", "broad"), ("broad", "exact")):
         raise ValueError("Invalid predetermined tool ordering")
@@ -149,9 +149,11 @@ def _read_only_blender_code(target: str) -> str:
     """Reuse audited read-only extraction, changing only a validated name literal."""
     if not TARGET_PATTERN.fullmatch(target):
         raise ValueError("Invalid Blender object name")
+    original = 'bpy.data.objects.get("PIE_Large_Cube_00")'
+    if BLENDER_CODE.count(original) != 1:
+        raise RuntimeError("Audited baseline extraction template has changed")
     return BLENDER_CODE.replace(
-        'bpy.data.objects.get("PIE_Large_Cube_00")',
-        "bpy.context.scene.objects.get(" + json.dumps(target) + ")"
+        original, "bpy.context.scene.objects.get(" + json.dumps(target) + ")"
     )
 
 
