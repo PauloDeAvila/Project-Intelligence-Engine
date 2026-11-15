@@ -93,7 +93,31 @@ def observation_text(responses: list[dict]) -> str:
 def fixture_pass(scenario: dict, responses: list[dict]) -> bool:
     visible = observation_text(responses)
     if scenario["application"] == "blender":
-        return "PIE_Large_Cube_00" in visible and "PIE_Large_Material_00" in visible
+        expected = json.loads(scenario["expected_exact"])
+        for result in responses:
+            structured = result.get("structuredContent")
+            if isinstance(structured, dict) and isinstance(structured.get("items"), list):
+                for item in structured["items"]:
+                    if isinstance(item, dict) and {
+                        "object_name": item.get("name"), "object_type": item.get("type"),
+                        "location": item.get("location"),
+                        "material_names": item.get("material_names"),
+                    } == expected:
+                        return True
+            for part in result.get("content", []):
+                if not isinstance(part, dict) or not isinstance(part.get("text"), str):
+                    continue
+                text = part["text"]
+                marker = "PIE_LOCAL_OBJECT_V1="
+                where = text.find(marker)
+                if where != -1:
+                    try:
+                        observed, _ = json.JSONDecoder().raw_decode(text[where + len(marker):])
+                    except json.JSONDecodeError:
+                        continue
+                    if observed == expected:
+                        return True
+        return False
     required = ("PIE Web Fixture", "Inspect materials", "Deterministic browser certification fixture.")
     return all(text in visible for text in required)
 
@@ -161,6 +185,21 @@ def _provider_usage(response: dict) -> dict:
             "total_duration_ms": round(response.get("total_duration", 0) / 1e6, 3)}
 
 
+def ensure_local_model(model: str) -> None:
+    """Refuse cloud model tags and missing local models before requesting tokens."""
+    if not model or ":cloud" in model.lower() or model.lower().endswith("-cloud"):
+        raise RuntimeError("Cloud/invalid model not allowed in local benchmark")
+    try:
+        with urlopen("http://127.0.0.1:11434/api/tags", timeout=10) as response:
+            payload = json.loads(response.read(1_000_000))
+    except (URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError("Local Ollama unavailable") from exc
+    names = {entry.get("name") for entry in payload.get("models", [])
+             if isinstance(entry, dict)}
+    if model not in names:
+        raise RuntimeError("Model not installed locally; run ollama pull first")
+
+
 def run_local_model(scenario: dict, observation: dict, model: str,
                     timeout: int, num_ctx: int) -> dict:
     request = {
@@ -184,6 +223,8 @@ def run_local_model(scenario: dict, observation: dict, model: str,
     except (URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
         raise RuntimeError("Local Ollama unavailable or returned invalid JSON") from exc
     usage = _provider_usage(result)
+    if usage["input_tokens"] >= num_ctx - 256:
+        raise RuntimeError("Local context may have been truncated; increase --num-ctx")
     answer = (result.get("message") or {}).get("content", "")
     if not isinstance(answer, str):
         raise RuntimeError("Ollama did not provide a text response")
@@ -228,6 +269,8 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("unsupported benchmark scenario")
     profiles = {"baseline": args.baseline_profile.resolve(strict=True),
                 "optimized": args.optimized_profile.resolve(strict=True)}
+    if not args.probe_only:
+        ensure_local_model(args.model)
     report = {"schema": "pie-local-ollama-mcp-replay-v1", "scenario": scenario["scenario_id"],
               "model": None if args.probe_only else args.model, "provider": "local_ollama",
               "methodology": "deterministic_mcp_tool_replay_not_codex_agent",
