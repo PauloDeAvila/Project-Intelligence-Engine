@@ -179,6 +179,15 @@ def _capture_run_id(scenario:dict,condition:str,repetition:int)->str:
     material="|".join((scenario["scenario_id"],condition,str(repetition)))
     return f"{condition}-{_sha(material)[:24]}"
 
+def _capture_pair_id(scenario:dict)->str:
+    return f"pair-{_sha(scenario['scenario_id'])[:24]}"
+
+def _scenario_app(scenario:dict)->str:
+    value=" ".join(str(scenario.get(k,"")) for k in ("required_mcp_server","scenario_id")).lower()
+    if "blender" in value:return "blender"
+    if "web" in value or "playwright" in value:return "web"
+    return "other_mcp"
+
 def _expected_mcp_server(scenario:dict,condition:str)->str|None:
     required=scenario.get("required_mcp_server")
     if not isinstance(required,str):return None
@@ -196,6 +205,11 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
     workspace=Path(workspace).expanduser().resolve(strict=True)
     commit=_git_clean_commit(workspace)
     env,configsha=_codex_environment(Path(codex_home),profile=profile)
+    run_id=_capture_run_id(scenario,condition,repetition)
+    pair_id=_capture_pair_id(scenario)
+    env.update({"PIE_RUN_ID":run_id,"PIE_PAIR_ID":pair_id,
+                "PIE_TASK_ID":scenario["scenario_id"],"PIE_CONDITION":condition,
+                "PIE_APP":_scenario_app(scenario),"PIE_SCENARIO_ID":scenario["scenario_id"]})
     telemetry_store=_telemetry_store(workspace)
     telemetry_store.mkdir(parents=True,exist_ok=True)
     env["PIE_GLOBAL_STORAGE_ROOT"]=str(telemetry_store)
@@ -230,9 +244,8 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
                           for item in parsed["mcp_tools"])
         raise RuntimeError(f"MCP route evidence failed; expected {expected_server}; observed {observed}")
     actual=parsed.pop("answer").strip();expected=scenario["expected_exact"].strip()
-    run_id=_capture_run_id(scenario,condition,repetition)
     return {"schema":SCHEMA,"condition":condition,"scenario_id":scenario["scenario_id"],
-            "repetition":repetition,"run_id":run_id,"model":scenario["model"],"codex_version":version,
+            "repetition":repetition,"run_id":run_id,"pair_id":pair_id,"model":scenario["model"],"codex_version":version,
             "prompt_sha256":_sha(scenario["prompt"]),"expected_sha256":_sha(expected),
             "answer_sha256":_sha(actual),"oracle_kind":"exact_text","oracle_pass":actual==expected,
             "workspace_commit":commit,"configuration_sha256":configsha,"profile":profile,
@@ -256,7 +269,7 @@ def _record(r):
         raise ValueError("No provider-reported usage evidence")
     if r.get("condition") not in CONDITIONS or r.get("oracle_kind")!="exact_text" or type(r.get("oracle_pass")) is not bool:
         raise ValueError("Condition/oracle absent")
-    for k in ("scenario_id","run_id","model","codex_version","prompt_sha256","expected_sha256","workspace_commit","configuration_sha256","expected_mcp_server"):
+    for k in ("scenario_id","run_id","pair_id","model","codex_version","prompt_sha256","expected_sha256","workspace_commit","configuration_sha256","expected_mcp_server"):
         if not isinstance(r.get(k),str) or not r[k]:raise ValueError("Missing "+k)
     if type(r.get("repetition")) is not int or r["repetition"]<1:raise ValueError("Invalid repetition")
     if type(r.get("tool_events")) is not int or r["tool_events"]<0:raise ValueError("Invalid tool count")
@@ -292,6 +305,7 @@ def compare(records:list[dict],*,min_pairs=3,prices=None)->dict:
             a,b=arms["baseline"],arms["optimized"]
             for k in ("model","codex_version","prompt_sha256","expected_sha256","workspace_commit"):
                 if a[k]!=b[k]:raise ValueError("Mismatched "+k)
+            if a["pair_id"]!=b["pair_id"]:raise ValueError("Mismatched pair_id")
             if a["configuration_sha256"]==b["configuration_sha256"]:
                 raise ValueError("Same configuration; no attribution to PIE")
         if len({x["baseline"]["model"] for x in pairs.values()})!=1:raise ValueError("Multiple models")

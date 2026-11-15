@@ -33,6 +33,8 @@ O cruzamento dos 12 imports com os cinco lifecycle JSONL recuperáveis encontrou
 
 O preflight do HEAD `75560b5` passou nos quatro braços em worktree limpo (`46-current-head-preflight.json`), sem iniciar modelo ou consumir quota. O overlay optimized usado para alinhar o `--workspace` foi temporário e não alterou o `config.toml` persistente.
 
+O contrato de correlação foi ampliado com `pair_id` e propagação de contexto no ambiente do Codex e nos eventos lifecycle (`47-run-correlation-instrumentation.json`). A suíte completa após a mudança passou com `539 passed, 5 skipped, 133 subtests`; nenhuma nova sessão real foi executada.
+
 ## Diagnóstico Codex/MCP
 
 A chamada diagnóstica inicial falhou no parsing do override transitório `-c`. A tentativa corrigida usando `tools/run_codex_mcp_diagnostic.ps1` iniciou uma sessão real, selecionou `pie-blender-optimized` e reportou tokens (`136207` input, `115968` cache, `691` output), mas `get_addon_status` e `get_scene_info` falharam. Nenhum lifecycle JSONL foi produzido; o ponto interno da falha permanece inconclusivo. Resultado detalhado: `22-codex-mcp-probe-result.json`. Não há certificação nem nova tentativa automática.

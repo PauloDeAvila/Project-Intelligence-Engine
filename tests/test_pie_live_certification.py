@@ -4,7 +4,7 @@ import json,sys,tempfile,unittest,subprocess
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"src"))
-from pie.certification.live_codex import SCHEMA,parse_codex_jsonl,compare,validate_scenario,preflight_codex
+from pie.certification.live_codex import SCHEMA,parse_codex_jsonl,compare,validate_scenario,preflight_codex,_capture_pair_id
 from pie.certification.cli import _safe_error
 from pie.certification.coverage import audit_codex
 
@@ -19,7 +19,7 @@ def event(inp=1200,cached=100,out=200,answer="answer"):
 
 def row(rep,arm,inp,*,passed=True,config="a"):
     return {"schema":SCHEMA,"condition":arm,"scenario_id":"one","repetition":rep,
-            "run_id":f"{arm}-run-{rep}",
+            "run_id":f"{arm}-run-{rep}","pair_id":"pair-one",
             "model":"test-model","codex_version":"codex-test-1",
             "prompt_sha256":"prompt-hash","expected_sha256":"expected-hash",
             "workspace_commit":"0"*40,"configuration_sha256":config,
@@ -32,6 +32,11 @@ def row(rep,arm,inp,*,passed=True,config="a"):
                      "output_tokens":50,"reasoning_output_tokens":0}}
 
 class UsageTests(unittest.TestCase):
+    def test_pair_id_is_deterministic_from_scenario(self):
+        scenario={"scenario_id":"web-task-v1"}
+        self.assertEqual(_capture_pair_id(scenario),_capture_pair_id(scenario))
+        self.assertTrue(_capture_pair_id(scenario).startswith("pair-"))
+
     def test_cli_error_is_actionable_but_sanitized(self):
         self.assertEqual(_safe_error(RuntimeError("MCP route evidence unavailable; no mcp_tool_call records")),
                          "MCP route evidence unavailable; no mcp_tool_call records")

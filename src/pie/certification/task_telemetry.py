@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS pie_task_usage (
  created_utc TEXT NOT NULL,
  app TEXT NOT NULL,
  task_id TEXT NOT NULL,
+ pair_id TEXT NOT NULL DEFAULT 'pair-legacy',
  run_id TEXT NOT NULL,
  surface TEXT NOT NULL,
  tool TEXT NOT NULL,
@@ -40,6 +41,7 @@ CREATE TABLE IF NOT EXISTS pie_task_usage (
 """
 _ALLOWED = re.compile(r"^[A-Za-z0-9_.-]{1,80}$")
 _MIGRATIONS = {
+    "pair_id": "TEXT NOT NULL DEFAULT 'pair-legacy'",
     "run_id": "TEXT NOT NULL DEFAULT 'run-legacy'",
     "tool_name": "TEXT NOT NULL DEFAULT ''",
     "status": "TEXT NOT NULL DEFAULT 'observed'",
@@ -90,14 +92,16 @@ def task_id_from_env() -> str:
 def record_task(root: Path, *, surface: str, tool: str, state: str,
                 source_chars: int, returned_chars: int, elapsed_ms: float,
                 app: str | None = None, task_id: str | None = None,
-                run_id: str | None = None, condition: str | None = None,
+                run_id: str | None = None, pair_id: str | None = None,
+                condition: str | None = None,
                 status: str | None = None) -> None:
     app = app or os.environ.get("PIE_APP") or app_for(surface, tool)
     task_id = task_id or task_id_from_env()
     run_id = run_id or _run_id()
+    pair_id = pair_id or os.environ.get("PIE_PAIR_ID", "pair-legacy")
     condition = condition or os.environ.get("PIE_CONDITION", "observed")
     status = status or state
-    if not _ALLOWED.fullmatch(app) or not _ALLOWED.fullmatch(task_id) or not _ALLOWED.fullmatch(run_id):
+    if not _ALLOWED.fullmatch(app) or not _ALLOWED.fullmatch(task_id) or not _ALLOWED.fullmatch(pair_id) or not _ALLOWED.fullmatch(run_id):
         raise ValueError("Invalid app or task identifier")
     if any(type(x) is not int or x < 0 for x in (source_chars, returned_chars)):
         raise ValueError("Invalid character counts")
@@ -108,9 +112,9 @@ def record_task(root: Path, *, surface: str, tool: str, state: str,
             db.executescript(SCHEMA)
             db.execute(
                 """INSERT INTO pie_task_usage
-                (created_utc,app,task_id,run_id,surface,tool,tool_name,state,status,
-                 source_chars,returned_chars,elapsed_ms,condition) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                (datetime.now(timezone.utc).isoformat(), app, task_id, run_id,
+                (created_utc,app,task_id,pair_id,run_id,surface,tool,tool_name,state,status,
+                 source_chars,returned_chars,elapsed_ms,condition) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (datetime.now(timezone.utc).isoformat(), app, task_id, pair_id, run_id,
                  surface, tool[:120], tool[:120], state[:60], status[:60],
                  source_chars, returned_chars, float(elapsed_ms), condition[:60]))
             db.execute("""DELETE FROM pie_task_usage WHERE id NOT IN
@@ -125,18 +129,19 @@ def import_provider_record(root: Path, record: dict, *, app: str, task_id: str) 
         raise ValueError("Invalid app/task")
     u = record["usage"]
     event_id = hashlib.sha256("|".join(str(v) for v in (
-        app, task_id, record.get("run_id") or "", record["condition"],
+        app, task_id, record.get("run_id") or "", record.get("pair_id") or "", record["condition"],
         record["scenario_id"], record["repetition"], record["configuration_sha256"]
     )).encode("utf-8")).hexdigest()
     with closing(_connect(root)) as db:
         with db:
             db.executescript(SCHEMA)
             db.execute("""INSERT OR IGNORE INTO pie_task_usage
-                (created_utc,app,task_id,run_id,surface,tool,tool_name,state,status,source_chars,
+                (created_utc,app,task_id,pair_id,run_id,surface,tool,tool_name,state,status,source_chars,
                 returned_chars,elapsed_ms,provider_input_tokens,
                 provider_cached_tokens,provider_output_tokens,condition,source_event_id)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (datetime.now(timezone.utc).isoformat(), app, task_id,
+                 record.get("pair_id") or f"pair-{record['scenario_id']}",
                  record.get("run_id") or f"{record['condition']}-{record['scenario_id']}-{record['repetition']}",
                  "provider", "codex_exec", "codex_exec", "PROVIDER_REPORTED", "success", 0, 0,
                  record["runtime_ms"], u["input_tokens"],
@@ -170,13 +175,13 @@ def report(root: Path, *, app: str | None = None, task_id: str | None = None,
         query = """SELECT app,task_id,condition,COUNT(*),
             SUM(source_chars),SUM(returned_chars),
             SUM(provider_input_tokens),SUM(provider_cached_tokens),
-            SUM(provider_output_tokens),SUM(elapsed_ms),run_id
+            SUM(provider_output_tokens),SUM(elapsed_ms),pair_id,run_id
             FROM pie_task_usage""" + predicate + """ GROUP BY app,task_id,condition,run_id
             ORDER BY app,task_id,condition"""
         rows = db.execute(query, params).fetchall()
     groups = []
-    for app,task,condition,calls,src,returned,inp,cached,out,ms,run_id in rows:
-        groups.append({"app": app, "task_id": task, "run_id": run_id, "condition": condition,
+    for app,task,condition,calls,src,returned,inp,cached,out,ms,pair_id,run_id in rows:
+        groups.append({"app": app, "task_id": task, "pair_id": pair_id, "run_id": run_id, "condition": condition,
                        "events": calls, "source_chars": src,
                        "returned_chars": returned,
                        "saved_chars": src-returned,

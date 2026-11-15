@@ -27,6 +27,7 @@ class TaskTelemetryTests(unittest.TestCase):
             self.assertEqual(len(data["apps"]), 1)
             row = data["apps"][0]
             self.assertEqual(row["task_id"], "material-roughness")
+            self.assertEqual(row["pair_id"], "pair-legacy")
             self.assertEqual(row["app"], "blender")
             self.assertEqual(row["saved_chars"], 1500)
             self.assertIsNone(row["input_tokens"])
@@ -44,12 +45,14 @@ class TaskTelemetryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             with patch.dict(os.environ, {"PIE_TASK_ID": "scene-read",
                                           "PIE_RUN_ID": "run-07",
+                                          "PIE_PAIR_ID": "pair-scene-read",
                                           "PIE_CONDITION": "optimized"}):
                 record_task(Path(tmp), surface="mcp", tool="browser_snapshot",
                             state="SUCCESS", source_chars=100,
                             returned_chars=40, elapsed_ms=12.25)
             row = report(Path(tmp))["apps"][0]
             self.assertEqual(row["run_id"], "run-07")
+            self.assertEqual(row["pair_id"], "pair-scene-read")
             self.assertEqual(row["condition"], "optimized")
             self.assertEqual(row["elapsed_ms"], 12.25)
 
@@ -57,7 +60,7 @@ class TaskTelemetryTests(unittest.TestCase):
         record = {
             "schema": "pie-live-codex-usage-v1", "provider_reported": True,
             "source": "codex_exec_json_turn_completed", "condition": "optimized",
-            "scenario_id": "scene-read", "repetition": 2, "run_id": "optimized-scene-read-2", "model": "m",
+            "scenario_id": "scene-read", "repetition": 2, "run_id": "optimized-scene-read-2", "pair_id": "pair-scene-read", "model": "m",
             "codex_version": "c", "prompt_sha256": "p", "expected_sha256": "e",
             "workspace_commit": "w", "configuration_sha256": "cfg",
             "oracle_kind": "exact_text", "oracle_pass": True, "tool_events": 1,

@@ -149,7 +149,12 @@ for line in sys.stdin:
         diagnostics=self.store/"mcp-lifecycle.jsonl"
         requests=[request(1,"initialize",{}),request(2,"tools/list",{}),
                   request(3,"tools/call",{"name":"get_scene_info","arguments":{}})]
-        run=self._run("web",upstream,requests)
+        run=self._run("web",upstream,requests,env_extra={
+            "PIE_RUN_ID":"optimized-web-a1",
+            "PIE_PAIR_ID":"pair-web-v1",
+            "PIE_TASK_ID":"web-task-v1",
+            "PIE_CONDITION":"optimized",
+            "PIE_SCENARIO_ID":"web-task-v1"})
         self.assertEqual(run.returncode,0,run.stderr)
         self.assertTrue(diagnostics.is_file())
         events=[json.loads(line) for line in diagnostics.read_text().splitlines()]
@@ -162,6 +167,10 @@ for line in sys.stdin:
         self.assertIn("MCP_TOOLS_LIST_RECEIVED",names)
         self.assertIn("MCP_TOOL_CALL_RECEIVED",names)
         self.assertIn("PROCESS_EXITING",names)
+        call=next(item for item in events if item["event"]=="MCP_TOOL_CALL_RECEIVED")
+        self.assertEqual(call["run_id"],"optimized-web-a1")
+        self.assertEqual(call["pair_id"],"pair-web-v1")
+        self.assertEqual(call["condition"],"optimized")
         self.assertNotIn("content",diagnostics.read_text())
 
     def test_web_navigation_is_called_once_and_recoverable(self):
