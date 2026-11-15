@@ -44,3 +44,7 @@ O gate permanece fechado. Não deve haver nova tentativa automática: uma futura
 ## Resultado do probe corrigido
 
 O executor nativo foi usado uma vez com a rota persistida. A sessão Codex terminou com exit code `0`, uso real reportado e seleção de `pie-blender-optimized`, mas `get_addon_status` e `get_scene_info` retornaram `failed`. Nenhum lifecycle JSONL foi produzido. Portanto, o probe é `CODEX_MCP_PROBE_FAILED`; a fase interna — spawn, handshake, upstream, timeout ou sandbox — permanece `INCONCLUSIVE`. O próximo diagnóstico deve configurar a variável de instrumentação no ambiente específico do servidor MCP, em vez de depender da herança do ambiente pai.
+
+## Causa confirmada na Fase 3.8
+
+Os três eventos `item.completed` falhos contêm a mesma mensagem sanitizada: `MCP tool call requires approval, but approval policy is never`. A configuração ativa do Codex usa `approval_policy = "never"`. O gateway chegou a `tools/list`, mas o cliente Codex bloqueou cada dispatch antes de enviar `tools/call`. A causa do probe é `CONFIRMED_CODEX_APPROVAL_POLICY`; não é uma falha demonstrada do Blender ou do upstream.

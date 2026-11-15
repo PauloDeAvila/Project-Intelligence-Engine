@@ -36,7 +36,7 @@
     "gateway_instances": 2,
     "mcp_tool_statuses": ["failed", "failed", "failed"],
     "failure_phase": "after_tools_list_before_tools_call",
-    "root_cause_status": "INCONCLUSIVE"
+    "root_cause_status": "CONFIRMED_CODEX_APPROVAL_POLICY"
   },
   "offline_remediation": {
     "status": "PASS",
@@ -46,6 +46,6 @@
     "focused_tests": "50 passed, 1 skipped"
   },
   "ready_for_codex_probe": false,
-  "reason": "The Fase 3.8 session reached import, initialize and tools/list in two gateway instances, but no tools/call was received before both processes disappeared. Offline integration remains healthy; Codex dispatch/lifecycle remains unresolved.",
-  "next_action": "Do not retry automatically. Diagnose Codex tool dispatch or external process termination before requesting another session; do not resume A/B."
+  "reason": "Codex item errors explicitly state that each MCP tool call requires approval while approval_policy is never. The gateway reached tools/list; dispatch was blocked before tools/call.",
+  "next_action": "Do not retry automatically. Prepare a separately authorized configuration change for an approval policy compatible with MCP tool calls; do not resume A/B."
 }

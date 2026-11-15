@@ -35,7 +35,8 @@ O ponto verificável é que a rota não declara `PIE_MCP_DIAGNOSTICS_PATH`; a te
 | Blender indisponível | `REJECTED` | Porta `127.0.0.1:9876` em LISTEN; duas ferramentas passam offline. |
 | Gateway/upstream incompatíveis | `REJECTED` no caminho offline | Spawn, initialize, tools/list e calls reais passam fora da sessão Codex. |
 | Herança de ambiente Codex para o MCP | `CONFIRMED` como lacuna de observabilidade, não como causa única | Variável no pai não gerou lifecycle; config efetiva tem `env keys: []`. |
-| Sandbox/lifecycle específico do Codex | `UNRESOLVED` | Ferramentas falham na sessão Codex, mas não há eventos do processo para separar spawn, import, handshake ou upstream. |
+| Sandbox/lifecycle específico do Codex | `REJECTED` como causa primária do probe | Os erros do item MCP identificam explicitamente bloqueio de approval policy antes do dispatch. |
+| Approval policy `never` | `CONFIRMED` | Os três `item.error` falhos dizem `MCP tool call requires approval, but approval policy is never`. |
 
 ## Comandos reproduzíveis sem modelo
 
@@ -57,7 +58,7 @@ Após a correção, duas execuções offline sem `PIE_MCP_DIAGNOSTICS_PATH` expl
 
 ## Veredito da fase
 
-`CODEX_MCP_PROBE_FAILED` para a sessão Codex real; `OFFLINE_MCP_INTEGRATION_PASS` para o gateway e upstream. A Fase 3.8 observou import, handshake e `tools/list` em dois gateways, mas nenhum `tools/call`; a falha está depois da descoberta e antes do dispatch, com causa interna `INCONCLUSIVE`. O gate volta a `READY_FOR_CODEX_PROBE=false` até resolver esse lifecycle.
+`CODEX_MCP_PROBE_FAILED` para a sessão Codex real; `OFFLINE_MCP_INTEGRATION_PASS` para o gateway e upstream. A Fase 3.8 observou import, handshake e `tools/list` em dois gateways, mas nenhum `tools/call`; os erros do Codex confirmam bloqueio por `approval_policy=never`. O gate volta a `READY_FOR_CODEX_PROBE=false` até preparar uma alteração de aprovação explicitamente autorizada.
 
 ## Regressão Blender e suíte
 

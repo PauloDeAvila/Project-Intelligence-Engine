@@ -33,14 +33,19 @@
     "process_exit_observed": false
   },
   "failure_phase": "after_tools_list_before_tools_call",
-  "cause_status": "INCONCLUSIVE",
+  "cause_status": "CONFIRMED_CODEX_APPROVAL_POLICY",
   "hypotheses": {
     "gateway_spawn_or_import_failure": "REJECTED",
     "mcp_initialize_failure": "REJECTED",
     "tools_list_failure": "REJECTED",
-    "codex_mcp_tool_dispatch_or_process_termination": "UNRESOLVED",
-    "blender_upstream_failure": "UNRESOLVED"
+    "codex_mcp_tool_dispatch_or_process_termination": "CONFIRMED_APPROVAL_BLOCK",
+    "blender_upstream_failure": "REJECTED"
   },
-  "interpretation": "The fallback logger proves that the Codex session started two PIE gateway instances and both reached tools/list. No tools/call entered the gateway before the processes disappeared, so the failure is between discovery and dispatch or an external termination immediately afterward. No provider or gateway error text was available.",
+  "dispatch_errors": [
+    "MCP tool call requires approval, but approval policy is never",
+    "MCP tool call requires approval, but approval policy is never",
+    "MCP tool call requires approval, but approval policy is never"
+  ],
+  "interpretation": "The Codex item.error messages prove that the client refused each MCP dispatch because the active approval policy is never. The gateway reached tools/list, so the failure is before tools/call and is not a Blender/upstream failure.",
   "certification_impact": "No certification; both expected tools failed in the Codex session."
 }
