@@ -116,6 +116,10 @@ O catálogo enviado ao planejador foi reduzido para `index`, `name` e descriçã
 
 Uma execução model posterior (`C:\Users\phsra\AppData\Local\Temp\pie-blender-multi-choice-da6e89228c55.json`) terminou `FAILED_CLOSED` por `TimeoutError` no primeiro braço, antes de qualquer chamada MCP. Nenhum resultado foi promovido e não houve retry automático. O roteamento determinístico continua sendo a rota aprovada para nomes explícitos.
 
+O agente multi-choice foi então corrigido para executar baseline e PIE em sessões persistentes sequenciais, evitando a disputa pela porta única do addon Blender. Com a fixture isolada na porta 9987, o relatório `C:\Users\phsra\AppData\Local\Temp\pie-blender-multi-choice-af4799c22c6f.json` registrou 3/3 tarefas determinísticas válidas, 6/6 oráculos aprovados e uma chamada MCP por braço.
+
+Uma sonda model posterior (`C:\Users\phsra\AppData\Local\Temp\pie-blender-multi-choice-3b57f44c7119.json`) passou a alcançar o planejador, consumindo 361 tokens locais, mas falhou fechada porque o Qwen escolheu `get_scene_info` (`NON_EXACT_TOOL_SELECTED`) em vez da consulta exata. Foram executadas zero chamadas MCP e nenhum retry foi feito. A correção de lifecycle removeu o timeout, mas não torna a seleção do modelo correta.
+
 Relatório opt-in: `C:\Users\phsra\AppData\Local\Temp\pie-web-ollama-dca357203a5c.json`. O gateway voltou a anunciar 3 ferramentas no braço otimizado, confirmando que a capacidade de recuperação não foi removida; o caminho não foi usado porque a fixture não exigiu compactação.
 
 Repetição local posterior (3 pares, ordem alternada): `C:\Users\phsra\AppData\Local\Temp\pie-web-ollama-9f975951651d.json`.

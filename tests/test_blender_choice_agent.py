@@ -314,17 +314,22 @@ class MultiChoiceAgentTests(unittest.TestCase):
             right.write_text("", encoding="utf-8")
             report = base / "failure.json"
             calls = []
-            def failed_arm(*args, **kwargs):
-                calls.append(True)
-                raise ChoicePlanError(
-                    "WRONG_TARGET_SELECTED",
-                    usage={"input_tokens": 75, "output_tokens": 19,
-                           "total_tokens": 94},
-                    plan_sha256="a" * 64, indices=(1, 0),
-                    model_request_attempted=True)
+            class FailedSession:
+                def run_task(self, *args, **kwargs):
+                    calls.append(True)
+                    raise ChoicePlanError(
+                        "WRONG_TARGET_SELECTED",
+                        usage={"input_tokens": 75, "output_tokens": 19,
+                               "total_tokens": 94},
+                        plan_sha256="a" * 64, indices=(1, 0),
+                        model_request_attempted=True)
+
+                def close(self):
+                    pass
             with (
                 patch("benchmark_blender_choice_agent.ensure_local_model"),
-                patch("benchmark_blender_choice_agent.run_arm", side_effect=failed_arm),
+                patch("benchmark_blender_choice_agent.ChoiceMcpSession",
+                      return_value=FailedSession()),
             ):
                 code = main([
                     "--workspace", str(base),

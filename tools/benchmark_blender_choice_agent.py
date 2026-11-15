@@ -259,59 +259,71 @@ def _read_only_blender_code(target: str) -> str:
     )
 
 
-def run_arm(profile: Path, workspace: Path, condition: str, task: dict,
-            model: str, *, num_ctx: int = 8192, timeout: int = 240,
-            route_mode: str = "deterministic") -> dict:
-    target, candidates = validate_task(task)
-    config, server, args, configured_env = _profile(profile, workspace)
-    if server != EXPECTED_SERVER[condition]:
-        raise ValueError("Incorrect MCP server for arm")
-    environment = dict(os.environ, **configured_env)
-    process = subprocess.Popen(
-        [config["command"], *args], cwd=workspace, env=environment,
-        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        text=True, encoding="utf-8", bufsize=1)
-    probe = Probe(process)
-    started = time.perf_counter()
-    try:
-        init = probe.call(1, "initialize", {
+class ChoiceMcpSession:
+    """Persistent MCP process for one arm; tasks remain isolated by navigation-free reads."""
+
+    def __init__(self, profile: Path, workspace: Path, condition: str) -> None:
+        self.condition = condition
+        config, server, args, configured_env = _profile(profile, workspace)
+        if server != EXPECTED_SERVER[condition]:
+            raise ValueError("Incorrect MCP server for arm")
+        environment = dict(os.environ, **configured_env)
+        process = subprocess.Popen(
+            [config["command"], *args], cwd=workspace, env=environment,
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            text=True, encoding="utf-8", bufsize=1)
+        self.process = process
+        self.probe = Probe(process)
+        try:
+            init = self.probe.call(1, "initialize", {
             "protocolVersion": "2025-03-26", "capabilities": {},
             "clientInfo": {"name": "pie-blender-choice-agent", "version": "1"},
-        })
-        if "error" in init or not isinstance(init.get("result"), dict):
-            raise ValueError("MCP initialize failed")
-        probe.notify("notifications/initialized")
-        tools = _check_response(probe.call(2, "tools/list", {}), "tools/list").get("tools")
-        if not isinstance(tools, list):
-            raise ValueError("Missing MCP tool list")
-        catalog = ordered_catalog(_visible_tool_schemas(tools, config, "profile"),
-                                  condition, task)
+            })
+            if "error" in init or not isinstance(init.get("result"), dict):
+                raise ValueError("MCP initialize failed")
+            self.probe.notify("notifications/initialized")
+            tools = _check_response(self.probe.call(2, "tools/list", {}), "tools/list").get("tools")
+            if not isinstance(tools, list):
+                raise ValueError("Missing MCP tool list")
+            self.config = config
+            self.tools = _visible_tool_schemas(tools, config, "profile")
+            self.next_id = 3
+        except BaseException:
+            self.close()
+            raise
+
+    def run_task(self, task: dict, model: str, *, num_ctx: int = 8192,
+                 timeout: int = 240, route_mode: str = "deterministic") -> dict:
+        target, candidates = validate_task(task)
+        started = time.perf_counter()
+        catalog = ordered_catalog(self.tools, self.condition, task)
         if route_mode == "deterministic":
-            plan = deterministic_choice(catalog, task, condition)
+            plan = deterministic_choice(catalog, task, self.condition)
         elif route_mode == "model":
             plan = plan_choice(model, catalog, task, num_ctx=num_ctx, timeout=timeout)
         else:
             raise ValueError("Unknown routing mode")
         selected_tool = catalog[plan["tool_index"]]["name"]
         selected_target = candidates[plan["target_index"]]
-        if selected_tool != SELECTED_TOOL[condition] or selected_target != target:
+        if selected_tool != SELECTED_TOOL[self.condition] or selected_target != target:
             raise ChoicePlanError(
                 "ARM_SELECTION_MISMATCH", usage=plan["usage"],
                 plan_sha256=plan["plan_sha256"],
                 indices=(plan["tool_index"], plan["target_index"]),
                 model_request_attempted=True)
         arguments = ({"code": _read_only_blender_code(selected_target)}
-                     if condition == "baseline" else {"name": selected_target})
-        observation = _check_response(probe.call(3, "tools/call", {
+                     if self.condition == "baseline" else {"name": selected_target})
+        observation = _check_response(self.probe.call(self.next_id, "tools/call", {
             "name": selected_tool, "arguments": arguments}), "tools/call")
+        self.next_id += 1
         answer = (render_baseline_source(observation, object_name=target)
-                  if condition == "baseline" else
+                  if self.condition == "baseline" else
                   grounded_blender_exact_answer({
                       "observations_json": compact_json([observation])}, target))
         parsed = json.loads(answer)
         oracle = parsed == independent_fixture_oracle(target)
         return {
-            "condition": condition, "task_id": task["task_id"],
+            "condition": self.condition, "task_id": task["task_id"],
             "model": model if route_mode == "model" else None,
             "plan_valid": True,
             "model_plan_valid": True if route_mode == "model" else None,
@@ -329,16 +341,24 @@ def run_arm(profile: Path, workspace: Path, condition: str, task: dict,
             "provider_requests": 0 if route_mode == "deterministic" else 1,
             "total_ms": round((time.perf_counter() - started) * 1000, 3),
         }
-    finally:
+    def close(self) -> None:
         try:
-            probe.close()
+            self.probe.close()
         finally:
-            # Probe.close() waits for the child but does not close its pipes.
-            # Closing both ends here prevents leaked file descriptors on
-            # repeated MCP profile runs (including Windows CI).
-            for stream in (process.stdout, process.stderr):
+            for stream in (self.process.stdout, self.process.stderr):
                 if stream is not None and not stream.closed:
                     stream.close()
+
+
+def run_arm(profile: Path, workspace: Path, condition: str, task: dict,
+            model: str, *, num_ctx: int = 8192, timeout: int = 240,
+            route_mode: str = "deterministic") -> dict:
+    session = ChoiceMcpSession(profile, workspace, condition)
+    try:
+        return session.run_task(task, model, num_ctx=num_ctx, timeout=timeout,
+                               route_mode=route_mode)
+    finally:
+        session.close()
 
 
 def compare_pair(baseline: dict, optimized: dict) -> dict:
@@ -390,42 +410,70 @@ def main(argv: list[str] | None = None) -> int:
         "fixture": "64 deterministic Blender cubes, 3 tasks, 2 tools per arm",
         "model": options.model if options.route_mode == "model" else None,
         "route_mode": options.route_mode,
+        "execution_schedule": ["baseline_batch", "optimized_batch"],
+        "schedule_reason": "Blender addon exposes one shared upstream port; arms are isolated sequentially",
         "num_ctx": options.num_ctx,
         "codex_sessions_started": 0, "codex_certification": "NOT_CERTIFIED",
         "rows": [],
     }
     status = 0
+    results: dict[str, dict[str, dict]] = {"baseline": {}, "optimized": {}}
+    failure: dict | None = None
+    for condition in ("baseline", "optimized"):
+        session = None
+        try:
+            session = ChoiceMcpSession(profiles[condition], workspace, condition)
+            for task in TASKS[:options.max_tasks]:
+                try:
+                    arm = session.run_task(
+                        task, options.model, num_ctx=options.num_ctx,
+                        timeout=options.timeout, route_mode=options.route_mode)
+                    if not arm["oracle_pass"]:
+                        raise ValueError("Independent fixture oracle failed")
+                    results[condition][task["task_id"]] = arm
+                except AgentPlanError as exc:
+                    failure = {"status": "FAILED_CLOSED", "reason_type": "AgentPlanError",
+                               "failed_condition": condition, "task_id": task["task_id"]}
+                    failure.update(safe_plan_failure(exc, condition))
+                    status = 2
+                    break
+                except (ValueError, RuntimeError, OSError, TimeoutError) as exc:
+                    failure = {"status": "FAILED_CLOSED", "reason_type": type(exc).__name__,
+                               "failed_condition": condition, "task_id": task["task_id"],
+                               "failure_code": "NON_PLAN_FAILURE", "error": str(exc)[:300]}
+                    status = 2
+                    break
+        except (ValueError, RuntimeError, OSError, TimeoutError) as exc:
+            failure = {"status": "FAILED_CLOSED", "reason_type": type(exc).__name__,
+                       "failed_condition": condition, "failure_code": "SESSION_START_FAILURE",
+                       "error": str(exc)[:300]}
+            status = 2
+        finally:
+            if session is not None:
+                session.close()
+        if status:
+            break
+
     for index, task in enumerate(TASKS[:options.max_tasks]):
-        order = ("baseline", "optimized") if index % 2 == 0 else ("optimized", "baseline")
-        pair = {"task_id": task["task_id"], "order": list(order), "arms": {}}
-        for condition in order:
-            try:
-                arm = run_arm(profiles[condition], workspace, condition, task,
-                              options.model, num_ctx=options.num_ctx, timeout=options.timeout,
-                              route_mode=options.route_mode)
-                pair["arms"][condition] = arm
-                if not arm["oracle_pass"]:
-                    raise ValueError("Independent fixture oracle failed")
-            except AgentPlanError as exc:
-                pair["status"] = "FAILED_CLOSED"
-                pair["reason_type"] = "AgentPlanError"
-                pair.update(safe_plan_failure(exc, condition))
-                status = 2
-                break
-            except (ValueError, RuntimeError, OSError) as exc:
-                pair["status"] = "FAILED_CLOSED"
-                pair["reason_type"] = type(exc).__name__
-                pair["failed_condition"] = condition
-                pair["failure_code"] = "NON_PLAN_FAILURE"
-                status = 2
-                break
-        if not status:
+        task_id = task["task_id"]
+        pair = {"task_id": task_id,
+                "order": ["baseline", "optimized"] if index % 2 == 0 else ["optimized", "baseline"],
+                "arms": {}}
+        if task_id in results["baseline"] and task_id in results["optimized"]:
+            pair["arms"] = {"baseline": results["baseline"][task_id],
+                             "optimized": results["optimized"][task_id]}
             pair["status"] = "VALID_PAIR"
             pair["comparison"] = compare_pair(pair["arms"]["baseline"],
                                                pair["arms"]["optimized"])
+        elif failure is not None and failure.get("task_id") == task_id:
+            pair.update(failure)
+        else:
+            continue
         report["rows"].append(pair)
-        if status:
+        if status and pair.get("status") == "FAILED_CLOSED":
             break
+    if failure is not None:
+        report["failure"] = failure
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("x", encoding="utf-8") as stream:
         json.dump(report, stream, ensure_ascii=False, indent=2)
