@@ -1,0 +1,17 @@
+{
+  "schema": "pie-phase3-persistent-routing-v1",
+  "status": "PASS_PREFLIGHT_PERSISTENT_ROUTES",
+  "config_path": "C:/Users/phsra/.codex/config.toml",
+  "backup_path": "C:/Users/phsra/.codex/config.toml.pie-phase3-backup-20261115",
+  "original_sha256": "B8DE22D7D60F42F605C1D8970C128F36A0FD7D934E9A31FABF00151037B9118F",
+  "updated_sha256": "8FFF7E32F10F59A688297947A217234A4A8D8D83A273704C87AE6CF74C45FAA2",
+  "changed_servers": ["pie-blender-optimized", "pie-web-optimized"],
+  "unchanged_servers": "all other MCP registrations",
+  "route_workspace": "C:/Users/phsra/OneDrive/Documents/ChatGPT/Korum/PIE-Local-MCP",
+  "preflight": {
+    "blender": {"status": "PASS", "model_started": false, "quota_consumed": false},
+    "web": {"status": "PASS", "model_started": false, "quota_consumed": false}
+  },
+  "rollback": "Copy-Item -LiteralPath 'C:\\Users\\phsra\\.codex\\config.toml.pie-phase3-backup-20261115' -Destination 'C:\\Users\\phsra\\.codex\\config.toml' -Force",
+  "certification": "NOT_CERTIFIED"
+}

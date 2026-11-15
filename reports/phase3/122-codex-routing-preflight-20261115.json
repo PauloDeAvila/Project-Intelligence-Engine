@@ -1,0 +1,24 @@
+{
+  "schema": "pie-phase3-codex-routing-preflight-v1",
+  "persistent_config": {
+    "status": "BLOCKED_WRONG_WORKSPACE",
+    "configured_route_workspace": "C:/Users/phsra/OneDrive/Documents/ChatGPT/Korum/Project-Intelligence-Engine",
+    "audited_workspace": "C:/Users/phsra/OneDrive/Documents/ChatGPT/Korum/PIE-Local-MCP",
+    "config_modified": false,
+    "model_started": false,
+    "quota_consumed": false
+  },
+  "ephemeral_profile": {
+    "status": "PASS",
+    "workspace": "C:/Users/phsra/OneDrive/Documents/ChatGPT/Korum/PIE-Local-MCP",
+    "blender": {"preflight": "PASS", "enabled_tools": ["get_addon_status", "get_scene_info"]},
+    "web": {"preflight": "PASS", "enabled_tools": ["browser_navigate", "browser_snapshot"], "fixture_http": "PASS"},
+    "approval_policy": "never",
+    "sandbox": "read-only",
+    "other_mcp_servers": "disabled_in_profile",
+    "model_started": false,
+    "quota_consumed": false
+  },
+  "interpretation": "The current checkout is ready for a future controlled Codex probe only when quota is available. Persistent configuration still points to another checkout and was intentionally not modified.",
+  "certification": "NOT_CERTIFIED"
+}

@@ -90,6 +90,8 @@
     "baseline_original_server_telemetry": "UNINSTRUMENTED_BY_DESIGN",
     "web_correlation_report": "reports/phase3/120-web-telemetry-correlation-20261115.json"
   },
+  "codex_routing_preflight": "reports/phase3/122-codex-routing-preflight-20261115.json",
+  "persistent_routing_activation": "reports/phase3/123-persistent-codex-routing-activation-20261115.json",
   "validation": {
     "focused_tests_passed": 71,
     "full_suite_initial": {

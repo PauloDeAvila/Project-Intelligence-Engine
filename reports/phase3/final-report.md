@@ -64,6 +64,17 @@ resultado MCP válido; isso não é tratado como certificação. Evidência:
 A suíte completa após a instrumentação Web passou novamente com 641 testes,
 5 ignorados e 0 erros. Evidência: [121-web-correlation-full-suite-20261115.json](121-web-correlation-full-suite-20261115.json).
 
+O preflight oficial sem modelo encontrou `WRONG_WORKSPACE` na configuração
+persistentemente instalada: as rotas apontam para outro checkout. Um perfil
+efêmero, sem alterar `config.toml`, passou para Blender e Web com sandbox
+`read-only`, somente as ferramentas esperadas e zero quota consumida. Evidência:
+[122-codex-routing-preflight-20261115.json](122-codex-routing-preflight-20261115.json).
+
+Depois do preflight efêmero, as duas rotas PIE persistentes foram corrigidas
+para este checkout. O arquivo original foi preservado com SHA-256 registrado;
+Blender e Web passaram novamente no preflight sem iniciar modelo. O rollback
+está documentado no relatório [123-persistent-codex-routing-activation-20261115.json](123-persistent-codex-routing-activation-20261115.json).
+
 O overhead estrutural de catálogo foi medido sem modelo: Blender reduziu
 `tools/list` de 18.982 para 3.792 caracteres e Web de 21.177 para 1.738.
 Esses valores são tamanho estrutural, não latência nem tokens cobrados. A
