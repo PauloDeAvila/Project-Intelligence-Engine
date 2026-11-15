@@ -81,6 +81,12 @@ Web, sem iniciar modelo e sem consumir quota. O Blender expôs somente
 `browser_navigate` e `browser_snapshot`, com a fixture HTTP respondendo.
 Evidência: [124-persistent-route-revalidation-20261115.json](124-persistent-route-revalidation-20261115.json).
 
+A suíte completa foi reexecutada no commit corrente e passou com 641 testes,
+5 ignorados e 0 erros em 67,539 s. A saída também contém um diagnóstico
+interno `BLOCKED_WITH_EVIDENCE/disk full`, mas o processo unittest terminou
+com `OK`; esse diagnóstico não foi contado como falha de teste. Evidência:
+[125-full-suite-revalidation-20261115.json](125-full-suite-revalidation-20261115.json).
+
 O overhead estrutural de catálogo foi medido sem modelo: Blender reduziu
 `tools/list` de 18.982 para 3.792 caracteres e Web de 21.177 para 1.738.
 Esses valores são tamanho estrutural, não latência nem tokens cobrados. A

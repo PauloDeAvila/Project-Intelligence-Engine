@@ -93,6 +93,7 @@
   "codex_routing_preflight": "reports/phase3/122-codex-routing-preflight-20261115.json",
   "persistent_routing_activation": "reports/phase3/123-persistent-codex-routing-activation-20261115.json",
   "persistent_route_revalidation": "reports/phase3/124-persistent-route-revalidation-20261115.json",
+  "latest_full_suite_revalidation": "reports/phase3/125-full-suite-revalidation-20261115.json",
   "validation": {
     "focused_tests_passed": 71,
     "full_suite_initial": {
@@ -128,7 +129,7 @@
     "automatic_retries": false,
     "destructive_actions": false,
     "playwright_version": "@playwright/mcp@0.0.85",
-    "latest_commit": "93161d0"
+    "latest_commit": "6bc8bc1"
   },
   "limitations": [
     "Local Ollama measurements are not Codex provider certification.",
