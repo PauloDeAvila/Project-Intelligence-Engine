@@ -216,6 +216,12 @@ O bridge Blender foi corrigido para consultar `outputSchema` em `tools/list`. Qu
 
 Essa alteração remove o bloqueio técnico offline, mas ainda não prova equivalência do cliente Codex nem economia de tokens. O próximo gate é o probe MCP real atualizado, seguido do A/B autorizado; a certificação continua `NOT_CERTIFIED`.
 
+## Probe real Blender `structuredContent` — 2026-11-15
+
+O probe com Blender 5.3 GUI descartável e a fixture real passou nos dois braços. `get_scene_info` declara `outputSchema` `object` com `result` obrigatório. O `structuredContent.result` é a mesma string de 1.522 caracteres presente em `content[0].text`; a resposta serializada mede 3.213 caracteres tanto no baseline quanto no PIE. Não houve compactação, recuperação ou chamadas duplicadas. Classificação: `PASSTHROUGH_SAFE`. Evidência completa: [`79-real-blender-structured-probe.md`](79-real-blender-structured-probe.md).
+
+Conclusão: o A/B Blender não deve ser liberado como teste de economia enquanto esse contrato exigir a observação textual integral. A solução correta passa por uma ferramenta/contrato resumido próprio ou por uma resposta upstream sem essa exigência; remover `structuredContent` seria uma violação do contrato.
+
 ## Próximos passos seguros
 
 1. Escolher, com nova autorização, uma combinação de aprovação suportada pela versão instalada: ou `--approve-for-me` sem `--sandbox`, ou uma sessão interativa `on-request` que aceite a aprovação manual. Não remover proteções indiscriminadamente.
