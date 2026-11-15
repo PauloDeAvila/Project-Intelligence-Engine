@@ -7,7 +7,7 @@ param(
     [ValidateSet("blender", "web")][string]$Domain = "blender",
     [string]$Model = "qwen3:4b",
     [int]$Repetitions = 3,
-    [int]$NumCtx = 16384,
+    [int]$NumCtx = 8192,
     [ValidateSet("profile", "server")][string]$SchemaScope = "profile",
     [int]$BlenderPort = 9877,
     [string]$OutputDirectory = $env:TEMP,
