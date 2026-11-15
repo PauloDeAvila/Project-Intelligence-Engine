@@ -406,7 +406,11 @@ class BlenderMcpBridge:
                             client_id = self.query_clients.pop(_key(message["id"]), None)
                         try:
                             query = parse_query_reply(message)
-                            result = {"content": [{"type": "text", "text": _json(query)}]}
+                            # The declared outputSchema is a typed MCP contract; keep
+                            # the text representation for clients that consume content,
+                            # and provide the same value structurally for strict clients.
+                            result = {"content": [{"type": "text", "text": _json(query)}],
+                                      "structuredContent": query}
                         except (ValueError, KeyError, TypeError, OverflowError) as exc:
                             result = _error("PIE_QUERY_UNAVAILABLE: " + str(exc)[:250])
                         self._write({"jsonrpc": "2.0", "id": client_id, "result": result})

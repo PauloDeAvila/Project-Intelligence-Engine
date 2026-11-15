@@ -16,6 +16,14 @@ class CodexCaptureError(RuntimeError):
 def _sha(v):
     return hashlib.sha256(v if isinstance(v,bytes) else v.encode("utf-8")).hexdigest()
 
+def _expected_mcp_tools(scenario:dict, condition:str)->list[str]|None:
+    by_condition=scenario.get("expected_mcp_tools_by_condition")
+    if isinstance(by_condition,dict):
+        tools=by_condition.get(condition)
+        return list(tools) if isinstance(tools,list) else None
+    tools=scenario.get("expected_mcp_tools")
+    return list(tools) if isinstance(tools,list) else None
+
 def _utc_now():
     return datetime.now(timezone.utc).isoformat()
 
@@ -99,7 +107,7 @@ def _forensic_start(store:Path, *, scenario:dict, condition:str, repetition:int,
         "prompt_sha256":_sha(scenario["prompt"]),"expected_sha256":_sha(expected),
         "workspace_commit":workspace_commit,"configuration_sha256":configsha,
         "expected_mcp_server":expected_server,
-        "expected_mcp_tools":scenario.get("expected_mcp_tools"),
+        "expected_mcp_tools":_expected_mcp_tools(scenario,condition),
     })
     for name in ("codex-stdout.log","codex-stderr.log","codex-events.jsonl","mcp-tool-events.jsonl"):
         (root/name).write_text("",encoding="utf-8")
@@ -208,7 +216,9 @@ def parse_codex_jsonl(source:str)->dict:
             "source":"codex_exec_json_turn_completed","provider_reported":True}
 
 def validate_scenario(s:dict)->dict:
-    allowed={"scenario_id","prompt","expected_exact","model","description","required_mcp_server","expected_mcp_tools","oracle"}
+    allowed={"schema","scenario_id","prompt","expected_exact","model","description","required_mcp_server",
+             "expected_mcp_tools","expected_mcp_tools_by_condition","oracle","task_id","application",
+             "fixture_spec","reasoning_effort","conditions","constraints","experiment_type"}
     if not isinstance(s,dict) or set(s)-allowed:
         raise ValueError("Invalid scenario fields")
     if any(not isinstance(s.get(k),str) or not s[k].strip() for k in ("scenario_id","prompt","expected_exact","model")):
@@ -221,6 +231,13 @@ def validate_scenario(s:dict)->dict:
             any(not isinstance(tool,str) or not tool.strip() for tool in tools) or
             len(set(tools)) != len(tools)):
             raise ValueError("Invalid expected MCP tool allowlist")
+    by_condition=s.get("expected_mcp_tools_by_condition")
+    if by_condition is not None:
+        if (not isinstance(by_condition,dict) or set(by_condition)!={"baseline","optimized"} or
+                any(not isinstance(value,list) or not value or
+                    any(not isinstance(tool,str) or not tool.strip() for tool in value) or
+                    len(set(value)) != len(value) for value in by_condition.values())):
+            raise ValueError("Invalid condition-specific MCP tool allowlist")
     if "oracle" in s and (not isinstance(s["oracle"],dict) or not isinstance(s["oracle"].get("kind"),str)):
         raise ValueError("Invalid oracle specification")
     oracle=s.get("oracle")
@@ -530,7 +547,7 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
                       "usage":parsed["usage"],"provider_reported":True,
                       "certification_status":"INVALID_ROUTE_EVIDENCE",
                       "forensic_path":str(forensic_root)})
-    expected_tools=scenario.get("expected_mcp_tools")
+    expected_tools=_expected_mcp_tools(scenario,condition)
     if expected_tools is not None:
         observed_tools=[item.get("tool") for item in parsed["mcp_tools"]]
         if observed_tools != expected_tools:

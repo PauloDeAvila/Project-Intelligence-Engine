@@ -236,7 +236,7 @@ O próximo piloto pode começar pela tarefa A com um único par real, desde que 
 
 ## Auditoria de código da consulta seletiva — 2026-11-15
 
-Os oráculos foram fortalecidos para comparar valores exatos da fixture, e o simulador agora declara explicitamente `optimized_only`/`NOT_RUN` para A/B. A ponte Blender foi auditada, com regressões para uma execução upstream por consulta e rejeição de argumentos inválidos antes do dispatch. Suíte atual: 577 aprovados e 5 ignorados. Parecer: `APPROVED_WITH_RESERVATIONS`; A/B pago permanece pendente. Evidência: [`82-selective-query-code-audit.md`](82-selective-query-code-audit.md).
+Os oráculos foram fortalecidos para comparar valores exatos da fixture, e o simulador agora declara explicitamente `optimized_only`/`NOT_RUN` para A/B. A ponte Blender foi auditada, com regressões para uma execução upstream por consulta e rejeição de argumentos inválidos antes do dispatch. Suíte atual: 580 aprovados e 5 ignorados. Parecer: `APPROVED_WITH_RESERVATIONS`; A/B pago permanece pendente. Evidência: [`82-selective-query-code-audit.md`](82-selective-query-code-audit.md).
 
 ## Plano do primeiro par A/B Blender — 2026-11-15
 
@@ -245,6 +245,10 @@ Foi preparado, sem iniciar modelo, um par manual da tarefa A. Baseline usa `blen
 ## Revisão do plano A — correções antes de quota
 
 Após auditoria do commit `a86fce5`, o plano foi ajustado antes de qualquer execução: a resposta agora deve ser um JSON verificável; o oráculo aceita somente os quatro campos e valores exatos; baseline e optimized geram allowlists estáticas exclusivas; e `pair_id`, `attempt_nonce` e `run_id` são novos em cada preparação. O handshake `tools/list` e a telemetria `tools/call` ainda são gates obrigatórios de runtime. Estado: `PLAN_REVIEW_BLOCKED_FOR_PAID_EXECUTION` até essa comprovação. Suítes focadas: 19 aprovados.
+
+## Probe sem modelo dos perfis — 2026-11-15
+
+O baseline passou `initialize`, `tools/list` e `get_scene_info` diretamente. O optimized passou `initialize` e `tools/list`, mas `pie_blender_query_scene` retornou `PIE_QUERY_UNAVAILABLE` porque o Blender live não devolveu o marcador esperado; a cena atual também não contém o objeto da fixture `PIE_Large_Cube_00`. O teste negativo offline confirmou `PIE_TOOL_NOT_EXPOSED` sem chamada ao upstream, e o teste de contrato confirmou `structuredContent` junto com `content`. Nenhuma sessão de modelo ou quota foi consumida. Estado: `BLOCKED_FOR_PAID_EXECUTION`. Evidência: [`84-no-model-profile-probe.md`](84-no-model-profile-probe.md).
 
 ## Próximos passos seguros
 

@@ -14,7 +14,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Iterable
 
-from pie.certification.live_codex import CONDITIONS, _record, _sha, validate_scenario
+from pie.certification.live_codex import CONDITIONS, _record, _sha, validate_scenario, _expected_mcp_tools
 from pie.certification.live_codex import CodexCaptureError, capture_codex, preflight_codex
 from pie.certification.task_telemetry import import_provider_record
 
@@ -123,7 +123,7 @@ def build_manifest(*, scenarios: Iterable[dict[str, Any]], workspace: Path,
                     "workspace_root": str(root),
                     "profile": profile,
                     "expected_mcp_server": _expected_server(scenario, condition),
-                    "expected_mcp_tools": scenario.get("expected_mcp_tools"),
+                    "expected_mcp_tools": _expected_mcp_tools(scenario, condition),
                     "oracle": oracle,
                 })
     if max_sessions != MAX_SESSIONS or len(entries) != MAX_SESSIONS:
@@ -239,7 +239,7 @@ def run_pilot(*, manifest: dict[str, Any], scenarios: Iterable[dict[str, Any]],
             entry.get("expected_sha256") != _sha(scenario["expected_exact"].strip()) or
             entry.get("expected_mcp_server") != _expected_server(scenario, entry["condition"])):
             raise ControllerError("Manifest identity does not match the loaded scenario")
-        if entry.get("expected_mcp_tools") != scenario.get("expected_mcp_tools"):
+        if entry.get("expected_mcp_tools") != _expected_mcp_tools(scenario, entry["condition"]):
             raise ControllerError("Manifest tool allowlist does not match the loaded scenario")
         home=baseline_home if entry["condition"]=="baseline" else optimized_home
         profile=baseline_profile if entry["condition"]=="baseline" else optimized_profile
@@ -250,7 +250,8 @@ def run_pilot(*, manifest: dict[str, Any], scenarios: Iterable[dict[str, Any]],
         try:
             record=capture_codex(scenario,condition=entry["condition"],repetition=1,
                                  workspace=root,codex_home=home,codex_bin=codex_bin,
-                                 profile=profile,timeout=timeout)
+                                 profile=profile,timeout=timeout,
+                                 run_id_override=entry["run_id"], pair_id_override=entry["pair_id"])
         except CodexCaptureError as exc:
             return {"schema":"pie-phase3-pilot-result-v1","state":"AB_PILOT_FAILED",
                     "authorization":{"maximum_sessions":authorized_sessions,
@@ -350,7 +351,8 @@ def run_single(*, scenario: dict[str, Any], application: str, condition: str,
                workspace: Path, baseline_home: Path, optimized_home: Path,
                baseline_profile: str, optimized_profile: str, output: Path,
                authorized_sessions: int = 1, codex_bin: str = "codex",
-               timeout: int = 240, pair_id_override: str | None = None) -> dict[str, Any]:
+               timeout: int = 240, pair_id_override: str | None = None,
+               run_id_override: str | None = None) -> dict[str, Any]:
     """Run one reusable certification arm with a persistent pre-spawn ledger."""
     validate_scenario(scenario)
     if application not in ("blender", "web") or condition not in CONDITIONS:
@@ -362,7 +364,9 @@ def run_single(*, scenario: dict[str, Any], application: str, condition: str,
     root = workspace.expanduser().resolve(strict=True)
     output = output.expanduser().resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
-    run_id = f"{condition}-" + uuid.uuid4().hex[:24]
+    run_id = run_id_override or (f"{condition}-" + uuid.uuid4().hex[:24])
+    if not re.fullmatch(r"[A-Za-z0-9._-]{1,128}", run_id):
+        raise ControllerError("Invalid run_id override")
     pair_id = pair_id_override or ("pair-" + uuid.uuid4().hex[:24])
     if not re.fullmatch(r"[A-Za-z0-9._-]{1,128}", pair_id):
         raise ControllerError("Invalid pair_id override")
@@ -479,6 +483,7 @@ def main(argv: list[str] | None = None) -> int:
     single.add_argument("--optimized-profile", required=True)
     single.add_argument("--output", type=Path, required=True)
     single.add_argument("--pair-id", default=None)
+    single.add_argument("--run-id", default=None)
     single.add_argument("--codex-bin", default="codex")
     single.add_argument("--timeout", type=int, default=240)
     args = parser.parse_args(argv)
@@ -518,7 +523,7 @@ def main(argv: list[str] | None = None) -> int:
                 optimized_home=args.optimized_home,
                 baseline_profile=args.baseline_profile, optimized_profile=args.optimized_profile,
                 output=args.output, codex_bin=args.codex_bin, timeout=args.timeout,
-                pair_id_override=args.pair_id)
+                pair_id_override=args.pair_id, run_id_override=args.run_id)
         else:
             scenarios = [load_scenario(path) for path in args.scenario]
             manifest_document = json.loads(args.manifest.read_text(encoding="utf-8"))

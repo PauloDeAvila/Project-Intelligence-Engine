@@ -33,8 +33,9 @@ def main() -> int:
     optimized = _load_profile(args.profiles / "pie-phase3-optimized.config.toml", "pie-blender-optimized")
     baseline_tools = baseline.get("enabled_tools", [])
     optimized_tools = optimized.get("enabled_tools", [])
-    expected_baseline_tools = scenario["conditions"]["baseline"]["tools"]
-    expected_optimized_tools = scenario["conditions"]["optimized"]["tools"]
+    task_id = scenario["scenario_id"]
+    expected_baseline_tools = scenario["expected_mcp_tools_by_condition"]["baseline"]
+    expected_optimized_tools = scenario["expected_mcp_tools_by_condition"]["optimized"]
     if set(baseline_tools) != set(expected_baseline_tools):
         raise ValueError("baseline global tool allowlist differs from scenario")
     if set(optimized_tools) != set(expected_optimized_tools):
@@ -53,11 +54,11 @@ def main() -> int:
     pair_id = "pair-" + attempt_nonce
     entries = []
     for condition, profile, server, tools in (
-        ("baseline", "pie-phase3-baseline.config.toml", "blender", scenario["conditions"]["baseline"]["tools"]),
-        ("optimized", "pie-phase3-optimized.config.toml", "pie-blender-optimized", scenario["conditions"]["optimized"]["tools"]),
+        ("baseline", "pie-phase3-baseline.config.toml", "blender", expected_baseline_tools),
+        ("optimized", "pie-phase3-optimized.config.toml", "pie-blender-optimized", expected_optimized_tools),
     ):
         entries.append({
-            "task_id": scenario["task_id"], "pair_id": pair_id,
+            "task_id": task_id, "scenario_id": task_id, "pair_id": pair_id,
             "run_id": f"{condition}-" + uuid.uuid4().hex[:24],
             "condition": condition, "application": "blender", "model": scenario["model"],
             "reasoning_effort": scenario["reasoning_effort"], "profile": profile,
@@ -70,8 +71,15 @@ def main() -> int:
         "execution": "PLAN_ONLY_NO_MODEL_EXECUTION", "model_sessions": 2,
         "automatic_retry": False, "experiment_type": scenario["experiment_type"],
         "workspace_root": str(root), "fixture_spec": str(fixture), "pair_id": pair_id,
+        "scenario_id": task_id,
         "attempt_nonce": attempt_nonce,
         "entries": entries,
+        "runtime_validation": {
+            "status": "REQUIRED_BEFORE_PAID_EXECUTION",
+            "tools_list": "pending",
+            "tools_call": "pending",
+            "forbidden_tool_rejection": "pending",
+        },
         "limitations": [
             "This compares different product capabilities, not transparent compaction.",
             "Provider-reported usage and exact route evidence are required for validity.",

@@ -1,15 +1,16 @@
 {
   "schema": "pie-phase3-blender-selective-task-v1",
-  "task_id": "blender-selective-location-v1",
+  "scenario_id": "blender-selective-location-v1",
   "application": "blender",
+  "required_mcp_server": "blender",
   "model": "gpt-5.6-luna",
   "reasoning_effort": "medium",
   "fixture_spec": "fixtures/phase3/blender/large_scene_spec.json",
   "prompt": "Use only the configured Blender MCP server and do not modify the scene. Inspect PIE_Large_Cube_00 and determine its exact name, type, location, and material names. Use the most direct read-only capability exposed by the configured server. Return only one JSON object with exactly these keys: object_name, object_type, location, material_names. Do not include markdown, prose, or a marker.",
   "expected_exact": "{\"object_name\":\"PIE_Large_Cube_00\",\"object_type\":\"MESH\",\"location\":[0.0,0.0,0.0],\"material_names\":[\"PIE_Large_Material_00\"]}",
-  "conditions": {
-    "baseline": {"server": "blender", "tools": ["get_scene_info"]},
-    "optimized": {"server": "pie-blender-optimized", "tools": ["pie_blender_query_scene"]}
+  "expected_mcp_tools_by_condition": {
+    "baseline": ["get_scene_info"],
+    "optimized": ["pie_blender_query_scene"]
   },
   "oracle": {
     "kind": "blender_scene_json",

@@ -194,6 +194,42 @@ for line in sys.stdin:
         self.assertEqual(query["schema"], "pie-blender-query-scene-v1")
         self.assertEqual(query["items"][0]["name"], "PIE_Large_Cube_00")
         self.assertEqual(query["query_calls"], 1)
+        self.assertEqual(responses[5]["result"]["structuredContent"]["items"], query["items"])
+
+    def test_exposed_profile_rejects_forbidden_tool_without_upstream_call(self):
+        marker = Path(self.id().replace(".", "_") + ".marker")
+        mock = r'''
+import json,sys
+for line in sys.stdin:
+    q=json.loads(line)
+    if q.get("method")=="tools/call":
+        open(r"''' + str(marker).replace("\\", "\\\\") + r'''", "a").write(q.get("params",{}).get("name", ""))
+    if "id" not in q: continue
+    if q.get("method")=="initialize": result={"protocolVersion":"2025-03-26","capabilities":{},"serverInfo":{}}
+    elif q.get("method")=="tools/list": result={"tools":[{"name":"get_scene_info","inputSchema":{"type":"object"}}]}
+    else: result={"content":[{"type":"text","text":"upstream-called"}]}
+    print(json.dumps({"jsonrpc":"2.0","id":q["id"],"result":result}),flush=True)
+'''
+        env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1] / "src"))
+        requests = [
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}},
+            {"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}},
+            {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"get_scene_info","arguments":{}}},
+        ]
+        try:
+            run = subprocess.run(
+                [sys.executable, "-m", "pie.integrations.blender_mcp_bridge",
+                 "--expose-tool", "pie_blender_query_scene", "--", sys.executable, "-c", mock],
+                input="\n".join(json.dumps(item) for item in requests) + "\n",
+                text=True, capture_output=True, env=env, timeout=20,
+            )
+            self.assertEqual(run.returncode, 0, run.stderr)
+            response = {item["id"]: item for item in (json.loads(line) for line in run.stdout.splitlines())}[3]
+            self.assertTrue(response["result"]["isError"])
+            self.assertEqual(response["result"]["content"][0]["text"], "PIE_TOOL_NOT_EXPOSED")
+            self.assertFalse(marker.exists())
+        finally:
+            marker.unlink(missing_ok=True)
 
     def test_invalid_selective_query_does_not_reach_upstream(self):
         marker = Path(self.id().replace(".", "_") + ".marker")

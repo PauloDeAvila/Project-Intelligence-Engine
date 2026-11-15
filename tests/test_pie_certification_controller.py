@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from pie.certification.controller import (
     ControllerError, audit_record_route, build_manifest, plan_batches,
-    run_pilot, validate_batch_budget, validate_manifest,
+    load_scenario, run_pilot, run_single, validate_batch_budget, validate_manifest,
 )
 from pie.certification.live_codex import CodexCaptureError, SCHEMA
 
@@ -31,6 +31,27 @@ def scenario(app: str) -> dict:
 
 
 class ControllerTests(unittest.TestCase):
+    def test_selective_blender_scenario_uses_controller_contract(self):
+        path = Path(__file__).resolve().parents[1] / "benchmarks" / "phase3" / "blender-selective-task-a-scenario.json"
+        loaded = load_scenario(path)
+        self.assertEqual(loaded["scenario_id"], "blender-selective-location-v1")
+        self.assertEqual(loaded["expected_mcp_tools_by_condition"]["baseline"], ["get_scene_info"])
+        self.assertEqual(loaded["expected_mcp_tools_by_condition"]["optimized"], ["pie_blender_query_scene"])
+
+    def test_single_run_preserves_plan_identity_before_model(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            with patch("pie.certification.controller.preflight_codex",
+                       return_value={"state": "BLOCKED", "errors": ["offline-test"]}):
+                result = run_single(
+                    scenario=scenario("blender"), application="blender", condition="baseline",
+                    workspace=root, baseline_home=root / "baseline", optimized_home=root / "optimized",
+                    baseline_profile="baseline", optimized_profile="optimized", output=root / "result.json",
+                    pair_id_override="pair-plan-fixed", run_id_override="baseline-plan-fixed")
+            self.assertEqual(result["run_id"], "baseline-plan-fixed")
+            self.assertEqual(result["pair_id"], "pair-plan-fixed")
+            self.assertFalse(result["quota_consumed"])
+
     def test_pilot_persists_sanitized_usage_on_route_failure(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)
