@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 from benchmark_local_ollama import (
     _check_response, _provider_usage, _tool_calls, compare_pair, correct_answer,
-    fixture_pass, run_local_model,
+    fixture_pass, run_local_model, ensure_local_model,
 )
 
 
@@ -46,8 +46,13 @@ class LocalOllamaBenchmarkTests(unittest.TestCase):
         self.assertEqual(correct_answer(scenario, '{ "title" : "T" }'), (True, False))
         self.assertEqual(correct_answer(scenario, '{"title":"wrong"}'), (False, False))
         self.assertEqual(correct_answer(scenario, 'not json'), (False, False))
-        payload = [{"content": [{"type": "text", "text": "PIE_Large_Cube_00 PIE_Large_Material_00"}]}]
-        self.assertTrue(fixture_pass({"application": "blender"}, payload))
+        payload = [{"content": [{"type": "text", "text":
+            'Code executed successfully: PIE_LOCAL_OBJECT_V1={"object_name":"PIE_Large_Cube_00","object_type":"MESH","location":[0,0,0],"material_names":["PIE_Large_Material_00"]}'}]}]
+        blender_scenario = {"application": "blender", "expected_exact": json.dumps({
+            "object_name": "PIE_Large_Cube_00", "object_type": "MESH",
+            "location": [0.0, 0.0, 0.0], "material_names": ["PIE_Large_Material_00"]})}
+        self.assertTrue(fixture_pass(blender_scenario, payload))
+        self.assertFalse(fixture_pass(blender_scenario, [{"content": [{"type": "text", "text": "PIE_Large_Cube_00 PIE_Large_Material_00"}]}]))
         self.assertFalse(fixture_pass({"application": "web"}, payload))
 
     def test_pair_comparison_requires_both_correct(self):
@@ -56,6 +61,21 @@ class LocalOllamaBenchmarkTests(unittest.TestCase):
         self.assertEqual(compare_pair(a, b)["total_token_savings_percent"], 50.0)
         b["oracle_pass"] = False
         self.assertEqual(compare_pair(a, b)["state"], "ORACLE_FAILED")
+
+    def test_local_model_must_be_installed_not_cloud(self):
+        with self.assertRaises(RuntimeError):
+            ensure_local_model("qwen3:cloud")
+        reply = {"models": [{"name": "qwen3:4b"}]}
+
+        class FakeResponse:
+            def __enter__(self):return self
+            def __exit__(self, *_):return False
+            def read(self, _):return json.dumps(reply).encode()
+
+        with patch("benchmark_local_ollama.urlopen", return_value=FakeResponse()):
+            ensure_local_model("qwen3:4b")
+            with self.assertRaises(RuntimeError):
+                ensure_local_model("missing:2b")
 
     def test_local_model_request_is_local_and_records_usage(self):
         scenario = {"application": "web", "expected_exact": '{"title":"T"}', "prompt": "Extract title."}
