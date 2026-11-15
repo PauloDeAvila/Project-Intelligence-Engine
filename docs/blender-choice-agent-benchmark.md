@@ -113,3 +113,61 @@ uv run python -m unittest discover -s tests -p test_blender_choice_agent.py -v
 **Não rode novamente o benchmark real sem nova decisão explícita**:
 esta atualização publica apenas instrumentação prospectiva, não autoriza
 nova execução, não produz nova taxa de economia e não certifica o Codex.
+
+
+## Caminho funcional automático para consultas exatas (após falha do Qwen)
+
+A tarefa multi-choice com Qwen falhou fechada na primeira execução.
+O relatório histórico permanece FAILED_CLOSED, sem oráculo ou economia.
+A investigação mostrou que a pergunta já especificava exatamente o
+nome de um objeto e o contrato indicava qual operação usar; nesse caso,
+submeter a seleção de índices ao Qwen era custo e risco desnecessários.
+
+Foi implementado um roteador reutilizável no código de produção:
+src/pie/integrations/blender_routing.py. Ele recebe o catálogo MCP
+exposto, os nomes candidatos e o nome solicitado. Somente aceita
+correspondência integral, nomes sem duplicatas e ferramentas
+estritamente reconhecidas como consultas exatas. Prefere a ferramenta
+pie_blender_get_object quando presente; usa execute_blender_code
+somente quando essa for a ferramenta de extração disponível e a
+execução usar o template de código de leitura auditado. Não gera
+Python a partir de texto livre. Falha fechada se faltar informação.
+
+O modo padrão do launcher agora é RouteMode=deterministic. Ele:
+- Não chama Ollama e não depende de um modelo instalado
+- Seleciona índices diferentes conforme objeto e ordem das ferramentas
+- Executa uma chamada MCP real por braço
+- Reconstrói quatro campos diretamente da resposta
+- Valida o oráculo independente da fixture 8x8
+- Registra usage=null e provider_requests=0 em vez de inventar tokens
+- NÃO publica uma porcentagem de economia de tokens se ambos os braços
+  executaram sem LLM; registra DETERMINISTIC_ROUTING_NO_MODEL
+
+Execução local com fixture descartável Blender 5.3 ativa na porta 9877:
+
+~~~powershell
+git fetch origin feat/pie-local-ollama-mcp-benchmark
+git merge --ff-only origin/feat/pie-local-ollama-mcp-benchmark
+
+# Todas as três tarefas, no fluxo automático sem modelo
+.\tools\run_blender_choice_agent.ps1 -RouteMode deterministic -MaxTasks 3
+~~~
+
+A opção RouteMode=model preserva a experiência de seleção por Qwen para
+tarefas de pesquisa/avaliação. Nesse modo, os índices são validados antes
+de qualquer chamada MCP; erros nunca são promovidos a sucesso e são
+registrados com códigos. Nenhum fallback disfarça falhas do modelo:
+
+~~~powershell
+# Somente para avaliação do planejador local, não necessário para o roteador
+.\tools\run_blender_choice_agent.ps1 -RouteMode model -MaxTasks 3
+~~~
+
+No repositório, os testes de roteamento percorrem 64 nomes e rejeitam
+catálogos inseguros/malformados. Os testes de integração sobem um proxy
+MCP real com upstream Blender *simulado*; não equivalem à execução
+gráfica com bpy. A medição de 42,353% de planejamento da experiência
+anterior permanece histórica e não se aplica ao roteamento sem LLM.
+
+A certificação Codex continua NOT_CERTIFIED. As fixtures de avaliação
+oficial e os manifestos congelados 106/107 não foram alterados.
