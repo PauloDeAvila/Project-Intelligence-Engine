@@ -1,0 +1,24 @@
+{
+  "schema": "pie-phase3-single-acceptance-v1",
+  "state": "BASELINE_BLENDER_FAILED_ORACLE",
+  "run_id": "baseline-1c07733a5e3840e3ad9a9b79",
+  "pair_id": "pair-81c43938155843a8bb299912",
+  "provider_usage_available": true,
+  "mcp_route": "VALID",
+  "expected_tools_completed": true,
+  "controller_text_oracle": true,
+  "independent_blender_oracle": {
+    "status": "FAIL",
+    "object": "PIE_AB_Cube",
+    "material": "PIE_AB_Material",
+    "roughness_observed": 0.4000000059604645,
+    "roughness_expected": 0.35,
+    "metallic_observed": 0.0,
+    "metallic_expected": 0.2
+  },
+  "first_acceptance_failure": "INDEPENDENT_BLENDER_ORACLE_MISMATCH",
+  "optimized_started": false,
+  "automatic_retry": false,
+  "quota_sessions_consumed": 1,
+  "certification": "NOT_CERTIFIED"
+}

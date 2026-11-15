@@ -89,7 +89,15 @@ O contrato de correlação foi endurecido em `4c1e90c`: novas capturas levam `ta
 
 O oráculo independente Blender também foi validado sem mutação: `PIE_AB_Cube` usa `PIE_AB_Material`, com roughness `0,35` e metallic `0,20`. O cenário de inspeção via `execute_blender_code` está preparado, mas ainda não foi executado como sessão Codex A/B. Evidência: [`41-blender-material-oracle.json`](41-blender-material-oracle.json).
 
-Para certificar o commit atual, o plano fechado exige **12 novas sessões**: três pares Blender e três Web, seis baseline e seis optimized. O relatório detalhado é [`34-ab-offline-audit.md`](34-ab-offline-audit.md). Não foram executados modelos nesta auditoria.
+Para certificar o commit atual, o plano fechado exige **12 novas sessões**: três pares Blender e três Web, seis baseline e seis optimized. O relatório detalhado é [`34-ab-offline-audit.md`](34-ab-offline-audit.md).
+
+## Execução integrada baseline Blender — 2026-11-15
+
+Foi executada uma única sessão baseline real com o controlador novo, sem retry. O Codex reportou `95.925` tokens de entrada, `82.560` em cache, `672` de saída e `19.964,993 ms`; `blender/get_scene_info` e `blender/execute_blender_code` concluíram e a captura forense foi preservada por `run_id=baseline-1c07733a5e3840e3ad9a9b79` e `pair_id=pair-81c43938155843a8bb299912`.
+
+Entretanto, a leitura Blender independente posterior encontrou roughness `0.4000000059604645` e metallic `0.0`, contra o contrato `0.35` e `0.2`. O marcador textual do Codex passou, mas o oráculo independente falhou. A execução foi excluída de qualquer cálculo A/B; optimized não foi iniciado e não houve retry. Evidências: [`60-single-baseline-blender-acceptance.json`](60-single-baseline-blender-acceptance.json), [`60-single-baseline-blender.md`](60-single-baseline-blender.md) e o diretório forense indicado nesses relatórios.
+
+O resultado atual é `BASELINE_BLENDER_FAILED_ORACLE`; a certificação geral permanece `NOT_CERTIFIED`.
 
 ## Custos
 
