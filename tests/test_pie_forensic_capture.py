@@ -148,6 +148,17 @@ class CaptureBoundaryTests(unittest.TestCase):
         self.assertTrue(Path(error.evidence["forensic_path"]).is_dir())
         self.assertEqual(run.call_count, 2)
 
+    def test_expected_tool_allowlist_is_exact_and_ordered(self):
+        scenario = _scenario()
+        scenario["expected_mcp_tools"] = ["get_scene_info"]
+        outcome, error, _ = self._capture(_completed(_trace()), scenario=scenario)
+        self.assertIsNone(error)
+        self.assertTrue(outcome["mcp_route_verified"])
+        scenario["expected_mcp_tools"] = ["execute_blender_code"]
+        _, error, _ = self._capture(_completed(_trace()), scenario=scenario)
+        self.assertIsInstance(error, CodexCaptureError)
+        self.assertIn("tool allowlist failed", str(error))
+
 
 class ControllerBoundaryTests(unittest.TestCase):
     def test_persistence_failure_returns_blocked_once(self):

@@ -119,6 +119,7 @@ def build_manifest(*, scenarios: Iterable[dict[str, Any]], workspace: Path,
                     "workspace_root": str(root),
                     "profile": profile,
                     "expected_mcp_server": _expected_server(scenario, condition),
+                    "expected_mcp_tools": scenario.get("expected_mcp_tools"),
                     "oracle": oracle,
                 })
     if max_sessions != MAX_SESSIONS or len(entries) != MAX_SESSIONS:
@@ -229,6 +230,8 @@ def run_pilot(*, manifest: dict[str, Any], scenarios: Iterable[dict[str, Any]],
             entry.get("expected_sha256") != _sha(scenario["expected_exact"].strip()) or
             entry.get("expected_mcp_server") != _expected_server(scenario, entry["condition"])):
             raise ControllerError("Manifest identity does not match the loaded scenario")
+        if entry.get("expected_mcp_tools") != scenario.get("expected_mcp_tools"):
+            raise ControllerError("Manifest tool allowlist does not match the loaded scenario")
         home=baseline_home if entry["condition"]=="baseline" else optimized_home
         profile=baseline_profile if entry["condition"]=="baseline" else optimized_profile
         preflight=preflight_codex(scenario,condition=entry["condition"],workspace=root,

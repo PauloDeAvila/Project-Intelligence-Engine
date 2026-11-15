@@ -51,6 +51,7 @@ def _forensic_start(store:Path, *, scenario:dict, condition:str, repetition:int,
         "prompt_sha256":_sha(scenario["prompt"]),"expected_sha256":_sha(expected),
         "workspace_commit":workspace_commit,"configuration_sha256":configsha,
         "expected_mcp_server":expected_server,
+        "expected_mcp_tools":scenario.get("expected_mcp_tools"),
     })
     for name in ("codex-stdout.log","codex-stderr.log","codex-events.jsonl","mcp-tool-events.jsonl"):
         (root/name).write_text("",encoding="utf-8")
@@ -159,13 +160,19 @@ def parse_codex_jsonl(source:str)->dict:
             "source":"codex_exec_json_turn_completed","provider_reported":True}
 
 def validate_scenario(s:dict)->dict:
-    allowed={"scenario_id","prompt","expected_exact","model","description","required_mcp_server","oracle"}
+    allowed={"scenario_id","prompt","expected_exact","model","description","required_mcp_server","expected_mcp_tools","oracle"}
     if not isinstance(s,dict) or set(s)-allowed:
         raise ValueError("Invalid scenario fields")
     if any(not isinstance(s.get(k),str) or not s[k].strip() for k in ("scenario_id","prompt","expected_exact","model")):
         raise ValueError("Scenario needs ID, prompt, expected exact answer, model")
     if "CONFIGURE_BEFORE_USE" in s["model"] or len(s["prompt"])>12000 or len(s["expected_exact"])>4000:
         raise ValueError("Unconfigured or oversized scenario")
+    tools=s.get("expected_mcp_tools")
+    if tools is not None:
+        if (not isinstance(tools,list) or not tools or
+            any(not isinstance(tool,str) or not tool.strip() for tool in tools) or
+            len(set(tools)) != len(tools)):
+            raise ValueError("Invalid expected MCP tool allowlist")
     if "oracle" in s and (not isinstance(s["oracle"],dict) or not isinstance(s["oracle"].get("kind"),str)):
         raise ValueError("Invalid oracle specification")
     return s
@@ -414,6 +421,19 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
                       "usage":parsed["usage"],"provider_reported":True,
                       "certification_status":"INVALID_ROUTE_EVIDENCE",
                       "forensic_path":str(forensic_root)})
+    expected_tools=scenario.get("expected_mcp_tools")
+    if expected_tools is not None:
+        observed_tools=[item.get("tool") for item in parsed["mcp_tools"]]
+        if observed_tools != expected_tools:
+            _forensic_finish(forensic_root,status="tool_allowlist_failed",returncode=run.returncode,
+                             duration_ms=round((time.perf_counter()-t0)*1000,3),
+                             error=f"MCP tool allowlist failed; expected {expected_tools}; observed {observed_tools}")
+            raise CodexCaptureError(
+                f"MCP tool allowlist failed; expected {expected_tools}; observed {observed_tools}",
+                evidence={"run_id":run_id,"pair_id":pair_id,"condition":condition,
+                          "expected_mcp_server":expected_server,"expected_mcp_tools":expected_tools,
+                          "observed_mcp_tools":observed_tools,"forensic_path":str(forensic_root),
+                          "certification_status":"INVALID_TOOL_ALLOWLIST"})
     actual=parsed.pop("answer").strip();expected=scenario["expected_exact"].strip()
     _write_json(forensic_root/"oracle-result.json",{
         "status":"evaluated","run_id":run_id,"oracle_kind":"exact_text",
