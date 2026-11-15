@@ -13,9 +13,16 @@ def _path() -> Path | None:
     value = os.environ.get("PIE_MCP_BOOTSTRAP_PATH") or os.environ.get("PIE_MCP_DIAGNOSTICS_PATH")
     if value:
         return Path(value).expanduser()
-    # Codex may not inherit arbitrary parent environment variables. The
-    # workspace argument is part of the persisted MCP command, so it is a safe
-    # deterministic fallback for sanitized lifecycle events.
+    # Codex may not inherit arbitrary parent environment variables. Prefer the
+    # persisted --store argument so benchmarks do not dirty an immutable
+    # worktree; fall back to the workspace for legacy routes without --store.
+    try:
+        index = sys.argv.index("--store")
+        store = Path(sys.argv[index + 1]).expanduser()
+        if store:
+            return store / "mcp-lifecycle.jsonl"
+    except (ValueError, IndexError):
+        pass
     try:
         index = sys.argv.index("--workspace")
         workspace = Path(sys.argv[index + 1]).expanduser()

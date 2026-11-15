@@ -146,7 +146,7 @@ for line in sys.stdin:
   else: result={"serverInfo":{"name":"mock","version":"1"},"protocolVersion":"2025-03-26","capabilities":{"tools":{}}}
   print(json.dumps({"jsonrpc":"2.0","id":q["id"],"result":result}),flush=True)
 '''
-        diagnostics=self.root/".pie-live-store"/"mcp-lifecycle.jsonl"
+        diagnostics=self.store/"mcp-lifecycle.jsonl"
         requests=[request(1,"initialize",{}),request(2,"tools/list",{}),
                   request(3,"tools/call",{"name":"get_scene_info","arguments":{}})]
         run=self._run("web",upstream,requests)
