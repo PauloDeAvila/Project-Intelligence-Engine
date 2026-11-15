@@ -172,6 +172,9 @@ def _git_clean_commit(root:Path)->str:
         raise ValueError("Benchmark needs a clean immutable Git checkout")
     return sha
 
+def _telemetry_store(workspace:Path)->Path:
+    return workspace.parent/("."+workspace.name+"-pie-live-store")
+
 def _expected_mcp_server(scenario:dict,condition:str)->str|None:
     required=scenario.get("required_mcp_server")
     if not isinstance(required,str):return None
@@ -189,7 +192,7 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
     workspace=Path(workspace).expanduser().resolve(strict=True)
     commit=_git_clean_commit(workspace)
     env,configsha=_codex_environment(Path(codex_home),profile=profile)
-    telemetry_store=workspace/".pie-live-store"
+    telemetry_store=_telemetry_store(workspace)
     telemetry_store.mkdir(parents=True,exist_ok=True)
     env["PIE_GLOBAL_STORAGE_ROOT"]=str(telemetry_store)
     env["PIE_MCP_DIAGNOSTICS_PATH"]=str(telemetry_store/"mcp-lifecycle.jsonl")

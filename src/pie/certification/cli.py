@@ -1,8 +1,10 @@
 """Operator CLI for read-only Codex usage capture, comparison and routing audit."""
 from __future__ import annotations
 import argparse,json,sys
+import os
 from pathlib import Path
-from pie.certification.live_codex import _read_records,capture_codex,compare,validate_scenario,preflight_codex
+from pie.certification.live_codex import (_read_records,_telemetry_store,capture_codex,
+                                          compare,validate_scenario,preflight_codex)
 from pie.certification.task_telemetry import import_provider_record
 from pie.certification.coverage import audit_codex
 
@@ -62,9 +64,15 @@ def main(argv=None)->int:
                     repetition=args.repetition,workspace=args.workspace,
                     codex_home=args.codex_home,timeout=args.timeout,codex_bin=args.codex_bin,profile=args.profile)
             if args.telemetry_workspace is not None:
-                import_provider_record(args.telemetry_workspace, result,
-                                       app=args.telemetry_app or _scenario_app(scenario),
-                                       task_id=args.telemetry_task_id or scenario["scenario_id"])
+                previous=os.environ.get("PIE_GLOBAL_STORAGE_ROOT")
+                os.environ["PIE_GLOBAL_STORAGE_ROOT"]=str(_telemetry_store(args.telemetry_workspace))
+                try:
+                    import_provider_record(args.telemetry_workspace, result,
+                                           app=args.telemetry_app or _scenario_app(scenario),
+                                           task_id=args.telemetry_task_id or scenario["scenario_id"])
+                finally:
+                    if previous is None:os.environ.pop("PIE_GLOBAL_STORAGE_ROOT",None)
+                    else:os.environ["PIE_GLOBAL_STORAGE_ROOT"]=previous
         elif args.cmd=="preflight":
             scenario=validate_scenario(json.loads(args.scenario.read_text(encoding="utf-8")))
             result=preflight_codex(scenario,condition=args.condition,workspace=args.workspace,
