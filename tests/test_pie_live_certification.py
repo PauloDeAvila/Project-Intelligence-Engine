@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"src"))
 from pie.certification.live_codex import (SCHEMA,CodexCaptureError,parse_codex_jsonl,
-    compare,validate_scenario,preflight_codex,_capture_pair_id,_evaluate_answer,_oracle_diagnostic)
+    compare,validate_scenario,preflight_codex,_capture_pair_id,_evaluate_answer,_oracle_diagnostic,_record)
 from pie.certification.cli import _safe_error
 from pie.certification.coverage import audit_codex
 
@@ -86,6 +86,11 @@ class UsageTests(unittest.TestCase):
         lowercase=scenario["expected_exact"].replace('"MESH"','"mesh"')
         self.assertEqual(_evaluate_answer(scenario, lowercase),(True,"blender_scene_json"))
         self.assertEqual(_evaluate_answer(scenario, '{"object_name":"PIE_Large_Cube_00"}')[0],False)
+
+    def test_record_accepts_blender_json_oracle(self):
+        item=row(1,"baseline",1200)
+        item["oracle_kind"]="blender_scene_json"
+        self.assertEqual(_record(item), ("one", 1))
 
     def test_oracle_diagnostic_exposes_shape_without_values(self):
         scenario={"oracle":{"kind":"blender_scene_json","expected":{

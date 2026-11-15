@@ -10,6 +10,10 @@ A execução `94-blender-v2-baseline.json` confirmou a rota correta (`blender/ge
 
 A avaliação foi corrigida para normalizar somente esse enum de representação, preservando comparação exata dos demais campos. A evidência detalhada está em [`94-blender-v2-baseline.md`](94-blender-v2-baseline.md). Essa correção ainda precisa ser exercitada em uma nova sessão autorizada antes de qualquer A/B; a certificação permanece `NOT_CERTIFIED`.
 
+## Baseline Blender v2 — incidente de upstream
+
+A tentativa seguinte foi roteada corretamente e consumiu 45.399 tokens de entrada, 39.680 cacheados, 814 de saída e 22.659,152 ms. O oráculo encontrou `object_name` e `object_type` nulos e arrays vazios. A investigação mostrou que o perfil temporário omitiu a porta Blender `9877`, usada pelo perfil previamente validado. O braço optimized não foi executado e não houve retry. Evidência: [`96-blender-v2-fixed-baseline.md`](96-blender-v2-fixed-baseline.md). O próximo gate é sem modelo, com a porta explícita; a certificação continua `NOT_CERTIFIED`.
+
 Os números A/B históricos abaixo são mantidos como evidência preliminar e não devem ser confundidos com o piloto atual. Eles não promovem a certificação porque não satisfazem a cobertura causal e de correlação exigida.
 
 O par usou o mesmo modelo, esforço, prompt, commit e estado inicial. A baseline foi válida; a optimized tem uso real e oráculo textual/Blender aprovados, mas route evidence `INSUFFICIENT_EVIDENCE`. Não houve execução Web nesta etapa nem retry automático.

@@ -673,7 +673,7 @@ def _read_records(paths:list[Path])->list[dict]:
 def _record(r):
     if not isinstance(r,dict) or r.get("schema")!=SCHEMA or r.get("provider_reported") is not True or r.get("source")!="codex_exec_json_turn_completed":
         raise ValueError("No provider-reported usage evidence")
-    if r.get("condition") not in CONDITIONS or r.get("oracle_kind")!="exact_text" or type(r.get("oracle_pass")) is not bool:
+    if r.get("condition") not in CONDITIONS or r.get("oracle_kind") not in {"exact_text", "blender_scene_json"} or type(r.get("oracle_pass")) is not bool:
         raise ValueError("Condition/oracle absent")
     for k in ("scenario_id","run_id","pair_id","model","codex_version","prompt_sha256","expected_sha256","workspace_commit","configuration_sha256","expected_mcp_server"):
         if not isinstance(r.get(k),str) or not r[k]:raise ValueError("Missing "+k)

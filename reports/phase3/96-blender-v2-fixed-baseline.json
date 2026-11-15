@@ -1,0 +1,39 @@
+{
+  "schema": "pie-phase3-single-result-v1",
+  "state": "BASELINE_BLENDER_FAILED_ORACLE",
+  "run_id": "baseline-5eb2e10e0d0a23b39beb4bec",
+  "pair_id": "pair-6b6be19f1207764035df1432",
+  "quota_consumed": true,
+  "automatic_retry": false,
+  "optimized_not_run": true,
+  "record": {
+    "condition": "baseline",
+    "scenario_id": "blender-selective-location-v2",
+    "model": "gpt-5.6-luna",
+    "workspace_commit": "ed0449f82cf2b1a1a512ae124dc784ceafe3d0da",
+    "runtime_ms": 22659.152,
+    "tool_events": 1,
+    "mcp_tools": [{"server": "blender", "tool": "get_scene_info", "status": "completed"}],
+    "usage": {"input_tokens": 45399, "cached_input_tokens": 39680, "output_tokens": 814, "reasoning_output_tokens": 651},
+    "provider_reported": true,
+    "mcp_route_verified": true,
+    "source": "codex_exec_json_turn_completed",
+    "forensic_path": "C:\\Users\\phsra\\AppData\\Local\\Temp\\.pie-phase3-ed0449f-pie-live-store\\runs\\baseline-5eb2e10e0d0a23b39beb4bec"
+  },
+  "oracle": {
+    "passed": false,
+    "kind": "blender_scene_json",
+    "diagnostic": {
+      "format": "json",
+      "keys": ["location", "material_names", "object_name", "object_type"],
+      "missing_keys": [],
+      "extra_keys": [],
+      "field_types": {"location": "list", "material_names": "list", "object_name": "NoneType", "object_type": "NoneType"},
+      "location_length": 0,
+      "material_names_length": 0
+    }
+  },
+  "route": {"decision": "VALID", "reason": "Exactly one completed blender/get_scene_info call"},
+  "failure_cause": "The generated profile omitted the explicit Blender upstream port 9877; the MCP call completed but returned null fixture fields.",
+  "certification": "NOT_CERTIFIED"
+}
