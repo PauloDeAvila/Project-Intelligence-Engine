@@ -64,10 +64,24 @@ class Probe:
         if self.process.stdin:
             self.process.stdin.close()
         try:
-            self.process.wait(timeout=10)
+            self.process.wait(timeout=5)
         except subprocess.TimeoutExpired:
-            self.process.terminate()
-            self.process.wait(timeout=10)
+            if os.name == "nt":
+                subprocess.run(
+                    ["taskkill", "/PID", str(self.process.pid), "/T", "/F"],
+                    capture_output=True, check=False, timeout=5,
+                )
+            else:
+                self.process.terminate()
+            try:
+                self.process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self.process.kill()
+                self.process.wait(timeout=5)
+        finally:
+            for stream in (self.process.stdout, self.process.stderr):
+                if stream is not None and not stream.closed:
+                    stream.close()
 
 
 def _profile(path: Path, workspace: Path) -> tuple[dict, str, list[str], dict[str, str]]:

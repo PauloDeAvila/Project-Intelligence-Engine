@@ -1,9 +1,11 @@
 """Offline fail-closed tests for the Blender multi-choice evidence agent."""
 import json
+import io
 from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,9 +17,21 @@ from benchmark_blender_choice_agent import (
     safe_plan_failure, main, validate_task,
 )
 from benchmark_blender_evidence_agent import AgentPlanError
+from verify_phase3_mcp_profiles import Probe
 
 
 class MultiChoiceAgentTests(unittest.TestCase):
+    def test_probe_close_closes_all_stdio_streams_after_exit(self):
+        process = mock.Mock()
+        process.stdin = io.StringIO()
+        process.stdout = io.StringIO()
+        process.stderr = io.StringIO()
+        process.wait.return_value = 0
+        Probe(process).close()
+        self.assertTrue(process.stdin.closed)
+        self.assertTrue(process.stdout.closed)
+        self.assertTrue(process.stderr.closed)
+
     def test_fixture_oracle_is_independent_of_tool_response(self):
         self.assertEqual(independent_fixture_oracle("PIE_Large_Cube_00"), {
             "object_name": "PIE_Large_Cube_00", "object_type": "MESH",
