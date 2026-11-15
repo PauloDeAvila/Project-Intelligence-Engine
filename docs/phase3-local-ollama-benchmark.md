@@ -133,3 +133,22 @@ continuam dependendo do protocolo pago 106/107.
 O contexto padrão do launcher foi reduzido para 8192, pois 16384 causou erro
 CUDA no hardware de referência. Se o runtime/modelo não suportar esse tamanho,
 reduza o contexto apenas após confirmar que o prompt não foi truncado.
+
+
+## Web: resolução automática do npx.cmd
+
+O launcher verifica primeiro o PATH, depois locais comuns de instalação do
+Node.js no Windows. Se Node estiver instalado fora desses caminhos:
+
+~~~powershell
+.\tools\run_phase3_local.ps1 -Domain web -ProbeOnly -NpxExe 'C:\Program Files\nodejs\npx.cmd'
+~~~
+
+Se o Node/npx não estiver realmente instalado:
+
+~~~powershell
+winget install -e --id OpenJS.NodeJS.LTS
+~~~
+
+Abra um terminal novo e rode o Web -ProbeOnly. Não há instalação
+automática de Node pelo runner; ele falha com diagnóstico acionável.
