@@ -30,10 +30,12 @@
   },
   "corrected_codex_probe": {
     "status": "CODEX_MCP_PROBE_FAILED",
-    "report": "reports/phase3/22-codex-mcp-probe-result.json",
+    "report": "reports/phase3/26-codex-mcp-probe-fase38.json",
     "provider_usage_status": "available",
-    "gateway_lifecycle_events": 0,
-    "mcp_tool_statuses": ["failed", "failed"],
+    "gateway_lifecycle_events": 26,
+    "gateway_instances": 2,
+    "mcp_tool_statuses": ["failed", "failed", "failed"],
+    "failure_phase": "after_tools_list_before_tools_call",
     "root_cause_status": "INCONCLUSIVE"
   },
   "offline_remediation": {
@@ -43,7 +45,7 @@
     "get_addon_status": "PASS",
     "focused_tests": "50 passed, 1 skipped"
   },
-  "ready_for_codex_probe": true,
-  "reason": "Offline gateway and upstream integration are healthy with bootstrap diagnostics independent of inherited environment. A future Codex session remains separately authorized and must not be started automatically.",
-  "next_action": "Request separate authorization before one new Codex probe; do not resume A/B."
+  "ready_for_codex_probe": false,
+  "reason": "The Fase 3.8 session reached import, initialize and tools/list in two gateway instances, but no tools/call was received before both processes disappeared. Offline integration remains healthy; Codex dispatch/lifecycle remains unresolved.",
+  "next_action": "Do not retry automatically. Diagnose Codex tool dispatch or external process termination before requesting another session; do not resume A/B."
 }

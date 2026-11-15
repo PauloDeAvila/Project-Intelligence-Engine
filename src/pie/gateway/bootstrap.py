@@ -35,7 +35,7 @@ def event(name: str, **fields: Any) -> None:
     path = _path()
     if path is None:
         return
-    row = {"ts_utc": datetime.now(timezone.utc).isoformat(), "event": name}
+    row = {"ts_utc": datetime.now(timezone.utc).isoformat(), "event": name, "pid": os.getpid()}
     for key, value in fields.items():
         if isinstance(value, (str, int, float, bool)) or value is None:
             row[key] = value

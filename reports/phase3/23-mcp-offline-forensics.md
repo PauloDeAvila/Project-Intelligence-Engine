@@ -57,7 +57,7 @@ Após a correção, duas execuções offline sem `PIE_MCP_DIAGNOSTICS_PATH` expl
 
 ## Veredito da fase
 
-`CODEX_MCP_PROBE_FAILED` para a sessão Codex real; `OFFLINE_MCP_INTEGRATION_PASS` para o gateway e upstream. A causa interna da falha Codex permanece `INCONCLUSIVE`. O gate técnico agora é `READY_FOR_CODEX_PROBE=true`; isso não concede autorização operacional nem retoma A/B.
+`CODEX_MCP_PROBE_FAILED` para a sessão Codex real; `OFFLINE_MCP_INTEGRATION_PASS` para o gateway e upstream. A Fase 3.8 observou import, handshake e `tools/list` em dois gateways, mas nenhum `tools/call`; a falha está depois da descoberta e antes do dispatch, com causa interna `INCONCLUSIVE`. O gate volta a `READY_FOR_CODEX_PROBE=false` até resolver esse lifecycle.
 
 ## Regressão Blender e suíte
 

@@ -132,7 +132,7 @@ class MCPStdioGateway:
         """Best-effort lifecycle diagnostics; never writes to MCP stdout."""
         if self._diagnostics_path is None:
             return
-        row={"ts_utc":datetime.now(timezone.utc).isoformat(),"event":event}
+        row={"ts_utc":datetime.now(timezone.utc).isoformat(),"event":event,"pid":os.getpid()}
         for key,value in fields.items():
             if isinstance(value,(str,int,float,bool)) or value is None:
                 row[key]=value

@@ -1,0 +1,46 @@
+{
+  "schema": "pie-phase3-codex-mcp-probe-v2",
+  "status": "CODEX_MCP_PROBE_FAILED",
+  "diagnostic_id": "codex-mcp-diagnostic-e418188067ab4a29b5808e340da533ba",
+  "model": "gpt-5.6-luna",
+  "codex_exit_code": 0,
+  "duration_ms": 20574.7616,
+  "provider_usage_status": "available",
+  "usage": {
+    "input_tokens": 127678,
+    "cached_input_tokens": 99968,
+    "uncached_input_tokens": 27710,
+    "output_tokens": 724,
+    "reasoning_output_tokens": 420,
+    "total_tokens": 128402
+  },
+  "codex_tools": [
+    {"server": "pie-blender-optimized", "tool": "get_addon_status", "status": "failed"},
+    {"server": "pie-blender-optimized", "tool": "get_scene_info", "status": "failed"},
+    {"server": "pie-blender-optimized", "tool": "pie_blender_scene_delta", "status": "failed"}
+  ],
+  "gateway_lifecycle": {
+    "fallback_path": "<workspace>/.pie-live-store/mcp-lifecycle.jsonl",
+    "gateway_instances_observed": 2,
+    "lifecycle_events_for_this_probe": 26,
+    "upstream_processes_observed": 2,
+    "import_succeeded": true,
+    "initialize_received": true,
+    "tools_list_received": true,
+    "tools_list_completed": true,
+    "tool_call_received": false,
+    "upstream_exit_observed": false,
+    "process_exit_observed": false
+  },
+  "failure_phase": "after_tools_list_before_tools_call",
+  "cause_status": "INCONCLUSIVE",
+  "hypotheses": {
+    "gateway_spawn_or_import_failure": "REJECTED",
+    "mcp_initialize_failure": "REJECTED",
+    "tools_list_failure": "REJECTED",
+    "codex_mcp_tool_dispatch_or_process_termination": "UNRESOLVED",
+    "blender_upstream_failure": "UNRESOLVED"
+  },
+  "interpretation": "The fallback logger proves that the Codex session started two PIE gateway instances and both reached tools/list. No tools/call entered the gateway before the processes disappeared, so the failure is between discovery and dispatch or an external termination immediately afterward. No provider or gateway error text was available.",
+  "certification_impact": "No certification; both expected tools failed in the Codex session."
+}
