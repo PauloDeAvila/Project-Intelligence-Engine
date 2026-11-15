@@ -85,7 +85,9 @@
     "persistence_report": "reports/phase3/113-telemetry-persistence-validation-20261115.json",
     "overhead_ms": null,
     "structural_overhead_report": "reports/phase3/111-tool-overhead-20261115.json",
-    "timing_overhead_report": "reports/phase3/112-tool-overhead-timing-20261115.json"
+    "timing_overhead_report": "reports/phase3/112-tool-overhead-timing-20261115.json",
+    "live_correlation_report": "reports/phase3/118-telemetry-correlation-live-routing-20261115.json",
+    "baseline_original_server_telemetry": "UNINSTRUMENTED_BY_DESIGN"
   },
   "validation": {
     "focused_tests_passed": 71,
@@ -101,6 +103,13 @@
       "tests_run": 641,
       "skipped": 5,
       "errors": 0
+    },
+    "correlation_runner_latest": {
+      "status": "PASS",
+      "tests_run": 641,
+      "skipped": 5,
+      "errors": 0,
+      "report": "reports/phase3/119-correlation-runner-validation-20261115.json"
     },
     "isolated_http_recheck": "PASS",
     "pytest": "not installed in this worktree",

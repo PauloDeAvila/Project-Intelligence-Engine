@@ -34,6 +34,9 @@ caracteres. A regressão Blender `query_scene` é válida e foi mantida.
 - A primeira suíte completa executou 641 testes, 5 ignorados e teve 1 erro
   ambiental `WinError 10053`; o teste isolado passou e a segunda suíte completa
   também passou com 641 testes e 0 erros. Evidência: [114-full-suite-validation-20261115.json](114-full-suite-validation-20261115.json).
+- Após a correção de identidade do runner, a suíte completa passou novamente:
+  641 testes, 5 ignorados e 0 erros; os 27 testes focados do runner também
+  passaram. Evidência: [119-correlation-runner-validation-20261115.json](119-correlation-runner-validation-20261115.json).
 
 ## Telemetria e custos
 
@@ -43,6 +46,13 @@ A persistência local foi revalidada com 33 testes aprovados, cobrindo métricas
 SQLite, lifecycle MCP, correlação task/run, recuperação de output, retenção e
 isolamento após reinício. Isso não prova a importação de uso do provedor Codex.
 Evidência: [113-telemetry-persistence-validation-20261115.json](113-telemetry-persistence-validation-20261115.json).
+
+No probe real Blender, os três processos PIE registraram `run_id`, `pair_id`,
+`task_id`, `condition` e `gateway_server` no lifecycle SQLite/JSONL. O baseline
+original ficou sem telemetria PIE por desenho; essa lacuna está explicitamente
+classificada como `UNINSTRUMENTED_ORIGINAL_SERVER`. Um encerramento upstream com
+`exit_code=1` ocorreu depois de uma resposta MCP válida e foi preservado para
+investigação. Evidência: [118-telemetry-correlation-live-routing-20261115.json](118-telemetry-correlation-live-routing-20261115.json).
 
 O overhead estrutural de catálogo foi medido sem modelo: Blender reduziu
 `tools/list` de 18.982 para 3.792 caracteres e Web de 21.177 para 1.738.

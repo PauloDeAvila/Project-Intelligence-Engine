@@ -15,6 +15,7 @@ import re
 import subprocess
 import sys
 import time
+import uuid
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
@@ -439,12 +440,21 @@ def _read_only_blender_code(target: str) -> str:
 class ChoiceMcpSession:
     """Persistent MCP process for one arm; tasks remain isolated by navigation-free reads."""
 
-    def __init__(self, profile: Path, workspace: Path, condition: str) -> None:
+    def __init__(self, profile: Path, workspace: Path, condition: str,
+                 identity: dict[str, str] | None = None) -> None:
         self.condition = condition
         config, server, args, configured_env = _profile(profile, workspace)
         if server != EXPECTED_SERVER[condition]:
             raise ValueError("Incorrect MCP server for arm")
         environment = dict(os.environ, **configured_env)
+        if identity:
+            allowed_identity = {
+                key: value for key, value in identity.items()
+                if key in {"PIE_RUN_ID", "PIE_PAIR_ID", "PIE_TASK_ID",
+                           "PIE_CONDITION", "PIE_APP", "PIE_GATEWAY_SERVER"}
+                and isinstance(value, str) and value
+            }
+            environment.update(allowed_identity)
         process = subprocess.Popen(
             [config["command"], *args], cwd=workspace, env=environment,
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -622,12 +632,28 @@ def main(argv: list[str] | None = None) -> int:
     }
     status = 0
     results: dict[str, dict[str, dict]] = {"baseline": {}, "optimized": {}}
+    execution_id = uuid.uuid4().hex[:12]
+    pair_ids = {
+        task["task_id"]: f"pair-blender-choice-{execution_id}-{task['task_id']}"
+        for task in TASKS[:options.max_tasks]
+    }
     failure: dict | None = None
     for condition in ("baseline", "optimized"):
-        session = None
-        try:
-            session = ChoiceMcpSession(profiles[condition], workspace, condition)
-            for task in TASKS[:options.max_tasks]:
+        for task in TASKS[:options.max_tasks]:
+            session = None
+            try:
+                task_id = task["task_id"]
+                session = ChoiceMcpSession(
+                    profiles[condition], workspace, condition,
+                    identity={
+                        "PIE_RUN_ID": f"{condition}-blender-choice-{execution_id}-{task_id}",
+                        "PIE_PAIR_ID": pair_ids[task_id],
+                        "PIE_TASK_ID": task_id,
+                        "PIE_CONDITION": condition,
+                        "PIE_APP": "blender",
+                        "PIE_GATEWAY_SERVER": EXPECTED_SERVER[condition],
+                    },
+                )
                 try:
                     arm = session.run_task(
                         task, options.model, num_ctx=options.num_ctx,
@@ -647,14 +673,17 @@ def main(argv: list[str] | None = None) -> int:
                                "failure_code": "NON_PLAN_FAILURE", "error": str(exc)[:300]}
                     status = 2
                     break
-        except (ValueError, RuntimeError, OSError, TimeoutError) as exc:
-            failure = {"status": "FAILED_CLOSED", "reason_type": type(exc).__name__,
-                       "failed_condition": condition, "failure_code": "SESSION_START_FAILURE",
-                       "error": str(exc)[:300]}
-            status = 2
-        finally:
-            if session is not None:
-                session.close()
+            except (ValueError, RuntimeError, OSError, TimeoutError) as exc:
+                failure = {"status": "FAILED_CLOSED", "reason_type": type(exc).__name__,
+                           "failed_condition": condition, "task_id": task["task_id"],
+                           "failure_code": "SESSION_START_FAILURE",
+                           "error": str(exc)[:300]}
+                status = 2
+            finally:
+                if session is not None:
+                    session.close()
+            if status:
+                break
         if status:
             break
 

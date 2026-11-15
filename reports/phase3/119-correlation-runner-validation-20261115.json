@@ -1,0 +1,15 @@
+{
+  "schema": "pie-phase3-validation-v1",
+  "command": "uv run python -m unittest discover -s tests -q",
+  "status": "PASS",
+  "tests_run": 641,
+  "skipped": 5,
+  "errors": 0,
+  "duration_seconds": 48.365,
+  "focused_correlation_tests": 27,
+  "focused_correlation_status": "PASS",
+  "notes": [
+    "The suite printed a diagnostic BLOCKED_WITH_EVIDENCE/disk full state from an existing diagnostic test, but unittest completed with OK.",
+    "No Codex session or paid provider call was started."
+  ]
+}
