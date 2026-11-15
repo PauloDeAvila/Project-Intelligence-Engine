@@ -27,6 +27,8 @@ Valores `B/O` são baseline/optimized. A economia de input não armazenado em ca
 
 `pytest`: **538 passed, 5 skipped, 133 subtests** (via `uv run --with pytest python -m pytest -q`). A execução sem o caso HTTP intermitente conhecido passou com **537 passed, 5 skipped, 1 deselected, 133 subtests**. `compileall`: passou. O preflight agora bloqueia overlays com workspace divergente. O status local do checkout retornou `CURRENT`, com `workspace_match=true` e `index_root` igual a `workspace_root`. O servidor PIE MCP disponível nesta sessão continua reportando outra raiz (`C:\\Users\\phsra\\Documents\\Codex\\2026-11-14\\contrato-de-uso-ativo-do-project`), portanto não foi tratado como evidência deste checkout. Evidência adicional: `42-validation-after-runner-fix.json`.
 
+A revalidação da configuração confirmou `pie-blender-optimized` e `pie-web-optimized` no checkout correto, preservando `blender` e `node_repl`. O detalhe sanitizado e o hash do arquivo estão em `43-routing-state-revalidation.json`.
+
 ## Diagnóstico Codex/MCP
 
 A chamada diagnóstica inicial falhou no parsing do override transitório `-c`. A tentativa corrigida usando `tools/run_codex_mcp_diagnostic.ps1` iniciou uma sessão real, selecionou `pie-blender-optimized` e reportou tokens (`136207` input, `115968` cache, `691` output), mas `get_addon_status` e `get_scene_info` falharam. Nenhum lifecycle JSONL foi produzido; o ponto interno da falha permanece inconclusivo. Resultado detalhado: `22-codex-mcp-probe-result.json`. Não há certificação nem nova tentativa automática.
