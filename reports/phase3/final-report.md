@@ -14,11 +14,13 @@ substitui a certificação A/B do Codex com `gpt-5.6-luna`.
 |---|---:|---:|---:|---:|
 | Blender exact evidence, 3 tarefas | 1.125 | 1.077 | **4,267%** | 6/6 |
 | Blender query scene, 3 pares | 1.941 | 2.340 | **−20,556%** | 6/6 |
-| Web large, 3 pares | 9.259 | 4.417 | **52,295%** | 6/6 |
+| Web large, 3 pares, fixture correta | 8.967 | 4.455 | **50,318%** | 6/6 |
 | Web small, 3 pares | 2.502 | 2.502 | **0%** | 6/6 |
 
 Os valores são tokens totais reportados pelo Ollama, não estimativas por
-caracteres. A regressão Blender `query_scene` é válida e foi mantida.
+caracteres. A regressão Blender `query_scene` é válida e foi mantida. O
+ensaio Web anterior de 9.259 → 4.417 permanece histórico; a tabela usa agora
+a execução mais recente com a fixture declarada pelo cenário.
 
 ## Cobertura
 

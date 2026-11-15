@@ -46,16 +46,23 @@
       }
     },
     "web": {
-      "large_fixture": {
+    "large_fixture": {
         "scenario": "web-large-page-cert-v1",
+      "fixture": "fixtures/phase3/web-large/index.html",
         "valid_pairs": 3,
+      "baseline_total_tokens": 8967,
+      "optimized_total_tokens": 4455,
+      "total_savings_percent": 50.318,
+        "oracle_passes": 6,
+        "recovery_calls": 0,
+      "report": "reports/phase3/129-web-large-correct-fixture-live-20261115.json",
+      "status": "VALID_LOCAL_PAIRS",
+      "historical_prior_run": {
         "baseline_total_tokens": 9259,
         "optimized_total_tokens": 4417,
         "total_savings_percent": 52.295,
-        "oracle_passes": 6,
-        "recovery_calls": 0,
-        "report": "C:/Users/phsra/AppData/Local/Temp/pie-web-ollama-5e706cde9c68.json",
-        "status": "VALID_LOCAL_PAIRS"
+        "report": "C:/Users/phsra/AppData/Local/Temp/pie-web-ollama-5e706cde9c68.json"
+      }
       },
       "live_mcp_routing": {
         "repetitions": 3,
