@@ -13,8 +13,8 @@ Foi preparado um único par real para `blender-selective-location-v1`:
 - Optimized: `pie-blender-optimized`, somente `pie_blender_query_scene`.
 - Modelo: `gpt-5.6-luna`, esforço `medium`.
 - Fixture: `large_scene_spec.json`, sem mutação.
-- Pair ID: `pair-76add1a901784e54bd3e13a8`.
-- Run IDs: `baseline-ac0b91fe54874cc29820c4ce` e `optimized-fe6dcea70b59444c84917128`.
+- Pair ID: `pair-288fe55747ef4d1c84832a2d`.
+- Run IDs: `baseline-a0a4660e39bd47ed9c0b738e` e `optimized-ba0d6237c3f6486c8505335c`.
 - Sessões planejadas: 2.
 - Retry automático: desabilitado.
 
@@ -35,7 +35,7 @@ O cenário A é de uma página; a limitação de snapshot entre páginas não af
 Profiles gerados em diretório temporário, sem credenciais ou alteração persistente:
 
 - Baseline SHA-256: `597AA14443AD197A2F5BA63E6AA5F7B71882BD2522FB030DD9245D84FE80D76C`.
-- Optimized SHA-256: `1791224A59CEC476917B7965AFCA6C73020C32DD302C84C3341D16C20E958DAC`.
+- Optimized SHA-256: `E6384723B0C5772CE262F431F62A63C4ADE5C81F6D5EFEE21B87089C403DDAFA`.
 
 Evidência de plano: [`83-blender-selective-a-plan.json`](83-blender-selective-a-plan.json).
 
@@ -45,7 +45,7 @@ As allowlists estáticas agora são exatas: `enabled_tools` e as tabelas de ferr
 
 O `pair_id`, `attempt_nonce` e cada `run_id` são gerados por tentativa. Repreparar o plano não reutiliza a identidade anterior.
 
-O cenário usa o mesmo contrato do controlador (`scenario_id`, `expected_mcp_tools_by_condition`); a execução pode receber os IDs congelados com `--run-id` e `--pair-id`. Os perfis apontam para o HEAD publicado `0bd01f2f1e5cd0fbf44b0a74fe2bfdae726e550a`.
+O cenário usa o mesmo contrato do controlador (`scenario_id`, `expected_mcp_tools_by_condition`); a execução pode receber os IDs congelados com `--run-id` e `--pair-id`. Os perfis apontam para o código-fonte do commit `980c99e` e o preflight compara a árvore `src/`, permitindo commits posteriores apenas de relatórios.
 
 Só considerar uma execução válida se o handshake `tools/list` e a telemetria `tools/call` comprovarem o servidor e a ferramenta exatos, além de uso reportado pelo provedor, oráculo JSON aprovado, `run_id`/`pair_id` correspondentes e persistência SQLite. Qualquer ferramenta adicional, rota incorreta ou falha interrompe o par sem retry automático.
 
