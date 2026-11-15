@@ -143,4 +143,10 @@ oráculos e zero recuperações. O ensaio anterior de 0% serviu a fixture
 `fixtures/phase3/web` por engano e permanece separado. Evidência:
 [129-web-large-correct-fixture-live-20261115.json](129-web-large-correct-fixture-live-20261115.json).
 
+Após a alteração do diagnóstico Ollama, a suíte completa passou com 643 testes,
+5 ignorados e 0 erros em 66,323 s. Os warnings de HTTP 500/401/403 pertencem
+a testes simulados e não falharam a suíte; o diagnóstico interno de disco cheio
+também foi preservado sem ser contado como erro unittest. Evidência:
+[130-full-suite-after-ollama-diagnostics-20261115.json](130-full-suite-after-ollama-diagnostics-20261115.json).
+
 Auditoria requisito‑por‑requisito: [115-completion-audit-20261115.json](115-completion-audit-20261115.json).
