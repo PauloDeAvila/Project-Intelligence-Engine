@@ -19,6 +19,7 @@ DELTA_SCHEMA = "pie-blender-scene-delta-v1"
 QUERY_SCHEMA = "pie-blender-query-scene-v1"
 MARKER = "PIE_SCENE_SNAPSHOT_V1="
 QUERY_MARKER = "PIE_QUERY_SCENE_V1="
+GET_OBJECT_MARKER = "PIE_GET_OBJECT_V1="
 
 # This code runs inside the Blender addon's Python process through its normal
 # execute_blender_code path. No file/network access, blender operators or writes.
@@ -229,6 +230,70 @@ pie_data = {{"schema": "{QUERY_SCHEMA}", "query": pie_query, "scene": pie_scene.
             "next_offset": pie_offset + pie_limit if pie_offset + pie_limit < pie_total else None,
             "complete": pie_offset + len(pie_page) >= pie_total}}
 print("{QUERY_MARKER}" + json.dumps(pie_data, ensure_ascii=False, sort_keys=True, separators=(",", ":")))'''
+
+
+def validate_get_object_arguments(arguments: Any) -> str:
+    """Require one exact name; never accept arbitrary Python or mutating options."""
+    if not isinstance(arguments, dict) or set(arguments) != {"name"}:
+        raise ValueError("Exact Blender object query needs only name")
+    name = arguments["name"]
+    if not isinstance(name, str) or not name or len(name) > 128:
+        raise ValueError("Invalid exact Blender object name")
+    return name
+
+
+def get_object_code(arguments: Any) -> str:
+    """Generate a read-only bpy expression with a JSON-escaped literal name."""
+    encoded_name = json.dumps(validate_get_object_arguments(arguments), ensure_ascii=True)
+    return f'''import bpy, json
+pie_object_name = {encoded_name}
+pie_object = bpy.context.scene.objects.get(pie_object_name)
+if pie_object is None:
+    print("{GET_OBJECT_MARKER}" + json.dumps({{"error":"OBJECT_NOT_FOUND"}}))
+else:
+    pie_value = {{
+        "object_name": pie_object.name,
+        "object_type": pie_object.type,
+        "location": [round(float(v), 6) for v in pie_object.location],
+        "material_names": [m.name for m in pie_object.data.materials if m] if pie_object.type == "MESH" and pie_object.data else []
+    }}
+    print("{GET_OBJECT_MARKER}" + json.dumps(pie_value, ensure_ascii=False, separators=(",", ":")))'''
+
+
+def parse_get_object_reply(message: dict[str, Any]) -> dict[str, Any]:
+    """Return only the four requested fields; reject malformed or missing objects."""
+    result = message.get("result")
+    if not isinstance(result, dict) or result.get("isError"):
+        raise ValueError("Blender exact object lookup failed")
+    candidates = [
+        part.get("text") for part in result.get("content", [])
+        if isinstance(part, dict) and isinstance(part.get("text"), str)
+    ]
+    structured = result.get("structuredContent")
+    if isinstance(structured, dict) and isinstance(structured.get("result"), str):
+        candidates.append(structured["result"])
+    for content in candidates:
+        where = content.find(GET_OBJECT_MARKER)
+        if where < 0:
+            continue
+        try:
+            value, _ = json.JSONDecoder().raw_decode(content[where + len(GET_OBJECT_MARKER):])
+        except json.JSONDecodeError as exc:
+            raise ValueError("Invalid Blender exact object JSON") from exc
+        if isinstance(value, dict) and value.get("error") == "OBJECT_NOT_FOUND":
+            raise ValueError("Blender object not found in current scene")
+        required = {"object_name", "object_type", "location", "material_names"}
+        if (not isinstance(value, dict) or set(value) != required
+                or not isinstance(value["object_name"], str)
+                or not isinstance(value["object_type"], str)
+                or not isinstance(value["location"], list)
+                or len(value["location"]) != 3
+                or any(type(v) not in (int, float) for v in value["location"])
+                or not isinstance(value["material_names"], list)
+                or any(not isinstance(m, str) for m in value["material_names"])):
+            raise ValueError("Invalid exact Blender object structure")
+        return value
+    raise ValueError("Missing exact Blender object marker")
 
 
 def parse_query_reply(message: dict[str, Any]) -> dict[str, Any]:
