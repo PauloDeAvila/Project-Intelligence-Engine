@@ -212,6 +212,9 @@ def run_pilot(*, manifest: dict[str, Any], scenarios: Iterable[dict[str, Any]],
     if len(pilot_entries) != 4:
         raise ControllerError("Manifest pilot does not contain four sessions")
     root=workspace.expanduser().resolve(strict=True)
+    manifest_root=Path(manifest.get("workspace_root", "")).expanduser().resolve()
+    if manifest_root != root:
+        raise ControllerError("Frozen manifest workspace differs from pilot workspace")
     output=output.expanduser().resolve()
     output.parent.mkdir(parents=True,exist_ok=True)
     records_dir=output.parent/(output.stem+"-records")
