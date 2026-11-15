@@ -1,0 +1,57 @@
+{
+  "schema": "pie-phase3-single-result-v1",
+  "state": "BASELINE_BLENDER_FAILED",
+  "run_id": "baseline-iso-32bb-blender-a",
+  "pair_id": "pair-iso-32bb-blender-a",
+  "ledger": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine\\reports\\phase3\\92-blender-baseline-isolated-budget-ledger.json",
+  "quota_consumed": true,
+  "automatic_retry": false,
+  "record": {
+    "schema": "pie-live-codex-usage-v1",
+    "condition": "baseline",
+    "scenario_id": "blender-selective-location-v1",
+    "repetition": 1,
+    "run_id": "baseline-iso-32bb-blender-a",
+    "pair_id": "pair-iso-32bb-blender-a",
+    "model": "gpt-5.6-luna",
+    "codex_version": "codex-cli 0.167.0-alpha.3.2",
+    "prompt_sha256": "cd3990305d3b943391db86a573f0fcf73b8f37c00239cada4b69080761407d4d",
+    "expected_sha256": "78bde4f1e1f162696962cb32120ab408c2db2367d34c7a3cc3e35ec53ff64250",
+    "answer_sha256": "b74e83a777e1b5d342e37047f67fcc7e4da517c1082705691eb204df767b5e1a",
+    "oracle_kind": "blender_scene_json",
+    "oracle_pass": false,
+    "workspace_commit": "32bb78f420c84ef6e90d51eecc72b43346f5d0b1",
+    "configuration_sha256": "4a52a0d6bf2ae3e00b9e63dddf4bca4be091d2298c00849b99226241ec8e2ed8",
+    "profile": "blender-selective-run-baseline-iso-32bb-blender-a",
+    "runtime_ms": 16241.44,
+    "tool_events": 1,
+    "mcp_tools": [
+      {
+        "server": "blender",
+        "tool": "get_scene_info",
+        "status": "completed"
+      }
+    ],
+    "usage": {
+      "input_tokens": 60601,
+      "cached_input_tokens": 54656,
+      "output_tokens": 503,
+      "reasoning_output_tokens": 241
+    },
+    "expected_mcp_server": "blender",
+    "mcp_route_verified": true,
+    "provider_reported": true,
+    "source": "codex_exec_json_turn_completed",
+    "forensic_path": "C:\\Users\\phsra\\AppData\\Local\\Temp\\.pie-phase3-isolated-pilot-32bb-pie-live-store\\runs\\baseline-iso-32bb-blender-a",
+    "note": "Codex provider usage, not billing or a raw transcript"
+  },
+  "oracle": {
+    "passed": true,
+    "kind": "blender_scene_json",
+    "independent_live_probe_required": true
+  },
+  "route": {
+    "decision": "INSUFFICIENT_EVIDENCE",
+    "reason": "Condition/oracle absent"
+  }
+}

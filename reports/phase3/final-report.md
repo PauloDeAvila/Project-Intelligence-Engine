@@ -268,6 +268,10 @@ A auditoria do incidente 88 identificou que o preflight anterior mesclava servid
 
 A suíte atualizada passou com `586` testes e `5` ignorados. O incidente 88 continua inválido para A/B; nenhum novo benchmark pago foi iniciado após a correção.
 
+## Primeiro piloto após isolamento — 2026-11-15
+
+O preflight e a rota baseline passaram com isolamento efetivo: somente `blender/get_scene_info` foi chamado. A execução, porém, falhou no oráculo da resposta JSON do Codex (`oracle_pass=false`). Foram reportados `60.601` tokens de entrada, `54.656` cacheados e `503` de saída. O optimized não foi executado e não há economia A/B calculável. Evidência: [`92-blender-baseline-isolated.md`](92-blender-baseline-isolated.md). O estado permanece `NOT_CERTIFIED`.
+
 ## Primeiro piloto Blender com modelo — 2026-11-15
 
 O preflight final passou nos dois braços sem iniciar modelo. A primeira sessão baseline, porém, foi invalidada pelo roteamento: observou `pie-blender-optimized/pie_blender_query_scene` com falha antes de `blender/get_scene_info` completar. Foram consumidos `1` sessão e `142.200` tokens de entrada reportados, mas o resultado não é elegível para economia A/B. O optimized não foi executado e não houve retry. Evidência: [`88-blender-baseline-r1.md`](88-blender-baseline-r1.md). A certificação permanece `NOT_CERTIFIED`.
