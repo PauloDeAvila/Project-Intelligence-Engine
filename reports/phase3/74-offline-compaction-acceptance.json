@@ -15,7 +15,12 @@
       "path": "fixtures/phase3/blender/large_scene_spec.json",
       "purpose": "deterministic scene specification; no live scene mutation",
       "object_count": 64,
-      "material_count": 16
+      "material_count": 16,
+      "real_fixture_gate": "PASS",
+      "observation_source_chars": 14543,
+      "observation_returned_chars": 3806,
+      "compaction_state": "PARTIAL",
+      "evidence": "reports/phase3/75-blender-real-fixture-gate.json"
     }
   },
   "acceptance": {
