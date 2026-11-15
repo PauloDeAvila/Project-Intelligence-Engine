@@ -189,6 +189,23 @@ Resultado: **67 testes aprovados**.
 
 Uma tentativa de `unittest discover` foi interrompida por falta de progresso em testes com dependências externas; não foi contabilizada como aprovação. `pytest` não está instalado neste worktree (`No module named pytest`).
 
+### Web grande — repetição real com Ollama
+
+Relatório: `C:\Users\phsra\AppData\Local\Temp\pie-web-ollama-5e706cde9c68.json`.
+
+- Fixture Web local grande, Playwright MCP `@playwright/mcp@0.0.85`, três
+  repetições e ordem alternada.
+- 3/3 pares válidos, 6/6 oráculos aprovados e zero recuperações adicionais.
+- Baseline agregado: 9.259 tokens totais.
+- PIE agregado: 4.417 tokens totais.
+- Economia agregada: **52,295%**; a economia foi principalmente de entrada.
+- Saída: 42 tokens em cada braço de cada repetição.
+- `exact_text_pass=false` nos braços, mas `oracle_pass=true` e hashes de
+  resposta iguais; a diferença foi apenas formatação JSON.
+- O primeiro disparo falhou por fixture em `8766` enquanto o cenário declarava
+  `8767`; não consumiu modelo. A execução válida foi feita em `8767` sem alterar
+  o cenário.
+
 ## Estado e limitações
 
 - Roteamento determinístico Blender real: **PASS** nesta execução.
