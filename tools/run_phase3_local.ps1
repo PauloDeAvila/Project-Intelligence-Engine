@@ -55,7 +55,12 @@ if ($ProbeOnly) {
 } else {
     $runnerArgs += @("--model", $Model)
 }
-& python @runnerArgs
+$uv = Get-Command uv -ErrorAction SilentlyContinue
+if ($uv) {
+    & $uv.Source run python @runnerArgs
+} else {
+    & python @runnerArgs
+}
 if ($LASTEXITCODE -ne 0) {
     throw "Local MCP/Ollama benchmark failed; Codex was not called"
 }
