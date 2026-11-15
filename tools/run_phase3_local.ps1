@@ -10,6 +10,7 @@ param(
     [int]$NumCtx = 8192,
     [ValidateSet("profile", "server")][string]$SchemaScope = "profile",
     [int]$BlenderPort = 9877,
+    [ValidateSet("query", "exact")][string]$BlenderMode = "query",
     [string]$NpxExe = "",
     [string]$OutputDirectory = $env:TEMP,
     [switch]$ProbeOnly
@@ -30,7 +31,7 @@ $profileArgs = @{
 }
 if ($Domain -eq "blender") {
     $profileArgs.BaselineExposeTool = @("execute_blender_code")
-    $profileArgs.OptimizedExposeTool = @("pie_blender_query_scene")
+    $profileArgs.OptimizedExposeTool = if ($BlenderMode -eq "exact") { @("pie_blender_get_object") } else { @("pie_blender_query_scene") }
     $profileArgs.BlenderPort = $BlenderPort
 } else {
     $profileArgs.BaselineExposeTool = @("browser_navigate", "browser_snapshot")
@@ -76,6 +77,7 @@ $runnerArgs = @(
     "--repetitions", ([string]$Repetitions),
     "--num-ctx", ([string]$NumCtx),
     "--schema-scope", $SchemaScope,
+    "--blender-mode", $BlenderMode,
     "--output", $report
 )
 if ($ProbeOnly) {
