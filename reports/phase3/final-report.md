@@ -4,7 +4,7 @@
 
 **NOT_CERTIFIED.** As 12 chamadas autorizadas terminaram com uso real reportado pelo provedor e os quatro oráculos estritamente comparáveis passaram. Porém, somente dois pares comparáveis foram obtidos por domínio; o critério exige três. A persistência SQLite também registrou apenas dois eventos Web `PASSTHROUGH`, sem eventos Blender desta bateria.
 
-Na autorização complementar, foram consumidas 2 de 4 chamadas: o par Blender teve tokens reportados, mas todas as ferramentas MCP esperadas falharam nos dois braços. O oráculo de texto passou, mas isso não é suficiente para validar a tarefa. A bateria foi interrompida e o par Web não foi executado.
+Na autorização complementar, foram consumidas 2 de 4 chamadas: o par Blender teve tokens reportados, mas todas as ferramentas MCP esperadas falharam nos dois braços. O oráculo de texto passou, mas isso não é suficiente para validar a tarefa. A bateria foi interrompida e o par Web não foi executado. Uma autorização posterior para uma única sonda de aprovação não chegou ao modelo: o CLI recusou a combinação `--sandbox read-only` + `--approve-for-me` antes do dispatch. Não houve retry.
 
 ## A/B estrito (repetições 2 e 3)
 
@@ -25,7 +25,7 @@ Valores `B/O` são baseline/optimized. A economia de input não armazenado em ca
 
 ## Testes
 
-`pytest`: **535 passed, 5 skipped, 133 subtests**. `compileall`: passou. O preflight agora bloqueia overlays com workspace divergente. O índice local PIE foi reindexado para a raiz correta e ficou `CURRENT`; o servidor PIE MCP disponível nesta sessão continua apontando para outra raiz, limitação registrada.
+`pytest`: **536 passed, 5 skipped, 133 subtests** (via `PYTHONPATH=. uv run --with pytest pytest -q`). `compileall`: passou. O preflight agora bloqueia overlays com workspace divergente. O índice local/Graphify do checkout foi usado para navegação estrutural; o servidor PIE MCP disponível nesta sessão reportou `CURRENT`, porém para outra raiz (`C:\\Users\\phsra\\Documents\\Codex\\2026-11-14\\contrato-de-uso-ativo-do-project`), portanto não foi tratado como evidência deste checkout.
 
 ## Diagnóstico Codex/MCP
 
@@ -33,7 +33,7 @@ A chamada diagnóstica inicial falhou no parsing do override transitório `-c`. 
 
 Na Fase 3.7, o gateway foi validado offline com as duas ferramentas reais. O bootstrap passou a registrar em `.pie-live-store/mcp-lifecycle.jsonl` mesmo sem variável de ambiente herdada. Também foi corrigido o encerramento do Blender bridge para aguardar saída natural do upstream. Na Fase 3.8, dois gateways Codex chegaram a import, initialize e tools/list, mas nenhum recebeu tools/call; os três erros do Codex confirmam `MCP tool call requires approval, but approval policy is never`. O gate técnico voltou a `READY_FOR_CODEX_PROBE=false` até preparar uma mudança de aprovação explicitamente autorizada.
 
-A Fase 3.10 confirmou que a versão instalada aceita políticas de aprovação temporárias e oferece `--approve-for-me` para `codex exec`. O executor foi preparado para `ApprovalPolicy=on-request` sem alterar `config.toml`; nenhuma nova sessão foi executada.
+A Fase 3.10 confirmou que a versão instalada aceita políticas de aprovação temporárias e oferece `--approve-for-me` para `codex exec`. A sonda Fase 3.11 tentou `on-request` + `--approve-for-me`, mas o próprio CLI retornou `exit_code=2`: `the argument '--sandbox <SANDBOX_MODE>' cannot be used with '--approve-for-me'`. Resultado: 0 turnos do modelo, 0 tokens, 0 `tools/call` e nenhuma alteração persistente. Evidência detalhada: `28-approval-policy-probe.json`.
 
 ## Custos
 
@@ -41,8 +41,9 @@ A Fase 3.10 confirmou que a versão instalada aceita políticas de aprovação t
 
 ## Próximos passos seguros
 
-1. Fazer cada captura Codex autorizada usar `--telemetry-workspace`, para que o import validado ocorra automaticamente no mesmo fluxo da execução.
-2. Reexecutar somente os pares faltantes com nova autorização, pois o limite de 12 chamadas desta autorização foi consumido.
-3. Medir overhead real por operação e verificar inicialização contínua dos dois gateways.
+1. Escolher, com nova autorização, uma combinação de aprovação suportada pela versão instalada: ou `--approve-for-me` sem `--sandbox`, ou uma sessão interativa `on-request` que aceite a aprovação manual. Não remover proteções indiscriminadamente.
+2. Fazer cada captura Codex autorizada usar `--telemetry-workspace`, para que o import validado ocorra automaticamente no mesmo fluxo da execução.
+3. Reexecutar somente os pares faltantes com nova autorização, pois o limite de 12 chamadas da autorização A/B foi consumido.
+4. Medir overhead real por operação e verificar inicialização contínua dos dois gateways.
 
 Relatórios detalhados: [`09-blender-real-ab.json`](09-blender-real-ab.json), [`10-web-real-ab.json`](10-web-real-ab.json), [`11-token-certification.json`](11-token-certification.json), [`12-cost-efficiency.json`](12-cost-efficiency.json), [`14-offline-root-cause.md`](14-offline-root-cause.md), [`22-codex-mcp-probe-result.json`](22-codex-mcp-probe-result.json), [`23-mcp-offline-forensics.md`](23-mcp-offline-forensics.md), [`24-mcp-bootstrap-validation.json`](24-mcp-bootstrap-validation.json) e [`25-mcp-offline-integration.json`](25-mcp-offline-integration.json).

@@ -1,0 +1,56 @@
+{
+  "schema": "pie-phase3-approval-policy-probe-v1",
+  "status": "BLOCKED_BEFORE_MODEL_EXECUTION",
+  "authorized_scope": {
+    "sessions_authorized": 1,
+    "sessions_attempted": 1,
+    "retries": 0,
+    "ab_tests_run": false,
+    "quota_consuming_model_sessions": 0
+  },
+  "configuration": {
+    "approval_policy": "on-request",
+    "approve_for_me": true,
+    "sandbox_mode": "read-only",
+    "model": "gpt-5.6-luna",
+    "effort": "medium",
+    "persistent_config_modified": false,
+    "persistent_config_sha256": "0C389437225838D120039708D27B0A022E82541B1ADCACE490F8EF9FE400D3DE"
+  },
+  "executor": "tools/run_codex_mcp_diagnostic.ps1",
+  "artifact": {
+    "run_id": "codex-mcp-diagnostic-86df15c6a7914aa1ba9856874d2df357",
+    "exit_code": 2,
+    "duration_ms": 87.5287,
+    "provider_usage_status": "unavailable",
+    "input_tokens": null,
+    "cached_input_tokens": null,
+    "output_tokens": null,
+    "codex_event_count": 0,
+    "mcp_tools": []
+  },
+  "failure": {
+    "phase": "CLI argument validation",
+    "message": "the argument '--sandbox <SANDBOX_MODE>' cannot be used with '--approve-for-me'",
+    "effect": "Codex did not start a model turn and did not dispatch tools/call",
+    "raw_artifact": "C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase311-probe\\codex-mcp-diagnostic-86df15c6a7914aa1ba9856874d2df357-codex.stderr.log"
+  },
+  "gateway_evidence": {
+    "tools_call_observed": false,
+    "task_id": null,
+    "run_id": "codex-mcp-diagnostic-86df15c6a7914aa1ba9856874d2df357",
+    "tool_name": null,
+    "duration_ms": null,
+    "status": "not_reached",
+    "sqlite_event": "not_observed"
+  },
+  "pie_index": {
+    "status_observed": "CURRENT",
+    "root_observed": "C:\\Users\\phsra\\Documents\\Codex\\2026-11-14\\contrato-de-uso-ativo-do-project",
+    "expected_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+    "usable_for_this_checkout": false,
+    "limitation": "The PIE MCP service available in this session reports a different project root; repository-local graphify was used as the structural fallback. No claim of PIE evidence was made for this checkout."
+  },
+  "conclusion": "The proposed non-interactive approval probe is incompatible with the selected read-only sandbox in codex-cli 0.169.0-alpha.11.1. No retry was made because the authorization permitted one session only. The persistent configuration and credentials were not changed.",
+  "certification": "NOT_CERTIFIED"
+}
