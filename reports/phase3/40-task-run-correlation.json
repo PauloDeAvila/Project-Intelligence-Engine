@@ -1,0 +1,18 @@
+{
+  "schema": "pie-phase3-task-run-correlation-v1",
+  "status": "PASS",
+  "implementation_commit": "4c1e90c",
+  "contract": {
+    "task_id": "scenario_id supplied by the deterministic scenario",
+    "run_id": "condition plus first 24 hex characters of SHA-256(scenario_id|condition|repetition)",
+    "manual_ai_id_required": false,
+    "unknown_correlation": "unassigned remains available for non-benchmark observations"
+  },
+  "validation": {
+    "targeted_tests": "16 passed, 7 subtests passed",
+    "suite_without_preexisting_flaky_http_test": "537 passed, 5 skipped, 1 deselected, 133 subtests passed",
+    "full_suite_latest": "537 passed, 5 skipped, 1 unrelated flaky failure"
+  },
+  "certification": "NOT_CERTIFIED",
+  "reason": "A/B replication and final-HEAD token evidence remain incomplete"
+}
