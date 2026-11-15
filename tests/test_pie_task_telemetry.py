@@ -57,7 +57,7 @@ class TaskTelemetryTests(unittest.TestCase):
         record = {
             "schema": "pie-live-codex-usage-v1", "provider_reported": True,
             "source": "codex_exec_json_turn_completed", "condition": "optimized",
-            "scenario_id": "scene-read", "repetition": 2, "model": "m",
+            "scenario_id": "scene-read", "repetition": 2, "run_id": "optimized-scene-read-2", "model": "m",
             "codex_version": "c", "prompt_sha256": "p", "expected_sha256": "e",
             "workspace_commit": "w", "configuration_sha256": "cfg",
             "oracle_kind": "exact_text", "oracle_pass": True, "tool_events": 1,

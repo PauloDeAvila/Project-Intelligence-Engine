@@ -175,6 +175,10 @@ def _git_clean_commit(root:Path)->str:
 def _telemetry_store(workspace:Path)->Path:
     return workspace.parent/("."+workspace.name+"-pie-live-store")
 
+def _capture_run_id(scenario:dict,condition:str,repetition:int)->str:
+    material="|".join((scenario["scenario_id"],condition,str(repetition)))
+    return f"{condition}-{_sha(material)[:24]}"
+
 def _expected_mcp_server(scenario:dict,condition:str)->str|None:
     required=scenario.get("required_mcp_server")
     if not isinstance(required,str):return None
@@ -226,8 +230,9 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
                           for item in parsed["mcp_tools"])
         raise RuntimeError(f"MCP route evidence failed; expected {expected_server}; observed {observed}")
     actual=parsed.pop("answer").strip();expected=scenario["expected_exact"].strip()
+    run_id=_capture_run_id(scenario,condition,repetition)
     return {"schema":SCHEMA,"condition":condition,"scenario_id":scenario["scenario_id"],
-            "repetition":repetition,"model":scenario["model"],"codex_version":version,
+            "repetition":repetition,"run_id":run_id,"model":scenario["model"],"codex_version":version,
             "prompt_sha256":_sha(scenario["prompt"]),"expected_sha256":_sha(expected),
             "answer_sha256":_sha(actual),"oracle_kind":"exact_text","oracle_pass":actual==expected,
             "workspace_commit":commit,"configuration_sha256":configsha,"profile":profile,
@@ -251,7 +256,7 @@ def _record(r):
         raise ValueError("No provider-reported usage evidence")
     if r.get("condition") not in CONDITIONS or r.get("oracle_kind")!="exact_text" or type(r.get("oracle_pass")) is not bool:
         raise ValueError("Condition/oracle absent")
-    for k in ("scenario_id","model","codex_version","prompt_sha256","expected_sha256","workspace_commit","configuration_sha256","expected_mcp_server"):
+    for k in ("scenario_id","run_id","model","codex_version","prompt_sha256","expected_sha256","workspace_commit","configuration_sha256","expected_mcp_server"):
         if not isinstance(r.get(k),str) or not r[k]:raise ValueError("Missing "+k)
     if type(r.get("repetition")) is not int or r["repetition"]<1:raise ValueError("Invalid repetition")
     if type(r.get("tool_events")) is not int or r["tool_events"]<0:raise ValueError("Invalid tool count")

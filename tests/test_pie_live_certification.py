@@ -19,6 +19,7 @@ def event(inp=1200,cached=100,out=200,answer="answer"):
 
 def row(rep,arm,inp,*,passed=True,config="a"):
     return {"schema":SCHEMA,"condition":arm,"scenario_id":"one","repetition":rep,
+            "run_id":f"{arm}-run-{rep}",
             "model":"test-model","codex_version":"codex-test-1",
             "prompt_sha256":"prompt-hash","expected_sha256":"expected-hash",
             "workspace_commit":"0"*40,"configuration_sha256":config,
