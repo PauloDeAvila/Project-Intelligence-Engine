@@ -25,6 +25,10 @@ O cenário v3 corrigiu a capacidade baseline: `get_scene_info` não expunha `mat
 
 Economia de input: **0,385%**; de input não cacheado: **3,024%**; total: **0,980%**. Latência caiu 4.931,512 ms. O resultado é positivo, porém é apenas um par e não certifica o domínio. Evidência: [`101-blender-v3-pair.md`](101-blender-v3-pair.md).
 
+## Limite de quota desta autorização
+
+O ledger atual registra 20 chamadas autorizadas e 20 sessões Codex concluídas após os incidentes e o par v3. Nenhuma sessão adicional foi iniciada. Blender tem 1 par v3 válido; Web e os pares adicionais necessários para certificação permanecem pendentes. O veredito continua `NOT_CERTIFIED`.
+
 Os números A/B históricos abaixo são mantidos como evidência preliminar e não devem ser confundidos com o piloto atual. Eles não promovem a certificação porque não satisfazem a cobertura causal e de correlação exigida.
 
 O par usou o mesmo modelo, esforço, prompt, commit e estado inicial. A baseline foi válida; a optimized tem uso real e oráculo textual/Blender aprovados, mas route evidence `INSUFFICIENT_EVIDENCE`. Não houve execução Web nesta etapa nem retry automático.
