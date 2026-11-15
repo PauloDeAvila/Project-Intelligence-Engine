@@ -13,7 +13,8 @@ sys.path.insert(0, str(ROOT / "tools"))
 from benchmark_blender_choice_agent import (
     TASKS, ChoicePlanError, _read_only_blender_code, compare_pair,
     deterministic_choice, planning_catalog,
-    independent_fixture_oracle, ordered_catalog, plan_choice, plan_target_choice, run_arm,
+    independent_fixture_oracle, ordered_catalog, plan_choice, plan_target_choice,
+    plan_observation_target, add_usage, run_arm,
     safe_plan_failure, main, validate_task,
 )
 from benchmark_blender_evidence_agent import AgentPlanError
@@ -21,6 +22,16 @@ from verify_phase3_mcp_profiles import Probe
 
 
 class MultiChoiceAgentTests(unittest.TestCase):
+    def test_add_usage_requires_reported_provider_fields(self):
+        self.assertEqual(add_usage(
+            {"input_tokens": 2, "output_tokens": 3, "total_tokens": 5},
+            {"input_tokens": 4, "output_tokens": 1, "total_tokens": 5}),
+            {"input_tokens": 6, "output_tokens": 4, "total_tokens": 10})
+        with self.assertRaises(ValueError):
+            add_usage({"total_tokens": 5}, {"input_tokens": 1,
+                                             "output_tokens": 1,
+                                             "total_tokens": 2})
+
     def test_target_plan_accepts_only_target_index(self):
         from benchmark_blender_choice_agent import _parse_target_plan
         response = {"message": {"content": '{"target_index": 1}'}}

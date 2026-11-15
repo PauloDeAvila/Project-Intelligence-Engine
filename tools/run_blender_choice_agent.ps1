@@ -7,7 +7,7 @@ Runs against the disposable fixture on port 9877, never user artwork.
 [CmdletBinding()]
 param(
     [string]$Model = 'qwen3:4b',
-    [ValidateSet('deterministic','model','model_target')][string]$RouteMode = 'deterministic',
+    [ValidateSet('deterministic','model','model_target','model_target_evidence')][string]$RouteMode = 'deterministic',
     [ValidateRange(1,3)][int]$MaxTasks = 1,
     [ValidateRange(2048,8192)][int]$NumCtx = 8192,
     [ValidateRange(1024,65535)][int]$BlenderPort = 9877,

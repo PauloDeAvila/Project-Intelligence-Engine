@@ -152,6 +152,20 @@ A tentativa anterior em `9987` foi preservada em
 timeout de inicialização MCP por porta ocupada, sem modelo ou chamada MCP
 concluída; não foi usada como evidência de economia.
 
+### Modo `model_target_evidence` — falha fechada
+
+Foi testado o caminho que inclui uma segunda inferência para interpretar a
+observação MCP. A primeira tentativa real terminou em
+`INVALID_EVIDENCE_PLAN`; após reforçar o schema JSON, terminou em
+`EVIDENCE_TARGET_MISMATCH` no relatório
+`C:\Users\phsra\AppData\Local\Temp\pie-blender-multi-choice-a7fbe78086c2.json`.
+
+O relatório confirma uma chamada MCP antes da falha
+(`mcp_tool_calls_executed=1`) e 353 tokens locais reportados para as duas
+decisões até o fechamento. Nenhum par foi promovido e não foi calculada
+economia. A resposta do modelo não foi armazenada, apenas seu SHA-256 e a
+classificação do erro.
+
 ## Validação de código
 
 Comando:
