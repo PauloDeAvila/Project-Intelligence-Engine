@@ -57,6 +57,8 @@ O probe offline do Playwright preservou referências nativas e reduziu caractere
 
 Os pares 2/3 de Blender e Web têm prompts, oráculos e uso do provedor comparáveis. Ainda assim, os artefatos não registram ferramentas/rota por execução; o SQLite histórico tem `0` observações Blender e `2` Web, e o gateway mudou desde o commit histórico. Eles permanecem evidência preliminar, não certificação causal do PIE.
 
+O gate de rota foi endurecido no commit `d2f574d` e documentado em [`35-route-evidence-gate.md`](35-route-evidence-gate.md). A primeira sonda A/B no commit atual passou nos quatro preflights e no probe direto do gateway Blender, mas a captura Codex `blender-baseline-01` terminou em `RuntimeError` sem registro JSONL, lifecycle ou SQLite. A bateria foi interrompida sem retry; evidência: [`36-current-ab-initial-blocked.md`](36-current-ab-initial-blocked.md).
+
 Para certificar o commit atual, o plano fechado exige **12 novas sessões**: três pares Blender e três Web, seis baseline e seis optimized. O relatório detalhado é [`34-ab-offline-audit.md`](34-ab-offline-audit.md). Não foram executados modelos nesta auditoria.
 
 ## Custos
@@ -67,7 +69,7 @@ Para certificar o commit atual, o plano fechado exige **12 novas sessões**: tr�
 
 1. Escolher, com nova autorização, uma combinação de aprovação suportada pela versão instalada: ou `--approve-for-me` sem `--sandbox`, ou uma sessão interativa `on-request` que aceite a aprovação manual. Não remover proteções indiscriminadamente.
 2. Fazer cada captura Codex autorizada usar `--telemetry-workspace`, para que o import validado ocorra automaticamente no mesmo fluxo da execução.
-3. Reexecutar somente os pares faltantes com nova autorização, pois o limite de 12 chamadas da autorização A/B foi consumido.
+3. Corrigir offline a captura Codex→MCP e repetir somente uma sonda controlada antes de retomar os pares; a bateria atual foi interrompida na primeira captura.
 4. Medir overhead real por operação e verificar inicialização contínua dos dois gateways.
 
-Relatórios detalhados: [`09-blender-real-ab.json`](09-blender-real-ab.json), [`10-web-real-ab.json`](10-web-real-ab.json), [`11-token-certification.json`](11-token-certification.json), [`12-cost-efficiency.json`](12-cost-efficiency.json), [`14-offline-root-cause.md`](14-offline-root-cause.md), [`22-codex-mcp-probe-result.json`](22-codex-mcp-probe-result.json), [`23-mcp-offline-forensics.md`](23-mcp-offline-forensics.md), [`24-mcp-bootstrap-validation.json`](24-mcp-bootstrap-validation.json), [`25-mcp-offline-integration.json`](25-mcp-offline-integration.json), [`28-approval-policy-probe.json`](28-approval-policy-probe.json) e [`29-cli-compatibility.json`](29-cli-compatibility.json).
+Relatórios detalhados: [`09-blender-real-ab.json`](09-blender-real-ab.json), [`10-web-real-ab.json`](10-web-real-ab.json), [`11-token-certification.json`](11-token-certification.json), [`12-cost-efficiency.json`](12-cost-efficiency.json), [`14-offline-root-cause.md`](14-offline-root-cause.md), [`22-codex-mcp-probe-result.json`](22-codex-mcp-probe-result.json), [`23-mcp-offline-forensics.md`](23-mcp-offline-forensics.md), [`24-mcp-bootstrap-validation.json`](24-mcp-bootstrap-validation.json), [`25-mcp-offline-integration.json`](25-mcp-offline-integration.json), [`28-approval-policy-probe.json`](28-approval-policy-probe.json), [`29-cli-compatibility.json`](29-cli-compatibility.json), [`35-route-evidence-gate.md`](35-route-evidence-gate.md) e [`36-current-ab-initial-blocked.md`](36-current-ab-initial-blocked.md).
