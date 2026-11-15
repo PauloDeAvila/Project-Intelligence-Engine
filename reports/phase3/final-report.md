@@ -34,7 +34,10 @@ caracteres. A regressão Blender `query_scene` é válida e foi mantida.
 
 O uso local vem de `prompt_eval_count` e `eval_count` do Ollama. Não há tarifa
 verificada para converter tokens em dinheiro; custos permanecem `null`. A
-telemetria SQLite/Codex não foi re-certificada por esta bateria local.
+A persistência local foi revalidada com 33 testes aprovados, cobrindo métricas
+SQLite, lifecycle MCP, correlação task/run, recuperação de output, retenção e
+isolamento após reinício. Isso não prova a importação de uso do provedor Codex.
+Evidência: [113-telemetry-persistence-validation-20261115.json](113-telemetry-persistence-validation-20261115.json).
 
 O overhead estrutural de catálogo foi medido sem modelo: Blender reduziu
 `tools/list` de 18.982 para 3.792 caracteres e Web de 21.177 para 1.738.

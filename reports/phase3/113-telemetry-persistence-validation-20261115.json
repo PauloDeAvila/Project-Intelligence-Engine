@@ -1,0 +1,10 @@
+{
+  "schema": "pie-phase3-telemetry-persistence-validation-v1",
+  "command": "uv run python -m unittest tests.test_pie_domain_gateway tests.test_pie_task_telemetry tests.test_pie_tool_gateway tests.test_pie_output_pipeline tests.test_pie_memory_recovery_integration -q",
+  "tests_passed": 33,
+  "tests_failed": 0,
+  "coverage": ["SQLite gateway metrics", "MCP lifecycle diagnostics", "task/run correlation", "output persistence and recovery", "retention/expiry", "restart isolation"],
+  "provider_tokens": null,
+  "codex_certification": "NOT_CERTIFIED",
+  "interpretation": "Local persistence and failure-path tests passed; this does not prove Codex provider usage import or continuous production coverage."
+}
