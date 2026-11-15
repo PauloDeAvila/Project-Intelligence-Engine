@@ -23,6 +23,7 @@ caracteres. A regressão Blender `query_scene` é válida e foi mantida.
 ## Cobertura
 
 - Blender determinístico: 3 tarefas, 6 chamadas MCP e 6 oráculos aprovados.
+- Blender determinístico real: a fixture descartável no Blender 5.3 produziu 3 tarefas, 6 chamadas MCP e 6/6 oráculos aprovados; baseline usou `execute_blender_code` e PIE usou `pie_blender_get_object`. Evidência: [116-blender-live-deterministic-routing-20261115.json](116-blender-live-deterministic-routing-20261115.json). Como não houve inferência, isso não é uma medição de economia.
 - Blender com seleção/interpretação: 3 pares locais válidos, uma chamada MCP
   por braço e duas inferências locais por braço.
 - Web grande: 3 pares válidos com Playwright MCP `@playwright/mcp@0.0.85` e

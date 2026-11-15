@@ -1,21 +1,113 @@
 {
   "schema": "pie-phase3-report-v1",
-  "certification": {"status": "NOT_CERTIFIED", "reason": "Current real-provider evidence is local Ollama only; Codex provider A/B certification remains incomplete.", "codex_sessions_started_in_current_worktree": 0, "codex_quota_consumed_in_current_worktree": false},
-  "provider_measurements": {"provider": "local_ollama", "model": "qwen3:4b", "context": 8192, "usage_source": "Ollama prompt_eval_count and eval_count", "cost": null, "cost_reason": "No verified tariff was supplied."},
+  "certification": {
+    "status": "NOT_CERTIFIED",
+    "reason": "Current real-provider evidence is local Ollama only; Codex provider A/B certification remains incomplete.",
+    "codex_sessions_started_in_current_worktree": 0,
+    "codex_quota_consumed_in_current_worktree": false
+  },
+  "provider_measurements": {
+    "provider": "local_ollama",
+    "model": "qwen3:4b",
+    "context": 8192,
+    "usage_source": "Ollama prompt_eval_count and eval_count",
+    "cost": null,
+    "cost_reason": "No verified tariff was supplied."
+  },
   "applications": {
     "blender": {
-      "deterministic_routing": {"tasks": 3, "mcp_calls": 6, "oracle_passes": 6, "model_requests": 0, "status": "VALID_LOCAL_ROUTING_NO_MODEL"},
-      "model_target_evidence": {"tasks": 3, "valid_pairs": 3, "baseline_total_tokens": 1125, "optimized_total_tokens": 1077, "total_savings_percent": 4.267, "oracle_passes": 6, "mcp_calls": 6, "provider_requests": 12, "report": "C:/Users/phsra/AppData/Local/Temp/pie-blender-multi-choice-d85ba89bc293.json", "status": "VALID_LOCAL_PAIRS"},
-      "query_scene_comparison": {"valid_pairs": 3, "baseline_total_tokens": 1941, "optimized_total_tokens": 2340, "total_savings_percent": -20.556, "oracle_passes": 6, "status": "VALID_LOCAL_PAIRS_REGRESSION"}
+      "deterministic_routing": {
+        "tasks": 3,
+        "mcp_calls": 6,
+        "oracle_passes": 6,
+        "model_requests": 0,
+        "status": "VALID_LOCAL_ROUTING_NO_MODEL",
+        "live_report": "reports/phase3/116-blender-live-deterministic-routing-20261115.json"
+      },
+      "model_target_evidence": {
+        "tasks": 3,
+        "valid_pairs": 3,
+        "baseline_total_tokens": 1125,
+        "optimized_total_tokens": 1077,
+        "total_savings_percent": 4.267,
+        "oracle_passes": 6,
+        "mcp_calls": 6,
+        "provider_requests": 12,
+        "report": "C:/Users/phsra/AppData/Local/Temp/pie-blender-multi-choice-d85ba89bc293.json",
+        "status": "VALID_LOCAL_PAIRS"
+      },
+      "query_scene_comparison": {
+        "valid_pairs": 3,
+        "baseline_total_tokens": 1941,
+        "optimized_total_tokens": 2340,
+        "total_savings_percent": -20.556,
+        "oracle_passes": 6,
+        "status": "VALID_LOCAL_PAIRS_REGRESSION"
+      }
     },
     "web": {
-      "large_fixture": {"scenario": "web-large-page-cert-v1", "valid_pairs": 3, "baseline_total_tokens": 9259, "optimized_total_tokens": 4417, "total_savings_percent": 52.295, "oracle_passes": 6, "recovery_calls": 0, "report": "C:/Users/phsra/AppData/Local/Temp/pie-web-ollama-5e706cde9c68.json", "status": "VALID_LOCAL_PAIRS"},
-      "small_fixture": {"valid_pairs": 3, "baseline_total_tokens": 2502, "optimized_total_tokens": 2502, "total_savings_percent": 0.0, "oracle_passes": 6, "recovery_calls": 0, "status": "VALID_LOCAL_PAIRS_NO_GAIN"}
+      "large_fixture": {
+        "scenario": "web-large-page-cert-v1",
+        "valid_pairs": 3,
+        "baseline_total_tokens": 9259,
+        "optimized_total_tokens": 4417,
+        "total_savings_percent": 52.295,
+        "oracle_passes": 6,
+        "recovery_calls": 0,
+        "report": "C:/Users/phsra/AppData/Local/Temp/pie-web-ollama-5e706cde9c68.json",
+        "status": "VALID_LOCAL_PAIRS"
+      },
+      "small_fixture": {
+        "valid_pairs": 3,
+        "baseline_total_tokens": 2502,
+        "optimized_total_tokens": 2502,
+        "total_savings_percent": 0.0,
+        "oracle_passes": 6,
+        "recovery_calls": 0,
+        "status": "VALID_LOCAL_PAIRS_NO_GAIN"
+      }
     }
   },
-  "monitoring": {"status": "PARTIAL_COVERAGE", "provider_usage_available": true, "provider_usage_scope": "local_ollama_only", "codex_usage_scope": "not_verified_in_current_worktree", "sqlite_persistence": "validated by 33 local persistence/lifecycle tests", "persistence_report": "reports/phase3/113-telemetry-persistence-validation-20261115.json", "overhead_ms": null, "structural_overhead_report": "reports/phase3/111-tool-overhead-20261115.json", "timing_overhead_report": "reports/phase3/112-tool-overhead-timing-20261115.json"},
-  "validation": {"focused_tests_passed": 71, "full_suite_initial": {"status": "FAILED", "tests_run": 641, "skipped": 5, "errors": 1, "report": "reports/phase3/114-full-suite-validation-20261115.json"}, "full_suite_second_run": {"status": "PASS", "tests_run": 641, "skipped": 5, "errors": 0}, "isolated_http_recheck": "PASS", "pytest": "not installed in this worktree", "diff_check": "passed", "automatic_retries": false, "destructive_actions": false, "playwright_version": "@playwright/mcp@0.0.85", "latest_commit": "15a10ed"},
-  "limitations": ["Local Ollama measurements are not Codex provider certification.", "The configured PIE MCP index available to this session points to a different workspace root and was not used as repository evidence.", "No verified pricing is available.", "Savings vary by workload: Web large is positive, Web small is neutral, Blender query_scene is negative, and Blender exact evidence is modestly positive."],
+  "monitoring": {
+    "status": "PARTIAL_COVERAGE",
+    "provider_usage_available": true,
+    "provider_usage_scope": "local_ollama_only",
+    "codex_usage_scope": "not_verified_in_current_worktree",
+    "sqlite_persistence": "validated by 33 local persistence/lifecycle tests",
+    "persistence_report": "reports/phase3/113-telemetry-persistence-validation-20261115.json",
+    "overhead_ms": null,
+    "structural_overhead_report": "reports/phase3/111-tool-overhead-20261115.json",
+    "timing_overhead_report": "reports/phase3/112-tool-overhead-timing-20261115.json"
+  },
+  "validation": {
+    "focused_tests_passed": 71,
+    "full_suite_initial": {
+      "status": "FAILED",
+      "tests_run": 641,
+      "skipped": 5,
+      "errors": 1,
+      "report": "reports/phase3/114-full-suite-validation-20261115.json"
+    },
+    "full_suite_second_run": {
+      "status": "PASS",
+      "tests_run": 641,
+      "skipped": 5,
+      "errors": 0
+    },
+    "isolated_http_recheck": "PASS",
+    "pytest": "not installed in this worktree",
+    "diff_check": "passed",
+    "automatic_retries": false,
+    "destructive_actions": false,
+    "playwright_version": "@playwright/mcp@0.0.85",
+    "latest_commit": "b17ec6b"
+  },
+  "limitations": [
+    "Local Ollama measurements are not Codex provider certification.",
+    "The configured PIE MCP index available to this session points to a different workspace root and was not used as repository evidence.",
+    "No verified pricing is available.",
+    "Savings vary by workload: Web large is positive, Web small is neutral, Blender query_scene is negative, and Blender exact evidence is modestly positive."
+  ],
   "completion_audit": "reports/phase3/115-completion-audit-20261115.json",
   "evidence_report": "reports/phase3/109-local-routing-and-web-measurement-20261115.md"
 }
