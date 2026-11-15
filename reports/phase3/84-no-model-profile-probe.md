@@ -12,6 +12,6 @@ O perfil optimized completou `initialize` e `tools/list`, expondo somente `pie_b
 
 Isso bloqueia a validação do gateway seletivo contra a cena live atual. Não houve Codex, modelo ou consumo de quota.
 
-O teste offline com upstream falso confirmou que uma ferramenta não exposta retorna `PIE_TOOL_NOT_EXPOSED` sem alcançar o upstream. O mesmo teste confirmou que `structuredContent` é retornado junto com `content` para `pie_blender_query_scene`.
+O gateway real, sem modelo, listou somente `pie_blender_query_scene`. Uma chamada direta proibida a `get_scene_info` retornou `PIE_TOOL_NOT_EXPOSED` sem alcançar o upstream. O teste offline com upstream falso confirmou o mesmo bloqueio, e também confirmou que `structuredContent` é retornado junto com `content` para `pie_blender_query_scene`.
 
 Evidência estruturada: [`84-no-model-profile-probe.json`](84-no-model-profile-probe.json).

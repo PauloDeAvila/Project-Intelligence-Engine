@@ -26,9 +26,12 @@
     }
   },
   "forbidden_tool_rejection": {
-    "status": "PASS_OFFLINE_MOCK",
+    "status": "PASS_REAL_GATEWAY_NO_MODEL",
+    "tools_list": ["pie_blender_query_scene"],
     "result": "PIE_TOOL_NOT_EXPOSED",
-    "upstream_called": false
+    "upstream_called": false,
+    "model_sessions_started": 0,
+    "quota_consumed": false
   },
   "structured_content_contract": {
     "status": "PASS_OFFLINE_MOCK",
