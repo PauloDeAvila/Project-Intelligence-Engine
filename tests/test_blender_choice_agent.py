@@ -2,15 +2,16 @@
 import json
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 from benchmark_blender_choice_agent import (
-    TASKS, _read_only_blender_code, compare_pair,
+    TASKS, ChoicePlanError, _read_only_blender_code, compare_pair,
     independent_fixture_oracle, ordered_catalog, plan_choice, run_arm,
-    validate_task,
+    safe_plan_failure, main, validate_task,
 )
 from benchmark_blender_evidence_agent import AgentPlanError
 
@@ -128,6 +129,120 @@ class MultiChoiceAgentTests(unittest.TestCase):
             ), self.assertRaises(AgentPlanError):
                 plan_choice("qwen3:4b", catalog, task)
             self.assertEqual(len(calls), 1)
+
+    def test_failure_codes_record_actual_bad_selection_and_usage(self):
+        task = TASKS[0]
+        catalog = [{"name": "pie_blender_query_scene"}, {"name": "pie_blender_get_object"}]
+        cases = (
+            ('{"tool_index":0,"target_index":1}', "NON_EXACT_TOOL_SELECTED", (0, 1)),
+            ('{"tool_index":1,"target_index":0}', "WRONG_TARGET_SELECTED", (1, 0)),
+            ('{"tool_index":17,"target_index":1}', "INVALID_TOOL_INDEX", None),
+            ('{"tool_index":false,"target_index":1}', "INVALID_TOOL_INDEX", None),
+            ('{"tool_index":1,"target_index":8}', "INVALID_TARGET_INDEX", None),
+            ('{"tool_index":1}', "INVALID_PLAN_SHAPE", None),
+            ('not json', "INVALID_MODEL_JSON", None),
+        )
+        for response_text, code, indices in cases:
+            calls = []
+            class FakeResponse:
+                def __enter__(self): return self
+                def __exit__(self, *_): return False
+                def read(self, _): return json.dumps({
+                    "done": True, "prompt_eval_count": 75, "eval_count": 19,
+                    "message": {"content": response_text},
+                }).encode()
+
+            def once(req, timeout):
+                calls.append(True)
+                return FakeResponse()
+
+            with self.subTest(code=code), patch(
+                "benchmark_blender_choice_agent.urlopen", side_effect=once
+            ):
+                with self.assertRaises(ChoicePlanError) as failure:
+                    plan_choice("qwen3:4b", catalog, task)
+            self.assertEqual(len(calls), 1)
+            details = safe_plan_failure(failure.exception, "baseline")
+            self.assertEqual(details["failure_code"], code)
+            self.assertEqual(details["failed_condition"], "baseline")
+            self.assertEqual(details["mcp_tool_calls_executed"], 0)
+            self.assertEqual(details["failed_plan_usage"]["total_tokens"], 94)
+            self.assertTrue(details["model_request_attempted"])
+            self.assertEqual(len(details["failed_plan_sha256"]), 64)
+            self.assertNotIn(response_text, str(details))
+            if indices is not None:
+                self.assertEqual(
+                    (details["selected_tool_index"], details["selected_target_index"]),
+                    indices)
+            else:
+                self.assertNotIn("selected_target_index", details)
+
+    def test_diagnostic_handles_missing_response_without_inventing_usage(self):
+        catalog = [{"name": "pie_blender_query_scene"}, {"name": "pie_blender_get_object"}]
+        class FakeResponse:
+            def __enter__(self): return self
+            def __exit__(self, *_): return False
+            def read(self, _): return json.dumps({
+                "done": True, "prompt_eval_count": 75, "eval_count": 19,
+                "message": {"content": None},
+            }).encode()
+
+        with patch("benchmark_blender_choice_agent.urlopen", return_value=FakeResponse()):
+            with self.assertRaises(ChoicePlanError) as caught:
+                plan_choice("qwen3:4b", catalog, TASKS[0])
+        info = safe_plan_failure(caught.exception, "optimized")
+        self.assertEqual(info["failure_code"], "MISSING_MODEL_CONTENT")
+        self.assertNotIn("failed_plan_sha256", info)
+        self.assertTrue(info["model_request_attempted"])
+        for pre_model in ("INVALID_CATALOG_SIZE", "PLANNING_PAYLOAD_OVERSIZED"):
+            with self.subTest(pre_model=pre_model):
+                diagnostic = safe_plan_failure(
+                    ChoicePlanError(pre_model), "baseline")
+                self.assertFalse(diagnostic["model_request_attempted"])
+                self.assertNotIn("failed_plan_usage", diagnostic)
+
+    def test_main_preserves_fail_closed_report_without_second_arm_or_retries(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            scenario = base / "fixture.json"
+            scenario.write_text("{}", encoding="utf-8")
+            left = base / "baseline.toml"
+            right = base / "optimized.toml"
+            left.write_text("", encoding="utf-8")
+            right.write_text("", encoding="utf-8")
+            report = base / "failure.json"
+            calls = []
+            def failed_arm(*args, **kwargs):
+                calls.append(True)
+                raise ChoicePlanError(
+                    "WRONG_TARGET_SELECTED",
+                    usage={"input_tokens": 75, "output_tokens": 19,
+                           "total_tokens": 94},
+                    plan_sha256="a" * 64, indices=(1, 0),
+                    model_request_attempted=True)
+            with (
+                patch("benchmark_blender_choice_agent.ensure_local_model"),
+                patch("benchmark_blender_choice_agent.run_arm", side_effect=failed_arm),
+            ):
+                code = main([
+                    "--workspace", str(base),
+                    "--baseline-profile", str(left),
+                    "--optimized-profile", str(right),
+                    "--output", str(report),
+                    "--max-tasks", "3",
+                ])
+            self.assertEqual(code, 2)
+            self.assertEqual(len(calls), 1)
+            data = json.loads(report.read_text(encoding="utf-8"))
+            self.assertEqual(len(data["rows"]), 1)
+            row = data["rows"][0]
+            self.assertEqual(row["status"], "FAILED_CLOSED")
+            self.assertEqual(row["failure_code"], "WRONG_TARGET_SELECTED")
+            self.assertEqual(row["failed_condition"], "baseline")
+            self.assertEqual(row["mcp_tool_calls_executed"], 0)
+            self.assertEqual(row["arms"], {})
+            self.assertNotIn("comparison", row)
+            self.assertEqual(row["failed_plan_usage"]["total_tokens"], 94)
 
     def test_agent_routes_real_mcp_only_after_nontrivial_selection(self):
         for condition, names, server in (
