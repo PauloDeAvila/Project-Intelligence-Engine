@@ -28,6 +28,49 @@ def _sanitize_text(value, *, limit=200_000):
     text=re.sub(r"\bsk-[A-Za-z0-9_-]{12,}\b", "[REDACTED_KEY]", text)
     return text[:limit]
 
+def _materialize_runtime_profile(home: Path, profile: str | None, *, server: str,
+                                 runtime_env: dict[str, str], run_id: str) -> tuple[str | None, Path | None]:
+    """Create an ephemeral profile that explicitly passes telemetry to one MCP server."""
+    if profile is None:
+        return None, None
+    source = home / (profile + ".config.toml")
+    if not source.is_file():
+        # Keep mocked/offline capture boundaries compatible; real preflight still
+        # rejects the absent profile before a model process can start.
+        return profile, None
+    text = source.read_text(encoding="utf-8")
+    parsed = tomllib.loads(text)
+    servers = parsed.get("mcp_servers")
+    if not isinstance(servers, dict) or server not in servers:
+        raise ValueError("Expected MCP server absent from profile")
+    header = f"[mcp_servers.{server}]"
+    lines = text.splitlines()
+    try:
+        start = lines.index(header)
+    except ValueError as exc:
+        raise ValueError("Expected MCP server section absent from profile") from exc
+    end = next((i for i in range(start + 1, len(lines))
+                if lines[i].startswith("[mcp_servers.") and lines[i].endswith("]")), len(lines))
+    env = "env = { " + ", ".join(
+        f"{key} = '{value.replace(chr(39), '')}'" for key, value in sorted(runtime_env.items())
+    ) + " }"
+    replaced = False
+    for index in range(start + 1, end):
+        if lines[index].lstrip().startswith("env ="):
+            lines[index] = env
+            replaced = True
+            break
+    if not replaced:
+        command_index = next((i for i in range(start + 1, end)
+                              if lines[i].lstrip().startswith("command =")), None)
+        if command_index is None:
+            raise ValueError("MCP server command absent from profile")
+        lines.insert(command_index + 1, env)
+    effective = f"{profile}-run-{run_id}"
+    destination = home / (effective + ".config.toml")
+    destination.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return effective, destination
+
 def _forensic_dir(store:Path, run_id:str)->Path:
     if not re.fullmatch(r"[A-Za-z0-9_-]{8,128}",run_id):
         raise ValueError("Invalid forensic run_id")
@@ -327,28 +370,37 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
     if type(timeout) is not int or not 20<=timeout<=3600:raise ValueError("Invalid timeout")
     workspace=Path(workspace).expanduser().resolve(strict=True)
     commit=_git_clean_commit(workspace)
-    env,configsha=_codex_environment(Path(codex_home),profile=profile)
     run_id=run_id_override or _capture_run_id(scenario,condition,repetition)
     pair_id=pair_id_override or _capture_pair_id(scenario)
     if (not isinstance(run_id,str) or not re.fullmatch(r"[A-Za-z0-9_-]{8,128}",run_id) or
         not isinstance(pair_id,str) or not re.fullmatch(r"[A-Za-z0-9_-]{8,128}",pair_id)):
         raise ValueError("Invalid capture identity")
     expected_server=_expected_mcp_server(scenario,condition)
+    telemetry_store=_telemetry_store(workspace)
+    telemetry_store.mkdir(parents=True,exist_ok=True)
+    runtime_env={"PIE_RUN_ID":run_id,"PIE_PAIR_ID":pair_id,
+                 "PIE_TASK_ID":scenario["scenario_id"],"PIE_CONDITION":condition,
+                 "PIE_APP":_scenario_app(scenario),"PIE_SCENARIO_ID":scenario["scenario_id"],
+                 "PIE_GATEWAY_SERVER":expected_server or "",
+                 "PIE_GLOBAL_STORAGE_ROOT":str(telemetry_store),
+                 "PIE_MCP_DIAGNOSTICS_PATH":str(telemetry_store / "mcp-lifecycle.jsonl")}
+    effective_profile, _runtime_profile_path = _materialize_runtime_profile(
+        Path(codex_home), profile, server=expected_server, runtime_env=runtime_env,
+        run_id=run_id)
+    env,configsha=_codex_environment(Path(codex_home),profile=effective_profile)
     env.update({"PIE_RUN_ID":run_id,"PIE_PAIR_ID":pair_id,
                 "PIE_TASK_ID":scenario["scenario_id"],"PIE_CONDITION":condition,
                 "PIE_APP":_scenario_app(scenario),"PIE_SCENARIO_ID":scenario["scenario_id"],
                 "PIE_GATEWAY_SERVER":expected_server or ""})
-    telemetry_store=_telemetry_store(workspace)
-    telemetry_store.mkdir(parents=True,exist_ok=True)
     env["PIE_GLOBAL_STORAGE_ROOT"]=str(telemetry_store)
     env["PIE_MCP_DIAGNOSTICS_PATH"]=str(telemetry_store/"mcp-lifecycle.jsonl")
     forensic_root=_forensic_start(telemetry_store,scenario=scenario,condition=condition,
                                    repetition=repetition,run_id=run_id,pair_id=pair_id,
                                    workspace_commit=commit,configsha=configsha,
-                                   expected_server=expected_server,profile=profile)
+                                   expected_server=expected_server,profile=effective_profile)
     try:
         preflight=preflight_codex(scenario,condition=condition,workspace=workspace,
-                                  codex_home=Path(codex_home),codex_bin=codex_bin,profile=profile)
+                                  codex_home=Path(codex_home),codex_bin=codex_bin,profile=effective_profile)
     except Exception as exc:
         _forensic_finish(forensic_root,status="preflight_failed",error=str(exc))
         raise
@@ -370,7 +422,7 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
     version=ver.stdout.strip().splitlines()[0][:120]
     args=[executable,"exec","--json","--ephemeral","--sandbox","read-only",
           "--cd",str(workspace),"--model",scenario["model"]]
-    if profile is not None:args += ["--profile",profile]
+    if effective_profile is not None:args += ["--profile",effective_profile]
     args += ["-"]
     t0=time.perf_counter()
     try:
@@ -450,7 +502,7 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
             "repetition":repetition,"run_id":run_id,"pair_id":pair_id,"model":scenario["model"],"codex_version":version,
             "prompt_sha256":_sha(scenario["prompt"]),"expected_sha256":_sha(expected),
             "answer_sha256":_sha(actual),"oracle_kind":"exact_text","oracle_pass":actual==expected,
-            "workspace_commit":commit,"configuration_sha256":configsha,"profile":profile,
+            "workspace_commit":commit,"configuration_sha256":configsha,"profile":effective_profile,
             "runtime_ms":round((time.perf_counter()-t0)*1000,3),
             "tool_events":parsed["tool_events"],"mcp_tools":parsed["mcp_tools"],"usage":parsed["usage"],
             "expected_mcp_server":expected_server,"mcp_route_verified":True,

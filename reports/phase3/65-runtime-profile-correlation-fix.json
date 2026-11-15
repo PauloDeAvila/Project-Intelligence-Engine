@@ -1,0 +1,18 @@
+{
+  "schema": "pie-phase3-runtime-profile-fix-v1",
+  "status": "OFFLINE_VERIFIED",
+  "model_started": false,
+  "quota_consumed": false,
+  "cause": "MCP child environment correlation was implicit and was not persisted by the optimized run.",
+  "correction": "Materialize an ephemeral Codex profile per capture with explicit PIE correlation and diagnostics env fields on the expected MCP server.",
+  "original_config_modified": false,
+  "original_mcp_servers_modified": false,
+  "tests": {
+    "focused": 20,
+    "compileall": "passed",
+    "diff_check": "passed",
+    "pie_index": "CURRENT",
+    "workspace_match": true
+  },
+  "next_required_evidence": "One fresh authorized optimized probe with exact gateway lifecycle correlation"
+}

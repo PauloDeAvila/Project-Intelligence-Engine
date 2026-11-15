@@ -17,6 +17,7 @@ from unittest.mock import patch
 from pie.certification import controller
 from pie.certification.live_codex import (
     CodexCaptureError,
+    _materialize_runtime_profile,
     capture_codex,
     parse_codex_jsonl,
 )
@@ -64,6 +65,22 @@ def _completed(stdout: str = "") -> subprocess.CompletedProcess[str]:
 
 
 class CaptureBoundaryTests(unittest.TestCase):
+    def test_runtime_profile_explicitly_passes_gateway_correlation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            (home / "profile.config.toml").write_text(
+                "[mcp_servers.pie-blender-optimized]\n"
+                "command = 'python'\n"
+                "args = ['-m', 'pie.gateway.domain']\n",
+                encoding="utf-8")
+            name, path = _materialize_runtime_profile(
+                home, "profile", server="pie-blender-optimized",
+                runtime_env={"PIE_RUN_ID": "optimized-run", "PIE_PAIR_ID": "pair-fixed"},
+                run_id="optimized-run")
+            self.assertEqual(name, "profile-run-optimized-run")
+            self.assertIn("PIE_RUN_ID = 'optimized-run'", path.read_text(encoding="utf-8"))
+            self.assertIn("PIE_PAIR_ID = 'pair-fixed'", path.read_text(encoding="utf-8"))
+
     def _capture(self, exec_result, *, scenario=None):
         scenario = scenario or _scenario()
         with tempfile.TemporaryDirectory() as tmp:

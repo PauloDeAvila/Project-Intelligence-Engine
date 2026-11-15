@@ -19,6 +19,17 @@ Economia input: **-30.401263%**. Economia de input não armazenado em cache: **3
 
 Evidências: [`63-single-optimized-blender.md`](63-single-optimized-blender.md), [`64-blender-single-pair-comparison.json`](64-blender-single-pair-comparison.json) e o diretório forense registrado no primeiro arquivo. O `mcp-tool-events.jsonl` prova o servidor e as ferramentas observadas pelo Codex; a ausência de evento lifecycle exato impede certificação causal do gateway.
 
+## Correção offline da correlação de runtime
+
+Foi corrigida a causa provável da ausência de lifecycle: a captura agora materializa um perfil
+Codex efêmero por execução e declara explicitamente no servidor MCP os IDs da execução e o
+caminho de telemetria. A correção foi validada sem iniciar modelo ou consumir quota. Evidência:
+[`65-runtime-profile-correlation-fix.md`](65-runtime-profile-correlation-fix.md) e
+[`65-runtime-profile-correlation-fix.json`](65-runtime-profile-correlation-fix.json).
+
+Ainda falta uma nova sonda real para provar a correlação no gateway. A execução otimizada
+anterior não foi repetida automaticamente.
+
 ## A/B estrito (repetições 2 e 3)
 
 | Domínio | Pares | Input B/O | Cache B/O | Output B/O | Total B/O | Economia total | Latência média B/O | MCP B/O |
