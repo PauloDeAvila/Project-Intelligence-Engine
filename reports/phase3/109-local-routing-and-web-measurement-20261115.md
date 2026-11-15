@@ -61,6 +61,14 @@ Relatório sem recuperação: `C:\Users\phsra\AppData\Local\Temp\pie-web-ollama-
 
 Relatório opt-in: `C:\Users\phsra\AppData\Local\Temp\pie-web-ollama-dca357203a5c.json`. O gateway voltou a anunciar 3 ferramentas no braço otimizado, confirmando que a capacidade de recuperação não foi removida; o caminho não foi usado porque a fixture não exigiu compactação.
 
+Repetição local posterior (3 pares, ordem alternada): `C:\Users\phsra\AppData\Local\Temp\pie-web-ollama-9f975951651d.json`.
+
+- 3/3 pares passaram no oráculo.
+- Todos os braços: 792 tokens de entrada, 42 de saída, 834 totais.
+- Economia total em cada par: 0,0%.
+- Zero recuperações e hashes de resposta idênticos.
+- A amostra confirma estabilidade/neutralidade desta fixture, não economia.
+
 ## Validação de código
 
 Comando:
