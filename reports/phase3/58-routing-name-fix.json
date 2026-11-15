@@ -17,6 +17,8 @@
     "web_optimized": "pie-web-optimized"
   },
   "toml_generation_check": "PASS",
+  "codex_mcp_list_check": "PASS",
+  "temporary_homes_credentials": "absent_by_design",
   "codex_runtime_dispatch": "NOT_VERIFIED",
   "provider_usage": "unavailable",
   "certification": "NOT_CERTIFIED"
