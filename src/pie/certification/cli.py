@@ -6,6 +6,19 @@ from pie.certification.live_codex import _read_records,capture_codex,compare,val
 from pie.certification.task_telemetry import import_provider_record
 from pie.certification.coverage import audit_codex
 
+_SAFE_ERROR_PREFIXES=(
+    "PRECHECK_", "MCP route evidence", "Codex execution unavailable/timeout",
+    "Codex executable unavailable", "Codex version unavailable", "Codex failed",
+    "Missing ", "Invalid ", "No ", "Need ", "Condition/", "Accuracy ",
+    "Duplicate ", "Mismatched ", "Same configuration", "Not enough ",
+)
+
+def _safe_error(exc:Exception)->str:
+    message=" ".join(str(exc).split())[:240]
+    if any(message.startswith(prefix) for prefix in _SAFE_ERROR_PREFIXES):
+        return message
+    return type(exc).__name__
+
 def _scenario_app(scenario: dict) -> str:
     value = " ".join(str(scenario.get(k, "")) for k in ("required_mcp_server", "scenario_id")).lower()
     if "blender" in value:
@@ -69,6 +82,6 @@ def main(argv=None)->int:
         return 0
     except (ValueError,OSError,RuntimeError,json.JSONDecodeError) as ex:
         # Never print raw provider stderr or possible secrets.
-        print(json.dumps({"state":"NOT_CERTIFIED","reason":type(ex).__name__}),file=sys.stderr)
+        print(json.dumps({"state":"NOT_CERTIFIED","reason":_safe_error(ex)}),file=sys.stderr)
         return 2
 if __name__=="__main__":raise SystemExit(main())

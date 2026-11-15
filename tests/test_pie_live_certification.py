@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"src"))
 from pie.certification.live_codex import SCHEMA,parse_codex_jsonl,compare,validate_scenario,preflight_codex
+from pie.certification.cli import _safe_error
 from pie.certification.coverage import audit_codex
 
 def event(inp=1200,cached=100,out=200,answer="answer"):
@@ -30,6 +31,11 @@ def row(rep,arm,inp,*,passed=True,config="a"):
                      "output_tokens":50,"reasoning_output_tokens":0}}
 
 class UsageTests(unittest.TestCase):
+    def test_cli_error_is_actionable_but_sanitized(self):
+        self.assertEqual(_safe_error(RuntimeError("MCP route evidence unavailable; no mcp_tool_call records")),
+                         "MCP route evidence unavailable; no mcp_tool_call records")
+        self.assertEqual(_safe_error(RuntimeError("provider secret=abc")),"RuntimeError")
+
     def test_provider_usage_extracted(self):
         actual=parse_codex_jsonl(event())
         self.assertEqual(actual["usage"]["input_tokens"],1200)
