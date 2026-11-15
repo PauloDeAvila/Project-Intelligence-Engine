@@ -1,0 +1,15 @@
+{
+  "schema": "pie-phase3-telemetry-count-audit-v1",
+  "storage": "C:/Users/phsra/.pie-global/projects/776668a48707658ebd7e41c78fc7d720/index.sqlite3",
+  "read_mode": "sqlite read-only",
+  "provider_usage_rows": {"blender": {"baseline": 3, "optimized": 3}, "web": {"baseline": 3, "optimized": 3}},
+  "gateway_observation_rows": {"blender": 2, "web": 4},
+  "provider_usage_tokens_present": true,
+  "strict_certifiable_pairs": {"blender": 2, "web": 2},
+  "why_counts_differ": [
+    "The first historical repetition has a prompt-hash mismatch and is excluded by the offline comparability audit.",
+    "Provider usage imports do not prove that every individual MCP call traversed the PIE gateway.",
+    "Historical records were captured before the final-head lifecycle-store fixes."
+  ],
+  "certification": "NOT_CERTIFIED"
+}
