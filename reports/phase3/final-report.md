@@ -47,6 +47,12 @@ A única sessão real autorizada com perfil temporário Blender-only passou pelo
 
 Isso comprova o caminho Blender restrito, mas não certifica economia: Web não foi executado nesta sessão e os pares A/B continuam incompletos.
 
+## Incidente: integração restrita Codex → PIE → Web
+
+A única sessão real Web usou uma página local determinística e um perfil temporário com apenas `browser_navigate` e `browser_snapshot`. `initialize`, `tools/list`, navegação e snapshot passaram; o lifecycle registrou as duas chamadas no `pie-web-optimized`, sem ferramentas não autorizadas. O provedor reportou 59.695 tokens de entrada, 54.144 em cache, 746 de saída, 528 de raciocínio e 19.777,745 ms. Evidência: [`33-restricted-web-probe.json`](33-restricted-web-probe.json).
+
+O probe offline do Playwright preservou referências nativas e reduziu caracteres de 17.585 para 1.256 (92,858%). Isso é uma métrica de caracteres, não uma medição de tokens; a economia permanece pendente de A/B.
+
 ## Custos
 
 `null`: não foi fornecida tarifa verificável para `gpt-5.6-luna`. Quota/assinatura não foi convertida em preço.
