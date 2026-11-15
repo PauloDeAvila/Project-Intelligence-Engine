@@ -46,6 +46,21 @@ Resultado local: `total_token_savings_percent = -12.88`; `input_token_savings_pe
 
 Interpretação: nesta fixture, o PIE não reduziu a observação e adicionou schema/contexto. É uma regressão medida, não uma falha de correção. A amostra é de uma repetição e não certifica o produto.
 
+### Correção experimental: recuperação opt-in
+
+O runner foi alterado para não incluir `pie_gateway_output_get` por padrão. O novo parâmetro `-EnableWebRecovery` reativa explicitamente esse recurso.
+
+Relatório sem recuperação: `C:\Users\phsra\AppData\Local\Temp\pie-web-ollama-8be454a00c99.json`.
+
+- Sem recuperação, ambos os braços anunciaram 2 ferramentas e schemas de 1.332 caracteres.
+- Ambos produziram 800 caracteres de observação.
+- Baseline: 834 tokens totais; PIE: 834 tokens totais.
+- Entrada: 792 tokens em ambos; saída: 42 tokens em ambos.
+- Ambos os oráculos passaram; recuperação: 0.
+- Resultado: `total_token_savings_percent = 0.0`.
+
+Relatório opt-in: `C:\Users\phsra\AppData\Local\Temp\pie-web-ollama-dca357203a5c.json`. O gateway voltou a anunciar 3 ferramentas no braço otimizado, confirmando que a capacidade de recuperação não foi removida; o caminho não foi usado porque a fixture não exigiu compactação.
+
 ## Validação de código
 
 Comando:
@@ -70,4 +85,4 @@ Uma tentativa de `unittest discover` foi interrompida por falta de progresso em 
 
 ## Próxima mudança recomendada
 
-Não promover o Web atual. Investigar o contrato de exposição de `pie_gateway_output_get`: ele foi anunciado mesmo sem ser usado. A próxima alteração deve testar uma política lazy/condicional de recuperação, preservando recuperação para snapshots realmente compactados e removendo overhead quando o snapshot já é completo. Medir novamente com o mesmo prompt, fixture, modelo e `num_ctx=8192`.
+Não promover o Web como otimização de tokens para esta fixture: após retirar o overhead desnecessário, o resultado é neutro, não uma economia. Para obter ganho real será necessária uma fixture que acione compactação segura ou uma consulta seletiva Web na origem. A recuperação continua disponível por opt-in e deve ser usada quando o snapshot realmente exigir paginação.

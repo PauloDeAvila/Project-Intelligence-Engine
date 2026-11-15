@@ -13,6 +13,7 @@ param(
     [ValidateSet("query", "exact")][string]$BlenderMode = "query",
     [string]$NpxExe = "",
     [string]$OutputDirectory = $env:TEMP,
+    [switch]$EnableWebRecovery,
     [switch]$ProbeOnly
 )
 $ErrorActionPreference = "Stop"
@@ -35,7 +36,10 @@ if ($Domain -eq "blender") {
     $profileArgs.BlenderPort = $BlenderPort
 } else {
     $profileArgs.BaselineExposeTool = @("browser_navigate", "browser_snapshot")
-    $profileArgs.OptimizedExposeTool = @("browser_navigate", "browser_snapshot", "pie_gateway_output_get")
+    $profileArgs.OptimizedExposeTool = @("browser_navigate", "browser_snapshot")
+    if ($EnableWebRecovery) {
+        $profileArgs.OptimizedExposeTool += "pie_gateway_output_get"
+    }
     $npxCandidate = $null
     if ($NpxExe) {
         $npxCandidate = Get-Command $NpxExe -ErrorAction SilentlyContinue
