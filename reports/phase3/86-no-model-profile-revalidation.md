@@ -1,7 +1,7 @@
 # PIE Fase 3 — Revalidação final dos perfis sem modelo
 
-Data: 2026-11-15  
-Branch: `feat/pie-phase3-task-telemetry-20261114`  
+Data: 2026-11-15
+Branch: `feat/pie-phase3-task-telemetry-20261114`
 HEAD: `1de38ca242a45b90bdca1241b833318b2e3d5587`
 
 ## Resultado
