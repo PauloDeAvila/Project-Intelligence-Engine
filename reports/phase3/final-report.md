@@ -236,7 +236,11 @@ O próximo piloto pode começar pela tarefa A com um único par real, desde que 
 
 ## Auditoria de código da consulta seletiva — 2026-11-15
 
-Os oráculos foram fortalecidos para comparar valores exatos da fixture, e o simulador agora declara explicitamente `optimized_only`/`NOT_RUN` para A/B. A ponte Blender foi auditada, com regressões para uma execução upstream por consulta e rejeição de argumentos inválidos antes do dispatch. Suíte atual: 575 aprovados e 5 ignorados. Parecer: `APPROVED_WITH_RESERVATIONS`; A/B pago permanece pendente. Evidência: [`82-selective-query-code-audit.md`](82-selective-query-code-audit.md).
+Os oráculos foram fortalecidos para comparar valores exatos da fixture, e o simulador agora declara explicitamente `optimized_only`/`NOT_RUN` para A/B. A ponte Blender foi auditada, com regressões para uma execução upstream por consulta e rejeição de argumentos inválidos antes do dispatch. Suíte atual: 576 aprovados e 5 ignorados. Parecer: `APPROVED_WITH_RESERVATIONS`; A/B pago permanece pendente. Evidência: [`82-selective-query-code-audit.md`](82-selective-query-code-audit.md).
+
+## Plano do primeiro par A/B Blender — 2026-11-15
+
+Foi preparado, sem iniciar modelo, um par manual da tarefa A. Baseline usa `blender/get_scene_info`; optimized usa `pie-blender-optimized/pie_blender_query_scene`. O prompt e a fixture são iguais, o oráculo compara nome, tipo, coordenadas e material exatos, e o plano exige uso real do provedor e rota correlacionada. O experimento está explicitamente classificado como comparação de produto de consulta seletiva, não compactação transparente. Evidência: [`83-blender-selective-a-plan.md`](83-blender-selective-a-plan.md).
 
 ## Próximos passos seguros
 

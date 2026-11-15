@@ -1,0 +1,74 @@
+{
+  "schema": "pie-phase3-selective-a-plan-v1",
+  "state": "READY_FOR_MANUAL_PILOT",
+  "execution": "PLAN_ONLY_NO_MODEL_EXECUTION",
+  "model_sessions": 2,
+  "automatic_retry": false,
+  "experiment_type": "selective_query_product_comparison_not_transparent_compaction",
+  "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
+  "fixture_spec": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine\\fixtures\\phase3\\blender\\large_scene_spec.json",
+  "pair_id": "pair-6edbe9ff6df67c85272ebc63",
+  "entries": [
+    {
+      "task_id": "blender-selective-location-v1",
+      "pair_id": "pair-6edbe9ff6df67c85272ebc63",
+      "run_id": "baseline-805b87e89a220ad7ae2f0bd4",
+      "condition": "baseline",
+      "application": "blender",
+      "model": "gpt-5.6-luna",
+      "reasoning_effort": "medium",
+      "profile": "pie-phase3-baseline.config.toml",
+      "expected_mcp_server": "blender",
+      "expected_mcp_tools": [
+        "get_scene_info"
+      ],
+      "prompt_sha256": "c3f94269642f8b21eedaf1f4807ac884de0b33f69a7545881d85bda0de014bea",
+      "oracle": {
+        "object_name": "PIE_Large_Cube_00",
+        "object_type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "material_names": [
+          "PIE_Large_Material_00"
+        ]
+      },
+      "provider_usage_required": true
+    },
+    {
+      "task_id": "blender-selective-location-v1",
+      "pair_id": "pair-6edbe9ff6df67c85272ebc63",
+      "run_id": "optimized-c51a92efa2bc7dc69526867a",
+      "condition": "optimized",
+      "application": "blender",
+      "model": "gpt-5.6-luna",
+      "reasoning_effort": "medium",
+      "profile": "pie-phase3-optimized.config.toml",
+      "expected_mcp_server": "pie-blender-optimized",
+      "expected_mcp_tools": [
+        "pie_blender_query_scene"
+      ],
+      "prompt_sha256": "c3f94269642f8b21eedaf1f4807ac884de0b33f69a7545881d85bda0de014bea",
+      "oracle": {
+        "object_name": "PIE_Large_Cube_00",
+        "object_type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "material_names": [
+          "PIE_Large_Material_00"
+        ]
+      },
+      "provider_usage_required": true
+    }
+  ],
+  "limitations": [
+    "This compares different product capabilities, not transparent compaction.",
+    "Provider-reported usage and exact route evidence are required for validity.",
+    "A paginated task must use a stable scene or a snapshot-bound contract; task A is single-page."
+  ]
+}

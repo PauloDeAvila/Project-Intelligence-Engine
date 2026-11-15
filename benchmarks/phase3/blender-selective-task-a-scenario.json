@@ -1,0 +1,29 @@
+{
+  "schema": "pie-phase3-blender-selective-task-v1",
+  "task_id": "blender-selective-location-v1",
+  "application": "blender",
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "fixture_spec": "fixtures/phase3/blender/large_scene_spec.json",
+  "prompt": "Use only the configured Blender MCP server and do not modify the scene. Inspect PIE_Large_Cube_00 and determine its exact name, type, location, and material names. Use the most direct read-only capability exposed by the configured server. After completing the inspection, reply exactly PIE_BLENDER_SELECTIVE_A_V1.",
+  "expected_exact": "PIE_BLENDER_SELECTIVE_A_V1",
+  "conditions": {
+    "baseline": {"server": "blender", "tools": ["get_scene_info"]},
+    "optimized": {"server": "pie-blender-optimized", "tools": ["pie_blender_query_scene"]}
+  },
+  "oracle": {
+    "object_name": "PIE_Large_Cube_00",
+    "object_type": "MESH",
+    "location": [0.0, 0.0, 0.0],
+    "material_names": ["PIE_Large_Material_00"]
+  },
+  "constraints": {
+    "same_fixture": true,
+    "read_only": true,
+    "max_sessions": 2,
+    "automatic_retry": false,
+    "provider_usage_required": true,
+    "certificate_status": "NOT_CERTIFIED"
+  },
+  "experiment_type": "selective_query_product_comparison_not_transparent_compaction"
+}

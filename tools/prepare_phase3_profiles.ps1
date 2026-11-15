@@ -95,13 +95,18 @@ function EnvLine([string[]]$values) {
     if ($values.Count -eq 0) { return $null }
     return "env = { " + ($values -join ", ") + " }"
 }
-$enabledTools = if ($Domain -eq "blender") {
+$baselineEnabledTools = if ($Domain -eq "blender") {
     "enabled_tools = ['get_scene_info', 'execute_blender_code']"
 } elseif ($Domain -eq "web") {
     "enabled_tools = ['browser_navigate', 'browser_snapshot']"
 } else {
     "enabled_tools = ['get_scene_info', 'execute_blender_code', 'browser_navigate', 'browser_snapshot']"
 }
+$optimizedToolNames = @()
+if ($Domain -in @("all", "blender")) { $optimizedToolNames += @("get_scene_info", "execute_blender_code") }
+if ($Domain -in @("all", "web")) { $optimizedToolNames += @("browser_navigate", "browser_snapshot") }
+foreach ($tool in $OptimizedExposeTool) { if ($optimizedToolNames -notcontains $tool) { $optimizedToolNames += $tool } }
+$optimizedEnabledTools = "enabled_tools = " + (TomlArray $optimizedToolNames)
 $blenderOptimized = @(
     "[mcp_servers.pie-blender-optimized]",
     ("command = '{0}'" -f $py),
@@ -113,6 +118,14 @@ $blenderOptimized = @(
     "[mcp_servers.pie-blender-optimized.tools.execute_blender_code]",
     "approval_mode = 'approve'"
 )
+foreach ($tool in $OptimizedExposeTool) {
+    if ($Domain -in @("all", "blender") -and $tool -notin @("get_scene_info", "execute_blender_code")) {
+        $blenderOptimized += @(
+            "[mcp_servers.pie-blender-optimized.tools.$tool]",
+            "approval_mode = 'approve'"
+        )
+    }
+}
 $webOptimized = @(
     "[mcp_servers.pie-web-optimized]",
     ("command = '{0}'" -f $py),
@@ -130,7 +143,7 @@ $baseline = @(
     "model_reasoning_effort = 'medium'",
     "approval_policy = 'never'",
     "sandbox_mode = 'read-only'",
-    $enabledTools,
+    $baselineEnabledTools,
     "default_tools_approval_mode = 'prompt'",
     ""
 ) -join "`r`n"
@@ -140,7 +153,7 @@ $optimized = @(
     "model_reasoning_effort = 'medium'",
     "approval_policy = 'never'",
     "sandbox_mode = 'read-only'",
-    $enabledTools,
+    $optimizedEnabledTools,
     "default_tools_approval_mode = 'prompt'",
     ""
 ) -join "`r`n"

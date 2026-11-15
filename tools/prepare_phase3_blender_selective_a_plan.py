@@ -1,0 +1,75 @@
+"""Validate and emit a two-session, plan-only Blender selective-query A/B."""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+from pathlib import Path
+import tomllib
+
+
+def _load_profile(path: Path, expected: str) -> dict:
+    data = tomllib.loads(path.read_text(encoding="utf-8"))
+    servers = data.get("mcp_servers")
+    if not isinstance(servers, dict) or set(servers) != {expected}:
+        raise ValueError(f"profile must contain only {expected}")
+    return data
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--scenario", type=Path, required=True)
+    parser.add_argument("--profiles", type=Path, required=True)
+    parser.add_argument("--workspace", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+    scenario = json.loads(args.scenario.read_text(encoding="utf-8"))
+    root = args.workspace.resolve()
+    fixture = (root / scenario["fixture_spec"]).resolve()
+    if not fixture.is_file():
+        raise ValueError("fixture spec unavailable")
+    baseline = _load_profile(args.profiles / "pie-phase3-baseline.config.toml", "blender")
+    optimized = _load_profile(args.profiles / "pie-phase3-optimized.config.toml", "pie-blender-optimized")
+    baseline_tools = baseline.get("enabled_tools", [])
+    optimized_tools = optimized.get("enabled_tools", [])
+    optimized_server = optimized["mcp_servers"]["pie-blender-optimized"]
+    optimized_args = optimized_server.get("args", [])
+    if "pie_blender_query_scene" in baseline_tools:
+        raise ValueError("baseline exposes selective query")
+    if "pie_blender_query_scene" not in optimized_tools or "pie_blender_query_scene" not in optimized_args:
+        raise ValueError("optimized profile does not expose selective query")
+    pair_id = "pair-" + hashlib.sha256(scenario["task_id"].encode()).hexdigest()[:24]
+    entries = []
+    for condition, profile, server, tools in (
+        ("baseline", "pie-phase3-baseline.config.toml", "blender", scenario["conditions"]["baseline"]["tools"]),
+        ("optimized", "pie-phase3-optimized.config.toml", "pie-blender-optimized", scenario["conditions"]["optimized"]["tools"]),
+    ):
+        entries.append({
+            "task_id": scenario["task_id"], "pair_id": pair_id,
+            "run_id": f"{condition}-" + hashlib.sha256(f"{scenario['task_id']}|{condition}".encode()).hexdigest()[:24],
+            "condition": condition, "application": "blender", "model": scenario["model"],
+            "reasoning_effort": scenario["reasoning_effort"], "profile": profile,
+            "expected_mcp_server": server, "expected_mcp_tools": tools,
+            "prompt_sha256": hashlib.sha256(scenario["prompt"].encode()).hexdigest(),
+            "oracle": scenario["oracle"], "provider_usage_required": True,
+        })
+    plan = {
+        "schema": "pie-phase3-selective-a-plan-v1", "state": "READY_FOR_MANUAL_PILOT",
+        "execution": "PLAN_ONLY_NO_MODEL_EXECUTION", "model_sessions": 2,
+        "automatic_retry": False, "experiment_type": scenario["experiment_type"],
+        "workspace_root": str(root), "fixture_spec": str(fixture), "pair_id": pair_id,
+        "entries": entries,
+        "limitations": [
+            "This compares different product capabilities, not transparent compaction.",
+            "Provider-reported usage and exact route evidence are required for validity.",
+            "A paginated task must use a stable scene or a snapshot-bound contract; task A is single-page.",
+        ],
+    }
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(json.dumps({"status": plan["state"], "output": str(args.output), "pair_id": pair_id}))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

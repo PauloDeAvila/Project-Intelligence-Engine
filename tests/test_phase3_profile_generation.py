@@ -67,6 +67,27 @@ class Phase3ProfileGenerationTests(unittest.TestCase):
             self.assertIn("--expose-tool", args)
             self.assertIn("get_scene_info", args)
 
+    def test_selective_query_profile_exposes_only_the_opt_in_tool(self):
+        powershell = shutil.which("pwsh") or shutil.which("powershell")
+        if powershell is None:
+            self.skipTest("PowerShell is unavailable")
+        with tempfile.TemporaryDirectory(prefix="pie-phase3-query-profile-test-") as tmp:
+            output = Path(tmp)
+            command = [powershell, "-NoProfile", "-File",
+                       str(ROOT / "tools" / "prepare_phase3_profiles.ps1"),
+                       "-Workspace", str(ROOT), "-OutputDirectory", str(output),
+                       "-Domain", "blender", "-OptimizedExposeTool", "pie_blender_query_scene",
+                       "-PieCommit", "0" * 40]
+            result = subprocess.run(command, cwd=ROOT, text=True,
+                                    capture_output=True, timeout=30, check=False)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            baseline = tomllib.loads((output / "pie-phase3-baseline.config.toml").read_text(encoding="utf-8"))
+            optimized = tomllib.loads((output / "pie-phase3-optimized.config.toml").read_text(encoding="utf-8"))
+            self.assertNotIn("pie_blender_query_scene", baseline["enabled_tools"])
+            self.assertIn("pie_blender_query_scene", optimized["enabled_tools"])
+            self.assertIn("pie_blender_query_scene", optimized["mcp_servers"]["pie-blender-optimized"]["args"])
+            self.assertIn("pie_blender_query_scene", optimized["mcp_servers"]["pie-blender-optimized"]["tools"])
+
 
 if __name__ == "__main__":
     unittest.main()
