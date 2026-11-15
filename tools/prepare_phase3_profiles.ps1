@@ -33,6 +33,13 @@ function TomlArray([string[]]$values) {
 }
 $baseline = @(
     "# Generated overlay; no credentials.",
+    "model = 'gpt-5.6-luna'",
+    "model_reasoning_effort = 'medium'",
+    "approval_policy = 'never'",
+    "sandbox_mode = 'read-only'",
+    "enabled_tools = ['get_scene_info', 'execute_blender_code', 'browser_navigate', 'browser_snapshot']",
+    "default_tools_approval_mode = 'prompt'",
+    "",
     "[mcp_servers.blender]",
     ("command = '{0}'" -f $BlenderUpstream),
     $(if ($diagnosticsBlender) { "env = { PIE_MCP_DIAGNOSTICS_PATH = '$diagnosticsBlender' }" }),
@@ -41,10 +48,26 @@ $baseline = @(
     "[mcp_servers.playwright-baseline]",
     ("command = '{0}'" -f $NpxExe),
     $(if ($diagnosticsWeb) { "env = { PIE_MCP_DIAGNOSTICS_PATH = '$diagnosticsWeb' }" }),
-    ("args = {0}" -f (TomlArray @("--yes", $PlaywrightVersion, "--headless", "--browser", "chrome")))
+    ("args = {0}" -f (TomlArray @("--yes", $PlaywrightVersion, "--headless", "--browser", "chrome"))),
+    "",
+    "[mcp_servers.blender.tools.get_scene_info]",
+    "approval_mode = 'approve'",
+    "[mcp_servers.blender.tools.execute_blender_code]",
+    "approval_mode = 'approve'",
+    "[mcp_servers.playwright-baseline.tools.browser_navigate]",
+    "approval_mode = 'approve'",
+    "[mcp_servers.playwright-baseline.tools.browser_snapshot]",
+    "approval_mode = 'approve'"
 ) -join "`r`n"
 $optimized = @(
     "# Generated overlay; no credentials.",
+    "model = 'gpt-5.6-luna'",
+    "model_reasoning_effort = 'medium'",
+    "approval_policy = 'never'",
+    "sandbox_mode = 'read-only'",
+    "enabled_tools = ['get_scene_info', 'execute_blender_code', 'browser_navigate', 'browser_snapshot']",
+    "default_tools_approval_mode = 'prompt'",
+    "",
     "[mcp_servers.pie-blender-optimized]",
     ("command = '{0}'" -f $py),
     $(if ($diagnosticsBlender) { "env = { PIE_MCP_DIAGNOSTICS_PATH = '$diagnosticsBlender' }" }),
@@ -53,7 +76,16 @@ $optimized = @(
     "[mcp_servers.pie-web-optimized]",
     ("command = '{0}'" -f $py),
     $(if ($diagnosticsWeb) { "env = { PIE_MCP_DIAGNOSTICS_PATH = '$diagnosticsWeb' }" }),
-    ("args = {0}" -f (TomlArray @("-m", "pie.gateway.domain", "serve", "--domain", "web", "--workspace", $root, "--max-chars", "2400", "--", $NpxExe, "--yes", $PlaywrightVersion, "--headless", "--browser", "chrome")))
+    ("args = {0}" -f (TomlArray @("-m", "pie.gateway.domain", "serve", "--domain", "web", "--workspace", $root, "--max-chars", "2400", "--", $NpxExe, "--yes", $PlaywrightVersion, "--headless", "--browser", "chrome"))),
+    "",
+    "[mcp_servers.pie-blender-optimized.tools.get_scene_info]",
+    "approval_mode = 'approve'",
+    "[mcp_servers.pie-blender-optimized.tools.execute_blender_code]",
+    "approval_mode = 'approve'",
+    "[mcp_servers.pie-web-optimized.tools.browser_navigate]",
+    "approval_mode = 'approve'",
+    "[mcp_servers.pie-web-optimized.tools.browser_snapshot]",
+    "approval_mode = 'approve'"
 ) -join "`r`n"
 $baselinePath = Join-Path $resolvedOutput "pie-phase3-baseline.config.toml"
 $optimizedPath = Join-Path $resolvedOutput "pie-phase3-optimized.config.toml"
