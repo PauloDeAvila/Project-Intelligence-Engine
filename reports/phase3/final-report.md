@@ -262,6 +262,10 @@ O preflight passou a validar a identidade da árvore `src/`, permitindo commits 
 
 O plano `83-blender-selective-a-plan.json` foi alinhado com essa evidência: `runtime_validation=PASS_NO_MODEL_GATE`, com `tools/list`, `tools/call` e rejeição da ferramenta proibida em `PASS`. O campo `latest_plan_review` do consolidado agora é `READY_FOR_MANUAL_PILOT`; isso não altera o estado de certificação, pois o A/B com modelo ainda não foi executado.
 
+## Primeiro piloto Blender com modelo — 2026-11-15
+
+O preflight final passou nos dois braços sem iniciar modelo. A primeira sessão baseline, porém, foi invalidada pelo roteamento: observou `pie-blender-optimized/pie_blender_query_scene` com falha antes de `blender/get_scene_info` completar. Foram consumidos `1` sessão e `142.200` tokens de entrada reportados, mas o resultado não é elegível para economia A/B. O optimized não foi executado e não houve retry. Evidência: [`88-blender-baseline-r1.md`](88-blender-baseline-r1.md). A certificação permanece `NOT_CERTIFIED`.
+
 1. Escolher, com nova autorização, uma combinação de aprovação suportada pela versão instalada: ou `--approve-for-me` sem `--sandbox`, ou uma sessão interativa `on-request` que aceite a aprovação manual. Não remover proteções indiscriminadamente.
 2. Fazer cada captura Codex autorizada usar `--telemetry-workspace`, para que o import validado ocorra automaticamente no mesmo fluxo da execução.
 3. Corrigir offline a captura Codex→MCP e repetir somente uma sonda controlada antes de retomar os pares; a bateria atual foi interrompida na primeira captura.

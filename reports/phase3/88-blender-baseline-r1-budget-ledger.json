@@ -1,0 +1,11 @@
+{
+  "schema": "pie-phase3-budget-ledger-v1",
+  "state": "failed",
+  "authorized_sessions": 1,
+  "consumed_sessions": 1,
+  "remaining_sessions": 0,
+  "run_id": "baseline-a0a4660e39bd47ed9c0b738e",
+  "pair_id": "pair-288fe55747ef4d1c84832a2d",
+  "automatic_retry": false,
+  "error": "MCP route evidence failed; expected blender; observed pie-blender-optimized/pie_blender_query_scene/failed;blender/get_scene_info/completed"
+}

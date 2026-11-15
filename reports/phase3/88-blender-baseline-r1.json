@@ -1,0 +1,41 @@
+{
+  "schema": "pie-phase3-single-result-v1",
+  "state": "BASELINE_BLENDER_FAILED",
+  "run_id": "baseline-a0a4660e39bd47ed9c0b738e",
+  "pair_id": "pair-288fe55747ef4d1c84832a2d",
+  "ledger": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine\\reports\\phase3\\88-blender-baseline-r1-budget-ledger.json",
+  "quota_consumed": true,
+  "automatic_retry": false,
+  "failure": "MCP route evidence failed; expected blender; observed pie-blender-optimized/pie_blender_query_scene/failed;blender/get_scene_info/completed",
+  "provider_evidence": {
+    "run_id": "baseline-a0a4660e39bd47ed9c0b738e",
+    "pair_id": "pair-288fe55747ef4d1c84832a2d",
+    "condition": "baseline",
+    "scenario_id": "blender-selective-location-v1",
+    "model": "gpt-5.6-luna",
+    "expected_mcp_server": "blender",
+    "runtime_ms": 21771.552,
+    "tool_events": 2,
+    "mcp_tools": [
+      {
+        "server": "pie-blender-optimized",
+        "tool": "pie_blender_query_scene",
+        "status": "failed"
+      },
+      {
+        "server": "blender",
+        "tool": "get_scene_info",
+        "status": "completed"
+      }
+    ],
+    "usage": {
+      "input_tokens": 142200,
+      "cached_input_tokens": 113408,
+      "output_tokens": 736,
+      "reasoning_output_tokens": 300
+    },
+    "provider_reported": true,
+    "certification_status": "INVALID_ROUTE_EVIDENCE",
+    "forensic_path": "C:\\Users\\phsra\\AppData\\Local\\Temp\\.pie-phase3-pilot-worktree-pie-live-store\\runs\\baseline-a0a4660e39bd47ed9c0b738e"
+  }
+}
