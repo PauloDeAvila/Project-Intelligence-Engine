@@ -1,11 +1,13 @@
 <# 
 Blender multi-choice evidence agent: two real MCP tool schemas per arm,
-three candidate fixture objects, planning with local Ollama only.
+three candidate fixture objects, deterministic routing by default;
+optional strict local Ollama planning is a separate experimental mode.
 Runs against the disposable fixture on port 9877, never user artwork.
 #>
 [CmdletBinding()]
 param(
     [string]$Model = 'qwen3:4b',
+    [ValidateSet('deterministic','model')][string]$RouteMode = 'deterministic',
     [ValidateRange(1,3)][int]$MaxTasks = 1,
     [ValidateRange(2048,8192)][int]$NumCtx = 8192,
     [ValidateRange(1024,65535)][int]$BlenderPort = 9877,
@@ -34,6 +36,7 @@ $arguments = @(
     '--baseline-profile', (Join-Path $profiles 'pie-phase3-baseline.config.toml'),
     '--optimized-profile', (Join-Path $profiles 'pie-phase3-optimized.config.toml'),
     '--model', $Model,
+    '--route-mode', $RouteMode,
     '--num-ctx', [string]$NumCtx,
     '--max-tasks', [string]$MaxTasks,
     '--output', $output
