@@ -141,7 +141,7 @@
     "automatic_retries": false,
     "destructive_actions": false,
     "playwright_version": "@playwright/mcp@0.0.85",
-    "latest_commit": "c232f8c"
+    "latest_commit": "a1b263e"
   },
   "limitations": [
     "Local Ollama measurements are not Codex provider certification.",
