@@ -160,4 +160,12 @@ O guard também foi validado no sentido inverso: servir a fixture large no
 endereço small foi rejeitado antes do MCP, enquanto a fixture small correta
 passou um `ProbeOnly`. Evidência: [132-web-fixture-guard-bidirectional-20261115.json](132-web-fixture-guard-bidirectional-20261115.json).
 
+O endpoint OpenAI-compatible local do harness em `127.0.0.1:8080/v1` também
+foi integrado ao runner sem persistir credenciais. O modelo realmente listado
+foi `gambiarraapi/glm-5.3-flash` (não DeepSeek). Um par Web large válido
+resultou em 2.698 tokens baseline contra 1.397 PIE, economia de 48,221%,
+oráculos 2/2 aprovados e 59 tokens de reasoning reportados no braço otimizado.
+Isso é evidência de outro provedor, não certificação Codex. Evidência:
+[133-web-harness-openai-compatible-20261115.json](133-web-harness-openai-compatible-20261115.json).
+
 Auditoria requisito‑por‑requisito: [115-completion-audit-20261115.json](115-completion-audit-20261115.json).

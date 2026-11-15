@@ -1,8 +1,9 @@
 """Local-provider MCP A/B benchmark. Never invokes Codex or a paid provider.
 
 This is an experimental, controlled *replay* benchmark: the tool calls are made
-by this runner, not selected by the LLM. Reported Ollama token counts are real
-for the chosen local model, NOT GPT/Codex billing or certification evidence.
+by this runner, not selected by the LLM. Reported local/provider token counts
+are real for the selected endpoint, NOT GPT/Codex billing or certification
+evidence.
 """
 from __future__ import annotations
 
@@ -20,6 +21,8 @@ from urllib.request import Request, urlopen
 from verify_phase3_mcp_profiles import Probe, _profile
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/chat"
+PROVIDER_BASE_ENV = "PIE_PROVIDER_BASE_URL"
+PROVIDER_KEY_ENV = "PIE_PROVIDER_API_KEY"
 SYSTEM = (
     "You are extracting facts from already-executed, read-only MCP observations. "
     "Do not execute tools or infer missing values. Output ONLY one minified JSON "
@@ -379,7 +382,23 @@ def local_experiment_scenario(scenario: dict, blender_mode: str) -> dict:
     return local
 
 
-def _provider_usage(response: dict) -> dict:
+def _provider_usage(response: dict, provider: str = "ollama") -> dict:
+    if provider == "openai_compat":
+        usage = response.get("usage") if isinstance(response, dict) else None
+        if not isinstance(usage, dict):
+            raise RuntimeError("OpenAI-compatible provider usage not reported")
+        fields = ("prompt_tokens", "completion_tokens", "total_tokens")
+        if any(type(usage.get(name)) is not int or usage[name] < 0 for name in fields):
+            raise RuntimeError("OpenAI-compatible provider token usage not reported")
+        details = usage.get("completion_tokens_details")
+        reasoning = details.get("reasoning_tokens") if isinstance(details, dict) else None
+        result = {"input_tokens": usage["prompt_tokens"],
+                  "output_tokens": usage["completion_tokens"],
+                  "total_tokens": usage["total_tokens"],
+                  "total_duration_ms": None}
+        if type(reasoning) is int and reasoning >= 0:
+            result["reasoning_output_tokens"] = reasoning
+        return result
     if not isinstance(response, dict) or response.get("done") is not True:
         raise RuntimeError("Ollama response is incomplete")
     for name in ("prompt_eval_count", "eval_count"):
@@ -391,23 +410,42 @@ def _provider_usage(response: dict) -> dict:
             "total_duration_ms": round(response.get("total_duration", 0) / 1e6, 3)}
 
 
-def ensure_local_model(model: str) -> None:
+def _provider_config() -> tuple[str, str, str, dict]:
+    base = os.environ.get(PROVIDER_BASE_ENV, "").strip().rstrip("/")
+    if base:
+        key = os.environ.get(PROVIDER_KEY_ENV, "")
+        headers = {"Content-Type": "application/json"}
+        if key:
+            headers["Authorization"] = "Bearer " + key
+        return "openai_compat", base + "/chat/completions", base + "/models", headers
+    return "ollama", OLLAMA_URL, "http://127.0.0.1:11434/api/tags", {
+        "Content-Type": "application/json"}
+
+
+def ensure_local_model(model: str) -> str:
     """Refuse cloud model tags and missing local models before requesting tokens."""
     if not model or ":cloud" in model.lower() or model.lower().endswith("-cloud"):
         raise RuntimeError("Cloud/invalid model not allowed in local benchmark")
+    provider, _, models_url, headers = _provider_config()
     try:
-        with urlopen("http://127.0.0.1:11434/api/tags", timeout=10) as response:
+        request = Request(models_url, headers=headers, method="GET")
+        with urlopen(request, timeout=10) as response:
             payload = json.loads(response.read(1_000_000))
+    except HTTPError as exc:
+        raise RuntimeError(f"{provider} model listing HTTP error {exc.code}: {exc.reason}") from exc
     except (URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
-        raise RuntimeError("Local Ollama unavailable") from exc
-    names = {entry.get("name") for entry in payload.get("models", [])
-             if isinstance(entry, dict)}
+        raise RuntimeError(f"{provider} model listing unavailable or invalid JSON") from exc
+    entries = payload.get("models", []) if provider == "ollama" else payload.get("data", [])
+    names = {(entry.get("name") if provider == "ollama" else entry.get("id"))
+             for entry in entries if isinstance(entry, dict)}
     if model not in names:
-        raise RuntimeError("Model not installed locally; run ollama pull first")
+        raise RuntimeError(f"Model not available from {provider}: {model}")
+    return provider
 
 
 def run_local_model(scenario: dict, observation: dict, model: str,
                     timeout: int, num_ctx: int) -> dict:
+    provider, endpoint, _, headers = _provider_config()
     request = {
         "model": model,
         "messages": [
@@ -416,13 +454,18 @@ def run_local_model(scenario: dict, observation: dict, model: str,
             {"role": "user", "content": "Available MCP tool schemas (already executed):\n" + observation["schema_json"]},
             {"role": "user", "content": "MCP tool results (already executed):\n" + observation["observations_json"]},
         ],
-        "stream": False, "format": "json", "think": False,
-        "options": {"temperature": 0, "seed": 42, "num_ctx": num_ctx, "num_predict": 256},
+        "stream": False, "temperature": 0, "max_tokens": 256,
     }
+    if provider == "ollama":
+        request.pop("temperature")
+        request.pop("max_tokens")
+        request.update({"format": "json", "think": False,
+                        "options": {"temperature": 0, "seed": 42,
+                                     "num_ctx": num_ctx, "num_predict": 256}})
     encoded = compact_json(request).encode("utf-8")
     if len(encoded) > 2_000_000:
         raise RuntimeError("Local model payload exceeds 2 MB")
-    req = Request(OLLAMA_URL, encoded, {"Content-Type": "application/json"}, method="POST")
+    req = Request(endpoint, encoded, headers, method="POST")
     try:
         with urlopen(req, timeout=timeout) as response:
             raw = response.read(4_000_000)
@@ -431,20 +474,26 @@ def run_local_model(scenario: dict, observation: dict, model: str,
             except json.JSONDecodeError as exc:
                 status = getattr(response, "status", None) or response.getcode()
                 raise RuntimeError(
-                    f"Local Ollama returned invalid JSON (HTTP {status})"
+                    f"{provider} returned invalid JSON (HTTP {status})"
                 ) from exc
     except HTTPError as exc:
         raise RuntimeError(
-            f"Local Ollama HTTP error {exc.code}: {exc.reason}"
+            f"{provider} HTTP error {exc.code}: {exc.reason}"
         ) from exc
     except (URLError, TimeoutError, OSError) as exc:
-        raise RuntimeError("Local Ollama unavailable") from exc
-    usage = _provider_usage(result)
+        raise RuntimeError(f"{provider} unavailable") from exc
+    usage = _provider_usage(result, provider)
     if usage["input_tokens"] >= num_ctx - 256:
         raise RuntimeError("Local context may have been truncated; increase --num-ctx")
-    answer = (result.get("message") or {}).get("content", "")
+    if provider == "ollama":
+        answer = (result.get("message") or {}).get("content", "")
+    else:
+        choices = result.get("choices")
+        answer = ((choices[0].get("message") or {}).get("content", "")
+                  if isinstance(choices, list) and choices and isinstance(choices[0], dict)
+                  else "")
     if not isinstance(answer, str):
-        raise RuntimeError("Ollama did not provide a text response")
+        raise RuntimeError(f"{provider} did not provide a text response")
     quality, exact = correct_answer(scenario, answer)
     evidence = observation.get("grounded_answer")
     grounded = {}
@@ -502,10 +551,10 @@ def main(argv: list[str] | None = None) -> int:
     local_scenario = local_experiment_scenario(scenario, args.blender_mode)
     profiles = {"baseline": args.baseline_profile.resolve(strict=True),
                 "optimized": args.optimized_profile.resolve(strict=True)}
-    if not args.probe_only:
-        ensure_local_model(args.model)
+    provider = None if args.probe_only else ensure_local_model(args.model)
     report = {"schema": "pie-local-ollama-mcp-replay-v1", "scenario": scenario["scenario_id"],
-              "model": None if args.probe_only else args.model, "provider": "local_ollama",
+              "model": None if args.probe_only else args.model,
+              "provider": None if args.probe_only else provider,
               "methodology": "deterministic_mcp_tool_replay_not_codex_agent",
               "schema_scope": args.schema_scope,
               "blender_mode": args.blender_mode if scenario["application"] == "blender" else None,

@@ -320,6 +320,31 @@ class LocalOllamaBenchmarkTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, r"invalid JSON \(HTTP 200\)"):
                 run_local_model(scenario, obs, "qwen3:4b", 20, 4096)
 
+    def test_openai_compatible_provider_usage_and_response(self):
+        scenario = {"application": "web", "expected_exact": '{"title":"T"}',
+                    "prompt": "Extract title."}
+        obs = {"schema_json": "[]", "observations_json": "[]"}
+        reply = {"model": "gambiarraapi/glm-5.3-flash",
+                 "choices": [{"message": {"content": '{"title":"T"}'}}],
+                 "usage": {"prompt_tokens": 10, "completion_tokens": 8,
+                            "total_tokens": 18,
+                            "completion_tokens_details": {"reasoning_tokens": 8}}}
+
+        class FakeResponse:
+            status = 200
+            def __enter__(self): return self
+            def __exit__(self, *_): return False
+            def getcode(self): return self.status
+            def read(self, _): return json.dumps(reply).encode()
+
+        with patch.dict("os.environ", {"PIE_PROVIDER_BASE_URL": "http://127.0.0.1:8080/v1",
+                                        "PIE_PROVIDER_API_KEY": "local-test"}, clear=False):
+            with patch("benchmark_local_ollama.urlopen", return_value=FakeResponse()):
+                result = run_local_model(scenario, obs, "gambiarraapi/glm-5.3-flash", 20, 4096)
+        self.assertTrue(result["oracle_pass"])
+        self.assertEqual(result["usage"]["total_tokens"], 18)
+        self.assertEqual(result["usage"]["reasoning_output_tokens"], 8)
+
 
 if __name__ == "__main__":
     unittest.main()
