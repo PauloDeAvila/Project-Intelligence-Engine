@@ -1,0 +1,38 @@
+{
+  "schema": "pie-phase3-offline-environment-gates-v1",
+  "status": "READY_FOR_MODEL_ONLY_AFTER_REVIEW",
+  "model_sessions_started": 0,
+  "quota_consumed_by_this_phase": false,
+  "certification": "NOT_CERTIFIED",
+  "experimental_commit": "fbe3f9959d8f7c5bca03879c86139f791ca13f30",
+  "stable_python": "C:/Users/phsra/OneDrive/Documents/ChatGPT/Korum/Project-Intelligence-Engine/.venv/Scripts/python.exe",
+  "pie_source": "C:/Users/phsra/AppData/Local/Temp/pie-phase3-profile-gates-8c3dbe4/src",
+  "pie_source_commit_verified": true,
+  "profiles": {
+    "blender_baseline": {"server": "blender", "unexpected_servers": false, "initialize": "PASS", "tools_list": "PASS", "tool_call": "PASS", "fixture_marker": "PIE_Large_Cube_00", "fixture_marker_present": true, "response_chars": 1522, "structured_content_present": true, "compaction_state": "NOT_APPLIED_BY_DESIGN_FOR_STRUCTURED_CONTENT", "duration_ms": 662.643},
+    "blender_optimized": {"server": "pie-blender-optimized", "unexpected_servers": false, "initialize": "PASS", "tools_list": "PASS", "tool_call": "PASS", "fixture_marker": "PIE_Large_Cube_00", "fixture_marker_present": true, "response_chars": 1522, "structured_content_present": true, "compaction_state": "NOT_APPLIED_BY_DESIGN_FOR_STRUCTURED_CONTENT", "duration_ms": 952.204},
+    "web_baseline": {"server": "playwright-baseline", "unexpected_servers": false, "initialize": "PASS", "tools_list": "PASS", "tool_call": "PASS", "followup_tool": "browser_snapshot", "fixture_marker": "Products", "fixture_marker_present": true, "response_chars": 9055, "compaction_state": "PASSTHROUGH", "duration_ms": 1166.108},
+    "web_optimized": {"server": "pie-web-optimized", "unexpected_servers": false, "initialize": "PASS", "tools_list": "PASS", "tool_call": "PASS", "followup_tool": "browser_snapshot", "fixture_marker": "Products", "fixture_marker_present": true, "source_chars": 8965, "returned_chars": 1003, "response_chars": 1149, "compaction_state": "PARTIAL", "duration_ms": 1289.104}
+  },
+  "invalid_pilot_analysis": {
+    "run_id": "optimized-9823d9e4cfbe6d7413f965f0",
+    "pair_id": "pair-ad731c36abf11522eaab857b",
+    "turn_started": 1,
+    "turn_completed": 1,
+    "item_error_events": 2,
+    "mcp_tool_events": 0,
+    "mcp_startup_failure_lines": 6,
+    "provider_usage": {"input_tokens": 230071, "cached_input_tokens": 178176, "uncached_input_tokens": 51895, "output_tokens": 1528, "reasoning_output_tokens": 1103, "total_tokens": 231599},
+    "observable_conclusion": "The session completed one turn after MCP startup failures; records do not expose a raw context decomposition or assign tokens to individual tools.",
+    "hypotheses_not_proven": ["large static initialization context", "repeated MCP startup diagnostics", "agent planning after unavailable tools"]
+  },
+  "gates": {
+    "invalid_command_detected_before_model": true,
+    "pie_source_commit_checked": true,
+    "worktree_path_checked": true,
+    "domain_profile_excludes_other_domain": true,
+    "initialize_tools_call_offline": true,
+    "fixture_loaded_and_marker_checked": true,
+    "model_execution": "NOT_RUN"
+  }
+}

@@ -113,7 +113,9 @@ def _profile(path: Path, workspace: Path) -> tuple[dict, str, list[str], dict[st
     return value, name, args, env
 
 
-def verify_profile(path: Path, workspace: Path, *, tool: str, arguments: dict) -> dict:
+def verify_profile(path: Path, workspace: Path, *, tool: str, arguments: dict,
+                   required_texts: list[str], followup_tool: str | None = None,
+                   followup_arguments: dict | None = None) -> dict:
     value, server, args, configured_env = _profile(path, workspace)
     env = dict(os.environ)
     env.update(configured_env)
@@ -138,8 +140,40 @@ def verify_profile(path: Path, workspace: Path, *, tool: str, arguments: dict) -
         called = probe.call(3, "tools/call", {"name": tool, "arguments": arguments})
         if called.get("result", {}).get("isError"):
             raise RuntimeError("tools/call returned MCP error")
+        observed = called
+        if followup_tool:
+            observed = probe.call(4, "tools/call", {"name": followup_tool,
+                                                    "arguments": followup_arguments or {}})
+            if observed.get("result", {}).get("isError"):
+                raise RuntimeError("follow-up tools/call returned MCP error")
+        has_structured_content = "structuredContent" in observed.get("result", {})
+        content = observed.get("result", {}).get("content", [])
+        response_text = "\n".join(item.get("text", "") for item in content
+                                    if isinstance(item, dict) and isinstance(item.get("text"), str))
+        missing = [value for value in required_texts if value not in response_text]
+        if missing:
+            raise RuntimeError("fixture marker missing: " + ",".join(missing))
+        response_state = None
+        source_chars = None
+        returned_chars = None
+        try:
+            payload = json.loads(response_text)
+            if isinstance(payload, dict):
+                response_state = payload.get("state")
+                source_chars = payload.get("source_chars")
+                returned_chars = payload.get("returned_chars")
+        except json.JSONDecodeError:
+            pass
         result.update({"status": "PASS", "initialize": "PASS", "tools_list": "PASS",
                        "tool_call": "PASS", "tool_count": len(names),
+                       "followup_tool": followup_tool,
+                       "required_texts": required_texts,
+                       "required_texts_present": True,
+                       "response_text_chars": len(response_text),
+                       "structured_content_present": has_structured_content,
+                       "response_state": response_state,
+                       "source_chars": source_chars,
+                       "returned_chars": returned_chars,
                        "duration_ms": round((time.perf_counter() - started) * 1000, 3)})
         return result
     finally:
@@ -151,13 +185,20 @@ def main() -> int:
     parser.add_argument("--workspace", type=Path, required=True)
     parser.add_argument("--tool", required=True)
     parser.add_argument("--arguments", default="{}")
+    parser.add_argument("--require-text", action="append", default=[])
+    parser.add_argument("--followup-tool")
+    parser.add_argument("--followup-arguments", default="{}")
     parser.add_argument("profiles", nargs="+", type=Path)
     args = parser.parse_args()
     arguments = json.loads(args.arguments)
+    followup_arguments = json.loads(args.followup_arguments)
     results = []
     try:
         for profile in args.profiles:
-            results.append(verify_profile(profile, args.workspace.resolve(), tool=args.tool, arguments=arguments))
+            results.append(verify_profile(profile, args.workspace.resolve(), tool=args.tool,
+                                          arguments=arguments, required_texts=args.require_text,
+                                          followup_tool=args.followup_tool,
+                                          followup_arguments=followup_arguments))
     except (OSError, RuntimeError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
         print(json.dumps({"status": "BLOCKED", "model_sessions_started": 0,
                           "reason": str(exc)[:240], "results": results}, indent=2))

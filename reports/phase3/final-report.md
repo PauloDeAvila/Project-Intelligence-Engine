@@ -107,6 +107,8 @@ O piloto pago seguinte foi interrompido antes do dispatch MCP. A sessão optimiz
 
 Após o diagnóstico, o preflight passou a validar a existência do executável `command` de cada servidor MCP antes de iniciar o Codex. A suíte regressiva atual tem 570 testes aprovados e 5 ignorados.
 
+A correção estrutural foi validada offline nos quatro perfis de domínio: os executáveis são estáveis, o código PIE resolve para o commit experimental correto, os perfis não carregam o domínio oposto e initialize/tools/list/tools/call passam sem modelo. O Web optimized produziu `PARTIAL` no snapshot real (8.965 → 1.003 caracteres); o Blender real retornou `structuredContent`, condição na qual a compactação atual permanece intencionalmente desativada. A suíte final tem 571 testes aprovados e 5 ignorados. Evidência: [`77-offline-environment-gates.md`](77-offline-environment-gates.md).
+
 ## A/B estrito (repetições 2 e 3)
 
 | Domínio | Pares | Input B/O | Cache B/O | Output B/O | Total B/O | Economia total | Latência média B/O | MCP B/O |
