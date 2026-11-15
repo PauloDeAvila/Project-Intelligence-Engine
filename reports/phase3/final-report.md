@@ -29,10 +29,9 @@ caracteres. A regressão Blender `query_scene` é válida e foi mantida.
   zero recuperações adicionais.
 - Respostas incorretas do modelo fecham a execução sem retry.
 - Nenhuma alteração destrutiva foi feita na cena Blender ou em páginas externas.
-- A suíte completa inicial executou 641 testes, 5 ignorados e teve 1 erro
-  ambiental `WinError 10053`; a repetição isolada desse teste passou. O estado
-  correto é “full suite initial failed, isolated recheck passed”, não “suíte
-  completa verde”. Evidência: [114-full-suite-validation-20261115.json](114-full-suite-validation-20261115.json).
+- A primeira suíte completa executou 641 testes, 5 ignorados e teve 1 erro
+  ambiental `WinError 10053`; o teste isolado passou e a segunda suíte completa
+  também passou com 641 testes e 0 erros. Evidência: [114-full-suite-validation-20261115.json](114-full-suite-validation-20261115.json).
 
 ## Telemetria e custos
 
