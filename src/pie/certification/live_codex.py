@@ -277,7 +277,11 @@ def _evaluate_answer(scenario:dict, actual:str)->tuple[bool,str]:
             value=json.loads(actual)
         except (TypeError,json.JSONDecodeError):
             return False,"blender_scene_json"
-        return value==oracle["expected"],"blender_scene_json"
+        expected=oracle["expected"]
+        if isinstance(value,dict) and isinstance(value.get("object_type"),str):
+            value=dict(value)
+            value["object_type"]=value["object_type"].upper()
+        return value==expected,"blender_scene_json"
     return actual==scenario["expected_exact"].strip(),"exact_text"
 
 def _oracle_diagnostic(scenario:dict, actual:str, passed:bool)->dict:

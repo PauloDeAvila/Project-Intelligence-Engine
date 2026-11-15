@@ -4,6 +4,12 @@
 
 **NOT_CERTIFIED — roteamento Blender validado, economia A/B ainda não certificada.** A baseline corrigida e uma nova sessão optimized passaram uso do provedor, ferramentas esperadas, oráculos e correlação lifecycle exata. Porém, este é apenas um par válido e o resultado optimized aumentou os tokens totais.
 
+## Baseline Blender v2 — diagnóstico do oráculo
+
+A execução `94-blender-v2-baseline.json` confirmou a rota correta (`blender/get_scene_info`, uma chamada) e uso real do provedor: 45.355 tokens de entrada, 39.680 cacheados, 489 de saída e 15.598,589 ms. Ela não foi promovida a par porque o oráculo comparava `object_type="MESH"` enquanto o texto do MCP original retornou `object_type="mesh"`; nome, localização, materiais, chaves e tipos estavam corretos. O braço optimized não foi iniciado e não houve retry.
+
+A avaliação foi corrigida para normalizar somente esse enum de representação, preservando comparação exata dos demais campos. A evidência detalhada está em [`94-blender-v2-baseline.md`](94-blender-v2-baseline.md). Essa correção ainda precisa ser exercitada em uma nova sessão autorizada antes de qualquer A/B; a certificação permanece `NOT_CERTIFIED`.
+
 Os números A/B históricos abaixo são mantidos como evidência preliminar e não devem ser confundidos com o piloto atual. Eles não promovem a certificação porque não satisfazem a cobertura causal e de correlação exigida.
 
 O par usou o mesmo modelo, esforço, prompt, commit e estado inicial. A baseline foi válida; a optimized tem uso real e oráculo textual/Blender aprovados, mas route evidence `INSUFFICIENT_EVIDENCE`. Não houve execução Web nesta etapa nem retry automático.

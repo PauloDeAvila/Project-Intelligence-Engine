@@ -83,6 +83,8 @@ class UsageTests(unittest.TestCase):
                       "location":[0.0,0.0,0.0],"material_names":["PIE_Large_Material_00"]}}}
         validate_scenario(scenario)
         self.assertEqual(_evaluate_answer(scenario, scenario["expected_exact"]),(True,"blender_scene_json"))
+        lowercase=scenario["expected_exact"].replace('"MESH"','"mesh"')
+        self.assertEqual(_evaluate_answer(scenario, lowercase),(True,"blender_scene_json"))
         self.assertEqual(_evaluate_answer(scenario, '{"object_name":"PIE_Large_Cube_00"}')[0],False)
 
     def test_oracle_diagnostic_exposes_shape_without_values(self):
