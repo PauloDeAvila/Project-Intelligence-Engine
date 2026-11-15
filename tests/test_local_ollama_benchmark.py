@@ -23,6 +23,8 @@ class LocalOllamaBenchmarkTests(unittest.TestCase):
         self.assertNotIn("bpy.ops", base[0][1]["code"])
         self.assertEqual(opt[0][0], "pie_blender_query_scene")
         self.assertEqual(opt[0][1]["limit"], 1)
+        exact = _tool_calls("blender", "optimized", blender_mode="exact")
+        self.assertEqual(exact, [("pie_blender_get_object", {"name": "PIE_Large_Cube_00"})])
         self.assertEqual([x[0] for x in _tool_calls("web", "baseline")],
                          ["browser_navigate", "browser_snapshot"])
 
@@ -55,6 +57,8 @@ class LocalOllamaBenchmarkTests(unittest.TestCase):
         self.assertTrue(fixture_pass(blender_scenario, payload))
         self.assertFalse(fixture_pass(blender_scenario, [{"content": [{"type": "text", "text": "PIE_Large_Cube_00 PIE_Large_Material_00"}]}]))
         self.assertFalse(fixture_pass({"application": "web"}, payload))
+        direct = [{"content": [{"type": "text", "text": blender_scenario["expected_exact"]}]}]
+        self.assertTrue(fixture_pass(blender_scenario, direct))
 
     def test_pair_comparison_requires_both_correct(self):
         a = {"oracle_pass": True, "usage": {"input_tokens": 800, "total_tokens": 1000}}
@@ -136,11 +140,15 @@ class LocalOllamaBenchmarkTests(unittest.TestCase):
                     return {"result": {"protocolVersion": "2025-03-26"}}
                 if method == "tools/list":
                     return {"result": {"tools": [
-                        {"name": "execute_blender_code"}, {"name": "pie_blender_query_scene"}]}}
+                        {"name": "execute_blender_code"}, {"name": "pie_blender_query_scene"},
+                        {"name": "pie_blender_get_object"}]}}
                 if params["name"] == "execute_blender_code":
                     item = json.loads(scenario["expected_exact"])
                     return {"result": {"content": [{"type": "text", "text":
                         "PIE_LOCAL_OBJECT_V1=" + json.dumps(item)}]}}
+                if params["name"] == "pie_blender_get_object":
+                    return {"result": {"content": [{"type": "text",
+                        "text": scenario["expected_exact"]}]}}
                 item = {"name": "PIE_Large_Cube_00", "type": "MESH",
                         "location": [0, 0, 0], "material_names": ["PIE_Large_Material_00"]}
                 return {"result": {"structuredContent": {"items": [item]}, "content": []}}
@@ -162,6 +170,36 @@ class LocalOllamaBenchmarkTests(unittest.TestCase):
                 self.assertEqual(result["server"], server)
                 self.assertGreater(result["observation_chars"], 0)
                 self.assertEqual(len(result["tool_names"]), 1)
+
+    def test_exact_blender_benchmark_routes_via_minimal_mcp_tool(self):
+        scenario = {"application": "blender", "expected_exact": json.dumps({
+            "object_name": "PIE_Large_Cube_00", "object_type": "MESH",
+            "location": [0, 0, 0], "material_names": ["PIE_Large_Material_00"]})}
+
+        class FakeProbe:
+            def __init__(self, process):pass
+            def call(self, identifier, method, params=None):
+                if method == "initialize":
+                    return {"result": {"protocolVersion": "2025-03-26"}}
+                if method == "tools/list":
+                    return {"result": {"tools": [{"name": "pie_blender_get_object",
+                                                   "inputSchema": {"type": "object"}}]}}
+                return {"result": {"content": [{"type": "text",
+                                                "text": scenario["expected_exact"]}]}}
+            def notify(self, method):pass
+            def close(self):pass
+
+        with (patch("benchmark_local_ollama._profile", return_value=(
+                    {"command": "python", "enabled_tools": ["pie_blender_get_object"]},
+                    "pie-blender-optimized", [], {})),
+              patch("benchmark_local_ollama.subprocess.Popen"),
+              patch("benchmark_local_ollama.Probe", FakeProbe)):
+            result = collect_mcp(Path("profile.toml"), Path.cwd(), scenario,
+                                 "optimized", blender_mode="exact")
+            self.assertEqual(result["tool_names"], ["pie_blender_get_object"])
+            self.assertEqual(result["tool_count"], 1)
+            self.assertEqual(result["recovery_calls"], 0)
+            self.assertIn("PIE_Large_Cube_00", result["observations_json"])
 
     def test_local_model_request_is_local_and_records_usage(self):
         scenario = {"application": "web", "expected_exact": '{"title":"T"}', "prompt": "Extract title."}
