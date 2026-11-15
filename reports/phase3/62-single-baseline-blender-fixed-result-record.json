@@ -1,0 +1,44 @@
+{
+  "schema": "pie-live-codex-usage-v1",
+  "condition": "baseline",
+  "scenario_id": "blender-material-cert-v1",
+  "repetition": 1,
+  "run_id": "baseline-f073f14415ad490fa15490ef",
+  "pair_id": "pair-deda0256ba284175ade5d58d",
+  "model": "gpt-5.6-luna",
+  "codex_version": "codex-cli 0.169.0-alpha.11.1",
+  "prompt_sha256": "1712111b5774e4c2ecb3be84623d568b2013e7a5ad6b3469ebe61da218ae74da",
+  "expected_sha256": "f1f2b58064eef4166dd1f8aac7ebee75dac8005a6cc368e714be1855ae28a2ce",
+  "answer_sha256": "f1f2b58064eef4166dd1f8aac7ebee75dac8005a6cc368e714be1855ae28a2ce",
+  "oracle_kind": "exact_text",
+  "oracle_pass": true,
+  "workspace_commit": "a95760a9ca0ef53088ae6b2375d9b9571fd3a12b",
+  "configuration_sha256": "3345a3e4d68c4ee2f2e9690b6367047aac6f21c1949abbca7f3bdbd576ca8433",
+  "profile": "pie-phase3-single-baseline",
+  "runtime_ms": 17451.21,
+  "tool_events": 2,
+  "mcp_tools": [
+    {
+      "server": "blender",
+      "tool": "get_scene_info",
+      "status": "completed"
+    },
+    {
+      "server": "blender",
+      "tool": "execute_blender_code",
+      "status": "completed"
+    }
+  ],
+  "usage": {
+    "input_tokens": 58889,
+    "cached_input_tokens": 35840,
+    "output_tokens": 685,
+    "reasoning_output_tokens": 209
+  },
+  "expected_mcp_server": "blender",
+  "mcp_route_verified": true,
+  "provider_reported": true,
+  "source": "codex_exec_json_turn_completed",
+  "forensic_path": "C:\\Users\\phsra\\AppData\\Local\\Temp\\.pie-phase3-single-blender-fixed-d23a211ad98c4f7cb2bafc0f7006882c-pie-live-store\\runs\\baseline-f073f14415ad490fa15490ef",
+  "note": "Codex provider usage, not billing or a raw transcript"
+}

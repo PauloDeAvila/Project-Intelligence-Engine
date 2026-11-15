@@ -99,6 +99,12 @@ Entretanto, a leitura Blender independente posterior encontrou roughness `0.4000
 
 O resultado atual é `BASELINE_BLENDER_FAILED_ORACLE`; a certificação geral permanece `NOT_CERTIFIED`.
 
+## Baseline Blender corrigida — 2026-11-15
+
+Após corrigir o prompt para ler o `BSDF_PRINCIPLED`, uma nova execução real independente foi válida. O Codex reportou `58.889` tokens de entrada, `35.840` em cache, `685` de saída e `17.451,210 ms`. As duas ferramentas Blender esperadas concluíram, e a leitura independente confirmou roughness `0.349999994` e metallic `0.200000002`.
+
+Evidência: [`62-single-baseline-blender-fixed.md`](62-single-baseline-blender-fixed.md) e [`62-single-baseline-blender-fixed-summary.json`](62-single-baseline-blender-fixed-summary.json). O par `pair-deda0256ba284175ade5d58d` está pronto para o braço optimized; nenhum optimized foi iniciado nesta operação.
+
 ## Custos
 
 `null`: não foi fornecida tarifa verificável para `gpt-5.6-luna`. Quota/assinatura não foi convertida em preço.
