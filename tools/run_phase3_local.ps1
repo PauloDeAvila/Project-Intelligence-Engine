@@ -8,6 +8,7 @@ param(
     [string]$Model = "qwen3:4b",
     [int]$Repetitions = 3,
     [int]$NumCtx = 16384,
+    [ValidateSet("profile", "server")][string]$SchemaScope = "profile",
     [int]$BlenderPort = 9877,
     [string]$OutputDirectory = $env:TEMP,
     [switch]$ProbeOnly
@@ -48,6 +49,7 @@ $runnerArgs = @(
     "--optimized-profile", (Join-Path $profileRoot "pie-phase3-optimized.config.toml"),
     "--repetitions", ([string]$Repetitions),
     "--num-ctx", ([string]$NumCtx),
+    "--schema-scope", $SchemaScope,
     "--output", $report
 )
 if ($ProbeOnly) {
