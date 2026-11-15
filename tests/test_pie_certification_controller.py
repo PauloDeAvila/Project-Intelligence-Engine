@@ -8,7 +8,8 @@ from unittest.mock import patch
 
 from pie.certification.controller import (
     ControllerError, audit_record_route, build_manifest, plan_batches,
-    load_scenario, run_pilot, run_single, validate_batch_budget, validate_manifest,
+    build_frozen_resume_plan, load_scenario, run_pilot, run_single,
+    validate_batch_budget, validate_manifest,
 )
 from pie.certification.live_codex import CodexCaptureError, SCHEMA
 
@@ -38,6 +39,38 @@ class ControllerTests(unittest.TestCase):
         self.assertEqual(loaded["scenario_id"], "blender-selective-location-v1")
         self.assertEqual(loaded["expected_mcp_tools_by_condition"]["baseline"], ["get_scene_info"])
         self.assertEqual(loaded["expected_mcp_tools_by_condition"]["optimized"], ["pie_blender_query_scene"])
+
+    def test_web_v2_exact_text_scenario_loads(self):
+        path = Path(__file__).resolve().parents[1] / "benchmarks" / "phase3" / "web-local-page-v2-scenario.json"
+        loaded = load_scenario(path)
+        self.assertEqual(loaded["oracle"]["kind"], "exact_text")
+
+    def test_single_run_forwards_repetition_to_capture(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            record={"run_id":"baseline-plan-fixed","pair_id":"pair-plan-fixed"}
+            with patch("pie.certification.controller.preflight_codex", return_value={"state":"READY_FOR_BENCHMARK"}), \
+                 patch("pie.certification.controller.capture_codex", return_value=record) as capture, \
+                 patch("pie.certification.controller._fixture_oracle", return_value={"passed":True}), \
+                 patch("pie.certification.controller.audit_record_route", return_value={"decision":"VALID"}), \
+                 patch("pie.certification.controller.import_provider_record"):
+                result=run_single(
+                    scenario=scenario("blender"), application="blender", condition="baseline",
+                    workspace=root, baseline_home=root/"baseline", optimized_home=root/"optimized",
+                    baseline_profile="baseline", optimized_profile="optimized", output=root/"result.json",
+                    pair_id_override="pair-plan-fixed", run_id_override="baseline-plan-fixed", repetition=2)
+            self.assertEqual(result["state"], "BASELINE_BLENDER_VALID")
+            self.assertEqual(capture.call_args.kwargs["repetition"], 2)
+
+    def test_frozen_manifest_expands_ten_unique_sessions_in_order(self):
+        path = Path(__file__).resolve().parents[1] / "reports" / "phase3" / "106-frozen-ab-manifest.json"
+        manifest=json.loads(path.read_text(encoding="utf-8"))
+        plan=build_frozen_resume_plan(manifest)
+        self.assertEqual(plan["state"], "READY_FOR_PAID_AB")
+        self.assertEqual(len(plan["sessions"]), 10)
+        self.assertEqual([item["condition"] for item in plan["sessions"][:4]],
+                         ["optimized","baseline","baseline","optimized"])
+        self.assertEqual(len({item["run_id"] for item in plan["sessions"]}), 10)
 
     def test_single_run_preserves_plan_identity_before_model(self):
         with tempfile.TemporaryDirectory() as tmp:

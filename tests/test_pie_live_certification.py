@@ -5,7 +5,8 @@ from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"src"))
 from pie.certification.live_codex import (SCHEMA,CodexCaptureError,parse_codex_jsonl,
-    compare,validate_scenario,preflight_codex,_capture_pair_id,_evaluate_answer,_oracle_diagnostic,_record)
+    compare,validate_scenario,preflight_codex,_capture_pair_id,_evaluate_answer,_oracle_diagnostic,_record,
+    _observed_mcp_tools_match)
 from pie.certification.cli import _safe_error
 from pie.certification.coverage import audit_codex
 
@@ -91,6 +92,18 @@ class UsageTests(unittest.TestCase):
         item=row(1,"baseline",1200)
         item["oracle_kind"]="blender_scene_json"
         self.assertEqual(_record(item), ("one", 1))
+
+    def test_web_recovery_tool_is_optional_but_core_calls_are_required(self):
+        scenario={"required_mcp_server":"web",
+                  "expected_mcp_tools_by_condition":{
+                      "baseline":["browser_navigate","browser_snapshot"],
+                      "optimized":["browser_navigate","browser_snapshot","pie_gateway_output_get"]}}
+        self.assertTrue(_observed_mcp_tools_match(scenario,"optimized",
+                                                   ["browser_navigate","browser_snapshot"]))
+        self.assertTrue(_observed_mcp_tools_match(scenario,"optimized",
+                                                   ["browser_navigate","browser_snapshot","pie_gateway_output_get"]))
+        self.assertFalse(_observed_mcp_tools_match(scenario,"optimized",
+                                                    ["browser_navigate"]))
 
     def test_oracle_diagnostic_exposes_shape_without_values(self):
         scenario={"oracle":{"kind":"blender_scene_json","expected":{

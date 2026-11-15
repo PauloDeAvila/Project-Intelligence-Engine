@@ -24,6 +24,18 @@ def _expected_mcp_tools(scenario:dict, condition:str)->list[str]|None:
     tools=scenario.get("expected_mcp_tools")
     return list(tools) if isinstance(tools,list) else None
 
+def _observed_mcp_tools_match(scenario:dict, condition:str, observed:list[str])->bool:
+    """Match required MCP calls while treating Web recovery as optional."""
+    expected=_expected_mcp_tools(scenario,condition)
+    if expected is None:
+        return True
+    if (condition == "optimized" and
+        str(scenario.get("required_mcp_server", "")).lower() in ("web", "playwright") and
+        "pie_gateway_output_get" in expected):
+        required=[tool for tool in expected if tool != "pie_gateway_output_get"]
+        return observed == required or observed == expected
+    return observed == expected
+
 def _enabled_mcp_servers(servers: dict) -> set[str]:
     return {name for name, value in servers.items()
             if isinstance(name, str) and
@@ -628,10 +640,10 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
     expected_tools=_expected_mcp_tools(scenario,condition)
     if expected_tools is not None:
         observed_tools=[item.get("tool") for item in parsed["mcp_tools"]]
-        if observed_tools != expected_tools:
+        if not _observed_mcp_tools_match(scenario,condition,observed_tools):
             _forensic_finish(forensic_root,status="tool_allowlist_failed",returncode=run.returncode,
                              duration_ms=round((time.perf_counter()-t0)*1000,3),
-                             error=f"MCP tool allowlist failed; expected {expected_tools}; observed {observed_tools}")
+                             error=f"MCP tool allowlist failed; expected {expected_tools} (recovery optional for Web); observed {observed_tools}")
             raise CodexCaptureError(
                 f"MCP tool allowlist failed; expected {expected_tools}; observed {observed_tools}",
                 evidence={"run_id":run_id,"pair_id":pair_id,"condition":condition,

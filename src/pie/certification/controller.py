@@ -68,6 +68,8 @@ def _oracle_spec(scenario: dict[str, Any]) -> dict[str, Any]:
         required = ("expected",)
     elif kind == "web_local_page":
         required = ("fixture_id", "required_refs", "required_text")
+    elif kind == "exact_text":
+        required = ("fixture_id", "required_text")
     else:
         raise ControllerError("Unsupported oracle kind")
     if any(key not in oracle for key in required):
@@ -191,10 +193,11 @@ def _load_lifecycle(path: Path) -> list[dict[str, Any]]:
 def _fixture_oracle(scenario: dict[str, Any], workspace: Path) -> dict[str, Any]:
     """Check deterministic fixture invariants without model or external writes."""
     oracle=_oracle_spec(scenario)
-    if oracle["kind"] == "web_local_page":
+    if oracle["kind"] in ("web_local_page", "exact_text"):
         fixture=workspace/"fixtures"/"phase3"/"web"/"index.html"
         text=fixture.read_text(encoding="utf-8")
-        missing=[value for value in (*oracle["required_refs"], *oracle["required_text"]) if value not in text]
+        required_refs=oracle.get("required_refs", [])
+        missing=[value for value in (*required_refs, *oracle["required_text"]) if value not in text]
         return {"passed": not missing, "kind": oracle["kind"], "missing": missing}
     # The Blender oracle is a read-only contract for the disposable scene. The
     # live Blender probe remains an independent external evidence source.
@@ -302,6 +305,44 @@ def plan_batches(manifest: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def build_frozen_resume_plan(manifest: dict[str, Any]) -> dict[str, Any]:
+    """Expand the quota-blocked manifest 106 into an offline execution plan."""
+    if not isinstance(manifest, dict) or manifest.get("schema") != "pie-phase3-frozen-ab-manifest-v1":
+        raise ControllerError("Invalid frozen A/B manifest")
+    applications=manifest.get("applications")
+    if not isinstance(applications, dict) or set(applications) != {"blender", "web"}:
+        raise ControllerError("Frozen manifest must contain Blender and Web")
+    entries=[]
+    seen=set()
+    sequence=0
+    for application in ("blender", "web"):
+        item=applications[application]
+        scenario=item.get("scenario")
+        pair_id=item.get("pair_id")
+        orders=item.get("orders")
+        if not isinstance(scenario,str) or not isinstance(pair_id,str) or not isinstance(orders,list):
+            raise ControllerError("Incomplete frozen manifest application")
+        _safe_id(pair_id,"pair_id")
+        for order in orders:
+            repetition=order.get("repetition") if isinstance(order,dict) else None
+            conditions=order.get("conditions") if isinstance(order,dict) else None
+            if type(repetition) is not int or repetition not in (1,2,3) or conditions not in (["baseline","optimized"],["optimized","baseline"]):
+                raise ControllerError("Invalid frozen manifest order")
+            for condition in conditions:
+                sequence+=1
+                run_id=f"{condition}-{application}-r{repetition}-{uuid.uuid4().hex[:12]}"
+                if run_id in seen:
+                    raise ControllerError("Duplicate resume run_id")
+                seen.add(run_id)
+                entries.append({"sequence":sequence,"application":application,"scenario":scenario,
+                                "pair_id":pair_id,"run_id":run_id,"repetition":repetition,
+                                "condition":condition})
+    if len(entries) != 10:
+        raise ControllerError("Frozen resume plan must contain exactly 10 sessions")
+    return {"schema":"pie-phase3-frozen-ab-resume-plan-v1","state":"READY_FOR_PAID_AB",
+            "model_execution":"DISABLED","automatic_retry":False,"sessions":entries}
+
+
 def audit_record_route(record: dict[str, Any], lifecycle: Iterable[dict[str, Any]]) -> dict[str, Any]:
     """Audit one provider record against exact lifecycle IDs, never timestamps."""
     try:
@@ -352,7 +393,7 @@ def run_single(*, scenario: dict[str, Any], application: str, condition: str,
                baseline_profile: str, optimized_profile: str, output: Path,
                authorized_sessions: int = 1, codex_bin: str = "codex",
                timeout: int = 240, pair_id_override: str | None = None,
-               run_id_override: str | None = None) -> dict[str, Any]:
+               run_id_override: str | None = None, repetition: int = 1) -> dict[str, Any]:
     """Run one reusable certification arm with a persistent pre-spawn ledger."""
     validate_scenario(scenario)
     if application not in ("blender", "web") or condition not in CONDITIONS:
@@ -361,6 +402,8 @@ def run_single(*, scenario: dict[str, Any], application: str, condition: str,
         raise ControllerError("Scenario domain does not match requested application")
     if authorized_sessions != 1:
         raise ControllerError("Single run requires exactly one authorized session")
+    if type(repetition) is not int or not 1 <= repetition <= 3:
+        raise ControllerError("Repetition must be 1, 2 or 3")
     root = workspace.expanduser().resolve(strict=True)
     output = output.expanduser().resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -392,7 +435,7 @@ def run_single(*, scenario: dict[str, Any], application: str, condition: str,
                          consumed_sessions=1, authorized_sessions=authorized_sessions)
     try:
         record = capture_codex(
-            scenario, condition=condition, repetition=1, workspace=root,
+            scenario, condition=condition, repetition=repetition, workspace=root,
             codex_home=home, codex_bin=codex_bin, profile=profile, timeout=timeout,
             run_id_override=run_id, pair_id_override=pair_id)
     except RuntimeError as exc:
@@ -483,10 +526,14 @@ def main(argv: list[str] | None = None) -> int:
     single.add_argument("--baseline-profile", required=True)
     single.add_argument("--optimized-profile", required=True)
     single.add_argument("--output", type=Path, required=True)
+    single.add_argument("--repetition", type=int, default=1)
     single.add_argument("--pair-id", default=None)
     single.add_argument("--run-id", default=None)
     single.add_argument("--codex-bin", default="codex")
     single.add_argument("--timeout", type=int, default=240)
+    resume = sub.add_parser("resume-plan")
+    resume.add_argument("--manifest", type=Path, required=True)
+    resume.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
     try:
         if args.action == "plan":
@@ -524,7 +571,12 @@ def main(argv: list[str] | None = None) -> int:
                 optimized_home=args.optimized_home,
                 baseline_profile=args.baseline_profile, optimized_profile=args.optimized_profile,
                 output=args.output, codex_bin=args.codex_bin, timeout=args.timeout,
-                pair_id_override=args.pair_id, run_id_override=args.run_id)
+                pair_id_override=args.pair_id, run_id_override=args.run_id,
+                repetition=args.repetition)
+        elif args.action == "resume-plan":
+            document=json.loads(args.manifest.read_text(encoding="utf-8"))
+            result=build_frozen_resume_plan(document)
+            _write_json(args.output,result)
         else:
             scenarios = [load_scenario(path) for path in args.scenario]
             manifest_document = json.loads(args.manifest.read_text(encoding="utf-8"))
@@ -539,7 +591,7 @@ def main(argv: list[str] | None = None) -> int:
                                timeout=args.timeout)
         _write_json(args.output, result)
         print(json.dumps(result, indent=2, ensure_ascii=False))
-        return 0 if (args.action == "plan" or result.get("state") in (
+        return 0 if (args.action in ("plan", "resume-plan") or result.get("state") in (
             "EVIDENCE_CERTIFIED", "AB_PILOT_PASSED", "BASELINE_BLENDER_VALID",
             "OPTIMIZED_BLENDER_VALID", "BASELINE_WEB_VALID", "OPTIMIZED_WEB_VALID",
             "READY_FOR_BENCHMARK")) else 2
