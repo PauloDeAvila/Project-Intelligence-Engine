@@ -335,7 +335,8 @@ def main(argv: list[str] | None = None) -> int:
             ) else "BLOCKED_WITH_EVIDENCE"
         else:
             scenarios = [load_scenario(path) for path in args.scenario]
-            manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
+            manifest_document = json.loads(args.manifest.read_text(encoding="utf-8"))
+            manifest = manifest_document.get("manifest", manifest_document)
             result = run_pilot(manifest=manifest,scenarios=scenarios,
                                workspace=args.workspace,baseline_home=args.baseline_home,
                                optimized_home=args.optimized_home,
