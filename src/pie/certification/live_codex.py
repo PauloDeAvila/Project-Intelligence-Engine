@@ -189,6 +189,10 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
     workspace=Path(workspace).expanduser().resolve(strict=True)
     commit=_git_clean_commit(workspace)
     env,configsha=_codex_environment(Path(codex_home),profile=profile)
+    telemetry_store=workspace/".pie-live-store"
+    telemetry_store.mkdir(parents=True,exist_ok=True)
+    env["PIE_GLOBAL_STORAGE_ROOT"]=str(telemetry_store)
+    env["PIE_MCP_DIAGNOSTICS_PATH"]=str(telemetry_store/"mcp-lifecycle.jsonl")
     preflight=preflight_codex(scenario,condition=condition,workspace=workspace,
                               codex_home=Path(codex_home),codex_bin=codex_bin,profile=profile)
     if preflight["state"]!="READY_FOR_BENCHMARK":
@@ -215,7 +219,9 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
     if expected_server is not None and any(
         item.get("server")!=expected_server or item.get("status")!="completed"
         for item in parsed["mcp_tools"]):
-        raise RuntimeError("MCP route evidence failed; unexpected server or incomplete tool call")
+        observed=";".join("/".join(str(item.get(k,"")) for k in ("server","tool","status"))
+                          for item in parsed["mcp_tools"])
+        raise RuntimeError(f"MCP route evidence failed; expected {expected_server}; observed {observed}")
     actual=parsed.pop("answer").strip();expected=scenario["expected_exact"].strip()
     return {"schema":SCHEMA,"condition":condition,"scenario_id":scenario["scenario_id"],
             "repetition":repetition,"model":scenario["model"],"codex_version":version,
