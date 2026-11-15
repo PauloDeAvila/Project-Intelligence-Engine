@@ -2,7 +2,9 @@
 
 ## Veredito
 
-**NOT_CERTIFIED.** As 12 chamadas autorizadas terminaram com uso real reportado pelo provedor e os quatro oráculos estritamente comparáveis passaram. Porém, somente dois pares comparáveis foram obtidos por domínio; o critério exige três. A persistência SQLite também registrou apenas dois eventos Web `PASSTHROUGH`, sem eventos Blender desta bateria.
+**NOT_CERTIFIED — piloto atual: `AB_PILOT_FAILED`.** O controlador iniciou a bateria autorizada de quatro sessões, consumiu uma sessão real (Blender baseline) e interrompeu imediatamente após `execute_blender_code` falhar. Não houve retry, execução Web ou lote complementar. Portanto, esta bateria não produziu tokens A/B certificáveis.
+
+Os números A/B históricos abaixo são mantidos como evidência preliminar e não devem ser confundidos com o piloto atual. Eles não promovem a certificação porque não satisfazem a cobertura causal e de correlação exigida.
 
 Na autorização complementar, foram consumidas 2 de 4 chamadas: o par Blender teve tokens reportados, mas todas as ferramentas MCP esperadas falharam nos dois braços. O oráculo de texto passou, mas isso não é suficiente para validar a tarefa. A bateria foi interrompida e o par Web não foi executado. Uma autorização posterior para uma única sonda de aprovação não chegou ao modelo: o CLI recusou a combinação `--sandbox read-only` + `--approve-for-me` antes do dispatch. Não houve retry.
 
