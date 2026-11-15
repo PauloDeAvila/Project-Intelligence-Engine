@@ -1,0 +1,23 @@
+{
+  "schema": "pie-phase3-routing-name-fix-v1",
+  "status": "OFFLINE_FIXED",
+  "source": "tools/prepare_phase3_profiles.ps1",
+  "before": {
+    "baseline": ["pie-phase3-blender", "pie-phase3-web"],
+    "optimized": ["pie-phase3-blender", "pie-phase3-web"]
+  },
+  "after": {
+    "baseline": ["blender", "playwright-baseline"],
+    "optimized": ["pie-blender-optimized", "pie-web-optimized"]
+  },
+  "controller_expected": {
+    "blender_baseline": "blender",
+    "blender_optimized": "pie-blender-optimized",
+    "web_baseline": "playwright-baseline",
+    "web_optimized": "pie-web-optimized"
+  },
+  "toml_generation_check": "PASS",
+  "codex_runtime_dispatch": "NOT_VERIFIED",
+  "provider_usage": "unavailable",
+  "certification": "NOT_CERTIFIED"
+}

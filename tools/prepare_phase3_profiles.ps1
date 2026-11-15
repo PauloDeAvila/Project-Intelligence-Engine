@@ -33,24 +33,24 @@ function TomlArray([string[]]$values) {
 }
 $baseline = @(
     "# Generated overlay; no credentials.",
-    "[mcp_servers.pie-phase3-blender]",
+    "[mcp_servers.blender]",
     ("command = '{0}'" -f $BlenderUpstream),
     $(if ($diagnosticsBlender) { "env = { PIE_MCP_DIAGNOSTICS_PATH = '$diagnosticsBlender' }" }),
     ("args = {0}" -f (TomlArray @("mcp-for-blender"))),
     "",
-    "[mcp_servers.pie-phase3-web]",
+    "[mcp_servers.playwright-baseline]",
     ("command = '{0}'" -f $NpxExe),
     $(if ($diagnosticsWeb) { "env = { PIE_MCP_DIAGNOSTICS_PATH = '$diagnosticsWeb' }" }),
     ("args = {0}" -f (TomlArray @("--yes", $PlaywrightVersion, "--headless", "--browser", "chrome")))
 ) -join "`r`n"
 $optimized = @(
     "# Generated overlay; no credentials.",
-    "[mcp_servers.pie-phase3-blender]",
+    "[mcp_servers.pie-blender-optimized]",
     ("command = '{0}'" -f $py),
     $(if ($diagnosticsBlender) { "env = { PIE_MCP_DIAGNOSTICS_PATH = '$diagnosticsBlender' }" }),
     ("args = {0}" -f (TomlArray @("-m", "pie.gateway.domain", "serve", "--domain", "blender", "--workspace", $root, "--max-chars", "2400", "--", $BlenderUpstream, "mcp-for-blender"))),
     "",
-    "[mcp_servers.pie-phase3-web]",
+    "[mcp_servers.pie-web-optimized]",
     ("command = '{0}'" -f $py),
     $(if ($diagnosticsWeb) { "env = { PIE_MCP_DIAGNOSTICS_PATH = '$diagnosticsWeb' }" }),
     ("args = {0}" -f (TomlArray @("-m", "pie.gateway.domain", "serve", "--domain", "web", "--workspace", $root, "--max-chars", "2400", "--", $NpxExe, "--yes", $PlaywrightVersion, "--headless", "--browser", "chrome")))
