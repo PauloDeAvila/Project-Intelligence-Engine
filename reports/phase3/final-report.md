@@ -29,6 +29,8 @@ Valores `B/O` são baseline/optimized. A economia de input não armazenado em ca
 
 A revalidação da configuração confirmou `pie-blender-optimized` e `pie-web-optimized` no checkout correto, preservando `blender` e `node_repl`. O detalhe sanitizado e o hash do arquivo estão em `43-routing-state-revalidation.json`. A auditoria SQLite posterior confirmou 3 imports baseline e 3 optimized por domínio, mas apenas 2 pares estritamente comparáveis por domínio; a distinção está em `44-telemetry-count-audit.json`.
 
+O cruzamento dos 12 imports com os cinco lifecycle JSONL recuperáveis encontrou zero correspondências por `run_id`; os tokens históricos não podem ser atribuídos individualmente às rotas PIE. Evidência: `45-route-coverage-crosscheck.json`.
+
 ## Diagnóstico Codex/MCP
 
 A chamada diagnóstica inicial falhou no parsing do override transitório `-c`. A tentativa corrigida usando `tools/run_codex_mcp_diagnostic.ps1` iniciou uma sessão real, selecionou `pie-blender-optimized` e reportou tokens (`136207` input, `115968` cache, `691` output), mas `get_addon_status` e `get_scene_info` falharam. Nenhum lifecycle JSONL foi produzido; o ponto interno da falha permanece inconclusivo. Resultado detalhado: `22-codex-mcp-probe-result.json`. Não há certificação nem nova tentativa automática.

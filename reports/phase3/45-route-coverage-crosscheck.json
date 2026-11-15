@@ -1,0 +1,14 @@
+{
+  "schema": "pie-phase3-route-coverage-crosscheck-v1",
+  "method": "read-only comparison of recoverable lifecycle JSONL and provider usage imports",
+  "provider_usage_imports": 12,
+  "recoverable_lifecycle_files": 5,
+  "recoverable_lifecycle_calls": {
+    "blender": 3,
+    "web": 5
+  },
+  "lifecycle_run_id_matches": 0,
+  "route_attribution": "INCOMPLETE",
+  "reason": "Lifecycle records contain process/tool events but no run_id matching the provider usage imports; therefore tokens cannot be attributed to individual PIE-routed A/B executions.",
+  "certification": "NOT_CERTIFIED"
+}
