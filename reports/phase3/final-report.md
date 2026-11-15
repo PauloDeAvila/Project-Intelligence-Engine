@@ -228,6 +228,12 @@ Foi implementada e validada a ferramenta PIE-owned `pie_blender_query_scene`, se
 
 Essa é uma capacidade seletiva, não compactação transparente. O payload da primeira página foi 1.692 caracteres contra 3.213 de `get_scene_info`, mas essa diferença entre contratos não é economia de tokens certificada. O A/B Blender continua bloqueado até definir uma tarefa comparável que use esse contrato de forma explícita.
 
+## Simulação offline Blender A/B/C — 2026-11-15
+
+As três tarefas propostas passaram contra a fixture real: localização A em 1 consulta, filtragem B em 1 consulta e inventário C em 4 páginas (`20/20/20/4`), cobrindo 64 objetos sem duplicações. Os payloads acumulados foram 376, 1.263 e 5.620 caracteres, respectivamente; essas medidas são locais e não são tokens. Evidência: [`81-blender-selective-task-simulation.md`](81-blender-selective-task-simulation.md).
+
+O próximo piloto pode começar pela tarefa A com um único par real, desde que o braço optimized use explicitamente o contrato seletivo e o baseline use as ferramentas originais. A certificação permanece `NOT_CERTIFIED`.
+
 ## Próximos passos seguros
 
 1. Escolher, com nova autorização, uma combinação de aprovação suportada pela versão instalada: ou `--approve-for-me` sem `--sandbox`, ou uma sessão interativa `on-request` que aceite a aprovação manual. Não remover proteções indiscriminadamente.
