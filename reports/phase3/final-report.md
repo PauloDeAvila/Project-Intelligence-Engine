@@ -14,6 +14,17 @@ A avaliação foi corrigida para normalizar somente esse enum de representação
 
 A tentativa seguinte foi roteada corretamente e consumiu 45.399 tokens de entrada, 39.680 cacheados, 814 de saída e 22.659,152 ms. O oráculo encontrou `object_name` e `object_type` nulos e arrays vazios. A investigação mostrou que o perfil temporário omitiu a porta Blender `9877`, usada pelo perfil previamente validado. O braço optimized não foi executado e não houve retry. Evidência: [`96-blender-v2-fixed-baseline.md`](96-blender-v2-fixed-baseline.md). O próximo gate é sem modelo, com a porta explícita; a certificação continua `NOT_CERTIFIED`.
 
+## Primeiro par Blender v3 válido — 2026-11-15
+
+O cenário v3 corrigiu a capacidade baseline: `get_scene_info` não expunha `material_names` na resposta real, então o baseline passou a usar uma única chamada read-only a `execute_blender_code`; o optimized usou `pie_blender_query_scene`. O gate sem modelo confirmou a fixture real em ambos os braços.
+
+| Condição | Input | Cache | Não cacheado | Output | Total | Latência | MCP | Oráculo | Rota |
+|---|---:|---:|---:|---:|---:|---:|---:|---|---|
+| Baseline | 44.726 | 39.040 | 5.686 | 593 | 45.319 | 18.378,347 ms | 1 | PASS | VALID |
+| Optimized | 44.554 | 39.040 | 5.514 | 321 | 44.875 | 13.446,835 ms | 1 | PASS | VALID |
+
+Economia de input: **0,385%**; de input não cacheado: **3,024%**; total: **0,980%**. Latência caiu 4.931,512 ms. O resultado é positivo, porém é apenas um par e não certifica o domínio. Evidência: [`101-blender-v3-pair.md`](101-blender-v3-pair.md).
+
 Os números A/B históricos abaixo são mantidos como evidência preliminar e não devem ser confundidos com o piloto atual. Eles não promovem a certificação porque não satisfazem a cobertura causal e de correlação exigida.
 
 O par usou o mesmo modelo, esforço, prompt, commit e estado inicial. A baseline foi válida; a optimized tem uso real e oráculo textual/Blender aprovados, mas route evidence `INSUFFICIENT_EVIDENCE`. Não houve execução Web nesta etapa nem retry automático.

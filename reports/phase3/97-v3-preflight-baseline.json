@@ -1,0 +1,39 @@
+{
+  "state": "READY_FOR_BENCHMARK",
+  "checks": {
+    "scenario": "PASS",
+    "condition": "PASS",
+    "worktree": {
+      "state": "PASS",
+      "commit": "8ec109ecb4b8fe58247b4c843b5d0984ce35023d"
+    },
+    "config": "PASS",
+    "profile": "PASS",
+    "codex_executable": "PASS",
+    "model": "PASS",
+    "mcp": {
+      "state": "PASS",
+      "required_server": "blender"
+    },
+    "mcp_tools": {
+      "state": "PASS",
+      "enabled_tools": [
+        "execute_blender_code"
+      ]
+    },
+    "mcp_command": "PASS",
+    "gateway_workspace": "NOT_APPLICABLE",
+    "mcp_runtime": {
+      "state": "PASS",
+      "enabled_servers": [
+        "blender"
+      ]
+    },
+    "authentication": {
+      "state": "AUTH_VALIDATED_LOCAL"
+    }
+  },
+  "errors": [],
+  "model": "gpt-5.6-luna",
+  "condition": "baseline"
+}

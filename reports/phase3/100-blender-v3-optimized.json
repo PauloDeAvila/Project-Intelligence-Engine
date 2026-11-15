@@ -1,0 +1,61 @@
+{
+  "schema": "pie-live-codex-usage-v1",
+  "condition": "optimized",
+  "scenario_id": "blender-selective-location-v3",
+  "repetition": 1,
+  "run_id": "optimized-48e7b0a263a8cc63c33343f1",
+  "pair_id": "pair-2928e0249c46abec905c1342",
+  "model": "gpt-5.6-luna",
+  "codex_version": "codex-cli 0.169.0-alpha.11.1",
+  "prompt_sha256": "b1ce85116b0d663fe979b9e7d9c2b21bce310a55aa129f564c1d1e7382a47523",
+  "expected_sha256": "78bde4f1e1f162696962cb32120ab408c2db2367d34c7a3cc3e35ec53ff64250",
+  "answer_sha256": "9ac545c163ca8507fb080a16905ae2bf94bd4e20fc1954803bdebe04b4fedb1f",
+  "oracle_kind": "blender_scene_json",
+  "oracle_pass": true,
+  "oracle_diagnostic": {
+    "passed": true,
+    "length": 118,
+    "sha256": "9ac545c163ca8507fb080a16905ae2bf94bd4e20fc1954803bdebe04b4fedb1f",
+    "format": "json",
+    "keys": [
+      "location",
+      "material_names",
+      "object_name",
+      "object_type"
+    ],
+    "missing_keys": [],
+    "extra_keys": [],
+    "field_types": {
+      "location": "list",
+      "material_names": "list",
+      "object_name": "str",
+      "object_type": "str"
+    },
+    "location_length": 3,
+    "material_names_length": 1
+  },
+  "workspace_commit": "8ec109ecb4b8fe58247b4c843b5d0984ce35023d",
+  "configuration_sha256": "aa4eae29fb304ff42f46c6c26bafd6e6ec411b0df90549ddd550810462c9e756",
+  "profile": "pie-phase3-optimized-run-optimized-48e7b0a263a8cc63c33343f1",
+  "runtime_ms": 13446.835,
+  "tool_events": 1,
+  "mcp_tools": [
+    {
+      "server": "pie-blender-optimized",
+      "tool": "pie_blender_query_scene",
+      "status": "completed"
+    }
+  ],
+  "usage": {
+    "input_tokens": 44554,
+    "cached_input_tokens": 39040,
+    "output_tokens": 321,
+    "reasoning_output_tokens": 143
+  },
+  "expected_mcp_server": "pie-blender-optimized",
+  "mcp_route_verified": true,
+  "provider_reported": true,
+  "source": "codex_exec_json_turn_completed",
+  "forensic_path": "C:\\Users\\phsra\\AppData\\Local\\Temp\\.pie-phase3-4cb514f-pie-live-store\\runs\\optimized-48e7b0a263a8cc63c33343f1",
+  "note": "Codex provider usage, not billing or a raw transcript"
+}
