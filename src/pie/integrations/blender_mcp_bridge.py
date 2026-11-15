@@ -64,6 +64,15 @@ def _json(obj: Any) -> str:
     return json.dumps(obj, separators=(",", ":"), ensure_ascii=False)
 
 
+def _is_json_value(text: str) -> bool:
+    if not text.lstrip().startswith(("{", "[")):
+        return False
+    try:
+        return isinstance(json.loads(text), (dict, list))
+    except (TypeError, ValueError):
+        return False
+
+
 def _key(identifier: Any) -> str:
     return _json(identifier)
 
@@ -140,13 +149,16 @@ def extend_tools(message: dict[str, Any], exposed_tools: frozenset[str] = frozen
 
 
 def compact_observation(
-    message: dict[str, Any], tool_name: str, snapshots: SnapshotStore, max_chars: int
+    message: dict[str, Any], tool_name: str, snapshots: SnapshotStore, max_chars: int,
+    *, output_schema: bool = False,
 ) -> dict[str, Any]:
-    """Compaction is explicitly lossy, labeled, and reversible within this process."""
+    """Compact presentation text only when no typed output contract exists."""
     if tool_name not in OBSERVATION_TOOLS:
         return message
     result = message.get("result")
-    if not isinstance(result, dict) or result.get("isError") or "structuredContent" in result:
+    if not isinstance(result, dict) or result.get("isError"):
+        return message
+    if "structuredContent" in result and output_schema:
         return message
     parts = result.get("content")
     if not isinstance(parts, list) or len(parts) != 1 or not isinstance(parts[0], dict):
@@ -155,6 +167,8 @@ def compact_observation(
     if part.get("type") != "text" or not isinstance(part.get("text"), str):
         return message
     source = part["text"]
+    if "structuredContent" in result and _is_json_value(source):
+        return message
     if len(source) <= max_chars or len(source) > MAX_SNAPSHOT_CHARS or source.lstrip().startswith(("Error:", "Rejected", "Failed:")):
         return message
     identifier, seen = snapshots.remember(source)
@@ -206,6 +220,7 @@ class BlenderMcpBridge:
         self.delta_cache = SceneDeltaCache()
         self.delta_options: dict[str, int] = {}
         self.pending: dict[str, str] = {}
+        self.output_schema_tools: set[str] = set()
         self.pending_lock = threading.Lock()
         self.output_lock = threading.Lock()
         self.stats = {"compacted": 0, "raw_chars": 0, "forwarded_chars": 0}
@@ -304,6 +319,14 @@ class BlenderMcpBridge:
                     with self.pending_lock:
                         tool_name = self.pending.pop(_key(message["id"]), "")
                     if tool_name == "__tools_list__":
+                        body = message.get("result")
+                        if isinstance(body, dict) and isinstance(body.get("tools"), list):
+                            self.output_schema_tools = {
+                                item.get("name") for item in body["tools"]
+                                if isinstance(item, dict)
+                                and isinstance(item.get("name"), str)
+                                and item.get("outputSchema") is not None
+                            }
                         self._write(extend_tools(message, self.exposed_tools))
                     elif tool_name == "__blender_delta__":
                         with self.pending_lock:
@@ -317,7 +340,10 @@ class BlenderMcpBridge:
                         self._write({"jsonrpc": "2.0", "id": message["id"], "result": result})
                     elif tool_name in OBSERVATION_TOOLS:
                         before = _json(message)
-                        result = compact_observation(message, tool_name, self.snapshots, self.max_chars)
+                        result = compact_observation(
+                            message, tool_name, self.snapshots, self.max_chars,
+                            output_schema=tool_name in self.output_schema_tools,
+                        )
                         after = _json(result)
                         if len(after) < len(before):
                             self.stats["compacted"] += 1

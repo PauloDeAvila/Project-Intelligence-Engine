@@ -210,6 +210,12 @@ Evidência: [`62-single-baseline-blender-fixed.md`](62-single-baseline-blender-f
 
 `null`: não foi fornecida tarifa verificável para `gpt-5.6-luna`. Quota/assinatura não foi convertida em preço.
 
+## Compatibilidade Blender `structuredContent` — 2026-11-15
+
+O bridge Blender foi corrigido para consultar `outputSchema` em `tools/list`. Quando não há schema declarado, ele reduz somente a apresentação textual e preserva `structuredContent`; quando há schema, faz `PASSTHROUGH`. Texto JSON estruturado, erros e conteúdo misto também permanecem íntegros. A suíte passou com 573 testes e 5 ignorados, sem sessão de modelo ou quota nesta etapa. Evidência: [`78-structured-content-compatibility.md`](78-structured-content-compatibility.md).
+
+Essa alteração remove o bloqueio técnico offline, mas ainda não prova equivalência do cliente Codex nem economia de tokens. O próximo gate é o probe MCP real atualizado, seguido do A/B autorizado; a certificação continua `NOT_CERTIFIED`.
+
 ## Próximos passos seguros
 
 1. Escolher, com nova autorização, uma combinação de aprovação suportada pela versão instalada: ou `--approve-for-me` sem `--sandbox`, ou uma sessão interativa `on-request` que aceite a aprovação manual. Não remover proteções indiscriminadamente.

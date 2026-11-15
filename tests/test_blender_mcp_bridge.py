@@ -71,14 +71,31 @@ class BlenderProxyUnitTests(unittest.TestCase):
         mixed = {"jsonrpc":"2.0","id":7,"result":{"content":[{"type":"text","text":big},{"type":"image","data":"x"*4000,"mimeType":"image/png"}]}}
         self.assertEqual(compact_observation(mixed, "get_scene_info", self.store, 800), mixed)
 
-    def test_errors_and_structured_content_passthrough(self):
+    def test_errors_and_untyped_structured_content_preserves_typed_data(self):
         for raw in (response("Error: permission denied" * 150), response("Oops"*1000, is_error=True)):
             before = json.dumps(raw)
             compact_observation(raw, "get_scene_info", self.store, 800)
             self.assertEqual(json.dumps(raw), before)
         structured = response("x"*4000)
         structured["result"]["structuredContent"] = {"objects": [1,2,3]}
-        self.assertEqual(compact_observation(structured, "get_scene_info", self.store, 800)["result"]["content"][0]["text"], "x"*4000)
+        compacted = compact_observation(structured, "get_scene_info", self.store, 800)
+        self.assertEqual(compacted["result"]["structuredContent"], {"objects": [1,2,3]})
+        self.assertLess(len(compacted["result"]["content"][0]["text"]), 4000)
+
+    def test_schema_declared_structured_content_is_passthrough(self):
+        structured = response("x"*4000)
+        structured["result"]["structuredContent"] = {"objects": [1,2,3]}
+        original = json.loads(json.dumps(structured))
+        self.assertEqual(
+            compact_observation(structured, "get_scene_info", self.store, 800, output_schema=True),
+            original,
+        )
+
+    def test_structured_json_text_is_passthrough(self):
+        structured = response(json.dumps({"objects": [1] * 2000}))
+        structured["result"]["structuredContent"] = {"objects": [1]}
+        original = json.loads(json.dumps(structured))
+        self.assertEqual(compact_observation(structured, "get_scene_info", self.store, 800), original)
 
     def test_expand_validation_and_expiry(self):
         self.assertTrue(self.store.expand({"response_id": "../bad"})["isError"])
