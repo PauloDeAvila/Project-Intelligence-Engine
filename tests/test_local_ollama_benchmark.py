@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 from benchmark_local_ollama import (
     _check_response, _provider_usage, _tool_calls, compare_pair, correct_answer,
-    fixture_pass, run_local_model, ensure_local_model,
+    fixture_pass, run_local_model, ensure_local_model, collect_mcp,
 )
 
 
@@ -76,6 +76,45 @@ class LocalOllamaBenchmarkTests(unittest.TestCase):
             ensure_local_model("qwen3:4b")
             with self.assertRaises(RuntimeError):
                 ensure_local_model("missing:2b")
+
+    def test_blender_mcp_protocol_is_replayed_for_both_arms(self):
+        scenario = {"application": "blender", "expected_exact": json.dumps({
+            "object_name": "PIE_Large_Cube_00", "object_type": "MESH",
+            "location": [0, 0, 0], "material_names": ["PIE_Large_Material_00"]})}
+
+        class FakeProbe:
+            def __init__(self, _process):
+                self.requests = []
+            def call(self, identifier, method, params=None):
+                self.requests.append(method)
+                if method == "initialize":
+                    return {"result": {"protocolVersion": "2025-03-26"}}
+                if method == "tools/list":
+                    return {"result": {"tools": [
+                        {"name": "execute_blender_code"}, {"name": "pie_blender_query_scene"}]}}
+                if params["name"] == "execute_blender_code":
+                    item = json.loads(scenario["expected_exact"])
+                    return {"result": {"content": [{"type": "text", "text":
+                        "PIE_LOCAL_OBJECT_V1=" + json.dumps(item)}]}}
+                item = {"name": "PIE_Large_Cube_00", "type": "MESH",
+                        "location": [0, 0, 0], "material_names": ["PIE_Large_Material_00"]}
+                return {"result": {"structuredContent": {"items": [item]}, "content": []}}
+            def notify(self, _method):pass
+            def close(self):pass
+
+        for condition, server in (("baseline", "blender"),
+                                  ("optimized", "pie-blender-optimized")):
+            with (
+                self.subTest(condition=condition),
+                patch("benchmark_local_ollama._profile", return_value=(
+                    {"command": "python"}, server, [], {})),
+                patch("benchmark_local_ollama.subprocess.Popen"),
+                patch("benchmark_local_ollama.Probe", FakeProbe),
+            ):
+                result = collect_mcp(Path("profile.toml"), Path.cwd(), scenario, condition)
+                self.assertEqual(result["server"], server)
+                self.assertGreater(result["observation_chars"], 0)
+                self.assertEqual(len(result["tool_names"]), 1)
 
     def test_local_model_request_is_local_and_records_usage(self):
         scenario = {"application": "web", "expected_exact": '{"title":"T"}', "prompt": "Extract title."}
