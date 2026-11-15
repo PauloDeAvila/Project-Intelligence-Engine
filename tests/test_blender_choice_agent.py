@@ -273,8 +273,8 @@ class MultiChoiceAgentTests(unittest.TestCase):
         self.assertEqual(result["state"], "DETERMINISTIC_ROUTING_NO_MODEL")
         self.assertIsNone(result["planning_token_savings_percent"])
         self.assertEqual(result["provider_requests"], 0)
-        with self.assertRaises(Exception):
-            # A malformed route must never be promoted into a valid model pair.
+        with self.assertRaises(ValueError):
+            # An unsafe tool cannot be promoted into an exact route.
             deterministic_choice([{"name": "delete_object"}], TASKS[0], "optimized")
 
     def test_main_preserves_fail_closed_report_without_second_arm_or_retries(self):
@@ -369,7 +369,7 @@ class MultiChoiceAgentTests(unittest.TestCase):
                 patch("benchmark_blender_choice_agent.plan_choice", side_effect=fake_plan),
             ):
                 result = run_arm(Path("mcp.toml"), Path.cwd(), condition,
-                                 task, "qwen3:4b")
+                                 task, "qwen3:4b", route_mode="model")
                 self.assertEqual(timeline,
                                  ["initialize", "tools/list", "model-plan", "tools/call"])
                 self.assertTrue(result["oracle_pass"])
@@ -407,7 +407,8 @@ class MultiChoiceAgentTests(unittest.TestCase):
             patch("benchmark_blender_choice_agent.Probe", FakeProbe),
             patch("benchmark_blender_choice_agent.plan_choice", side_effect=selected),
         ):
-            result = run_arm(Path("mcp.toml"), Path.cwd(), "optimized", task, "qwen3:4b")
+            result = run_arm(Path("mcp.toml"), Path.cwd(), "optimized", task,
+                             "qwen3:4b", route_mode="model")
             self.assertFalse(result["oracle_pass"])
 
     def test_usage_and_correctness_must_both_pass(self):
