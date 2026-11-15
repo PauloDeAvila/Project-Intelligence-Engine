@@ -3,12 +3,13 @@ from __future__ import annotations
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from pie.certification.controller import (
     ControllerError, audit_record_route, build_manifest, plan_batches,
-    validate_batch_budget, validate_manifest,
+    run_pilot, validate_batch_budget, validate_manifest,
 )
-from pie.certification.live_codex import SCHEMA
+from pie.certification.live_codex import CodexCaptureError, SCHEMA
 
 
 def scenario(app: str) -> dict:
@@ -30,6 +31,29 @@ def scenario(app: str) -> dict:
 
 
 class ControllerTests(unittest.TestCase):
+    def test_pilot_persists_sanitized_usage_on_route_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            manifest=build_manifest(scenarios=[scenario("blender"), scenario("web")],
+                                    workspace=root, baseline_profile="baseline",
+                                    optimized_profile="optimized")
+            failure=CodexCaptureError("MCP route evidence failed", evidence={
+                "usage":{"input_tokens":12,"cached_input_tokens":4,"output_tokens":2},
+                "mcp_tools":[{"server":"blender","tool":"execute_blender_code","status":"failed"}],
+                "provider_reported":True})
+            with patch("pie.certification.controller.preflight_codex",
+                       return_value={"state":"READY_FOR_BENCHMARK"}), \
+                 patch("pie.certification.controller.capture_codex", side_effect=failure):
+                result=run_pilot(manifest=manifest, scenarios=[scenario("blender"), scenario("web")],
+                                 workspace=root, baseline_home=root/"baseline", optimized_home=root/"optimized",
+                                 baseline_profile="baseline", optimized_profile="optimized",
+                                 output=root/"pilot.json", authorized_sessions=4)
+            self.assertEqual(result["state"], "AB_PILOT_FAILED")
+            self.assertEqual(result["authorization"]["consumed_sessions"], 1)
+            evidence=result["failed_execution"]["provider_evidence"]
+            self.assertEqual(evidence["usage"]["input_tokens"], 12)
+            self.assertEqual(evidence["mcp_tools"][0]["status"], "failed")
+
     def test_manifest_and_batches_are_fixed_and_plan_only(self):
         with tempfile.TemporaryDirectory() as tmp:
             manifest = build_manifest(scenarios=[scenario("blender"), scenario("web")],
