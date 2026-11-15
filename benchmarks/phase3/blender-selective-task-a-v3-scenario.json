@@ -29,6 +29,5 @@
     "provider_usage_required": true,
     "certificate_status": "NOT_CERTIFIED"
   },
-  "experiment_type": "selective_query_product_comparison_not_transparent_compaction",
-  "methodology_note": "v2 was not eligible because get_scene_info did not expose material_names in its real structured response; v3 uses the original read-only Blender code tool for the baseline capability."
+  "experiment_type": "selective_query_product_comparison_not_transparent_compaction"
 }
