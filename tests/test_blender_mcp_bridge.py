@@ -134,6 +134,7 @@ class BlenderProxyProcessTests(unittest.TestCase):
     def test_real_stdio_roundtrip_with_mock_upstream(self):
         mock = r'''
 import json,sys
+query_calls=0
 for line in sys.stdin:
     q=json.loads(line)
     m=q.get("method")
@@ -147,10 +148,12 @@ for line in sys.stdin:
         name=q["params"]["name"]
         code=q.get("params", {}).get("arguments", {}).get("code", "")
         if "PIE_QUERY_SCENE_V1=" in code:
+            query_calls += 1
             result={"content":[{"type":"text","text":"Code executed successfully: PIE_QUERY_SCENE_V1=" + json.dumps({
                 "schema":"pie-blender-query-scene-v1", "query":"find_objects", "scene":"Scene",
                 "items":[{"name":"PIE_Large_Cube_00", "type":"MESH", "material_count":1}],
-                "total":1, "offset":0, "limit":20, "next_offset":None, "complete":True})}]}
+                "total":1, "offset":0, "limit":20, "next_offset":None, "complete":True,
+                "query_calls":query_calls})}]}
         else:
             result={"content":[{"type":"text","text":("Scene\n"+"Cube Material\n"*300) if name=="get_scene_info" else "MATERIAL_CREATED" * 150}]}
     else:
@@ -190,6 +193,42 @@ for line in sys.stdin:
         query = json.loads(responses[5]["result"]["content"][0]["text"])
         self.assertEqual(query["schema"], "pie-blender-query-scene-v1")
         self.assertEqual(query["items"][0]["name"], "PIE_Large_Cube_00")
+        self.assertEqual(query["query_calls"], 1)
+
+    def test_invalid_selective_query_does_not_reach_upstream(self):
+        marker = Path(self.id().replace(".", "_") + ".marker")
+        mock = r'''
+import json,sys
+for line in sys.stdin:
+    q=json.loads(line)
+    if q.get("method")=="tools/call" and q.get("params",{}).get("name")=="execute_blender_code":
+        open(r"''' + str(marker).replace("\\", "\\\\") + r'''", "a").write("called")
+    if "id" not in q: continue
+    method=q.get("method")
+    if method=="initialize": result={"protocolVersion":"2025-03-26","capabilities":{},"serverInfo":{}}
+    elif method=="tools/list": result={"tools":[{"name":"execute_blender_code","inputSchema":{"type":"object"}}]}
+    else: result={"content":[{"type":"text","text":"ok"}]}
+    print(json.dumps({"jsonrpc":"2.0","id":q["id"],"result":result}),flush=True)
+'''
+        env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1] / "src"))
+        requests = [
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}},
+            {"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}},
+            {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{
+                "name":"pie_blender_query_scene","arguments":{"query":"not_allowed"}}},
+        ]
+        try:
+            run = subprocess.run(
+                [sys.executable, "-m", "pie.integrations.blender_mcp_bridge", "--max-chars", "1000", "--", sys.executable, "-c", mock],
+                input="\n".join(json.dumps(item) for item in requests) + "\n",
+                text=True, capture_output=True, env=env, timeout=20,
+            )
+            self.assertEqual(run.returncode, 0, run.stderr)
+            response = {item["id"]: item for item in (json.loads(line) for line in run.stdout.splitlines())}[3]
+            self.assertTrue(response["result"]["isError"])
+            self.assertFalse(marker.exists())
+        finally:
+            marker.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

@@ -34,6 +34,17 @@ def main() -> int:
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     root = args.workspace.resolve()
+    spec = json.loads((root / "fixtures" / "phase3" / "blender" / "large_scene_spec.json").read_text(encoding="utf-8"))
+    expected_objects = [spec["object_name_pattern"].format(index=index)
+                        for index in range(spec["object_count"])]
+    expected_materials = [spec["material_name_pattern"].format(index=index)
+                          for index in range(spec["material_count"])]
+    expected_location = [0.0, 0.0, 0.0]
+    expected_b_names = expected_objects[:10]
+    expected_b_materials = [
+        [expected_materials[index // spec["objects_per_material"]]]
+        for index in range(10)
+    ]
     store = root / ".pie-task-simulation-store"
     upstream = [str(args.uvx), "mcp-for-blender", "--port", "9877"]
     command = [str(args.python), "-m", "pie.gateway.domain", "serve", "--domain", "blender",
@@ -66,24 +77,48 @@ def main() -> int:
         b_items = task_b["items"]
         c_items = [item for page in pages for item in page["items"]]
         c_names = [item["name"] for item in c_items]
+        a_oracle = (
+            len(a_items) == 1
+            and a_items[0] == {"name": expected_objects[0], "type": "MESH",
+                               "location": expected_location,
+                               "material_names": [expected_materials[0]]}
+        )
+        b_oracle = (
+            [item["name"] for item in b_items] == expected_b_names
+            and [item.get("material_names") for item in b_items] == expected_b_materials
+            and [item.get("material_count") for item in b_items] == [1] * 10
+        )
+        c_oracle = (
+            c_names == expected_objects
+            and [item.get("type") for item in c_items] == ["MESH"] * spec["object_count"]
+            and [item.get("material_count") for item in c_items] == [1] * spec["object_count"]
+            and [page["total"] for page in pages] == [spec["object_count"]] * 4
+            and [page["offset"] for page in pages] == [0, 20, 40, 60]
+            and [page["next_offset"] for page in pages] == [20, 40, 60, None]
+        )
         result = {
             "schema": "pie-phase3-blender-selective-task-simulation-v1",
             "status": "PASS" if "result" in init else "BLOCKED",
+            "experiment_arm": "optimized_only",
+            "ab_comparison": "NOT_RUN",
             "model_sessions": 0, "quota_consumed": False,
             "contract": {"tool": discovered["name"], "input_schema": discovered["inputSchema"], "output_schema": discovered.get("outputSchema")},
             "tasks": {
                 "A_location": {"query_calls": 1, "latency_ms": round(a_ms, 3), "response_chars": a_chars,
-                                "oracle_pass": len(a_items) == 1 and a_items[0]["name"] == "PIE_Large_Cube_00"
-                                and a_items[0]["type"] == "MESH" and len(a_items[0]["location"]) == 3,
+                                "oracle_pass": a_oracle,
+                                "expected": {"name": expected_objects[0], "type": "MESH",
+                                             "location": expected_location, "material_names": [expected_materials[0]]},
                                 "result": task_a},
                 "B_filtering": {"query_calls": 1, "latency_ms": round(b_ms, 3), "response_chars": b_chars,
-                                 "oracle_pass": len(b_items) == 10 and len({item["name"] for item in b_items}) == 10
-                                 and all(item["name"].startswith("PIE_Large_Cube_0") for item in b_items),
+                                 "oracle_pass": b_oracle,
+                                 "expected_names": expected_b_names,
+                                 "expected_material_names": expected_b_materials,
                                  "result": task_b},
                 "C_inventory": {"query_calls": 4, "latency_ms": round(c_ms, 3), "response_chars": c_chars,
-                                "oracle_pass": len(c_items) == 64 and len(set(c_names)) == 64
-                                and all(name.startswith("PIE_Large_Cube_") for name in c_names)
-                                and pages[-1]["next_offset"] is None,
+                                "oracle_pass": c_oracle,
+                                "expected_names": expected_objects,
+                                "expected_object_count": spec["object_count"],
+                                "expected_material_count": spec["material_count"],
                                 "page_counts": [len(page["items"]) for page in pages],
                                 "result_pages": pages},
             },

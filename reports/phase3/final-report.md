@@ -234,6 +234,10 @@ As três tarefas propostas passaram contra a fixture real: localização A em 1 
 
 O próximo piloto pode começar pela tarefa A com um único par real, desde que o braço optimized use explicitamente o contrato seletivo e o baseline use as ferramentas originais. A certificação permanece `NOT_CERTIFIED`.
 
+## Auditoria de código da consulta seletiva — 2026-11-15
+
+Os oráculos foram fortalecidos para comparar valores exatos da fixture, e o simulador agora declara explicitamente `optimized_only`/`NOT_RUN` para A/B. A ponte Blender foi auditada, com regressões para uma execução upstream por consulta e rejeição de argumentos inválidos antes do dispatch. Suíte atual: 575 aprovados e 5 ignorados. Parecer: `APPROVED_WITH_RESERVATIONS`; A/B pago permanece pendente. Evidência: [`82-selective-query-code-audit.md`](82-selective-query-code-audit.md).
+
 ## Próximos passos seguros
 
 1. Escolher, com nova autorização, uma combinação de aprovação suportada pela versão instalada: ou `--approve-for-me` sem `--sandbox`, ou uma sessão interativa `on-request` que aceite a aprovação manual. Não remover proteções indiscriminadamente.
