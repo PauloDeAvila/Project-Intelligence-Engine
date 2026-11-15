@@ -64,6 +64,8 @@ def _oracle_spec(scenario: dict[str, Any]) -> dict[str, Any]:
     kind = oracle["kind"]
     if kind == "blender_material_properties":
         required = ("object_name", "material_name", "roughness", "metallic")
+    elif kind == "blender_scene_json":
+        required = ("expected",)
     elif kind == "web_local_page":
         required = ("fixture_id", "required_refs", "required_text")
     else:
@@ -196,8 +198,13 @@ def _fixture_oracle(scenario: dict[str, Any], workspace: Path) -> dict[str, Any]
         return {"passed": not missing, "kind": oracle["kind"], "missing": missing}
     # The Blender oracle is a read-only contract for the disposable scene. The
     # live Blender probe remains an independent external evidence source.
-    return {"passed": bool(oracle["object_name"] and oracle["material_name"]),
-            "kind": oracle["kind"], "independent_live_probe_required": True}
+    if oracle["kind"] == "blender_scene_json":
+        expected = oracle["expected"]
+        required = {"object_name", "object_type", "location", "material_names"}
+        passed = isinstance(expected, dict) and set(expected) == required
+    else:
+        passed = bool(oracle["object_name"] and oracle["material_name"])
+    return {"passed": passed, "kind": oracle["kind"], "independent_live_probe_required": True}
 
 
 def run_pilot(*, manifest: dict[str, Any], scenarios: Iterable[dict[str, Any]],

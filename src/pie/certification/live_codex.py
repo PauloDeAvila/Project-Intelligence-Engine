@@ -223,7 +223,23 @@ def validate_scenario(s:dict)->dict:
             raise ValueError("Invalid expected MCP tool allowlist")
     if "oracle" in s and (not isinstance(s["oracle"],dict) or not isinstance(s["oracle"].get("kind"),str)):
         raise ValueError("Invalid oracle specification")
+    oracle=s.get("oracle")
+    if isinstance(oracle,dict) and oracle.get("kind")=="blender_scene_json":
+        expected=oracle.get("expected")
+        required={"object_name","object_type","location","material_names"}
+        if not isinstance(expected,dict) or set(expected)!=required:
+            raise ValueError("Invalid Blender JSON oracle")
     return s
+
+def _evaluate_answer(scenario:dict, actual:str)->tuple[bool,str]:
+    oracle=scenario.get("oracle")
+    if isinstance(oracle,dict) and oracle.get("kind")=="blender_scene_json":
+        try:
+            value=json.loads(actual)
+        except (TypeError,json.JSONDecodeError):
+            return False,"blender_scene_json"
+        return value==oracle["expected"],"blender_scene_json"
+    return actual==scenario["expected_exact"].strip(),"exact_text"
 
 def _auth_state(home:Path, executable:str, env:dict)->str:
     """Return a sanitized auth state; never expose auth material or output."""
@@ -528,17 +544,18 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
                           "observed_mcp_tools":observed_tools,"forensic_path":str(forensic_root),
                           "certification_status":"INVALID_TOOL_ALLOWLIST"})
     actual=parsed.pop("answer").strip();expected=scenario["expected_exact"].strip()
+    oracle_pass,oracle_kind=_evaluate_answer(scenario,actual)
     _write_json(forensic_root/"oracle-result.json",{
-        "status":"evaluated","run_id":run_id,"oracle_kind":"exact_text",
-        "oracle_pass":actual==expected,"answer_sha256":_sha(actual),
+        "status":"evaluated","run_id":run_id,"oracle_kind":oracle_kind,
+        "oracle_pass":oracle_pass,"answer_sha256":_sha(actual),
         "expected_sha256":_sha(expected)})
-    _forensic_finish(forensic_root,status="completed" if actual==expected else "oracle_failed",
+    _forensic_finish(forensic_root,status="completed" if oracle_pass else "oracle_failed",
                      returncode=run.returncode,duration_ms=round((time.perf_counter()-t0)*1000,3),
-                     error=None if actual==expected else "Exact-text oracle mismatch")
+                     error=None if oracle_pass else "Oracle mismatch")
     return {"schema":SCHEMA,"condition":condition,"scenario_id":scenario["scenario_id"],
             "repetition":repetition,"run_id":run_id,"pair_id":pair_id,"model":scenario["model"],"codex_version":version,
             "prompt_sha256":_sha(scenario["prompt"]),"expected_sha256":_sha(expected),
-            "answer_sha256":_sha(actual),"oracle_kind":"exact_text","oracle_pass":actual==expected,
+            "answer_sha256":_sha(actual),"oracle_kind":oracle_kind,"oracle_pass":oracle_pass,
             "workspace_commit":commit,"configuration_sha256":configsha,"profile":effective_profile,
             "runtime_ms":round((time.perf_counter()-t0)*1000,3),
             "tool_events":parsed["tool_events"],"mcp_tools":parsed["mcp_tools"],"usage":parsed["usage"],

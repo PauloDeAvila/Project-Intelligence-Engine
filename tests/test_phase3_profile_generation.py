@@ -76,15 +76,19 @@ class Phase3ProfileGenerationTests(unittest.TestCase):
             command = [powershell, "-NoProfile", "-File",
                        str(ROOT / "tools" / "prepare_phase3_profiles.ps1"),
                        "-Workspace", str(ROOT), "-OutputDirectory", str(output),
-                       "-Domain", "blender", "-OptimizedExposeTool", "pie_blender_query_scene",
+                       "-Domain", "blender", "-BaselineExposeTool", "get_scene_info",
+                       "-OptimizedExposeTool", "pie_blender_query_scene",
                        "-PieCommit", "0" * 40]
             result = subprocess.run(command, cwd=ROOT, text=True,
                                     capture_output=True, timeout=30, check=False)
             self.assertEqual(result.returncode, 0, result.stderr)
             baseline = tomllib.loads((output / "pie-phase3-baseline.config.toml").read_text(encoding="utf-8"))
             optimized = tomllib.loads((output / "pie-phase3-optimized.config.toml").read_text(encoding="utf-8"))
-            self.assertNotIn("pie_blender_query_scene", baseline["enabled_tools"])
-            self.assertIn("pie_blender_query_scene", optimized["enabled_tools"])
+            self.assertEqual(baseline["enabled_tools"], ["get_scene_info"])
+            self.assertEqual(optimized["enabled_tools"], ["pie_blender_query_scene"])
+            self.assertEqual(set(baseline["mcp_servers"]["blender"]["tools"]), {"get_scene_info"})
+            self.assertEqual(set(optimized["mcp_servers"]["pie-blender-optimized"]["tools"]),
+                             {"pie_blender_query_scene"})
             self.assertIn("pie_blender_query_scene", optimized["mcp_servers"]["pie-blender-optimized"]["args"])
             self.assertIn("pie_blender_query_scene", optimized["mcp_servers"]["pie-blender-optimized"]["tools"])
 

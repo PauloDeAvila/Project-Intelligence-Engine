@@ -7,12 +7,13 @@
   "experiment_type": "selective_query_product_comparison_not_transparent_compaction",
   "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine",
   "fixture_spec": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\Project-Intelligence-Engine\\fixtures\\phase3\\blender\\large_scene_spec.json",
-  "pair_id": "pair-6edbe9ff6df67c85272ebc63",
+  "pair_id": "pair-df96dc8a482a420fab71c6b8",
+  "attempt_nonce": "df96dc8a482a420fab71c6b8",
   "entries": [
     {
       "task_id": "blender-selective-location-v1",
-      "pair_id": "pair-6edbe9ff6df67c85272ebc63",
-      "run_id": "baseline-805b87e89a220ad7ae2f0bd4",
+      "pair_id": "pair-df96dc8a482a420fab71c6b8",
+      "run_id": "baseline-8e6ee28793ba4130895efbde",
       "condition": "baseline",
       "application": "blender",
       "model": "gpt-5.6-luna",
@@ -22,25 +23,28 @@
       "expected_mcp_tools": [
         "get_scene_info"
       ],
-      "prompt_sha256": "c3f94269642f8b21eedaf1f4807ac884de0b33f69a7545881d85bda0de014bea",
+      "prompt_sha256": "cd3990305d3b943391db86a573f0fcf73b8f37c00239cada4b69080761407d4d",
       "oracle": {
-        "object_name": "PIE_Large_Cube_00",
-        "object_type": "MESH",
-        "location": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "material_names": [
-          "PIE_Large_Material_00"
-        ]
+        "kind": "blender_scene_json",
+        "expected": {
+          "object_name": "PIE_Large_Cube_00",
+          "object_type": "MESH",
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "material_names": [
+            "PIE_Large_Material_00"
+          ]
+        }
       },
       "provider_usage_required": true
     },
     {
       "task_id": "blender-selective-location-v1",
-      "pair_id": "pair-6edbe9ff6df67c85272ebc63",
-      "run_id": "optimized-c51a92efa2bc7dc69526867a",
+      "pair_id": "pair-df96dc8a482a420fab71c6b8",
+      "run_id": "optimized-5a6aa4a0f5c64923863d8d51",
       "condition": "optimized",
       "application": "blender",
       "model": "gpt-5.6-luna",
@@ -50,18 +54,21 @@
       "expected_mcp_tools": [
         "pie_blender_query_scene"
       ],
-      "prompt_sha256": "c3f94269642f8b21eedaf1f4807ac884de0b33f69a7545881d85bda0de014bea",
+      "prompt_sha256": "cd3990305d3b943391db86a573f0fcf73b8f37c00239cada4b69080761407d4d",
       "oracle": {
-        "object_name": "PIE_Large_Cube_00",
-        "object_type": "MESH",
-        "location": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "material_names": [
-          "PIE_Large_Material_00"
-        ]
+        "kind": "blender_scene_json",
+        "expected": {
+          "object_name": "PIE_Large_Cube_00",
+          "object_type": "MESH",
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "material_names": [
+            "PIE_Large_Material_00"
+          ]
+        }
       },
       "provider_usage_required": true
     }
@@ -69,6 +76,7 @@
   "limitations": [
     "This compares different product capabilities, not transparent compaction.",
     "Provider-reported usage and exact route evidence are required for validity.",
+    "The profile allowlists are statically checked; real MCP tools/list and tools/call telemetry must still prove isolation.",
     "A paginated task must use a stable scene or a snapshot-bound contract; task A is single-page."
   ]
 }

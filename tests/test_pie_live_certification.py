@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"src"))
 from pie.certification.live_codex import (SCHEMA,CodexCaptureError,parse_codex_jsonl,
-    compare,validate_scenario,preflight_codex,_capture_pair_id)
+    compare,validate_scenario,preflight_codex,_capture_pair_id,_evaluate_answer)
 from pie.certification.cli import _safe_error
 from pie.certification.coverage import audit_codex
 
@@ -74,6 +74,16 @@ class UsageTests(unittest.TestCase):
             validate_scenario({"scenario_id":"one","prompt":"x","model":"test"})
         with self.assertRaises(ValueError):
             validate_scenario({"scenario_id":"one","prompt":"x","model":"MODEL_ID_CONFIGURE_BEFORE_USE","expected_exact":"x"})
+
+    def test_blender_json_oracle_requires_exact_fields_and_values(self):
+        scenario={"scenario_id":"blender-a","prompt":"return json","model":"test-model",
+                  "expected_exact":'{"object_name":"PIE_Large_Cube_00","object_type":"MESH","location":[0.0,0.0,0.0],"material_names":["PIE_Large_Material_00"]}',
+                  "oracle":{"kind":"blender_scene_json","expected":{
+                      "object_name":"PIE_Large_Cube_00","object_type":"MESH",
+                      "location":[0.0,0.0,0.0],"material_names":["PIE_Large_Material_00"]}}}
+        validate_scenario(scenario)
+        self.assertEqual(_evaluate_answer(scenario, scenario["expected_exact"]),(True,"blender_scene_json"))
+        self.assertEqual(_evaluate_answer(scenario, '{"object_name":"PIE_Large_Cube_00"}')[0],False)
     def test_paired_usage_and_supplied_price_estimate(self):
         a=[]
         for i in range(1,4):a.extend((row(i,"baseline",1500,config="a"),row(i,"optimized",500,config="b")))

@@ -12,6 +12,7 @@ param(
     [string]$NpxExe = "npx.cmd",
     [string]$PlaywrightVersion = "@playwright/mcp@0.0.85",
     [string]$DiagnosticsDirectory = "",
+    [string[]]$BaselineExposeTool = @(),
     [string[]]$OptimizedExposeTool = @(),
     [ValidateSet("all", "blender", "web")][string]$Domain = "all",
     [int]$MaxChars = 2400,
@@ -30,6 +31,9 @@ foreach ($value in @($PythonExe,$BlenderUpstream,$NpxExe,$PlaywrightVersion)) {
 }
 foreach ($value in $OptimizedExposeTool) {
     if (-not $value -or $value.Contains("'")) { throw "Optimized exposed tool cannot be empty or contain a single quote" }
+}
+foreach ($value in $BaselineExposeTool) {
+    if (-not $value -or $value.Contains("'")) { throw "Baseline exposed tool cannot be empty or contain a single quote" }
 }
 if ($DiagnosticsDirectory -and $DiagnosticsDirectory.Contains("'")) { throw "Diagnostics path cannot contain a single quote" }
 $resolvedPieSource = if ($PieSource) { (Resolve-Path -LiteralPath $PieSource).Path } else { Join-Path $resolvedWorkspace "src" }
@@ -57,17 +61,6 @@ $optimizedBlenderArgs += @("--", $BlenderUpstream) + $blenderUpstreamArgs
 $optimizedWebArgs = @("-m", "pie.gateway.domain", "serve", "--domain", "web", "--workspace", $root, "--max-chars", "$MaxChars")
 foreach ($tool in $OptimizedExposeTool) { $optimizedWebArgs += @("--expose-tool", $tool) }
 $optimizedWebArgs += @("--", $NpxExe, "--yes", $PlaywrightVersion, "--headless", "--browser", "chrome")
-$blenderBaseline = @(
-    "[mcp_servers.blender]",
-    ("command = '{0}'" -f $BlenderUpstream),
-    $(if ($diagnosticsBlender) { "env = { PIE_MCP_DIAGNOSTICS_PATH = '$diagnosticsBlender' }" }),
-    ("args = {0}" -f (TomlArray $blenderUpstreamArgs)),
-    "",
-    "[mcp_servers.blender.tools.get_scene_info]",
-    "approval_mode = 'approve'",
-    "[mcp_servers.blender.tools.execute_blender_code]",
-    "approval_mode = 'approve'"
-)
 $webBaseline = @(
     "[mcp_servers.playwright-baseline]",
     ("command = '{0}'" -f $NpxExe),
@@ -95,36 +88,65 @@ function EnvLine([string[]]$values) {
     if ($values.Count -eq 0) { return $null }
     return "env = { " + ($values -join ", ") + " }"
 }
-$baselineEnabledTools = if ($Domain -eq "blender") {
+$baselineEnabledTools = if ($BaselineExposeTool.Count -gt 0) {
+    "enabled_tools = " + (TomlArray $BaselineExposeTool)
+} elseif ($Domain -eq "blender") {
     "enabled_tools = ['get_scene_info', 'execute_blender_code']"
 } elseif ($Domain -eq "web") {
     "enabled_tools = ['browser_navigate', 'browser_snapshot']"
 } else {
     "enabled_tools = ['get_scene_info', 'execute_blender_code', 'browser_navigate', 'browser_snapshot']"
 }
-$optimizedToolNames = @()
-if ($Domain -in @("all", "blender")) { $optimizedToolNames += @("get_scene_info", "execute_blender_code") }
-if ($Domain -in @("all", "web")) { $optimizedToolNames += @("browser_navigate", "browser_snapshot") }
-foreach ($tool in $OptimizedExposeTool) { if ($optimizedToolNames -notcontains $tool) { $optimizedToolNames += $tool } }
+$optimizedToolNames = if ($OptimizedExposeTool.Count -gt 0) {
+    @($OptimizedExposeTool)
+} else {
+    $defaults = @()
+    if ($Domain -in @("all", "blender")) { $defaults += @("get_scene_info", "execute_blender_code") }
+    if ($Domain -in @("all", "web")) { $defaults += @("browser_navigate", "browser_snapshot") }
+    $defaults
+}
 $optimizedEnabledTools = "enabled_tools = " + (TomlArray $optimizedToolNames)
+$optimizedBlenderToolNames = @()
+if ($OptimizedExposeTool.Count -gt 0 -and $Domain -in @("all", "blender")) {
+    $optimizedBlenderToolNames += $OptimizedExposeTool
+} else {
+    $optimizedBlenderToolNames += @("get_scene_info", "execute_blender_code")
+}
+$baselineBlenderToolNames = @()
+if ($BaselineExposeTool.Count -gt 0 -and $Domain -in @("all", "blender")) {
+    $baselineBlenderToolNames += $BaselineExposeTool
+} else {
+    $baselineBlenderToolNames += @("get_scene_info", "execute_blender_code")
+}
+$blenderBaseline = @(
+    "[mcp_servers.blender]",
+    ("command = '{0}'" -f $BlenderUpstream),
+    $(if ($diagnosticsBlender) { "env = { PIE_MCP_DIAGNOSTICS_PATH = '$diagnosticsBlender' }" }),
+    ("args = {0}" -f (TomlArray $blenderUpstreamArgs)),
+    "",
+    "[mcp_servers.blender.tools.$($baselineBlenderToolNames[0])]",
+    "approval_mode = 'approve'"
+)
+foreach ($tool in $baselineBlenderToolNames | Select-Object -Skip 1) {
+    $blenderBaseline += @(
+        "[mcp_servers.blender.tools.$tool]",
+        "approval_mode = 'approve'"
+    )
+}
 $blenderOptimized = @(
     "[mcp_servers.pie-blender-optimized]",
     ("command = '{0}'" -f $py),
     (EnvLine $blenderOptimizedEnv),
     ("args = {0}" -f (TomlArray $optimizedBlenderArgs)),
     "",
-    "[mcp_servers.pie-blender-optimized.tools.get_scene_info]",
-    "approval_mode = 'approve'",
-    "[mcp_servers.pie-blender-optimized.tools.execute_blender_code]",
+    "[mcp_servers.pie-blender-optimized.tools.$($optimizedBlenderToolNames[0])]",
     "approval_mode = 'approve'"
 )
-foreach ($tool in $OptimizedExposeTool) {
-    if ($Domain -in @("all", "blender") -and $tool -notin @("get_scene_info", "execute_blender_code")) {
-        $blenderOptimized += @(
-            "[mcp_servers.pie-blender-optimized.tools.$tool]",
-            "approval_mode = 'approve'"
-        )
-    }
+foreach ($tool in $optimizedBlenderToolNames | Select-Object -Skip 1) {
+    $blenderOptimized += @(
+        "[mcp_servers.pie-blender-optimized.tools.$tool]",
+        "approval_mode = 'approve'"
+    )
 }
 $webOptimized = @(
     "[mcp_servers.pie-web-optimized]",
