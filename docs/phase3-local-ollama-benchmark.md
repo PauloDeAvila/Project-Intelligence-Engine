@@ -152,3 +152,51 @@ winget install -e --id OpenJS.NodeJS.LTS
 
 Abra um terminal novo e rode o Web -ProbeOnly. Não há instalação
 automática de Node pelo runner; ele falha com diagnóstico acionável.
+
+
+## Experimento seguinte: reduzir o payload Blender, não o catálogo
+
+O replay local com SchemaScope=profile e qwen3:4b/8192 registrou
+647 tokens baseline vs 780 PIE (economia **-20,556%**) em três pares
+corretos. Ambos anunciaram somente uma ferramenta ao modelo.
+A ferramenta antiga pie_blender_query_scene devolvia cabeçalho de schema,
+scene, paginação, lista de itens, e o mesmo JSON tanto em content quanto
+em structuredContent. Ela continua disponível e inalterada.
+
+Nesta branch experimental, a nova ferramenta opt-in pie_blender_get_object
+aceita apenas name e devolve um único texto JSON com quatro campos:
+object_name, object_type, location, material_names. Não há paginação,
+outputSchema ou structuredContent duplicado. Busca o objeto somente na
+cena ativa, em modo read-only, com nome escapado como literal JSON.
+Objeto ausente, JSON malformado e argumentos inesperados falham fechados.
+
+A variante de experimento BlenderMode=exact substitui **somente na memória
+do runner** o nome da ferramenta no prompt local, mantendo o mesmo
+prompt entre baseline e optimized. Os arquivos congelados 106/107 e o
+cenário v3 não são alterados; o relatório inclui local_prompt_sha256 e
+prompt_modified_for_experiment.
+
+Pré-requisitos: Blender com a fixture descartável na porta 9877 e Ollama
+local qwen3:4b ativo. Primeiro execute MCP real sem modelo:
+
+~~~powershell
+.\tools\run_phase3_local.ps1 -Domain blender -BlenderMode exact -SchemaScope profile -ProbeOnly -Repetitions 1
+~~~
+
+Se passar, faça um par com tokens locais e oráculo:
+
+~~~powershell
+.\tools\run_phase3_local.ps1 -Domain blender -BlenderMode exact -SchemaScope profile -NumCtx 8192 -Model qwen3:4b -Repetitions 1
+~~~
+
+Depois, se passar:
+
+~~~powershell
+.\tools\run_phase3_local.ps1 -Domain blender -BlenderMode exact -SchemaScope profile -NumCtx 8192 -Model qwen3:4b -Repetitions 3
+~~~
+
+Critério: reduzir o total abaixo dos 647 tokens de referência *sem
+falhar o oráculo*, mas a comparação formal deve usar o baseline
+recapturado do próprio relatório exact (o prompt local foi alterado).
+Repetições iguais na fixture determinística são evidência de estabilidade
+local, não de generalização estatística ou certificação Codex.
