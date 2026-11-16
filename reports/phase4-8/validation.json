@@ -3,7 +3,7 @@
   "status": "PARTIAL_LOCAL_VALIDATION",
   "certification": "NOT_CERTIFIED",
   "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
-  "head_before_report_commit": "4aae2af",
+  "head_before_report_commit": "a4c64dc",
   "implementation_commit": "4aae2af",
   "index": {
     "source": "uv run python -m pie.interfaces.cli status --root .",
@@ -26,7 +26,7 @@
       "skipped": 4,
       "subtests": 126,
       "failed": 0,
-      "duration_seconds": 37.91
+      "duration_seconds": 36.13
     }
   },
   "verifier": {
@@ -35,6 +35,13 @@
     "certification": "NOT_CERTIFIED",
     "external_pilot_pairs": 3,
     "external_pilot_total_savings_percent": 88.875
+  },
+  "deepseek_verifier": {
+    "path": "reports/phase4-8/context-runtime-verifier-deepseek.json",
+    "status": "PASS_LOCAL",
+    "certification": "NOT_CERTIFIED",
+    "external_pilot_pairs": 3,
+    "external_pilot_total_savings_percent": 93.801
   },
   "phases": {
     "4_consolidation": {
@@ -81,13 +88,13 @@
         "3/3 oracle correctness in both arms",
         "88.875 percent total savings in that fixture",
         "DeepSeek 3.2 paired-evidence pilot reported real usage",
-        "DeepSeek candidate total reduction was 93.843 percent"
+        "DeepSeek failed-quality pilot was preserved as NOT_CERTIFIED",
+        "DeepSeek valid three-pair pilot reported 93.801 percent total savings and 3/3 oracle correctness"
       ],
       "missing": [
         "Codex provider certification",
         "paired Blender/Web external battery",
-        "statistical generalization",
-        "quality-equivalent DeepSeek pair: baseline was 2/3 correct"
+        "statistical generalization beyond three local-provider pairs"
       ]
     }
   },

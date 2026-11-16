@@ -1,0 +1,55 @@
+{
+  "schema": "pie-phase8-provider-pilot-v1",
+  "status": "PILOT_VALID_NOT_CERTIFIED",
+  "provider": "infinity",
+  "model": "gambiarraapi/deepseek-v3.2",
+  "endpoint": "http://127.0.0.1:8080",
+  "output_token_cap": 512,
+  "corpus": {
+    "repository": "Textualize/rich",
+    "commit": "3a109ccdffe5b2d0e30684a304fbd388e99ce57b",
+    "tasks": 3,
+    "paired_evidence": {"baseline": 3, "pie": 3}
+  },
+  "baseline": {
+    "calls": 3,
+    "correct": 3,
+    "input_tokens": 26889,
+    "cached_input_tokens": 22660,
+    "uncached_input_tokens": 4229,
+    "output_tokens": 213,
+    "total_tokens": 27102,
+    "median_latency_s": 3.1989
+  },
+  "pie": {
+    "calls": 3,
+    "correct": 3,
+    "input_tokens": 1547,
+    "cached_input_tokens": 1335,
+    "uncached_input_tokens": 212,
+    "output_tokens": 133,
+    "total_tokens": 1680,
+    "median_latency_s": 2.7034
+  },
+  "savings": {
+    "input_percent": 94.247,
+    "uncached_input_percent": 94.987,
+    "total_percent": 93.801,
+    "latency_percent": 15.49
+  },
+  "quality": {
+    "baseline_pass_rate": 1.0,
+    "pie_pass_rate": 1.0,
+    "equivalent": true
+  },
+  "certification": {
+    "valid_pair": true,
+    "status": "NOT_CERTIFIED",
+    "reason": "Valid three-pair local-provider pilot; official Codex and Blender/Web certification remain outside this evidence."
+  },
+  "verifier": "reports/phase4-8/context-runtime-verifier-deepseek.json",
+  "reproduction": {
+    "command": "uv run python tools/pie_real_repo_lab.py --corpus C:\\Users\\phsra\\Downloads\\PIE-rich-corpus-20261116 --models gambiarraapi/deepseek-v3.2 --count 3 --seed 20261116 --output reports/phase4-8/deepseek-real-pilot-paired-512 --pie-production --output-tokens 512",
+    "full_prompts_or_responses_committed": false
+  }
+}
