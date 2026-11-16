@@ -20,6 +20,9 @@
     "total_savings_percent": 88.875
   },
   "local_validation": true,
+  "fix_commit": "8cc6706",
+  "previous_run_note": "v4 é uma falha preservada: 2/3 corretas no modo PIE por símbolo entre colchetes; correção preservando evidência exata de símbolo em 8cc6706.",
+  "certification_note": "Evidência local GLM real não é certificação oficial Codex.",
   "note": "Synthetic evaluator evidence is not external provider usage.",
   "pillars": {
     "adaptive_runtime": {

@@ -21,7 +21,7 @@ não comprova economia de tokens de um provedor quando não existe um payload
 | Local Execution | allowlist, JSON limitado, timeout cooperativo e replay idempotente | PASS local |
 | Adaptive Runtime | seleção por tokens, latência e `cost_usd` explícito; qualidade obrigatória | PASS local |
 | Multi-Agent Memory | checkpoints por agente, proveniência e referências sem payload de estado | PASS local |
-| Continuous Certification | avaliador pareado fail-closed para tokens, rota, oráculo, latência e chamadas | PASS local / uso externo pendente |
+| Continuous Certification | avaliador pareado fail-closed para tokens, rota, oráculo, latência e chamadas | PASS local / piloto GLM real v5 (3 tarefas, `PILOT_VALID`) — certificação externa `NOT_CERTIFIED` |
 
 A facade do runtime é coberta por testes dedicados: guardas fail-closed após
 `close()` (acesso a `memory`, checkpoints e restauração levantam `RuntimeError`),
@@ -89,7 +89,7 @@ uv run pie status --root .
 Resultado observado:
 
 ```text
-664 passed, 4 skipped, 126 subtests passed
+671 passed, 4 skipped, 126 subtests passed
 PIE index_state=CURRENT
 workspace_match=true
 verifier status=PASS_LOCAL
@@ -99,19 +99,28 @@ token_budget_gate=PASS_SYNTHETIC_COUNTER
 
 ## Limitações honestas
 
-O relay local GLM está operacional no checkout de trabalho e uma execução local
-de um par reportou uso real do provedor (`gambiarraapi/glm-5.3-flash`). Essa
-evidência é limitada a um par e ao harness local; não é a bateria Codex
-pareada de Blender e Web. Por isso, ela permanece complementar e a
-certificação externa continua `NOT_CERTIFIED`. Nenhum número de caracteres foi
-convertido em tokens.
+O relay local GLM está operacional no checkout de trabalho e o piloto local
+com 3 tarefas reportou uso real do provedor (`gambiarraapi/glm-5.3-flash`):
+3/3 corretas em baseline e PIE, `provider_usage_status` `ok`, baseline
+17373/74/17447 tokens (cached 0), PIE 1877/64/1941 tokens (cached 0),
+economia de input 89.196% e total 88.875%, latência mediana 2.5571 s
+(baseline) e 2.8329 s (PIE). A execução v4 anterior é uma falha preservada
+(2/3 corretas no PIE por símbolo entre colchetes); a correção está no commit
+`8cc6706`. Essa evidência é limitada ao harness local com 3 tarefas; não é a
+bateria Codex pareada de Blender e Web. Por isso, ela permanece complementar
+e a certificação externa continua `NOT_CERTIFIED`. Nenhum número de
+caracteres foi convertido em tokens.
 
-O relatório local do par é `reports/phase3/context-runtime-verifier-glm-v2-after-cache.json`.
-As sondas anteriores que retornaram HTTP 429 permanecem registradas como
-falhas históricas e não são usadas como evidência positiva.
+Os relatórios do piloto são
+`reports/phase3/context-runtime-verifier-glm-v5.json` e
+`reports/phase3/glm-real-pilot-live-v5/summary.json`. As sondas anteriores
+que retornaram HTTP 429 permanecem registradas como falhas históricas e não
+são usadas como evidência positiva.
 
 Evidências JSON:
 
 - `reports/phase3/context-runtime-pillars-validation.json`;
 - `reports/phase3/context-runtime-mcp-exposure.json`;
-- `reports/phase3/glm-provider-preflight.json`.
+- `reports/phase3/glm-provider-preflight.json`;
+- `reports/phase3/context-runtime-verifier-glm-v5.json`;
+- `reports/phase3/glm-real-pilot-live-v5/summary.json`.

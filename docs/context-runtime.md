@@ -95,6 +95,24 @@ não cria o arquivo, não executa operações, não restaura checkpoints e não
 aceita caminhos fornecidos pelo cliente. Ela fica fora do perfil MCP compacto
 para não aumentar o contexto padrão.
 
+## Evidência real do piloto GLM (3 tarefas, v5)
+
+O piloto local GLM com 3 tarefas está registrado em
+`reports/phase3/glm-real-pilot-live-v5/summary.json` e em
+`reports/phase3/context-runtime-verifier-glm-v5.json`. Números observados:
+
+- 3 tarefas, 3 corretas no baseline e 3 corretas no PIE;
+- `provider_usage_status` = `ok` nos dois modos;
+- baseline: prompt 17373 / completion 74 / total 17447 tokens, cached 0;
+- PIE: prompt 1877 / completion 64 / total 1941 tokens, cached 0;
+- economia de input: 89.196%; economia total: 88.875%;
+- latência mediana: baseline 2.5571 s, PIE 2.8329 s.
+
+A execução v4 anterior é uma falha preservada: 2/3 corretas no modo PIE por
+símbolo entre colchetes. A correção (preservação da evidência exata de
+símbolo) está no commit `8cc6706`
+(fix(benchmark): preserve exact symbol evidence).
+
 ## Certificação
 
 `ContinuousCertification` só retorna `CERTIFIED_PAIR`/`CERTIFIED` quando as
@@ -107,13 +125,15 @@ não negativo, acompanhado de uso do provedor disponível. Sem tarifa ou uso
 verificados, o candidato é inelegível; o PIE não estima preço a partir de
 caracteres ou de limites de assinatura.
 
-No estado atual, a validação local está aprovada. Um piloto GLM local de um
-par (evidência `PILOT_VALID` em
-`reports/phase3/context-runtime-verifier-glm-v2-after-cache.json`) reportou
-uso real do provedor, mas é complementar: não constitui a certificação Codex
-nem a bateria pareada Blender/Web e não eleva o status acima de
-`NOT_CERTIFIED`. Sondas anteriores com HTTP 429 permanecem registradas como
-histórico negativo, não como evidência positiva.
+No estado atual, a validação local está aprovada. O piloto GLM local mais
+recente de 3 tarefas (v5) reportou uso real do provedor
+(`reports/phase3/context-runtime-verifier-glm-v5.json`, evidência
+`PILOT_VALID`, 3/3 corretas em baseline e PIE, `provider_usage_status` `ok`,
+economia de input 89.196% e total 88.875%, cached 0 nos dois modos), mas é
+complementar: não constitui a certificação Codex nem a bateria pareada
+Blender/Web e não eleva o status acima de `NOT_CERTIFIED`. Sondas anteriores
+com HTTP 429 permanecem registradas como histórico negativo, não como
+evidência positiva.
 
 ## Guardas fail-closed após o fechamento
 
@@ -139,6 +159,9 @@ Commits que introduziram estes comportamentos:
 - `bdab33f` feat(blender): persist versioned delta history safely
 - `fa45fa6` fix(runtime): fail closed after context shutdown
 - `8bee2c1` test(runtime): cover facade contracts and budgets
+- `8cc6706` fix(benchmark): preserve exact symbol evidence
 
-Evidências: `reports/phase3/context-runtime-pillars-validation.json` e
-`reports/phase3/context-runtime-mcp-exposure.json`.
+Evidências: `reports/phase3/context-runtime-pillars-validation.json`,
+`reports/phase3/context-runtime-mcp-exposure.json`,
+`reports/phase3/context-runtime-verifier-glm-v5.json` e
+`reports/phase3/glm-real-pilot-live-v5/summary.json`.
