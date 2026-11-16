@@ -1,8 +1,10 @@
+from contextlib import closing
 from pathlib import Path
 
 import pytest
 
 from pie.certification.regression import RunEvidence
+from pie.retrieval.context_compiler import ContextCompilationError
 from pie.retrieval.adaptive_runtime import MeasuredCandidate
 from pie.retrieval.task_memory import start_task
 from pie.runtime.context_runtime import ContextRuntime
@@ -227,3 +229,112 @@ def test_context_runtime_integrates_all_six_pillars(tmp_path: Path):
 
         certified = runtime.evaluate_suite([(evidence("baseline"), evidence("optimized"))])
         assert certified["status"] == "CERTIFIED"
+
+
+def test_compile_with_token_budget_requires_token_counter():
+    source = {"plan": {"step": 1}}
+    with pytest.raises(ContextCompilationError) as compile_error:
+        ContextRuntime.compile(
+            source, required_paths=[["plan", "step"]], token_budget=100
+        )
+    assert compile_error.value.reason == "token_counter_unavailable"
+    assert compile_error.value.state == "UNSATISFIED"
+
+
+def test_compile_checkpoint_with_token_budget_requires_token_counter(tmp_path: Path):
+    storage = tmp_path / ".pie"
+    storage.mkdir()
+    connect(storage / "index.sqlite3").close()
+    with ContextRuntime(tmp_path) as runtime:
+        task = runtime.start("budget task")
+        runtime.checkpoint(task["task_id"], {"plan": {"step": 1}})
+        with pytest.raises(ContextCompilationError) as compile_error:
+            runtime.compile_checkpoint(
+                task["task_id"], [["plan", "step"]], token_budget=100
+            )
+    assert compile_error.value.reason == "token_counter_unavailable"
+    assert compile_error.value.state == "UNSATISFIED"
+
+
+def test_compile_token_budget_enforced_with_counter():
+    source = {"plan": {"step": 1}}
+
+    # Synthetic, payload-independent counters (NOT real tokenizers).
+    # They return fixed constants so the test exercises the budget
+    # comparison logic only, not any character/length estimation.
+    def synthetic_counter_over_budget(_payload):
+        return 2  # constant > budget (1), regardless of payload
+
+    def synthetic_counter_exactly_at_budget(_payload):
+        return 42  # constant == budget below, regardless of payload
+
+    with pytest.raises(ContextCompilationError) as over_budget:
+        ContextRuntime.compile(
+            source,
+            required_paths=[["plan", "step"]],
+            token_budget=1,
+            token_counter=synthetic_counter_over_budget,
+        )
+    assert over_budget.value.reason == "evidence_exceeds_token_budget"
+    assert over_budget.value.state == "UNSATISFIED"
+
+    # A measurement exactly equal to the budget is accepted (strictly greater fails).
+    compiled = ContextRuntime.compile(
+        source,
+        required_paths=[["plan", "step"]],
+        token_budget=42,
+        token_counter=synthetic_counter_exactly_at_budget,
+    )
+    assert compiled.data == {"plan": {"step": 1}}
+
+
+def test_runtime_execute_local_without_journal_runs_without_replay(tmp_path: Path):
+    with ContextRuntime(tmp_path) as runtime:
+        assert runtime.journal is None
+        runtime.register_operation(OperationSpec("read", lambda args: {"value": args["x"]}))
+        first = runtime.execute_local("read", {"x": 4})
+        second = runtime.execute_local("read", {"x": 4})
+    assert first["status"] == "SUCCESS"
+    assert second["status"] == "SUCCESS"
+    assert first["result"] == {"value": 4}
+
+
+def test_runtime_restore_state_round_trip_and_missing_task(tmp_path: Path):
+    storage = tmp_path / ".pie"
+    storage.mkdir()
+    connect(storage / "index.sqlite3").close()
+    with ContextRuntime(tmp_path) as runtime:
+        task = runtime.start("restore task")
+        assert runtime.restore_state(task["task_id"])["state"] == "NOT_FOUND"
+        runtime.checkpoint(task["task_id"], {"value": 4}, provenance={"role": "builder"})
+        restored = runtime.restore_state(task["task_id"])
+    assert restored["state"] == "FOUND"
+    assert restored["state_value"] == {"value": 4}
+    assert restored["provenance"] == {"role": "builder"}
+
+
+def test_runtime_graph_snapshot_requires_graph_path(tmp_path: Path):
+    with ContextRuntime(tmp_path) as runtime:
+        with pytest.raises(RuntimeError, match="graph_path"):
+            runtime.graph_snapshot("task-1")
+
+
+def test_runtime_graph_snapshot_reports_found_and_missing_tasks(tmp_path: Path):
+    (tmp_path / ".pie").mkdir()
+    with closing(connect(tmp_path / ".pie" / "index.sqlite3")):
+        pass
+    with ContextRuntime(tmp_path, graph_path=Path(".pie") / "graph.sqlite3") as runtime:
+        task = runtime.start("graph task")
+        runtime.add_graph_node(task["task_id"], "a", "step")
+        runtime.add_graph_node(task["task_id"], "b", "step")
+        runtime.add_graph_edge(task["task_id"], "a", "b", "depends")
+        found = runtime.graph_snapshot(task["task_id"])
+        missing = runtime.graph_snapshot("no-such-task")
+    assert found["state"] == "FOUND"
+    assert found["complete"] is True
+    node_ids = {node["node_id"] for node in found["nodes"]}
+    assert node_ids == {"a", "b"}
+    assert {edge["from_node"]: edge["to_node"] for edge in found["edges"]} == {"a": "b"}
+    assert missing["state"] == "NOT_FOUND"
+    assert missing["nodes"] == []
+    assert missing["edges"] == []
