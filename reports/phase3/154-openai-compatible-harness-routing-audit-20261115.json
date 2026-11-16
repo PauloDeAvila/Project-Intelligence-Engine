@@ -6,6 +6,11 @@
   "advertised_models": ["gambiarraapi/glm-5.3-flash"],
   "requested_environment_model": "modelo-unlimited",
   "model_alignment": "MISMATCH",
+  "deepseek_probe": {
+    "model": "deepseek/deepseek-v4-flash-0731free:free",
+    "http_status": 404,
+    "state": "MODEL_UNAVAILABLE_OR_NOT_EXPOSED"
+  },
   "direct_probe": {
     "status": "PASS",
     "model": "gambiarraapi/glm-5.3-flash",

@@ -18,6 +18,9 @@ DeepSeek was routed.
   `gambiarraapi/glm-5.3-flash`.
 - A single direct `POST /v1/chat/completions` using that advertised model
   returned valid JSON and usage: 15 input tokens and 7 completion tokens.
+- A direct request using `deepseek/deepseek-v4-flash-0731free:free` returned
+  HTTP 404, so the DeepSeek route is not exposed by the currently running
+  gateway.
 - The probe included `thinking=false` and `enable_thinking=false`; the
   response had no reasoning content for this minimal request.
 - No credentials or response contents were persisted in this report.
