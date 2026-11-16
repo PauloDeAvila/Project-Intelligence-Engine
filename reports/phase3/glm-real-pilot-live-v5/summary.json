@@ -1,0 +1,40 @@
+{
+  "results": [
+    {
+      "host": "127.0.0.1",
+      "scheme": "http",
+      "model": "gambiarraapi/glm-5.3-flash",
+      "mode": "baseline",
+      "calls": 3,
+      "successful": 3,
+      "exact_correct": 3,
+      "evidence_hit": 3,
+      "provider_usage_status": "ok",
+      "prompt_tokens": 17373,
+      "completion_tokens": 74,
+      "total_tokens": 17447,
+      "cached_input_tokens": 0,
+      "uncached_input_tokens": 17373,
+      "median_latency_s": 2.5571
+    },
+    {
+      "host": "127.0.0.1",
+      "scheme": "http",
+      "model": "gambiarraapi/glm-5.3-flash",
+      "mode": "pie",
+      "calls": 3,
+      "successful": 3,
+      "exact_correct": 3,
+      "evidence_hit": 3,
+      "provider_usage_status": "ok",
+      "prompt_tokens": 1877,
+      "completion_tokens": 64,
+      "total_tokens": 1941,
+      "cached_input_tokens": 0,
+      "uncached_input_tokens": 1877,
+      "median_latency_s": 2.8329
+    }
+  ],
+  "index_seconds": 0.71861,
+  "qualification": "Real open-source Rich codebase, generated docstring queries. File-level vs function-level retrieval; no full repository baseline and no edit tasks."
+}

@@ -87,7 +87,7 @@ def search(question,modules,rows,budget):
                      len(query & terms(r["symbol"].replace("."," ").replace("_"," ")))*2,r)
                    for r in rows),key=lambda v:(-v[0],v[1]["path"],v[1]["line"]))
     chosen=[r for score,r in ranked if score>0][:4]
-    pie="\n\n".join(f"{r['path']}:{r['line']} [{r['symbol']}]\n{r['snippet']}" for r in chosen)
+    pie="\n\n".join(f"{r['path']}:{r['line']} symbol={r['symbol']}\n{r['snippet']}" for r in chosen)
     baseline="\n\n".join(f"### {p}\n{modules[p]}" for p in candidate_paths)
     if len(baseline)>budget:
         # Do not silently truncate required files. Cap project file size at
@@ -126,15 +126,43 @@ def require_gateway_secrets(base,key):
     if not validate_gateway_base_url(base):
         raise RuntimeError("PIE_API_BASE_URL must be HTTPS, or HTTP against a loopback host (localhost/127.0.0.1/::1)")
 
+BRACKET_PAIRS={"(":")","[":"]","{":"}"}
+
 def normalize_navigation_answer(answer):
-    """Accept a legitimate path:line citation without changing the symbol."""
+    """Accept a legitimate path:line citation without changing the symbol.
+
+    The symbol may have exactly one outer balanced bracket pair wrapped
+    around it (a known model failure mode). Strip that single pair and
+    record whether normalization was applied; inner brackets are never
+    touched, and the path is never bracket-stripped.
+    """
     if not isinstance(answer,dict):return {}
     path=answer.get("path")
     symbol=answer.get("symbol")
     if not isinstance(path,str) or not isinstance(symbol,str):return {}
     path=re.sub(r"^#+\s*","",path.strip())
     path=re.sub(r":\d+(?:-\d+)?$","",path)
-    return {"path":path,"symbol":symbol.strip()}
+    symbol=symbol.strip()
+    symbol_brackets_normalized=False
+    if len(symbol)>=2:
+        closer=BRACKET_PAIRS.get(symbol[0])
+        if closer is not None and symbol.endswith(closer):
+            inner=symbol[1:-1]
+            # Strip only when the pair is truly outermost: all inner
+            # delimiters must balance by type via an explicit stack, so
+            # cross-wrapped cases like "[foo{bar]" or "[foo}bar]" are
+            # rejected instead of silently normalized.
+            stack=[];balanced=True
+            for ch in inner:
+                if ch in BRACKET_PAIRS:stack.append(ch)
+                elif ch in BRACKET_PAIRS.values():
+                    if not stack or BRACKET_PAIRS[stack[-1]]!=ch:
+                        balanced=False;break
+                    stack.pop()
+            if balanced and not stack:
+                symbol=inner.strip()
+                symbol_brackets_normalized=True
+    return {"path":path,"symbol":symbol,"symbol_brackets_normalized":symbol_brackets_normalized}
 
 def normalize_usage(usage):
     """Classify provider-reported usage without inventing token counts.
@@ -199,7 +227,7 @@ def summarize_rows(rows,host=None,scheme=None,model=None,mode=None):
 
 def infer(base,key,model,query,context,output_tokens):
     request_data={"model":model,"messages":[
-        {"role":"system","content":"You are reading a real Python codebase. Return only valid JSON with keys path and symbol, both strings. The symbol must be the implementing function or Class.method. Cite exactly the supplied source paths. If evidence is insufficient, use empty strings."},
+        {"role":"system","content":"You are reading a real Python codebase. Return only valid JSON with keys path and symbol, both strings. The symbol must be the implementing function or Class.method. The symbol value must never contain brackets — do not wrap it in [], (), or {}. Cite exactly the supplied source paths. If evidence is insufficient, use empty strings."},
         {"role":"user","content":query+"\n\nCODE:\n"+context}
     ],"max_tokens":output_tokens,"stream":False}
     req=urllib.request.Request(base.rstrip("/")+"/v1/chat/completions",
@@ -275,11 +303,12 @@ def run():
         for task,mode in jobs:
             reply=infer(base,key,model,task["question"],evidence[task["id"]][mode],
                          900 if "nemotron" in model.lower() else 160)
-            correct=normalize_navigation_answer(reply.get("answer"))==task["oracle"]
+            normalized=normalize_navigation_answer(reply.get("answer"))
+            correct=bool(normalized) and normalized.get("path")==task["oracle"]["path"] and normalized.get("symbol")==task["oracle"]["symbol"]
             usage=reply.get("usage") if isinstance(reply.get("usage"),dict) else {}
             provider_fields=normalize_usage(usage)
             row={"model":model,"task":task["id"],"mode":mode,"correct":correct,
-                 "normalized_answer":normalize_navigation_answer(reply.get("answer")),"evidence_hit":next(x[mode+"_hit"] for x in audit if x["id"]==task["id"]),**reply,**provider_fields}
+                 "normalized_answer":normalized,"evidence_hit":next(x[mode+"_hit"] for x in audit if x["id"]==task["id"]),**reply,**provider_fields}
             results.append(row)
             (output/"results.json").write_text(json.dumps({"results":results},indent=2),encoding="utf8")
             print("RUN",model,task["id"],mode,"correct="+str(correct),"ok="+str(reply["ok"]),

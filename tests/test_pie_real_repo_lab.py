@@ -230,13 +230,52 @@ class RealRepoLabTests(unittest.TestCase):
     def test_path_line_reference_normalized_without_changing_symbol(self):
         self.assertEqual(
             normalize_navigation_answer({"path":"rich/live.py:278","symbol":"Live.process_renderables"}),
-            {"path":"rich/live.py","symbol":"Live.process_renderables"})
+            {"path":"rich/live.py","symbol":"Live.process_renderables","symbol_brackets_normalized":False})
         self.assertEqual(
             normalize_navigation_answer({"path":"### rich/segment.py:520-534","symbol":"Segment.align_middle"}),
-            {"path":"rich/segment.py","symbol":"Segment.align_middle"})
+            {"path":"rich/segment.py","symbol":"Segment.align_middle","symbol_brackets_normalized":False})
     def test_invalid_answer_cannot_be_scored(self):
         self.assertEqual(normalize_navigation_answer({"path":4,"symbol":"ok"}),{})
         self.assertEqual(normalize_navigation_answer(None),{})
+    def test_unwrapped_symbol_is_returned_unchanged(self):
+        out=normalize_navigation_answer({"path":"rich/live.py:278","symbol":"Live.process_renderables"})
+        self.assertEqual(out["symbol"],"Live.process_renderables")
+        self.assertIs(out["symbol_brackets_normalized"],False)
+    def test_single_outer_bracket_pair_is_stripped_once(self):
+        for symbol,expected in (
+            ("[Live.process_renderables]","Live.process_renderables"),
+            ("(Live.process_renderables)","Live.process_renderables"),
+            ("{Live.process_renderables}","Live.process_renderables")):
+            out=normalize_navigation_answer({"path":"rich/live.py:278","symbol":symbol})
+            self.assertEqual(out["symbol"],expected)
+            self.assertIs(out["symbol_brackets_normalized"],True)
+            self.assertEqual(out["path"],"rich/live.py")
+    def test_nested_balanced_pair_is_stripped_once(self):
+        out=normalize_navigation_answer({"path":"rich/live.py:278","symbol":"(f(x))"})
+        self.assertEqual(out["symbol"],"f(x)")
+        self.assertIs(out["symbol_brackets_normalized"],True)
+    def test_ambiguous_or_inner_wrappers_are_not_silently_fixed(self):
+        for symbol in ("[[x]","[a]b]","[Live.process_renderables]]","Live.process_renderables]"):
+            out=normalize_navigation_answer({"path":"rich/live.py:278","symbol":symbol})
+            self.assertEqual(out["symbol"],symbol)
+            self.assertIs(out["symbol_brackets_normalized"],False)
+    def test_cross_type_inner_delimiters_are_rejected(self):
+        # A single depth counter would accept these; matching must be by type.
+        for symbol in ("[foo{bar]","[foo}bar]","[foo(bar]","[foo)bar]","(foo[bar)","(foo]bar)",
+                       "{foo[bar}","{foo]bar}","[foo{bar}baz]x]"):
+            out=normalize_navigation_answer({"path":"rich/live.py:278","symbol":symbol})
+            self.assertEqual(out["symbol"],symbol)
+            self.assertIs(out["symbol_brackets_normalized"],False)
+    def test_nested_matching_type_pairs_are_still_stripped(self):
+        for symbol,expected in (("[foo{bar}baz]","foo{bar}baz"),("(f[x]g)","f[x]g"),
+                                ("{a(b)c}","a(b)c")):
+            out=normalize_navigation_answer({"path":"rich/live.py:278","symbol":symbol})
+            self.assertEqual(out["symbol"],expected)
+            self.assertIs(out["symbol_brackets_normalized"],True)
+    def test_path_is_never_bracket_stripped(self):
+        out=normalize_navigation_answer({"path":"[rich/live.py]:278","symbol":"Live.process_renderables"})
+        self.assertEqual(out["path"],"[rich/live.py]")
+        self.assertEqual(out["symbol"],"Live.process_renderables")
     def test_generated_tasks_are_seeded_and_deduplicated_by_file(self):
         rows=[{"path":f"rich/m{i}.py","symbol":f"f{i}","sentence":"This is a detailed implementation description."} for i in range(20)]
         a=benchmark_tasks(rows,12,412)

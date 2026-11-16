@@ -1,0 +1,244 @@
+{
+  "results": [
+    {
+      "model": "gambiarraapi/glm-5.3-flash",
+      "task": "T00",
+      "mode": "baseline",
+      "correct": true,
+      "normalized_answer": {
+        "path": "rich/__init__.py",
+        "symbol": "print"
+      },
+      "evidence_hit": true,
+      "ok": true,
+      "answer": {
+        "path": "rich/__init__.py",
+        "symbol": "print"
+      },
+      "seconds": 2.6217,
+      "usage": {
+        "completion_tokens": 18,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 17,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens": 3128,
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0
+        },
+        "total_tokens": 3146
+      },
+      "finish_reason": "stop",
+      "actual_model": "gambiarraapi/glm-5.3-flash",
+      "provider_usage_status": "available",
+      "prompt_tokens": 3128,
+      "completion_tokens": 18,
+      "total_tokens": 3146,
+      "cached_input_tokens": 0,
+      "uncached_input_tokens": 3128
+    },
+    {
+      "model": "gambiarraapi/glm-5.3-flash",
+      "task": "T01",
+      "mode": "baseline",
+      "correct": true,
+      "normalized_answer": {
+        "path": "rich/control.py",
+        "symbol": "Control.move_to_column"
+      },
+      "evidence_hit": true,
+      "ok": true,
+      "answer": {
+        "path": "rich/control.py",
+        "symbol": "Control.move_to_column"
+      },
+      "seconds": 2.6897,
+      "usage": {
+        "completion_tokens": 23,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 22,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens": 7134,
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0
+        },
+        "total_tokens": 7157
+      },
+      "finish_reason": "stop",
+      "actual_model": "gambiarraapi/glm-5.3-flash",
+      "provider_usage_status": "available",
+      "prompt_tokens": 7134,
+      "completion_tokens": 23,
+      "total_tokens": 7157,
+      "cached_input_tokens": 0,
+      "uncached_input_tokens": 7134
+    },
+    {
+      "model": "gambiarraapi/glm-5.3-flash",
+      "task": "T02",
+      "mode": "baseline",
+      "correct": true,
+      "normalized_answer": {
+        "path": "rich/_win32_console.py",
+        "symbol": "LegacyWindowsTerm._get_cursor_size"
+      },
+      "evidence_hit": true,
+      "ok": true,
+      "answer": {
+        "path": "rich/_win32_console.py",
+        "symbol": "LegacyWindowsTerm._get_cursor_size"
+      },
+      "seconds": 2.5031,
+      "usage": {
+        "completion_tokens": 25,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 24,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens": 7060,
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0
+        },
+        "total_tokens": 7085
+      },
+      "finish_reason": "stop",
+      "actual_model": "gambiarraapi/glm-5.3-flash",
+      "provider_usage_status": "available",
+      "prompt_tokens": 7060,
+      "completion_tokens": 25,
+      "total_tokens": 7085,
+      "cached_input_tokens": 0,
+      "uncached_input_tokens": 7060
+    },
+    {
+      "model": "gambiarraapi/glm-5.3-flash",
+      "task": "T01",
+      "mode": "pie",
+      "correct": true,
+      "normalized_answer": {
+        "path": "rich/control.py",
+        "symbol": "Control.move_to_column"
+      },
+      "evidence_hit": true,
+      "ok": true,
+      "answer": {
+        "path": "rich/control.py",
+        "symbol": "Control.move_to_column"
+      },
+      "seconds": 3.4293,
+      "usage": {
+        "completion_tokens": 19,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens": 519,
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0
+        },
+        "total_tokens": 538
+      },
+      "finish_reason": "stop",
+      "actual_model": "gambiarraapi/glm-5.3-flash",
+      "provider_usage_status": "available",
+      "prompt_tokens": 519,
+      "completion_tokens": 19,
+      "total_tokens": 538,
+      "cached_input_tokens": 0,
+      "uncached_input_tokens": 519
+    },
+    {
+      "model": "gambiarraapi/glm-5.3-flash",
+      "task": "T02",
+      "mode": "pie",
+      "correct": false,
+      "normalized_answer": {
+        "path": "rich/_win32_console.py",
+        "symbol": "[LegacyWindowsTerm._get_cursor_size]"
+      },
+      "evidence_hit": true,
+      "ok": true,
+      "answer": {
+        "path": "rich/_win32_console.py",
+        "symbol": "[LegacyWindowsTerm._get_cursor_size]"
+      },
+      "seconds": 4.4579,
+      "usage": {
+        "completion_tokens": 26,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens": 818,
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0
+        },
+        "total_tokens": 844
+      },
+      "finish_reason": "stop",
+      "actual_model": "gambiarraapi/glm-5.3-flash",
+      "provider_usage_status": "available",
+      "prompt_tokens": 818,
+      "completion_tokens": 26,
+      "total_tokens": 844,
+      "cached_input_tokens": 0,
+      "uncached_input_tokens": 818
+    },
+    {
+      "model": "gambiarraapi/glm-5.3-flash",
+      "task": "T00",
+      "mode": "pie",
+      "correct": true,
+      "normalized_answer": {
+        "path": "rich/__init__.py",
+        "symbol": "print"
+      },
+      "evidence_hit": true,
+      "ok": true,
+      "answer": {
+        "path": "rich/__init__.py",
+        "symbol": "print"
+      },
+      "seconds": 3.1733,
+      "usage": {
+        "completion_tokens": 18,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens": 476,
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0
+        },
+        "total_tokens": 494
+      },
+      "finish_reason": "stop",
+      "actual_model": "gambiarraapi/glm-5.3-flash",
+      "provider_usage_status": "available",
+      "prompt_tokens": 476,
+      "completion_tokens": 18,
+      "total_tokens": 494,
+      "cached_input_tokens": 0,
+      "uncached_input_tokens": 476
+    }
+  ]
+}
