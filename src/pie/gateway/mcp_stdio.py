@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import argparse
+import hmac
 import json
 import os
 import time
@@ -109,7 +110,8 @@ class MCPStdioGateway:
                  max_chars: int = 2500, compress_tools: tuple[str,...] =
                  ("get_scene_info","get_object_info"), profile: str = "generic",
                  request_timeout_sec: float = 120.0,
-                 exposed_tools: tuple[str, ...] = ()) -> None:
+                 exposed_tools: tuple[str, ...] = (),
+                 auth_token: str | None = None) -> None:
         self.root=detect_workspace(root)
         if not command or not all(isinstance(v,str) and v for v in command):
             raise ValueError("Upstream server command is required")
@@ -141,6 +143,12 @@ class MCPStdioGateway:
         self._internal_lock = threading.RLock()
         self._internal_waiters: dict[str, tuple[threading.Event, dict | None]] = {}
         self._upstream_stdin: TextIO | None = None
+        if auth_token is None:
+            auth_token = os.environ.get("PIE_MCP_AUTH_TOKEN") or None
+        if auth_token is not None and (not isinstance(auth_token, str) or not auth_token):
+            raise ValueError("Invalid gateway auth token")
+        self._auth_token = auth_token
+        self._authenticated = auth_token is None
         self._diagnostics_path=bootstrap_path()
         self._diagnostic("gateway_constructed", profile=profile,
                          workspace_id=_workspace_fingerprint(self.root),
@@ -481,11 +489,47 @@ class MCPStdioGateway:
                 if isinstance(request,dict) and "id" in request:
                     params=request.get("params")
                     method=request.get("method", "")
+                    if self._auth_token is not None and not self._authenticated:
+                        if method == "initialize":
+                            supplied=None
+                            if isinstance(params, dict):
+                                meta=params.get("_meta")
+                                if isinstance(meta, dict):
+                                    supplied=meta.get("pie_auth_token")
+                                if supplied is None:
+                                    supplied=params.get("pie_auth_token")
+                            if (isinstance(supplied, str) and supplied
+                                    and hmac.compare_digest(supplied, self._auth_token)):
+                                self._authenticated=True
+                                self._diagnostic("gateway_auth_success")
+                            else:
+                                self._diagnostic("gateway_auth_failed",
+                                                 reason="missing" if supplied is None
+                                                 else "invalid")
+                                self._send(stdout, {"jsonrpc":"2.0","id":request["id"],
+                                                    "error":{"code":-32001,
+                                                             "message":"PIE_GATEWAY_AUTH_REQUIRED"}})
+                                continue
+                        elif method in ("tools/list","tools/call"):
+                            self._diagnostic("gateway_auth_failed", reason="unauthenticated_session")
+                            self._send(stdout, {"jsonrpc":"2.0","id":request["id"],
+                                                "error":{"code":-32001,
+                                                         "message":"PIE_GATEWAY_AUTH_REQUIRED"}})
+                            continue
                     if (method == "tools/call" and self.exposed_tools and
                             isinstance(params, dict) and params.get("name") not in self.exposed_tools):
                         self._send(stdout, _tool_error(request["id"], "PIE_TOOL_NOT_EXPOSED"))
                         continue
                     if method == "initialize":
+                        # The token authenticates the downstream client only;
+                        # strip it before forwarding upstream so the shared
+                        # secret never travels beyond the transport boundary.
+                        if isinstance(params, dict):
+                            params.pop("pie_auth_token", None)
+                            meta=params.get("_meta")
+                            if isinstance(meta, dict):
+                                meta.pop("pie_auth_token", None)
+                            line=_json(request)+"\n"
                         self._diagnostic("MCP_INITIALIZE_RECEIVED")
                     elif method == "tools/list":
                         self._diagnostic("MCP_TOOLS_LIST_RECEIVED")
@@ -549,16 +593,39 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--request-timeout-sec",type=float,default=120.0)
     parser.add_argument("--compress-tool",action="append",default=None,
                         help="Explicitly authorize lossy text-only reduction for this tool")
+    parser.add_argument("--auth-token-file",type=Path,default=None,
+                        help="Path to a file containing the gateway auth token "
+                             "(opt-in; contents are never logged)")
     parser.add_argument("upstream",nargs=argparse.REMAINDER)
     opt=parser.parse_args(argv)
     command=opt.upstream[1:] if opt.upstream and opt.upstream[0]=="--" else opt.upstream
-    os.environ[ENV_HOME]=str((opt.store or global_home()).resolve())
+    if opt.store is not None:
+        # Only redirect storage when explicitly requested. Setting the env
+        # var unconditionally leaks into the upstream child (Popen inherits
+        # os.environ), which would re-route its workspace_file() lookups to
+        # the global store and break project-local indexed workspaces.
+        os.environ[ENV_HOME]=str(opt.store.resolve())
     if not command:
         parser.error("Provide upstream argv after --")
-    proxy=MCPStdioGateway(opt.workspace,command,max_chars=opt.max_chars,
-                          compress_tools=tuple(opt.compress_tool) if opt.compress_tool
-                          else ("get_scene_info","get_object_info"),
-                          profile=opt.profile,request_timeout_sec=opt.request_timeout_sec)
+    auth_token: str | None = None
+    if opt.auth_token_file is not None:
+        try:
+            auth_token=opt.auth_token_file.read_text(encoding="utf-8").strip()
+        except OSError as exc:
+            parser.error(f"Cannot read auth token file: {type(exc).__name__}")
+        if not auth_token:
+            parser.error("Auth token file is empty")
+    proxy_kwargs={"max_chars":opt.max_chars,
+                  "compress_tools":tuple(opt.compress_tool) if opt.compress_tool
+                  else ("get_scene_info","get_object_info"),
+                  "profile":opt.profile,
+                  "request_timeout_sec":opt.request_timeout_sec}
+    if auth_token is not None:
+        # Backward compatibility: only pass auth_token when auth is
+        # actually enabled, so older callers/fakes without the keyword
+        # keep working when auth is disabled.
+        proxy_kwargs["auth_token"]=auth_token
+    proxy=MCPStdioGateway(opt.workspace,command,**proxy_kwargs)
     return proxy.run()
 
 

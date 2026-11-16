@@ -184,6 +184,9 @@ def main(argv: list[str] | None = None) -> int:
                             "must be an existing workspace with .pie/index.sqlite3; "
                             "it is not a standalone store directory.")
         p.add_argument("--expose-tool", action="append", default=[])
+        p.add_argument("--auth-token-file",type=Path,default=None,
+                       help="Path to a file containing the gateway auth token "
+                            "(opt-in; contents are never logged)")
         if action=="register":
             p.add_argument("--name",required=True)
             p.add_argument("--apply",action="store_true")
@@ -220,14 +223,31 @@ def main(argv: list[str] | None = None) -> int:
                                           python=sys.executable,max_chars=args.max_chars,
                                           exposed_tools=tuple(args.expose_tool),
                                           delta_store=delta_store)
+        auth_token=None
+        if args.auth_token_file is not None:
+            try:
+                auth_token=args.auth_token_file.read_text(encoding="utf-8").strip()
+            except OSError as exc:
+                # Fail closed without echoing file contents.
+                print("PIE domain gateway auth token unreadable: "
+                      +type(exc).__name__,file=sys.stderr)
+                return exit_code
+            if not auth_token:
+                parser.error("--auth-token-file is empty")
         os.environ.setdefault("PIE_APP", args.domain)
         if os.environ.get("PIE_MCP_DIAGNOSTICS_PATH"):
             print(json.dumps({"event":"domain_gateway_start","domain":args.domain,
                               "upstream_executable":Path(upstream[0]).name},
                              separators=(",",":")),file=sys.stderr,flush=True)
-        exit_code=MCPStdioGateway(args.workspace,command,max_chars=args.max_chars,
-                                  compress_tools=tools,profile=profile,
-                                  exposed_tools=tuple(args.expose_tool)).run()
+        gateway_kwargs={"max_chars":args.max_chars,
+                        "compress_tools":tools,"profile":profile,
+                        "exposed_tools":tuple(args.expose_tool)}
+        if auth_token is not None:
+            # Backward compatibility: only pass auth_token when auth is
+            # actually enabled, so older callers/fakes without the
+            # keyword keep working when auth is disabled.
+            gateway_kwargs["auth_token"]=auth_token
+        exit_code=MCPStdioGateway(args.workspace,command,**gateway_kwargs).run()
         return exit_code
     except (OSError,ValueError,RuntimeError,subprocess.TimeoutExpired) as exc:
         # Never write protocol failures to MCP stdout.
