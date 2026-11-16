@@ -1,8 +1,18 @@
 """Allowlisted deterministic local execution.
 
-Timeouts are cooperative: handlers are never killed by threads or processes.
-Handlers that can run longer than their deadline must inspect the supplied
-context and stop themselves. The engine never persists arguments or results.
+Timeouts are cooperative by default: handlers are never killed by threads or
+processes. Handlers that can run longer than their deadline must inspect the
+supplied context and stop themselves. The engine never persists arguments or
+results.
+
+``OperationSpec(hard_timeout=True)`` opts an operation into a hard timeout: the
+handler runs in an isolated child process (spawn context, Windows-safe) and is
+terminated/kill when the deadline passes. Envelopes distinguish the two modes:
+cooperative timeouts keep ``deadline_expired``/``timeout`` error codes, while
+hard timeouts report ``hard_timeout_exceeded``. A handler that cannot be
+pickled/imported for the child process fails closed with
+``hard_timeout_unavailable`` and never silently falls back to the cooperative
+path.
 """
 from __future__ import annotations
 
@@ -11,6 +21,8 @@ import hashlib
 import inspect
 import json
 import math
+import multiprocessing
+import pickle
 import re
 import time
 from typing import Any, Callable
@@ -26,6 +38,13 @@ _MAX_DEPTH = 8
 _MAX_ITEMS = 64
 _MAX_ARGS_BYTES = 16 * 1024
 _MAX_RESULT_BYTES = 64 * 1024
+# Extra wall-clock allowance granted to the child after its own deadline so the
+# parent only kills it when the cooperative check inside the child did not fire
+# (for example because the handler is blocked in native code).
+_HARD_TIMEOUT_GRACE_MS = 200
+# Upper bound for terminate/kill/join of an unresponsive child.
+_HARD_KILL_JOIN_MS = 5_000
+_HARD_TIMEOUT_METHOD = "spawn"
 
 
 @dataclass(frozen=True)
@@ -34,6 +53,7 @@ class OperationSpec:
     handler: Callable[..., Any]
     read_only: bool = True
     max_duration_ms: int | None = None
+    hard_timeout: bool = False
 
     def __post_init__(self) -> None:
         if not isinstance(self.name, str) or not _OPERATION_ID.fullmatch(self.name):
@@ -46,6 +66,8 @@ class OperationSpec:
             type(self.max_duration_ms) is not int or self.max_duration_ms <= 0
         ):
             raise ValueError("max_duration_ms must be a positive integer")
+        if not isinstance(self.hard_timeout, bool):
+            raise TypeError("hard_timeout must be a bool")
 
 
 class ExecutionContext:
@@ -147,6 +169,45 @@ def _envelope(status: str, name: str, started_ns: int, *, result: object = None,
     return payload
 
 
+def _hard_worker(handler, args, context_mode, deadline_ns, queue) -> None:
+    """Child-process entry point for hard-timeout execution.
+
+    Only JSON-serializable status dicts cross the queue; errors are collapsed
+    into generic codes so the parent never trusts unparsed child data.
+    """
+    try:
+        context = ExecutionContext(deadline_ns)
+        if context.expired():
+            queue.put({"status": "deadline_expired"})
+            return
+        try:
+            if context_mode == "keyword":
+                value = handler(args, context=context)
+            elif context_mode == "positional":
+                value = handler(args, context)
+            else:
+                value = handler(args)
+        except BaseException:
+            queue.put({"status": "handler_error"})
+            return
+        if context.expired():
+            # In hard mode any deadline breach is a hard timeout; the parent
+            # maps this to ``hard_timeout_exceeded`` so it never collides with
+            # the cooperative ``timeout``/``deadline_expired`` codes.
+            queue.put({"status": "deadline_exceeded"})
+            return
+        safe_value, valid = _validated_result(value)
+        if not valid:
+            queue.put({"status": "result_not_serializable"})
+            return
+        queue.put({"status": "success", "result": safe_value})
+    except BaseException:
+        try:
+            queue.put({"status": "child_failed"})
+        except BaseException:
+            pass
+
+
 class LocalExecutionEngine:
     """Execute only registered handlers and optionally journal them once."""
 
@@ -182,6 +243,8 @@ class LocalExecutionEngine:
         return "positional" if len(positional) >= 2 else "args"
 
     def _run(self, spec: OperationSpec, args: dict[str, object], context: ExecutionContext, started_ns: int) -> dict[str, object]:
+        if spec.hard_timeout:
+            return self._run_hard(spec, args, context, started_ns)
         deadline = context._deadline_ns
         if spec.max_duration_ms is not None:
             candidate = started_ns + spec.max_duration_ms * 1_000_000
@@ -207,6 +270,77 @@ class LocalExecutionEngine:
         if not valid:
             return _envelope("ERROR", spec.name, started_ns, error_code="result_not_serializable")
         return _envelope("SUCCESS", spec.name, started_ns, result=safe_value)
+
+    def _run_hard(self, spec: OperationSpec, args: dict[str, object], context: ExecutionContext, started_ns: int) -> dict[str, object]:
+        deadline = context._deadline_ns
+        if spec.max_duration_ms is not None:
+            candidate = started_ns + spec.max_duration_ms * 1_000_000
+            deadline = candidate if deadline is None else min(deadline, candidate)
+        if deadline is not None and time.monotonic_ns() >= deadline:
+            return _envelope("TIMEOUT", spec.name, started_ns, error_code="deadline_expired")
+        context_mode = self._context_mode(spec.handler)
+        try:
+            pickle.dumps(spec.handler)
+        except Exception:
+            return _envelope("ERROR", spec.name, started_ns, error_code="hard_timeout_unavailable")
+        spawn = multiprocessing.get_context(_HARD_TIMEOUT_METHOD)
+        queue = spawn.Queue()
+        child = spawn.Process(
+            target=_hard_worker,
+            args=(spec.handler, args, context_mode, deadline, queue),
+            daemon=True,
+        )
+        message: dict[str, object] | None = None
+        try:
+            try:
+                child.start()
+            except Exception:
+                # Failed to even launch the child (e.g. spawn restrictions):
+                # fail closed as unavailable, never as a timeout.
+                return _envelope("ERROR", spec.name, started_ns, error_code="hard_timeout_unavailable")
+            remaining_ms: int | None
+            if deadline is None:
+                remaining_ms = None
+            else:
+                remaining_ms = max(0, (deadline - time.monotonic_ns()) // 1_000_000) + _HARD_TIMEOUT_GRACE_MS
+            try:
+                # Wait for the child result within the deadline (+ grace) window.
+                try:
+                    message = queue.get(timeout=remaining_ms)  # type: ignore[arg-type]
+                except Exception:
+                    message = None
+            finally:
+                if child.is_alive():
+                    child.terminate()
+                    child.join(_HARD_KILL_JOIN_MS / 1000)
+                    if child.is_alive():
+                        try:
+                            child.kill()  # type: ignore[attr-defined]
+                        except AttributeError:
+                            pass
+                        child.join(_HARD_KILL_JOIN_MS / 1000)
+                child.join()
+        finally:
+            # Fully release the queue: stop the feeder thread and close the
+            # underlying handle so nothing outlives the call.
+            try:
+                queue.close()
+                queue.join_thread()
+            except Exception:
+                pass
+        if message is not None and isinstance(message, dict):
+            status = message.get("status")
+            if status == "success":
+                return _envelope("SUCCESS", spec.name, started_ns, result=message.get("result"))
+            if status == "handler_error":
+                return _envelope("ERROR", spec.name, started_ns, error_code="handler_error")
+            if status == "result_not_serializable":
+                return _envelope("ERROR", spec.name, started_ns, error_code="result_not_serializable")
+            if status == "deadline_expired":
+                return _envelope("TIMEOUT", spec.name, started_ns, error_code="deadline_expired")
+            if status == "deadline_exceeded":
+                return _envelope("TIMEOUT", spec.name, started_ns, error_code="hard_timeout_exceeded")
+        return _envelope("TIMEOUT", spec.name, started_ns, error_code="hard_timeout_exceeded")
 
     def execute(
         self, name: str, args: dict[str, object] | None = None,
@@ -240,7 +374,7 @@ class LocalExecutionEngine:
         try:
             outcome = self._journal.execute_once(
                 resolved_id,
-                {"operation_name": name, "args_sha256": args_hash, "read_only": spec.read_only, "max_duration_ms": spec.max_duration_ms},
+                {"operation_name": name, "args_sha256": args_hash, "read_only": spec.read_only, "max_duration_ms": spec.max_duration_ms, "hard_timeout": spec.hard_timeout},
                 run,
             )
         except Exception:

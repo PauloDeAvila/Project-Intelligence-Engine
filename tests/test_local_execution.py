@@ -103,3 +103,106 @@ def test_local_execution_uses_real_journal_without_double_execution(tmp_path):
         assert calls == 1
     finally:
         journal.close()
+
+
+# ---------------------------------------------------------------------------
+# Hard timeout tests. Handlers must be module-level so they are picklable
+# under the spawn context on Windows.
+# ---------------------------------------------------------------------------
+import multiprocessing  # noqa: E402
+import time  # noqa: E402
+
+
+def _hard_ok_handler(_args):
+    return {"value": 42}
+
+
+def _hard_error_handler(_args):
+    raise RuntimeError("boom")
+
+
+def _hard_slow_handler(args):
+    marker = args.get("marker")
+    if isinstance(marker, str):
+        try:
+            with open(marker, "w", encoding="utf-8") as handle:
+                handle.write("child-ran")
+        except OSError:
+            pass
+    time.sleep(5)
+    return {"never": True}
+
+
+def _hard_context_handler(_args, context):
+    return {"remaining": context.remaining_ms()}
+
+
+def _hard_args_handler(args):
+    return {"received": args["value"]}
+
+
+def test_hard_timeout_success_and_exception():
+    engine = LocalExecutionEngine()
+    engine.register(OperationSpec("hard_ok", _hard_ok_handler, hard_timeout=True))
+    result = engine.execute("hard_ok", {})
+    assert result["status"] == "SUCCESS"
+    assert result["result"] == {"value": 42}
+
+    engine.register(OperationSpec("hard_err", _hard_error_handler, hard_timeout=True))
+    result = engine.execute("hard_err", {})
+    assert result["status"] == "ERROR"
+    assert result["error_code"] == "handler_error"
+
+
+def test_hard_timeout_exceeded_kills_child_and_marks_marker(tmp_path):
+    marker = tmp_path / "child_marker.txt"
+    engine = LocalExecutionEngine()
+    # Startup cost of the spawn-based child (interpreter + module import)
+    # can approach the deadline on slow machines; give the child enough
+    # headroom to actually run the handler before the hard timeout fires.
+    engine.register(OperationSpec("slow", _hard_slow_handler, max_duration_ms=5_000, hard_timeout=True))
+    result = engine.execute("slow", {"marker": str(marker)})
+    assert result["status"] == "TIMEOUT"
+    assert result["error_code"] == "hard_timeout_exceeded"
+    deadline = time.monotonic() + 10.0
+    while not marker.exists() and time.monotonic() < deadline:
+        time.sleep(0.05)
+    assert marker.read_text(encoding="utf-8") == "child-ran"
+    assert multiprocessing.active_children() == []
+
+
+def test_hard_timeout_rejects_non_pickleable_handler():
+    engine = LocalExecutionEngine()
+    engine.register(OperationSpec("lambda_op", lambda _args: {"ok": True}, hard_timeout=True))
+    result = engine.execute("lambda_op", {})
+    assert result["status"] == "ERROR"
+    assert result["error_code"] == "hard_timeout_unavailable"
+
+
+def test_hard_timeout_respects_smaller_of_deadlines():
+    engine = LocalExecutionEngine()
+    engine.register(OperationSpec("hard_ctx", _hard_context_handler, max_duration_ms=10_000, hard_timeout=True))
+    context = ExecutionContext.with_timeout_ms(5_000)
+    result = engine.execute("hard_ctx", {}, context=context)
+    assert result["status"] == "SUCCESS"
+    assert result["result"]["remaining"] <= 5_000
+
+    # max_duration_ms smaller than the context deadline wins.
+    engine.register(OperationSpec("hard_args", _hard_args_handler, max_duration_ms=10_000, hard_timeout=True))
+    result = engine.execute("hard_args", {"value": 9})
+    assert result["status"] == "SUCCESS"
+    assert result["result"] == {"received": 9}
+
+
+def test_hard_timeout_journal_replay_compatibility(tmp_path):
+    journal = ExecutionJournal(tmp_path / "journal.sqlite3")
+    engine = LocalExecutionEngine(journal)
+    engine.register(OperationSpec("hard_ok", _hard_ok_handler, hard_timeout=True))
+    try:
+        first = engine.execute("hard_ok", {"id": "x"})
+        second = engine.execute("hard_ok", {"id": "x"})
+        assert first["status"] == "SUCCESS"
+        assert first["result"] == {"value": 42}
+        assert second["status"] == "REPLAYED"
+    finally:
+        journal.close()
