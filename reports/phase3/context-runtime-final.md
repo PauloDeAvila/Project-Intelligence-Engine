@@ -23,6 +23,10 @@ não comprova economia de tokens de um provedor quando não existe um payload
 | Multi-Agent Memory | checkpoints por agente, proveniência e referências sem payload de estado | PASS local |
 | Continuous Certification | avaliador pareado fail-closed para tokens, rota, oráculo, latência e chamadas | PASS local / uso externo pendente |
 
+Componentes complementares já cobertos pelo projeto: deltas Blender/Web,
+recuperação paginada de outputs, hashes de proveniência e grafo de tarefas.
+Eles permanecem sujeitos aos mesmos limites e não substituem tokens reais.
+
 ## Integração MCP
 
 `pie_context_runtime` expõe somente:

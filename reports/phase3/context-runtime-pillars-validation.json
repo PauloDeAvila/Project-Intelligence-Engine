@@ -48,6 +48,12 @@
     "provider_usage": "NOT_AVAILABLE",
     "certification": "NOT_CERTIFIED"
   },
+  "complementary_components": {
+    "deltas": "covered_by_existing_blender_and_web_tests",
+    "recovery": "covered_by_existing_output_and_web_recovery_tests",
+    "provenance": "covered_by_hash_and_source_provenance_tests",
+    "task_graph": "covered_by_runtime_graph_tests"
+  },
   "limitations": [
     "No real external provider token payload is currently available for a full certification run.",
     "MCP exposes read-only runtime metadata; mutation and execution remain explicit library APIs and are not exposed as arbitrary MCP operations.",
