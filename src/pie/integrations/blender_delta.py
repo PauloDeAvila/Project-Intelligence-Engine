@@ -430,6 +430,8 @@ class SceneDeltaCache:
 
     STORE_VERSION = 1
     _TABLE = "scene_delta_fingerprints"
+    _HISTORY_TABLE = "scene_delta_fingerprint_history"
+    _HISTORY_LIMIT = 5
 
     def __init__(self, capacity: int = 6, root: str | os.PathLike[str] | None = None) -> None:
         if type(capacity) is not int or capacity < 1:
@@ -476,6 +478,16 @@ class SceneDeltaCache:
                     updated_at TEXT NOT NULL,
                     PRIMARY KEY (scene, scope)
                 );
+                CREATE TABLE IF NOT EXISTS {self._HISTORY_TABLE} (
+                    scene TEXT NOT NULL,
+                    scope TEXT NOT NULL CHECK (scope IN ('selected','all')),
+                    version INTEGER NOT NULL,
+                    digest TEXT NOT NULL,
+                    counts TEXT NOT NULL,
+                    state TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    PRIMARY KEY (scene, scope, version)
+                );
                 """
             )
         except BaseException:
@@ -511,10 +523,17 @@ class SceneDeltaCache:
         try:
             with closing(self._connect()) as connection:
                 with connection:
-                    connection.execute(f"DELETE FROM {self._TABLE}")
+                    # Upsert only this instance's own keys. Deleting the whole
+                    # table would erase fingerprints written by other cache
+                    # instances / processes sharing the same store; those rows
+                    # are preserved and only pruned via _load_store's capacity
+                    # handling when each instance loads them.
                     connection.executemany(
                         f"INSERT INTO {self._TABLE} "
-                        "(scene, scope, digest, counts, updated_at) VALUES (?,?,?,?,?)",
+                        "(scene, scope, digest, counts, updated_at) VALUES (?,?,?,?,?) "
+                        "ON CONFLICT(scene, scope) DO UPDATE SET "
+                        "digest=excluded.digest, counts=excluded.counts, "
+                        "updated_at=excluded.updated_at",
                         [
                             (scene, scope, digest, counts, updated_at)
                             for (scene, scope), (digest, counts, updated_at)
@@ -526,6 +545,82 @@ class SceneDeltaCache:
             # baseline for this process and report the failure explicitly.
             self._persist_error = f"{type(exc).__name__}: {exc}"
             self._db_path = None
+
+    def _append_history(self, scene: str, scope: str, digest: str,
+                        counts_json: str, state: str) -> None:
+        """Best-effort append of a fingerprint version to bounded history.
+
+        Stores only hashes and metadata (never snapshot content); failure
+        degrades to memory-only exactly like ``_flush_store``.
+        """
+        db_path = self._db_path
+        if db_path is None:
+            return
+        try:
+            with closing(self._connect()) as connection:
+                # Serialize writers: BEGIN IMMEDIATE takes the write lock
+                # before MAX(version) is read, so two processes appending
+                # history for the same (scene, scope) cannot compute the same
+                # next_version and collide on the primary key.
+                connection.execute("BEGIN IMMEDIATE")
+                try:
+                    next_version = connection.execute(
+                        f"SELECT COALESCE(MAX(version), 0) + 1 FROM {self._HISTORY_TABLE} "
+                        "WHERE scene = ? AND scope = ?",
+                        (scene, scope),
+                    ).fetchone()[0]
+                    connection.execute(
+                        f"INSERT INTO {self._HISTORY_TABLE} "
+                        "(scene, scope, version, digest, counts, state, created_at) "
+                        "VALUES (?,?,?,?,?,?,?)",
+                        (scene, scope, next_version, digest, counts_json,
+                         state, _utc_now()),
+                    )
+                    connection.execute(
+                        f"DELETE FROM {self._HISTORY_TABLE} "
+                        "WHERE scene = ? AND scope = ? "
+                        "AND version <= ?",
+                        (scene, scope, next_version - self._HISTORY_LIMIT),
+                    )
+                except BaseException:
+                    connection.execute("ROLLBACK")
+                    raise
+                connection.execute("COMMIT")
+        except (OSError, ValueError, sqlite3.Error) as exc:
+            self._persist_error = f"{type(exc).__name__}: {exc}"
+            self._db_path = None
+
+    def history(self, scene: str, scope: str, limit: int | None = None
+                ) -> list[dict[str, Any]]:
+        """Read-only accessor returning stored versions (hashes/metadata only).
+
+        Most recent version first. Returns an empty list when persistence is
+        unavailable or the key is unknown.
+        """
+        if type(scene) is not str or not scene or type(scope) is not str:
+            return []
+        db_path = self._db_path
+        if db_path is None:
+            return []
+        query = (f"SELECT version, digest, counts, state, created_at "
+                 f"FROM {self._HISTORY_TABLE} WHERE scene = ? AND scope = ? "
+                 "ORDER BY version DESC")
+        params: list[Any] = [scene, scope]
+        if limit is not None:
+            if type(limit) is not int or limit < 1:
+                raise ValueError("limit must be a positive integer")
+            query += " LIMIT ?"
+            params.append(limit)
+        try:
+            with closing(self._connect()) as connection:
+                rows = connection.execute(query, params).fetchall()
+        except (OSError, ValueError, sqlite3.Error):
+            return []
+        return [
+            {"version": version, "digest": digest, "counts": counts,
+             "state": state, "created_at": created_at}
+            for version, digest, counts, state, created_at in rows
+        ]
 
     @property
     def persistence_diagnostic(self) -> str | None:
@@ -598,4 +693,6 @@ class SceneDeltaCache:
             while len(self._fingerprints) > self.capacity:
                 self._fingerprints.popitem(last=False)
             self._flush_store()
+            if self._db_path is not None:
+                self._append_history(scene, scope, fingerprint, counts_json, state)
             return result
