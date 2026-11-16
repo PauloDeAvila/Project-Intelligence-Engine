@@ -112,7 +112,7 @@ class TaskGraphStore:
         if read_only:
             if not self._path.is_file():
                 raise GraphValidationError("read-only graph path must exist")
-            uri = f"file:{self._path.resolve().as_posix()}?mode=ro"
+            uri = f"{self._path.resolve().as_uri()}?mode=ro"
             self._connection = sqlite3.connect(
                 uri, uri=True, timeout=5, isolation_level=None, check_same_thread=False
             )
