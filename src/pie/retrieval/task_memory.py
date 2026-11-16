@@ -318,6 +318,104 @@ def restore_state(root: Path, task_id: str, seq: int | None = None) -> dict:
         }
 
 
+def checkpoint_agent_state(
+    root: Path,
+    task_id: str,
+    agent_id: str,
+    state: object,
+    provenance: object | None = None,
+) -> dict:
+    """Persist explicit agent state using the checkpoint security rules."""
+    agent_id = _text(agent_id, "agent_id", 64)
+    if provenance is None:
+        merged = {"agent_id": agent_id}
+    else:
+        if not isinstance(provenance, dict):
+            raise ValueError("provenance must be a dict or None")
+        supplied = provenance.get("agent_id")
+        if supplied is not None and supplied != agent_id:
+            raise ValueError("provenance agent_id conflicts with agent_id argument")
+        merged = dict(provenance)
+        merged["agent_id"] = agent_id
+    return checkpoint_task(root, task_id, state, merged)
+
+
+def list_agent_checkpoints(
+    root: Path,
+    task_id: str,
+    agent_id: str | None = None,
+    limit: int = 100,
+) -> dict:
+    """List hash-backed checkpoint metadata without returning state or events."""
+    task_id = _text(task_id, "task_id", 64)
+    if agent_id is not None:
+        agent_id = _text(agent_id, "agent_id", 64)
+    if type(limit) is not int or not 1 <= limit <= 100:
+        raise ValueError("limit must be 1..100")
+    checkpoints: list[dict] = []
+    with closing(_open(root)) as db:
+        rows = db.execute(
+            "SELECT task_id,seq,schema_version,state_hash,provenance_json,"
+            "provenance_hash,created_utc FROM pie_task_checkpoints "
+            "WHERE task_id=? ORDER BY seq DESC LIMIT ?",
+            (task_id, limit),
+        ).fetchall()
+        for row in rows:
+            if row["schema_version"] != CHECKPOINT_SCHEMA_VERSION:
+                raise ValueError("Checkpoint schema version mismatch")
+            state_hash = row["state_hash"]
+            if (
+                not isinstance(state_hash, str)
+                or len(state_hash) != 64
+                or any(char not in "0123456789abcdef" for char in state_hash)
+            ):
+                raise ValueError("Checkpoint state hash is invalid")
+            provenance_json = row["provenance_json"]
+            provenance_hash = row["provenance_hash"]
+            if provenance_json is None:
+                if provenance_hash is not None:
+                    raise ValueError("Checkpoint provenance hash mismatch")
+                provenance = None
+            else:
+                if provenance_hash is None:
+                    raise ValueError("Checkpoint provenance hash is missing")
+                provenance = _verify_checkpoint_payload(
+                    provenance_json,
+                    provenance_hash,
+                    "provenance",
+                    CHECKPOINT_PROVENANCE_MAX_BYTES,
+                    scalars_only=True,
+                )
+            if agent_id is not None and (
+                not isinstance(provenance, dict) or provenance.get("agent_id") != agent_id
+            ):
+                continue
+            checkpoints.append(
+                {
+                    "task_id": row["task_id"],
+                    "seq": row["seq"],
+                    "schema_version": row["schema_version"],
+                    "state_hash": state_hash,
+                    "provenance": provenance,
+                    "provenance_hash": provenance_hash,
+                    "created_utc": row["created_utc"],
+                }
+            )
+    if not checkpoints:
+        return {
+            "state": "NOT_FOUND",
+            "task_id": task_id,
+            "agent_id": agent_id,
+            "checkpoints": [],
+        }
+    return {
+        "state": "FOUND",
+        "task_id": task_id,
+        "agent_id": agent_id,
+        "checkpoints": checkpoints,
+    }
+
+
 def start_task(root: Path, objective: str) -> dict:
     """Start a task; UUID is opaque and generated locally."""
     objective = _text(objective, "objective", 2048)

@@ -8,6 +8,8 @@ import pytest
 
 from pie.retrieval.task_memory import (
     checkpoint_task,
+    checkpoint_agent_state,
+    list_agent_checkpoints,
     record_task,
     restore_state,
     start_task,
@@ -168,6 +170,33 @@ def test_checkpoint_does_not_copy_objective_or_event_text(root):
     serialized = json.dumps(_rows(root, task_id), ensure_ascii=False)
     assert objective not in serialized
     assert event_text not in serialized
+
+
+def test_agent_checkpoint_is_explicit_and_filterable(root):
+    task_id = _task(root, "agent memory objective")
+    checkpoint_agent_state(
+        root,
+        task_id,
+        "agent-a",
+        {"progress": 1},
+        {"source": "local"},
+    )
+    checkpoint_agent_state(root, task_id, "agent-b", {"progress": 2})
+    all_checkpoints = list_agent_checkpoints(root, task_id)
+    agent_a = list_agent_checkpoints(root, task_id, agent_id="agent-a")
+    assert all_checkpoints["state"] == "FOUND"
+    assert len(all_checkpoints["checkpoints"]) == 2
+    assert [item["provenance"]["agent_id"] for item in agent_a["checkpoints"]] == ["agent-a"]
+    assert "state_json" not in json.dumps(all_checkpoints)
+    with pytest.raises(ValueError):
+        checkpoint_agent_state(root, task_id, "agent-a", {"progress": 3}, {"agent_id": "agent-b"})
+
+
+def test_agent_checkpoint_missing_filter_is_explicit(root):
+    task_id = _task(root)
+    checkpoint_agent_state(root, task_id, "agent-a", {"progress": 1})
+    result = list_agent_checkpoints(root, task_id, agent_id="agent-missing")
+    assert result["state"] == "NOT_FOUND"
 
 
 def test_concurrent_checkpoints_get_unique_sequences(root):
