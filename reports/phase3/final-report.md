@@ -276,4 +276,15 @@ A suíte completa após essa variante final passou novamente: **649 testes**, 5
 ignorados e 0 erros. Evidência:
 [159-full-suite-after-compiled-preview-only-20261115.json](159-full-suite-after-compiled-preview-only-20261115.json).
 
+Foi feita uma sonda isolada com uma segunda instância do gateway repassando
+controles de raciocínio ao upstream. Um par chegou a 94,885%, mas a repetição
+em três pares voltou a apresentar raciocínio variável; portanto, esse ganho não
+foi promovido. Evidências:
+[160-web-harness-provider-thinking-off-single-pair-20261115.json](160-web-harness-provider-thinking-off-single-pair-20261115.json) e
+[161-web-harness-provider-reasoning-variability-3pairs-20261115.json](161-web-harness-provider-reasoning-variability-3pairs-20261115.json).
+
+A suíte completa após o suporte opt-in passou com **650 testes**, 5 ignorados e
+0 erros. Evidência:
+[162-full-suite-after-provider-control-20261115.json](162-full-suite-after-provider-control-20261115.json).
+
 Auditoria requisito‑por‑requisito: [115-completion-audit-20261115.json](115-completion-audit-20261115.json).

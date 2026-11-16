@@ -543,6 +543,10 @@ def run_local_model(scenario: dict, observation: dict, model: str,
         reasoning_effort = os.environ.get("PIE_PROVIDER_REASONING_EFFORT", "").strip().lower()
         if reasoning_effort in {"none", "low", "medium", "high"}:
             request["reasoning_effort"] = reasoning_effort
+        thinking = os.environ.get("PIE_PROVIDER_THINKING", "").strip().lower()
+        if thinking in {"true", "false"}:
+            request["thinking"] = thinking == "true"
+            request["enable_thinking"] = thinking == "true"
     encoded = compact_json(request).encode("utf-8")
     if len(encoded) > 2_000_000:
         raise RuntimeError("Local model payload exceeds 2 MB")
