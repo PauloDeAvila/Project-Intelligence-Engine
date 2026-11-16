@@ -42,6 +42,7 @@
     "discovery": "PASS",
     "health": "PASS",
     "completion_usage": "UNAVAILABLE_TIMEOUT",
+    "upstream_probe": "HTTP_429_TOO_MANY_REQUESTS",
     "real_token_benchmark": "NOT_RUN"
   },
   "certification": {
