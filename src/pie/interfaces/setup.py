@@ -49,8 +49,12 @@ def _write_json_config(path: Path, key: str, name: str, entry: dict) -> str:
     return "created"
 
 
-def _write_codex(path: Path, name: str, python: Path, root: Path) -> str:
+def _write_codex(path: Path, name: str, python: Path, root: Path,
+                 tool_profile: str = "full") -> str:
     section_name = f"mcp_servers.{name}"
+    mcp_args = ["-m", "pie.interfaces.mcp_server", "--root", str(root)]
+    if tool_profile == "compact":
+        mcp_args += ["--tool-profile", "compact"]
     old = path.read_text(encoding="utf8") if path.exists() else ""
     if re.search(r"(?m)^\s*\[" + re.escape(section_name) + r"\]\s*$", old):
         import tomllib
@@ -58,7 +62,7 @@ def _write_codex(path: Path, name: str, python: Path, root: Path) -> str:
         actual = data.get("mcp_servers", {}).get(name, {})
         expected = {
             "command": str(python),
-            "args": ["-m", "pie.interfaces.mcp_server", "--root", str(root)]
+            "args": mcp_args
         }
         if all(actual.get(k) == v for k, v in expected.items()):
             return "unchanged"
@@ -70,7 +74,7 @@ def _write_codex(path: Path, name: str, python: Path, root: Path) -> str:
     section = (
         f"\n[{section_name}]\n"
         + "command = " + json.dumps(str(python)) + "\n"
-        + "args = " + json.dumps(["-m", "pie.interfaces.mcp_server", "--root", str(root)]) + "\n"
+        + "args = " + json.dumps(mcp_args) + "\n"
         + "startup_timeout_sec = 120\n"
     )
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -79,7 +83,8 @@ def _write_codex(path: Path, name: str, python: Path, root: Path) -> str:
 
 
 def provision(root: Path, *, python: Path | None = None,
-              clients: tuple[str, ...] = ("vscode", "codex", "claude", "cursor")) -> dict:
+              clients: tuple[str, ...] = ("vscode", "codex", "claude", "cursor"),
+              tool_profile: str = "full") -> dict:
     root = _project(root)
     python = (python or Path(sys.executable)).resolve(strict=True)
     if not python.is_file():
@@ -87,6 +92,8 @@ def provision(root: Path, *, python: Path | None = None,
     invalid = set(clients) - {"vscode", "codex", "claude", "cursor"}
     if invalid:
         raise ValueError(f"Unsupported clients: {sorted(invalid)}")
+    if tool_profile not in ("full", "compact"):
+        raise ValueError("Unsupported MCP tool profile")
     # Initialize and index before touching client configuration.
     if not (root / ".pie" / "index.sqlite3").is_file():
         command_init(root)
@@ -96,6 +103,8 @@ def provision(root: Path, *, python: Path | None = None,
                            str(index.get("diagnostics", [])))
     name = _identifier(root)
     args = ["-m", "pie.interfaces.mcp_server", "--root", str(root)]
+    if tool_profile == "compact":
+        args += ["--tool-profile", "compact"]
     operations: dict[str, dict] = {}
     if "vscode" in clients:
         path = root / ".vscode" / "mcp.json"
@@ -104,7 +113,7 @@ def provision(root: Path, *, python: Path | None = None,
         operations["vscode"] = {"file": str(path), "status": status}
     if "codex" in clients:
         path = root / ".codex" / "config.toml"
-        status = _write_codex(path, name, python, root)
+        status = _write_codex(path, name, python, root, tool_profile)
         operations["codex"] = {"file": str(path), "status": status}
     if "claude" in clients:
         # Claude Code project scope, also recognized by portable Copilot configs.
@@ -125,11 +134,13 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Initialize PIE and register project-scoped MCP servers")
     parser.add_argument("--project", type=Path, default=Path.cwd())
     parser.add_argument("--python", type=Path, default=Path(sys.executable))
+    parser.add_argument("--tool-profile", choices=("full", "compact"), default="full")
     parser.add_argument("--clients", nargs="+", choices=("vscode", "codex", "claude", "cursor"),
                         default=["vscode", "codex", "claude", "cursor"])
     args = parser.parse_args(argv)
     try:
-        report = provision(args.project, python=args.python, clients=tuple(args.clients))
+        report = provision(args.project, python=args.python, clients=tuple(args.clients),
+                           tool_profile=args.tool_profile)
     except (ValueError, RuntimeError, OSError, json.JSONDecodeError) as exc:
         print(f"PIE setup failed: {exc}", file=sys.stderr)
         return 1

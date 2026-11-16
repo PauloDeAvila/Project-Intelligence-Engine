@@ -16,6 +16,16 @@ pie = "pie.interfaces.cli:main"
 pie-setup = "pie.interfaces.setup:main"
 pie-mcp = "pie.interfaces.mcp_server:main"
 pie-gateway = "pie.interfaces.gateway:main"
+pie-blender-mcp = "pie.integrations.blender_mcp_bridge:main"
+pie-global = "pie.interfaces.global_mcp:cli"
+pie-global-mcp = "pie.interfaces.global_mcp:main"
+pie-terminal = "pie.gateway.terminal:main"
+pie-mcp-proxy = "pie.gateway.mcp_stdio:main"
+pie-phase1 = "pie.gateway.install:main"
+pie-live = "pie.certification.cli:main"
+pie-phase3-controller = "pie.certification.controller:main"
+pie-domain = "pie.gateway.domain:main"
+pie-usage = "pie.certification.task_telemetry:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import re
+from pie.storage.locations import workspace_file
 import sqlite3
 import time
 from dataclasses import dataclass
@@ -76,7 +77,7 @@ class EvidenceAtomCache:
 
     def __init__(self, root: Path) -> None:
         self.root = Path(root).resolve()
-        self.path = self.root / ".pie" / "evidence_atoms.sqlite3"
+        self.path = workspace_file(self.root, "evidence_atoms.sqlite3")
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.connection = sqlite3.connect(str(self.path), timeout=5)
         self.connection.execute("PRAGMA journal_mode=WAL")
@@ -114,7 +115,7 @@ class EvidenceAtomCache:
         self.close()
 
     def generation(self) -> str:
-        index_path = self.root / ".pie" / "index.sqlite3"
+        index_path = workspace_file(self.root)
         if not index_path.is_file():
             return "UNINDEXED"
         conn = sqlite3.connect(str(index_path))
