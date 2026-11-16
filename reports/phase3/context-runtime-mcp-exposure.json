@@ -21,7 +21,7 @@
   },
   "validation": {
     "targeted_tests": "hard timeout isolated with focused tests passed",
-    "full_suite": "695 passed, 4 skipped, 126 subtests passed",
+    "full_suite": "697 passed, 4 skipped, 126 subtests passed",
     "compileall": "PASS",
     "wheel_build": "PASS",
     "pie_index_state": "CURRENT",
