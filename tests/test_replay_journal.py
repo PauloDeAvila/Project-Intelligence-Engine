@@ -158,6 +158,31 @@ def test_result_metadata_is_bounded_and_fail_closed(tmp_path):
     journal.close()
 
 
+def test_tampered_result_metadata_sha256_is_rejected_on_replay(tmp_path):
+    journal = ExecutionJournal(tmp_path / "tampered-metadata.sqlite3")
+    journal.execute_once(
+        "metadata-tamper-1",
+        {"request": 1},
+        lambda: {"ok": True},
+        result_metadata=lambda result: {"status": "verified"},
+    )
+    connection = sqlite3.connect(journal._path)
+    connection.execute(
+        "UPDATE execution_journal SET result_metadata_sha256=? WHERE operation_id=?",
+        ("0" * 64, "metadata-tamper-1"),
+    )
+    connection.commit()
+    connection.close()
+    with pytest.raises(ValueError):
+        journal.execute_once(
+            "metadata-tamper-1",
+            {"request": 1},
+            lambda: {"private": "must-not-run"},
+            result_metadata=lambda result: {"status": "wrong"},
+        )
+    journal.close()
+
+
 def test_result_metadata_schema_migrates_legacy_database(tmp_path):
     path = tmp_path / "legacy.sqlite3"
     connection = sqlite3.connect(path)

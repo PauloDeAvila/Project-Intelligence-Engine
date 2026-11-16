@@ -307,6 +307,16 @@ class BlenderDeltaPersistenceTests(unittest.TestCase):
         self.assertEqual(versions, list(range(versions[0], versions[0] + len(versions))),
                          "versions must be unique and contiguous")
 
+    def test_history_rejects_invalid_limit(self):
+        cache = SceneDeltaCache(root=self.root)
+        self.assertEqual(cache.observe(make_snapshot())["state"], "INITIAL")
+        for invalid in (0, -1, True, "10", 2.5):
+            with self.assertRaises(ValueError):
+                cache.history("Scene", "selected", limit=invalid)
+        # A valid limit still works and bounds the returned rows.
+        versions = cache.history("Scene", "selected", limit=1)
+        self.assertEqual([item["version"] for item in versions], [1])
+
     def test_store_without_root_stays_memory_only(self):
         cache = SceneDeltaCache()
         self.assertIsNone(cache._db_path)

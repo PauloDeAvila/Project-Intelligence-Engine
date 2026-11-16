@@ -284,6 +284,39 @@ def test_compile_task_checkpoint_token_budget(root):
     assert excinfo.value.reason == "evidence_exceeds_token_budget"
 
 
+def test_compile_task_checkpoint_token_counter_not_callable_fails_closed(root):
+    task = start_task(root, "non-callable counter")
+    checkpoint_task(root, task["task_id"], {"plan": {"stage": "verify"}})
+
+    with pytest.raises(ContextCompilationError) as excinfo:
+        compile_task_checkpoint(
+            root,
+            task["task_id"],
+            required_paths=[["plan", "stage"]],
+            token_budget=100,
+            token_counter=1000,
+        )
+    assert excinfo.value.state == "UNSATISFIED"
+    assert excinfo.value.reason == "token_counter_unavailable"
+
+
+def test_compile_task_checkpoint_invalid_counter_measurement_fails_closed(root):
+    task = start_task(root, "invalid measurement")
+    checkpoint_task(root, task["task_id"], {"plan": {"stage": "verify"}})
+
+    for invalid in (True, "many", -1):
+        with pytest.raises(ContextCompilationError) as excinfo:
+            compile_task_checkpoint(
+                root,
+                task["task_id"],
+                required_paths=[["plan", "stage"]],
+                token_budget=100,
+                token_counter=lambda text, value=invalid: value,
+            )
+        assert excinfo.value.state == "UNSATISFIED"
+        assert excinfo.value.reason == "token_counter_unavailable"
+
+
 def test_compile_context_without_budget_regression():
     compiled = compile_context({"a": 1}, required_paths=[["a"]])
     assert isinstance(compiled, CompiledContext)

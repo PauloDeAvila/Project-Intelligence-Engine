@@ -54,6 +54,87 @@ def test_deterministic_tie_break_and_latency_objective():
     assert fast["representation"] == "fast"
 
 
+def test_latency_objective_marks_candidates_without_latency_ineligible():
+    result = choose_candidate(
+        [
+            MeasuredCandidate("no-latency", "available", input_tokens=1, output_tokens=1),
+            MeasuredCandidate("offline", "unavailable", latency_ms=None),
+        ],
+        objective="latency",
+    )
+    assert result["state"] == "NO_VALID_CANDIDATE"
+    assert "missing_latency:no-latency" in result["reasons"]
+    assert "missing_latency:offline" in result["reasons"]
+
+    # Under the latency objective, usage availability is not a gate: an
+    # unavailable candidate with a measured latency stays eligible.
+    usable = choose_candidate(
+        [
+            MeasuredCandidate("measured", "unavailable", latency_ms=3.0),
+            MeasuredCandidate("unmeasured", "available", input_tokens=1, output_tokens=1),
+        ],
+        objective="latency",
+    )
+    assert usable["state"] == "SELECTED"
+    assert usable["representation"] == "measured"
+
+
+def test_latency_objective_ranking_uses_mcp_calls_and_representation_for_ties():
+    result = choose_candidate(
+        [
+            MeasuredCandidate("later", "available", latency_ms=10.0, mcp_calls=0),
+            MeasuredCandidate("early", "available", latency_ms=10.0, mcp_calls=2),
+        ],
+        objective="latency",
+    )
+    assert result["state"] == "SELECTED"
+    assert result["representation"] == "later"
+    assert result["decision_basis"][1] == "ranked_by=latency_ms,mcp_calls,representation"
+
+    same_latency = choose_candidate(
+        [
+            MeasuredCandidate("zulu", "available", latency_ms=10.0),
+            MeasuredCandidate("alpha", "available", latency_ms=10.0),
+        ],
+        objective="latency",
+    )
+    assert same_latency["representation"] == "alpha"
+
+
+def test_cost_objective_ties_break_deterministically_on_rank_fields():
+    result = choose_candidate(
+        [
+            MeasuredCandidate("slow", "available", cost_usd=0.01, latency_ms=5.0),
+            MeasuredCandidate("quick", "available", cost_usd=0.01, latency_ms=1.0),
+        ],
+        objective="cost",
+    )
+    assert result["state"] == "SELECTED"
+    assert result["representation"] == "quick"
+
+    identical = choose_candidate(
+        [
+            MeasuredCandidate("bravo", "available", cost_usd=0.01, latency_ms=1.0),
+            MeasuredCandidate("alpha", "available", cost_usd=0.01, latency_ms=1.0),
+        ],
+        objective="cost",
+    )
+    assert identical["representation"] == "alpha"
+
+
+def test_cost_objective_marks_candidates_without_cost_ineligible():
+    result = choose_candidate(
+        [
+            MeasuredCandidate("free-form", "available", input_tokens=1, output_tokens=1),
+            MeasuredCandidate("offline", "unavailable", cost_usd=0.01),
+        ],
+        objective="cost",
+    )
+    assert result["state"] == "NO_VALID_CANDIDATE"
+    assert "missing_cost:free-form" in result["reasons"]
+    assert "usage_unavailable:offline" in result["reasons"]
+
+
 def test_validation_rejects_bad_measurements():
     with pytest.raises(ValueError):
         MeasuredCandidate("x", "available", input_tokens=10, cached_input_tokens=11)
