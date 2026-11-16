@@ -97,7 +97,7 @@ uv run pie status --root .
 Resultado observado:
 
 ```text
-709 passed, 4 skipped, 126 subtests passed
+710 passed, 4 skipped, 126 subtests passed
 PIE index_state=CURRENT
 workspace_match=true
 verifier status=PASS_LOCAL
@@ -125,6 +125,13 @@ Os relatórios do piloto são
 que retornaram HTTP 429 permanecem registradas como falhas históricas e não
 são usadas como evidência positiva.
 
+O relay local Infinity também foi validado com `gambiarraapi/deepseek-v3.2`.
+O piloto pareado com limite de saída explícito de 512 tokens teve 3/3 corretas
+em baseline e PIE: baseline 27102 tokens, PIE 1680 tokens, economia total de
+93.801%, input não cacheado 4229 contra 212 e latência mediana 3.1989 s contra
+2.7034 s. É evidência real de provedor local, mas continua complementar e não
+certifica Codex nem os cenários Blender/Web.
+
 O filtro Web agora aceita snapshots locais válidos com envelope estrutural
 mínimo de 80 caracteres, mantendo marcador, role/ref, allowlist, redaction e
 rejeição de segredos/erros. O patch e seus 12 testes estão no commit `f8e8788`.
@@ -140,3 +147,5 @@ Evidências JSON:
 - `reports/phase3/glm-provider-preflight.json`;
 - `reports/phase3/context-runtime-verifier-glm-v5.json`;
 - `reports/phase3/glm-real-pilot-live-v5/summary.json`.
+- `reports/phase4-8/deepseek-real-pilot-paired-512.json`;
+- `reports/phase4-8/context-runtime-verifier-deepseek.json`.
