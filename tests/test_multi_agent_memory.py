@@ -144,3 +144,34 @@ def test_multi_agent_memory_restore_without_sequence_returns_not_found_for_unkno
         "agent_id": "agent-a",
         "checkpoint": None,
     }
+
+
+def test_multi_agent_memory_handoff_survives_agent_boundary(tmp_path):
+    task = _setup(tmp_path)
+    memory = MultiAgentMemory(tmp_path)
+    source = memory.checkpoint(
+        task["task_id"], "codex", {"decision": "use_verified_context"}
+    )
+    transferred = memory.handoff(task["task_id"], "codex", "deepseek")
+
+    assert transferred["state"] == "HANDOFF_CREATED"
+    assert transferred["source_seq"] == source["seq"]
+    resumed = memory.restore(task["task_id"], "deepseek")
+    assert resumed["state"] == "FOUND"
+    assert resumed["checkpoint"]["state_value"] == {
+        "decision": "use_verified_context"
+    }
+    assert resumed["checkpoint"]["provenance"]["handoff_from"] == "codex"
+
+
+def test_multi_agent_memory_handoff_rejects_unknown_source(tmp_path):
+    task = _setup(tmp_path)
+    memory = MultiAgentMemory(tmp_path)
+    assert memory.handoff(task["task_id"], "codex", "deepseek")["state"] == "NOT_FOUND"
+
+
+def test_multi_agent_memory_handoff_requires_distinct_agents(tmp_path):
+    task = _setup(tmp_path)
+    memory = MultiAgentMemory(tmp_path)
+    with pytest.raises(ValueError):
+        memory.handoff(task["task_id"], "codex", "codex")

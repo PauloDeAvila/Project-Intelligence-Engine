@@ -210,6 +210,9 @@ def test_context_runtime_integrates_all_six_pillars(tmp_path: Path):
         runtime.checkpoint_agent(task["task_id"], "agent-a", {"fact": {"value": 7}})
         compiled = runtime.compile_checkpoint(task["task_id"], [["fact", "value"]])
         assert compiled.data == {"fact": {"value": 7}}
+        handoff = runtime.handoff(task["task_id"], "agent-a", "agent-b")
+        assert handoff["state"] == "HANDOFF_CREATED"
+        assert runtime.memory.restore(task["task_id"], "agent-b")["state"] == "FOUND"
 
         selected = runtime.choose([
             MeasuredCandidate("wide", "available", 100, 20, 10, 5.0),
@@ -225,10 +228,27 @@ def test_context_runtime_integrates_all_six_pillars(tmp_path: Path):
         runtime.add_graph_node(task["task_id"], "verify", "step")
         runtime.add_graph_edge(task["task_id"], "observe", "verify", "depends")
         assert runtime.graph_order(task["task_id"])["order"] == ["observe", "verify"]
-        assert runtime.memory.agents(task["task_id"])["agents"] == ["agent-a"]
+        assert runtime.memory.agents(task["task_id"])["agents"] == [
+            "agent-a", "agent-b"
+        ]
 
         certified = runtime.evaluate_suite([(evidence("baseline"), evidence("optimized"))])
         assert certified["status"] == "CERTIFIED"
+
+
+def test_context_runtime_handoff_persists_across_restart(tmp_path: Path):
+    storage = tmp_path / ".pie"
+    storage.mkdir()
+    connect(storage / "index.sqlite3").close()
+    with ContextRuntime(tmp_path) as runtime:
+        task = runtime.start("restart handoff")
+        runtime.checkpoint_agent(task["task_id"], "codex", {"step": "verified"})
+        result = runtime.handoff(task["task_id"], "codex", "deepseek")
+        assert result["state"] == "HANDOFF_CREATED"
+    with ContextRuntime(tmp_path) as restarted:
+        restored = restarted.memory.restore(task["task_id"], "deepseek")
+        assert restored["state"] == "FOUND"
+        assert restored["checkpoint"]["state_value"] == {"step": "verified"}
 
 
 def test_compile_with_token_budget_requires_token_counter():

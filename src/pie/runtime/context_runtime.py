@@ -129,6 +129,17 @@ class ContextRuntime:
             raise RuntimeError("Context runtime is closed")
         return task_memory.list_agent_checkpoints(self.root, task_id, agent_id, limit)
 
+    def handoff(
+        self,
+        task_id: str,
+        from_agent_id: str,
+        to_agent_id: str,
+        seq: int | None = None,
+    ) -> dict:
+        if self._closed:
+            raise RuntimeError("Context runtime is closed")
+        return self._memory.handoff(task_id, from_agent_id, to_agent_id, seq)
+
     def compile_checkpoint(
         self,
         task_id: str,

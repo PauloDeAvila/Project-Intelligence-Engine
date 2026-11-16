@@ -75,6 +75,40 @@ class MultiAgentMemory:
             "checkpoint": restored,
         }
 
+    def handoff(
+        self,
+        task_id: str,
+        from_agent_id: str,
+        to_agent_id: str,
+        seq: int | None = None,
+    ) -> dict:
+        """Explicitly transfer one verified checkpoint to another agent."""
+        if from_agent_id == to_agent_id:
+            raise ValueError("handoff requires distinct agents")
+        source = self.restore(task_id, from_agent_id, seq)
+        if source["state"] != "FOUND":
+            return {
+                "state": "NOT_FOUND", "task_id": task_id,
+                "from_agent_id": from_agent_id, "to_agent_id": to_agent_id,
+                "checkpoint": None,
+            }
+        source_checkpoint = source["checkpoint"]
+        saved = self.checkpoint(
+            task_id,
+            to_agent_id,
+            source_checkpoint["state_value"],
+            {
+                "handoff_from": from_agent_id,
+                "handoff_source_seq": source_checkpoint["seq"],
+                "handoff_source_hash": source_checkpoint["state_hash"],
+            },
+        )
+        return {
+            "state": "HANDOFF_CREATED", "task_id": task_id,
+            "from_agent_id": from_agent_id, "to_agent_id": to_agent_id,
+            "source_seq": source_checkpoint["seq"], "checkpoint": saved,
+        }
+
     def agents(self, task_id: str, limit: int = 100) -> dict:
         references = self.references(task_id, None, limit)
         if references["state"] == "NOT_FOUND":

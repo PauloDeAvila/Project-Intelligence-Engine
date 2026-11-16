@@ -97,7 +97,7 @@ uv run pie status --root .
 Resultado observado:
 
 ```text
-705 passed, 4 skipped, 126 subtests passed
+709 passed, 4 skipped, 126 subtests passed
 PIE index_state=CURRENT
 workspace_match=true
 verifier status=PASS_LOCAL

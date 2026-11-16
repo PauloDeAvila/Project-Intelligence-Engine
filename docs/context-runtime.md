@@ -60,6 +60,12 @@ agentes expõe referências e proveniência verificáveis; não retorna o estado
 outro agente sem uma restauração explícita e validada, com caminhos
 fail-closed cobertos por testes.
 
+Um handoff entre agentes é explícito: runtime.handoff(task_id, from_agent_id,
+to_agent_id, seq) valida o checkpoint de origem, cria um novo checkpoint para
+o agente receptor e preserva handoff_from, sequência e hash de origem na
+proveniência. O receptor não precisa receber o histórico da tarefa, mas a
+transferência não ocorre implicitamente nem atravessa projetos.
+
 ## Deltas Blender com histórico versionado
 
 O `SceneDeltaCache` mantém um histórico versionado por chave `(scene, scope)`
@@ -151,7 +157,7 @@ não negativo, acompanhado de uso do provedor disponível. Sem tarifa ou uso
 verificados, o candidato é inelegível; o PIE não estima preço a partir de
 caracteres ou de limites de assinatura.
 
-A suíte completa atual passou com 705 testes (`705 passed, 4 skipped, 126
+A suíte completa atual passou com 709 testes (`709 passed, 4 skipped, 126
 subtests`). O verificador recente mantém o status `PASS_LOCAL` com
 certificação `NOT_CERTIFIED`.
 
