@@ -16,8 +16,11 @@ import random
 import re
 import statistics
 import time
+import ipaddress
+import socket
 import urllib.error
 import urllib.request
+from urllib.parse import urlparse
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"src"))
 from pie.indexing.indexer import index_project
 from pie.graph.relationships import build_relationships
@@ -92,6 +95,37 @@ def search(question,modules,rows,budget):
         raise RuntimeError(f"File context too big: {len(baseline)}")
     return baseline,pie,candidate_paths,chosen
 
+def is_loopback_host(host):
+    """True only when the hostname resolves to a loopback address."""
+    if not isinstance(host,str) or not host:
+        return False
+    name=host.strip("[]")
+    try:
+        addresses=sorted({str(ipaddress.ip_address(a[4][0])) for a in socket.getaddrinfo(name,None)},
+                         key=lambda v:(ipaddress.ip_address(v).version,))
+    except (socket.gaierror,ValueError):
+        return False
+    if not addresses:
+        return False
+    return all(ipaddress.ip_address(a).is_loopback for a in addresses)
+
+def validate_gateway_base_url(base):
+    """Require HTTPS, or HTTP only against a loopback (localhost/127.0.0.1/::1) lab provider."""
+    if not isinstance(base,str) or not base:
+        return False
+    parsed=urlparse(base)
+    if parsed.scheme not in ("http","https") or not parsed.hostname:
+        return False
+    if parsed.scheme=="https":
+        return True
+    return is_loopback_host(parsed.hostname)
+
+def require_gateway_secrets(base,key):
+    """Fail closed without ever echoing the key."""
+    if not key:raise RuntimeError("Missing PIE_API_KEY gateway secret")
+    if not validate_gateway_base_url(base):
+        raise RuntimeError("PIE_API_BASE_URL must be HTTPS, or HTTP against a loopback host (localhost/127.0.0.1/::1)")
+
 def normalize_navigation_answer(answer):
     """Accept a legitimate path:line citation without changing the symbol."""
     if not isinstance(answer,dict):return {}
@@ -101,6 +135,67 @@ def normalize_navigation_answer(answer):
     path=re.sub(r"^#+\s*","",path.strip())
     path=re.sub(r":\d+(?:-\d+)?$","",path)
     return {"path":path,"symbol":symbol.strip()}
+
+def normalize_usage(usage):
+    """Classify provider-reported usage without inventing token counts.
+
+    Status is "available" only when prompt_tokens and completion_tokens are
+    non-negative integers (and total_tokens / cached tokens, when present, are
+    too); otherwise every token field is None so missing data never becomes
+    zero. Cache tokens may arrive as cached_input_tokens or nested under
+    prompt_tokens_details.cached_tokens; their absence never changes status.
+    """
+    if not isinstance(usage,dict):usage={}
+    fields={"prompt_tokens":None,"completion_tokens":None,"total_tokens":None,
+            "cached_input_tokens":None,"uncached_input_tokens":None}
+    def valid(v):return isinstance(v,int) and not isinstance(v,bool) and v>=0
+    prompt=usage.get("prompt_tokens")
+    completion=usage.get("completion_tokens")
+    total=usage.get("total_tokens")
+    details=usage.get("prompt_tokens_details")
+    cached=usage.get("cached_input_tokens")
+    if cached is None and isinstance(details,dict):
+        cached=details.get("cached_tokens")
+    if total is not None and not valid(total):
+        return {"provider_usage_status":"unavailable",**fields}
+    if cached is not None and not valid(cached):
+        return {"provider_usage_status":"unavailable",**fields}
+    if not valid(prompt) or not valid(completion):
+        return {"provider_usage_status":"unavailable",**fields}
+    if cached is not None and cached>prompt:
+        return {"provider_usage_status":"unavailable",**fields}
+    fields["prompt_tokens"]=prompt
+    fields["completion_tokens"]=completion
+    if total is not None:
+        fields["total_tokens"]=total
+    if cached is not None:
+        fields["cached_input_tokens"]=cached
+        fields["uncached_input_tokens"]=prompt-cached
+    return {"provider_usage_status":"available",**fields}
+
+def summarize_rows(rows,host=None,scheme=None,model=None,mode=None):
+    """Aggregate one model/mode. Each token field is summed only when every
+    successful call reported a valid value for that field; missing data never
+    becomes zero, and fields are aggregated independently."""
+    matching=list(rows)
+    successes=[r for r in matching if r.get("ok")]
+    have_usage=[r for r in successes if r.get("provider_usage_status")=="available"]
+    usage_status="no_calls" if not matching else ("ok" if have_usage and len(have_usage)==len(successes) else "missing")
+    def valid(v):return isinstance(v,int) and not isinstance(v,bool) and v>=0
+    def total(key):
+        if not successes:return None
+        values=[r.get(key) for r in successes]
+        if any(not valid(v) for v in values):return None
+        return sum(values)
+    return {"host":host,"scheme":scheme,"model":model,"mode":mode,"calls":len(matching),
+            "successful":len(successes),"exact_correct":sum(1 for r in matching if r.get("correct")),
+            "evidence_hit":sum(1 for r in matching if r.get("evidence_hit")),
+            "provider_usage_status":usage_status,
+            "prompt_tokens":total("prompt_tokens"),"completion_tokens":total("completion_tokens"),
+            "total_tokens":total("total_tokens"),
+            "cached_input_tokens":total("cached_input_tokens"),
+            "uncached_input_tokens":total("uncached_input_tokens"),
+            "median_latency_s":round(statistics.median(r["seconds"] for r in successes),4) if successes else None}
 
 def infer(base,key,model,query,context,output_tokens):
     request_data={"model":model,"messages":[
@@ -172,7 +267,7 @@ def run():
     if a.dry_run:return
     base=os.getenv("PIE_API_BASE_URL","")
     key=os.getenv("PIE_API_KEY","")
-    if not base.startswith("https://") or not key:raise RuntimeError("Missing HTTPS gateway secrets")
+    require_gateway_secrets(base,key)
     results=[];models=a.models.split(";")
     for model in models:
         jobs=[(task,mode) for task in tasks for mode in ("baseline","pie")]
@@ -181,8 +276,10 @@ def run():
             reply=infer(base,key,model,task["question"],evidence[task["id"]][mode],
                          900 if "nemotron" in model.lower() else 160)
             correct=normalize_navigation_answer(reply.get("answer"))==task["oracle"]
+            usage=reply.get("usage") if isinstance(reply.get("usage"),dict) else {}
+            provider_fields=normalize_usage(usage)
             row={"model":model,"task":task["id"],"mode":mode,"correct":correct,
-                 "normalized_answer":normalize_navigation_answer(reply.get("answer")),"evidence_hit":next(x[mode+"_hit"] for x in audit if x["id"]==task["id"]),**reply}
+                 "normalized_answer":normalize_navigation_answer(reply.get("answer")),"evidence_hit":next(x[mode+"_hit"] for x in audit if x["id"]==task["id"]),**reply,**provider_fields}
             results.append(row)
             (output/"results.json").write_text(json.dumps({"results":results},indent=2),encoding="utf8")
             print("RUN",model,task["id"],mode,"correct="+str(correct),"ok="+str(reply["ok"]),
@@ -192,12 +289,8 @@ def run():
     for model in models:
         for mode in ("baseline","pie"):
             matching=[r for r in results if r["model"]==model and r["mode"]==mode]
-            successes=[r for r in matching if r["ok"]]
-            summary.append({"model":model,"mode":mode,"calls":len(matching),
-                "successful":len(successes),"exact_correct":sum(r["correct"] for r in matching),
-                "evidence_hit":sum(r["evidence_hit"] for r in matching),
-                "prompt_tokens":sum(r.get("usage",{}).get("prompt_tokens",0) for r in successes),
-                "median_latency_s":round(statistics.median(r["seconds"] for r in successes),4) if successes else None})
+            summary.append(summarize_rows(matching,host=urlparse(base).hostname,
+                                          scheme=urlparse(base).scheme,model=model,mode=mode))
     (output/"summary.json").write_text(json.dumps({"results":summary,
          "index_seconds":index_seconds,"qualification":"Real open-source Rich codebase, generated docstring queries. File-level vs function-level retrieval; no full repository baseline and no edit tasks."},indent=2),encoding="utf8")
     print("REAL_CORPUS_SUMMARY",json.dumps(summary),flush=True)

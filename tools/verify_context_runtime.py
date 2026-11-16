@@ -6,6 +6,7 @@ contract. It never turns that fixture into external token certification.
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import json
 from pathlib import Path
 import tempfile
@@ -37,13 +38,201 @@ def _evidence(condition: str) -> RunEvidence:
     )
 
 
-def verify() -> dict[str, Any]:
+def _valid_count(value: Any) -> bool:
+    """Non-negative integers only; booleans are never token counts."""
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+
+
+def _host_allowed(host: Any) -> bool:
+    """Allow loopback hosts (localhost/127.0.0.1/::1) or anything HTTPS-only.
+
+    The evidence records the gateway hostname; HTTPS is accepted without
+    resolution so evidence from a real provider is never rejected for being
+    a name this machine cannot resolve.
+    """
+    if not isinstance(host, str) or not host:
+        return False
+    name = host.strip("[]").lower()
+    if name in ("localhost", "127.0.0.1", "::1", "[::1]"):
+        return True
+    try:
+        return ipaddress.ip_address(name).is_loopback
+    except ValueError:
+        return False
+
+
+def _validate_external_evidence(payload: Any) -> dict[str, Any]:
+    """Fail-closed validation of a pie_real_repo_lab summary.json.
+
+    Returns the accepted evidence block, or raises ValueError with a reason.
+    No prompt text, credential, or other document field is ever read.
+    """
+    if not isinstance(payload, dict):
+        raise ValueError("external evidence must be a JSON object")
+    results = payload.get("results")
+    if not isinstance(results, list) or not results:
+        raise ValueError("external evidence 'results' must be a non-empty array")
+    models = {entry.get("model") for entry in results}
+    if len(models) != 1 or None in models:
+        raise ValueError("external evidence must contain exactly one model")
+    model = models.pop()
+    hosts = {entry.get("host") for entry in results}
+    if len(hosts) != 1:
+        raise ValueError("external evidence must contain exactly one host")
+    host = hosts.pop()
+    schemes = {entry.get("scheme") for entry in results}
+    if len(schemes) != 1:
+        raise ValueError("external evidence must contain exactly one scheme")
+    scheme = schemes.pop()
+
+    def entry_for(mode: str) -> dict[str, Any]:
+        matching = [e for e in results if e.get("mode") == mode]
+        if len(matching) != 1:
+            raise ValueError(
+                f"external evidence must contain exactly one '{mode}' entry"
+            )
+        entry = matching[0]
+        if not isinstance(entry, dict):
+            raise ValueError(f"external evidence '{mode}' entry must be an object")
+        return entry
+
+    baseline = entry_for("baseline")
+    pie = entry_for("pie")
+    for entry in (baseline, pie):
+        if entry.get("provider_usage_status") != "ok":
+            raise ValueError(
+                "external evidence requires provider_usage_status='ok' for both"
+                " baseline and pie entries"
+            )
+        for field in ("prompt_tokens", "completion_tokens", "total_tokens"):
+            if not _valid_count(entry.get(field)):
+                raise ValueError(
+                    f"external evidence field '{field}' must be a non-negative integer"
+                )
+        for field in ("cached_input_tokens", "uncached_input_tokens"):
+            if field in entry and not _valid_count(entry.get(field)):
+                raise ValueError(
+                    f"external evidence field '{field}' must be a non-negative integer"
+                )
+        if "cached_input_tokens" in entry and \
+                entry["cached_input_tokens"] > entry["prompt_tokens"]:
+            raise ValueError(
+                "external evidence cached_input_tokens cannot exceed prompt_tokens"
+            )
+        if "uncached_input_tokens" in entry and \
+                entry["uncached_input_tokens"] > entry["prompt_tokens"]:
+            raise ValueError(
+                "external evidence uncached_input_tokens cannot exceed prompt_tokens"
+            )
+        if "cached_input_tokens" in entry and "uncached_input_tokens" in entry and \
+                entry["cached_input_tokens"] + entry["uncached_input_tokens"] != \
+                entry["prompt_tokens"]:
+            raise ValueError(
+                "external evidence cached_input_tokens plus uncached_input_tokens"
+                " must equal prompt_tokens"
+            )
+        if not _valid_count(entry.get("exact_correct")):
+            raise ValueError(
+                "external evidence field 'exact_correct' must be a non-negative integer"
+            )
+        if not _valid_count(entry.get("successful")):
+            raise ValueError(
+                "external evidence field 'successful' must be a non-negative integer"
+            )
+        if entry.get("successful") <= 0:
+            raise ValueError("external evidence entries must have successful calls")
+        if entry.get("exact_correct") > entry.get("successful"):
+            raise ValueError("external evidence exact_correct cannot exceed successful")
+    if scheme == "https":
+        pass
+    elif scheme == "http":
+        if not _host_allowed(host):
+            raise ValueError(
+                "external evidence collected over HTTP must come from a loopback"
+                " host (localhost/127.0.0.1/::1)"
+            )
+    else:
+        raise ValueError(
+            "external evidence must record a scheme of 'https' or 'http'"
+        )
+    return {"model": model, "host": host, "scheme": scheme,
+            "baseline": baseline, "pie": pie}
+
+
+def _external_block(evidence: dict[str, Any]) -> dict[str, Any]:
+    """Compute the reported external usage block from real token counts."""
+    baseline = evidence["baseline"]
+    pie = evidence["pie"]
+    pair_count = min(baseline["successful"], pie["successful"])
+    baseline_tokens = baseline["prompt_tokens"] + baseline["completion_tokens"]
+    pie_tokens = pie["prompt_tokens"] + pie["completion_tokens"]
+
+    def savings_percent(base_value: Any, pie_value: Any, base_total: Any,
+                        pie_total: Any) -> float | None:
+        """Percent savings from real tokens only; None when not computable."""
+        if not (_valid_count(base_value) and _valid_count(pie_value)):
+            return None
+        if base_total == 0:
+            return None
+        return round(100 * (base_value - pie_value) / base_total, 3)
+
+    input_savings_percent = savings_percent(
+        baseline.get("prompt_tokens"), pie.get("prompt_tokens"),
+        baseline["prompt_tokens"], pie["prompt_tokens"],
+    )
+    total_savings_percent = savings_percent(
+        baseline_tokens, pie_tokens, baseline_tokens, pie_tokens,
+    )
+    correct = min(baseline["exact_correct"], pie["exact_correct"])
+    block: dict[str, Any] = {
+        "available": True,
+        "status": "available",
+        "external_evidence_status": "PILOT_VALID",
+        "model": evidence["model"],
+        "host": evidence["host"],
+        "scheme": evidence["scheme"],
+        "pair_count": pair_count,
+        "correct_pairs": correct,
+        "baseline_tokens": baseline_tokens,
+        "pie_tokens": pie_tokens,
+        "input_savings_percent": input_savings_percent,
+        "total_savings_percent": total_savings_percent,
+        "note": "Token counts come from real provider usage reported by"
+                " pie_real_repo_lab; no prompts or credentials were read.",
+    }
+    for side in ("baseline", "pie"):
+        for field in ("cached_input_tokens", "uncached_input_tokens"):
+            block[f"{side}_{field}"] = evidence[side].get(field)
+    return block
+
+
+def verify(external_evidence: Path | None = None) -> dict[str, Any]:
     pillars: dict[str, dict[str, str]] = {}
     with tempfile.TemporaryDirectory(prefix="pie-context-runtime-") as directory:
         root = Path(directory)
         storage = root / ".pie"
         storage.mkdir()
         connect(storage / "index.sqlite3").close()
+        external: dict[str, Any] | None = None
+        if external_evidence is not None:
+            try:
+                payload = json.loads(
+                    external_evidence.read_text(encoding="utf-8-sig")
+                )
+                external = _external_block(_validate_external_evidence(payload))
+            except Exception as error:
+                return {
+                    "schema": "pie-context-runtime-verifier-v1",
+                    "status": "FAIL_LOCAL",
+                    "local_validation": False,
+                    "certification": "NOT_CERTIFIED",
+                    "external_evidence_path": str(external_evidence),
+                    "external_evidence_status": "INVALID",
+                    "failure_code": type(error).__name__,
+                    "failure_reason": str(error),
+                    "pillars": {},
+                    "external_provider_usage": "unavailable",
+                }
         try:
             with ContextRuntime(
                 root,
@@ -125,7 +314,7 @@ def verify() -> dict[str, Any]:
                 "external_provider_usage": "unavailable",
             }
 
-    return {
+    result: dict[str, Any] = {
         "schema": "pie-context-runtime-verifier-v1",
         "status": "PASS_LOCAL",
         "local_validation": True,
@@ -135,13 +324,30 @@ def verify() -> dict[str, Any]:
         "pillars": pillars,
         "note": "Synthetic evaluator evidence is not external provider usage.",
     }
+    if external is not None:
+        result["external_provider_usage"] = external
+        if external["pair_count"] < 3:
+            result["certification"] = "NOT_CERTIFIED"
+            result["certification_note"] = (
+                "External evidence shows "
+                f"{external['pair_count']} pair(s); at least 3 are required"
+                " for pilot certification, so the result stays NOT_CERTIFIED."
+            )
+        else:
+            result["certification"] = "NOT_CERTIFIED"
+    return result
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path)
+    parser.add_argument(
+        "--external-evidence",
+        type=Path,
+        help="Path to a pie_real_repo_lab summary.json with real provider usage",
+    )
     args = parser.parse_args()
-    result = verify()
+    result = verify(args.external_evidence)
     encoded = json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True)
     print(encoded)
     if args.output is not None:

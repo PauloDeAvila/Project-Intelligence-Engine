@@ -1,0 +1,51 @@
+{
+  "certification": "NOT_CERTIFIED",
+  "certification_note": "External evidence shows 1 pair(s); at least 3 are required for pilot certification, so the result stays NOT_CERTIFIED.",
+  "external_provider_usage": {
+    "available": true,
+    "baseline_cached_input_tokens": 0,
+    "baseline_tokens": 3146,
+    "baseline_uncached_input_tokens": 3128,
+    "correct_pairs": 1,
+    "external_evidence_status": "PILOT_VALID",
+    "host": "127.0.0.1",
+    "input_savings_percent": 87.692,
+    "model": "gambiarraapi/glm-5.3-flash",
+    "note": "Token counts come from real provider usage reported by pie_real_repo_lab; no prompts or credentials were read.",
+    "pair_count": 1,
+    "pie_cached_input_tokens": 0,
+    "pie_tokens": 403,
+    "pie_uncached_input_tokens": 385,
+    "scheme": "http",
+    "status": "available",
+    "total_savings_percent": 87.19
+  },
+  "local_validation": true,
+  "note": "Synthetic evaluator evidence is not external provider usage.",
+  "pillars": {
+    "adaptive_runtime": {
+      "status": "PASS"
+    },
+    "context_compiler": {
+      "status": "PASS"
+    },
+    "continuous_certification": {
+      "status": "PASS_SYNTHETIC_ONLY"
+    },
+    "local_execution_engine": {
+      "status": "PASS"
+    },
+    "mcp_projection": {
+      "status": "PASS"
+    },
+    "multi_agent_memory": {
+      "status": "PASS"
+    },
+    "state_engine": {
+      "status": "PASS"
+    }
+  },
+  "schema": "pie-context-runtime-verifier-v1",
+  "status": "PASS_LOCAL",
+  "synthetic_provider_evidence": true
+}

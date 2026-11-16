@@ -226,8 +226,9 @@ def parse_codex_jsonl(source:str)->dict:
             u=e.get("usage")
             if not isinstance(u,dict):raise ValueError("Missing provider usage")
             row={k:_count(u.get(k),k) for k in ("input_tokens","cached_input_tokens","output_tokens")}
-            row["reasoning_output_tokens"]=_count(u.get("reasoning_output_tokens",0),"reasoning_output_tokens")
-            if row["cached_input_tokens"]>row["input_tokens"] or row["reasoning_output_tokens"]>row["output_tokens"]:
+            r=u.get("reasoning_output_tokens")
+            row["reasoning_output_tokens"]=None if r is None else _count(r,"reasoning_output_tokens")
+            if row["cached_input_tokens"]>row["input_tokens"] or (row["reasoning_output_tokens"] is not None and row["reasoning_output_tokens"]>row["output_tokens"]):
                 raise ValueError("Incoherent provider usage")
             usage.append(row)
         elif e.get("type") in ("turn.failed","error"):failed=True
