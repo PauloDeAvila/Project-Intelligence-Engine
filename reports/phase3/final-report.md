@@ -217,6 +217,15 @@ aprovados. A resposta MCP otimizada ficou em 501 caracteres agregados por
 execução; o snapshot interno permaneceu fora do contexto do modelo. Evidência:
 [146-web-harness-semantic-minimal-3pairs-20261115.json](146-web-harness-semantic-minimal-3pairs-20261115.json).
 
+Também foi testado `reasoning_effort=low` no endpoint OpenAI-compatible. O
+resultado agregado foi 80,032%, sem melhoria material sobre o caminho padrão
+(80,064%); a opção permanece apenas opt-in e não é apresentada como ganho do
+PIE. Evidência: [147-web-harness-semantic-reasoning-low-3pairs-20261115.json](147-web-harness-semantic-reasoning-low-3pairs-20261115.json).
+
+A suíte completa após a opção de raciocínio passou com 647 testes, 5 ignorados
+e 0 erros. Evidência:
+[148-full-suite-after-reasoning-option-20261115.json](148-full-suite-after-reasoning-option-20261115.json).
+
 A suíte completa após esse ajuste passou novamente com 644 testes, 5 ignorados
 e 0 erros. Evidência: [139-full-suite-after-maxchars-20261115.json](139-full-suite-after-maxchars-20261115.json).
 

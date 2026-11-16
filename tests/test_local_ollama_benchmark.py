@@ -350,6 +350,29 @@ class LocalOllamaBenchmarkTests(unittest.TestCase):
         self.assertEqual(result["usage"]["total_tokens"], 18)
         self.assertEqual(result["usage"]["reasoning_output_tokens"], 8)
 
+    def test_openai_compatible_reasoning_effort_is_opt_in(self):
+        scenario = {"application": "web", "expected_exact": '{"title":"T"}',
+                    "prompt": "Extract title."}
+        obs = {"schema_json": "[]", "observations_json": "[]"}
+        reply = {"choices": [{"message": {"content": '{"title":"T"}'}}],
+                 "usage": {"prompt_tokens": 10, "completion_tokens": 2, "total_tokens": 12}}
+
+        class FakeResponse:
+            def __enter__(self): return self
+            def __exit__(self, *_): return False
+            def getcode(self): return 200
+            def read(self, _): return json.dumps(reply).encode()
+
+        def call(req, timeout):
+            self.assertEqual(json.loads(req.data)["reasoning_effort"], "low")
+            return FakeResponse()
+
+        with patch.dict("os.environ", {"PIE_PROVIDER_BASE_URL": "http://127.0.0.1:8080/v1",
+                                        "PIE_PROVIDER_REASONING_EFFORT": "low"}, clear=False):
+            with patch("benchmark_local_ollama.urlopen", side_effect=call):
+                result = run_local_model(scenario, obs, "gambiarraapi/glm-5.3-flash", 20, 4096)
+        self.assertTrue(result["oracle_pass"])
+
 
 if __name__ == "__main__":
     unittest.main()

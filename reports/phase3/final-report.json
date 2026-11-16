@@ -193,8 +193,21 @@
     "optimized_observation_chars": 501,
     "report": "reports/phase3/146-web-harness-semantic-minimal-3pairs-20261115.json"
   },
+  "latest_semantic_reasoning_low_run": {
+    "provider": "openai_compat_local_harness",
+    "model": "gambiarraapi/glm-5.3-flash",
+    "provider_option": "reasoning_effort=low",
+    "valid_pairs": 3,
+    "baseline_total_tokens": 8093,
+    "optimized_total_tokens": 1616,
+    "total_savings_percent": 80.032,
+    "oracle_passes": 6,
+    "interpretation": "No material improvement over the default semantic-minimal run; retained as opt-in only.",
+    "report": "reports/phase3/147-web-harness-semantic-reasoning-low-3pairs-20261115.json"
+  },
   "latest_full_suite_after_maxchars": "reports/phase3/139-full-suite-after-maxchars-20261115.json",
   "latest_full_suite_after_semantic_context": "reports/phase3/143-full-suite-after-semantic-context-20261115.json",
+  "latest_full_suite_after_reasoning_option": "reports/phase3/148-full-suite-after-reasoning-option-20261115.json",
   "validation": {
     "focused_tests_passed": 71,
     "full_suite_initial": {
