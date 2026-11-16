@@ -2,7 +2,15 @@ from __future__ import annotations
 
 from pie.certification.regression import RunEvidence
 from pie.retrieval.adaptive_runtime import MeasuredCandidate
-from pie.runtime.pillars import AdaptiveRuntime, ContextCompiler, ContinuousCertification, StateEngine
+from pie.runtime.local_execution import OperationSpec
+from pie.runtime.pillars import (
+    AdaptiveRuntime,
+    ContextCompiler,
+    ContinuousCertification,
+    LocalExecutionEngine,
+    MultiAgentMemory,
+    StateEngine,
+)
 from pie.runtime import (
     AdaptiveRuntime as ExportedAdaptiveRuntime,
     ContextCompiler as ExportedContextCompiler,
@@ -49,3 +57,37 @@ def test_continuous_certification_remains_fail_closed():
 
     assert ContinuousCertification.pair(evidence("baseline"), evidence("optimized"))["status"] == "CERTIFIED_PAIR"
     assert ContinuousCertification.suite([])["status"] == "NOT_CERTIFIED"
+
+
+def test_pillars_reexport_existing_symbols_without_wrappers():
+    from pie.runtime.local_execution import LocalExecutionEngine as DirectLocalExecutionEngine
+    from pie.runtime.multi_agent_memory import MultiAgentMemory as DirectMultiAgentMemory
+
+    assert LocalExecutionEngine is DirectLocalExecutionEngine
+    assert MultiAgentMemory is DirectMultiAgentMemory
+    import pie.runtime.pillars as pillars
+
+    assert "LocalExecutionEngine" in pillars.__all__
+    assert "MultiAgentMemory" in pillars.__all__
+
+
+def test_pillars_local_operation_and_memory_checkpoint_work(tmp_path):
+    storage = tmp_path / ".pie"
+    connect(storage / "index.sqlite3").close()
+
+    engine = LocalExecutionEngine()
+    engine.register(OperationSpec("sum", lambda args: {"value": args["a"] + args["b"]}))
+    result = engine.execute("sum", {"a": 2, "b": 3})
+    assert result["status"] == "SUCCESS"
+    assert result["result"] == {"value": 5}
+
+    state = StateEngine(tmp_path)
+    task = state.start("multi agent task")
+
+    memory = MultiAgentMemory(tmp_path)
+    recorded = memory.checkpoint(task["task_id"], "agent-1", {"fact": {"value": 3}})
+    assert isinstance(recorded, dict) and recorded["state_hash"]
+    restored = memory.restore(task["task_id"], "agent-1")
+    assert restored["state"] == "FOUND"
+    assert restored["checkpoint"]["state_value"] == {"fact": {"value": 3}}
+    assert restored["checkpoint"]["provenance"]["agent_id"] == "agent-1"

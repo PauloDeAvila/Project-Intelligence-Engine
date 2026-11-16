@@ -13,6 +13,8 @@ from pie.certification.regression import RunEvidence, evaluate_golden_suite, eva
 from pie.retrieval import task_memory
 from pie.retrieval.adaptive_runtime import MeasuredCandidate, choose_candidate
 from pie.retrieval.context_compiler import CompiledContext, TokenCounter, compile_context, compile_task_checkpoint
+from pie.runtime.local_execution import LocalExecutionEngine
+from pie.runtime.multi_agent_memory import MultiAgentMemory
 
 
 class StateEngine:
@@ -97,4 +99,11 @@ class ContinuousCertification:
         return evaluate_golden_suite(pairs)
 
 
-__all__ = ["AdaptiveRuntime", "ContextCompiler", "ContinuousCertification", "StateEngine"]
+__all__ = [
+    "AdaptiveRuntime",
+    "ContextCompiler",
+    "ContinuousCertification",
+    "LocalExecutionEngine",
+    "MultiAgentMemory",
+    "StateEngine",
+]
