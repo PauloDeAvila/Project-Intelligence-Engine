@@ -38,9 +38,39 @@ couber no orçamento ou estiver ausente. O payload entregue ao modelo é apenas
 `CompiledContext.model_payload()`; o envelope com hashes e caminhos deve ficar
 no armazenamento local.
 
+## Orçamento de tokens medido
+
+O Context Compiler aceita um `token_budget` explícito com um `token_counter`
+explícito (`Callable[[str], int]`). O orçamento só é aplicado quando ambos são
+fornecidos: um `token_budget` sem `token_counter` válido — ou um contador que
+falhe, retorne `bool` ou inteiro negativo — falha fechado com
+`token_counter_unavailable`; se a medição exceder o orçamento, a compilação
+falha com `evidence_exceeds_token_budget`. Nenhum caractere é convertido em
+tokens e nenhuma projeção parcial escapa.
+
+O verificador `tools/verify_context_runtime.py` exercita esse gate usando
+apenas um contador sintético não-tokenizante (`_synthetic_fixture_counter`),
+que retorna uma constante independente do payload. Ele não é um tokenizador e
+não mede nem estima tokens; qualquer medição real deve vir do `usage` do
+provedor. O verificador relata o gate como `PASS_SYNTHETIC_COUNTER` e diz isso
+explicitamente.
+
 Checkpoints armazenam dados JSON limitados e hashes SHA-256. A memória entre
 agentes expõe referências e proveniência verificáveis; não retorna o estado de
-outro agente sem uma restauração explícita e validada.
+outro agente sem uma restauração explícita e validada, com caminhos
+fail-closed cobertos por testes.
+
+## Deltas Blender com histórico versionado
+
+O `SceneDeltaCache` mantém um histórico versionado por chave `(scene, scope)`
+na tabela `scene_delta_fingerprint_history`, limitado a 5 versões por chave
+(DELETE de versões antigas no mesmo commit). Cada versão armazena apenas
+digest, counts, estado e timestamp — nunca conteúdo de snapshot. A escrita usa
+upsert (`ON CONFLICT ... DO UPDATE`) em vez de apagar linhas de outras
+instâncias/processos que compartilham o mesmo store, e o histórico é anexado
+com `BEGIN IMMEDIATE` para serializar escritores antes do cálculo de
+`MAX(version) + 1`. Falha de persistência degrada para memória, como no resto
+do cache.
 
 ## Execução local
 
@@ -77,9 +107,23 @@ não negativo, acompanhado de uso do provedor disponível. Sem tarifa ou uso
 verificados, o candidato é inelegível; o PIE não estima preço a partir de
 caracteres ou de limites de assinatura.
 
-No estado atual, a validação local está aprovada, mas a certificação externa de
-tokens permanece `NOT_CERTIFIED` porque o upstream GLM observado retornou
-HTTP 429 e não forneceu um payload `usage`.
+No estado atual, a validação local está aprovada. Um piloto GLM local de um
+par (evidência `PILOT_VALID` em
+`reports/phase3/context-runtime-verifier-glm-v2-after-cache.json`) reportou
+uso real do provedor, mas é complementar: não constitui a certificação Codex
+nem a bateria pareada Blender/Web e não eleva o status acima de
+`NOT_CERTIFIED`. Sondas anteriores com HTTP 429 permanecem registradas como
+histórico negativo, não como evidência positiva.
+
+## Histórico recente
+
+Commits que introduziram estes comportamentos:
+
+- `ca8d343` test(runtime): cover multi-agent memory fail-closed paths
+- `a9f92af` feat(runtime): enforce measured context token budgets
+- `b087093` test(runtime): verify token budget gates fail closed
+- `f004fc0` docs(runtime): record token budget homologation
+- `bdab33f` feat(blender): persist versioned delta history safely
 
 Evidências: `reports/phase3/context-runtime-pillars-validation.json` e
 `reports/phase3/context-runtime-mcp-exposure.json`.
