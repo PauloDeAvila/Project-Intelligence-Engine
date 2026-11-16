@@ -74,6 +74,24 @@ class ContextRuntime:
     def execution(self) -> LocalExecutionEngine:
         return self._execution
 
+    def start(self, objective: str) -> dict:
+        """Start a persistent task through the existing State Engine."""
+        if self._closed:
+            raise RuntimeError("Context runtime is closed")
+        return task_memory.start_task(self.root, objective)
+
+    def record(self, task_id: str, kind: str, text: str, **kwargs: object) -> dict:
+        """Append a task event through the existing State Engine."""
+        if self._closed:
+            raise RuntimeError("Context runtime is closed")
+        return task_memory.record_task(self.root, task_id, kind, text, **kwargs)
+
+    def resume(self, task_id: str | None = None, limit: int = 30) -> dict:
+        """Resume a task through the existing State Engine."""
+        if self._closed:
+            raise RuntimeError("Context runtime is closed")
+        return task_memory.resume_task(self.root, task_id, limit)
+
     def checkpoint(self, task_id: str, state: object, provenance: object | None = None) -> dict:
         return task_memory.checkpoint_task(self.root, task_id, state, provenance)
 

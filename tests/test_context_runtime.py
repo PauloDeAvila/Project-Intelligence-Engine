@@ -43,6 +43,25 @@ def test_runtime_composes_checkpoint_compiler_and_agent_metadata(tmp_path: Path)
     runtime.close()
 
 
+def test_runtime_composes_state_engine_lifecycle(tmp_path: Path):
+    storage = tmp_path / ".pie"
+    storage.mkdir()
+    connect(storage / "index.sqlite3").close()
+    with ContextRuntime(tmp_path) as runtime:
+        task = runtime.start("runtime task")
+        event = runtime.record(task["task_id"], "note", "started")
+        resumed = runtime.resume(task["task_id"], limit=10)
+        assert event["task_id"] == task["task_id"]
+        assert resumed["task"]["task_id"] == task["task_id"]
+
+
+def test_runtime_state_engine_rejects_use_after_close(tmp_path: Path):
+    runtime = ContextRuntime(tmp_path)
+    runtime.close()
+    with pytest.raises(RuntimeError, match="closed"):
+        runtime.start("should fail")
+
+
 def test_runtime_uses_measured_selection_and_replay(tmp_path: Path):
     runtime = ContextRuntime(tmp_path, journal_path=tmp_path / "runtime.sqlite3")
     selected = runtime.choose(
