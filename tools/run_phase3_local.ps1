@@ -14,6 +14,7 @@ param(
     [int]$BlenderPort = 9877,
     [ValidateSet("query", "exact")][string]$BlenderMode = "query",
     [ValidateSet("transparent", "semantic")][string]$WebMode = "transparent",
+    [ValidateSet("standard", "compiled")][string]$ContextMode = "standard",
     [string]$NpxExe = "",
     [string]$OutputDirectory = $env:TEMP,
     [switch]$EnableWebRecovery,
@@ -125,6 +126,7 @@ $runnerArgs = @(
     "--schema-scope", $SchemaScope,
     "--blender-mode", $BlenderMode,
     "--web-mode", $WebMode,
+    "--context-mode", $ContextMode,
     "--output", $report
 )
 if ($ProbeOnly) {

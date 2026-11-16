@@ -455,18 +455,38 @@ def ensure_local_model(model: str) -> str:
 
 
 def run_local_model(scenario: dict, observation: dict, model: str,
-                    timeout: int, num_ctx: int) -> dict:
-    provider, endpoint, _, headers = _provider_config()
-    request = {
-        "model": model,
-        "messages": [
+                    timeout: int, num_ctx: int, context_mode: str = "standard",
+                    condition: str = "baseline") -> dict:
+    if context_mode not in {"standard", "compiled"}:
+        raise ValueError("Unknown context mode")
+    if (context_mode == "compiled" and condition == "optimized"
+            and scenario.get("application") == "web"):
+        messages = [
+            {"role": "system", "content": "Return only one minified JSON object with keys title, heading, button, paragraph. Copy exact values from evidence; no prose or inference."},
+            {"role": "user", "content": "EVIDENCE=" + observation["observations_json"]},
+        ]
+    else:
+        messages = [
             {"role": "system", "content": SYSTEM},
             {"role": "user", "content": scenario["prompt"]},
             {"role": "user", "content": "Available MCP tool schemas (already executed):\n" + observation["schema_json"]},
             {"role": "user", "content": "MCP tool results (already executed):\n" + observation["observations_json"]},
-        ],
+        ]
+    provider, endpoint, _, headers = _provider_config()
+    request = {
+        "model": model,
+        "messages": messages,
         "stream": False, "temperature": 0, "max_tokens": 256,
     }
+    provider_max_tokens = os.environ.get("PIE_PROVIDER_MAX_TOKENS", "").strip()
+    if provider_max_tokens:
+        try:
+            value = int(provider_max_tokens)
+        except ValueError as exc:
+            raise ValueError("PIE_PROVIDER_MAX_TOKENS must be an integer") from exc
+        if not 32 <= value <= 4096:
+            raise ValueError("PIE_PROVIDER_MAX_TOKENS must be 32..4096")
+        request["max_tokens"] = value
     if provider == "ollama":
         request.pop("temperature")
         request.pop("max_tokens")
@@ -555,6 +575,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="exact is an experimental four-field lookup; query preserves legacy comparison")
     parser.add_argument("--web-mode", choices=("transparent", "semantic"), default="transparent",
                         help="semantic is an opt-in task-query tool comparison")
+    parser.add_argument("--context-mode", choices=("standard", "compiled"), default="standard",
+                        help="compiled is an opt-in task-context compiler comparison")
     parser.add_argument("--timeout", type=int, default=240)
     parser.add_argument("--probe-only", action="store_true")
     parser.add_argument("--output", type=Path, required=True)
@@ -579,6 +601,7 @@ def main(argv: list[str] | None = None) -> int:
               "schema_scope": args.schema_scope,
               "blender_mode": args.blender_mode if scenario["application"] == "blender" else None,
               "web_mode": args.web_mode if scenario["application"] == "web" else None,
+              "context_mode": args.context_mode,
               "local_prompt_sha256": sha(local_scenario["prompt"]),
               "prompt_modified_for_experiment": local_scenario["prompt"] != scenario["prompt"],
               "codex_sessions_started": 0, "codex_quota_consumed": False,
@@ -615,7 +638,8 @@ def main(argv: list[str] | None = None) -> int:
                             scenario, obs["grounded_answer"])[0]
                         arm["source_rendering"] = "DETERMINISTIC_TOOL_DATA_NOT_MODEL_OUTPUT"
                     if not args.probe_only:
-                        arm.update(run_local_model(local_scenario, obs, args.model, args.timeout, args.num_ctx))
+                        arm.update(run_local_model(local_scenario, obs, args.model, args.timeout,
+                                                   args.num_ctx, args.context_mode, condition))
                     pair["arms"][condition] = arm
             finally:
                 for session in reversed(list(sessions.values())):

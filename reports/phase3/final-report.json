@@ -217,9 +217,22 @@
     "interpretation": "Accepted by the harness but still far below 95%; retained as opt-in only.",
     "report": "reports/phase3/149-web-harness-semantic-reasoning-none-3pairs-20261115.json"
   },
+  "latest_compiled_context_optimized_only_run": {
+    "provider": "openai_compat_local_harness",
+    "model": "gambiarraapi/glm-5.3-flash",
+    "context_mode": "compiled_optimized_only",
+    "valid_pairs": 3,
+    "baseline_total_tokens": 8094,
+    "optimized_total_tokens": 737,
+    "total_savings_percent": 90.894,
+    "oracle_passes": 6,
+    "report": "reports/phase3/151-web-harness-compiled-optimized-only-3pairs-20261115.json"
+  },
+  "compiled_output_limit_failure": "reports/phase3/152-web-harness-compiled-max-tokens-64-failed-closed-20261115.json",
   "latest_full_suite_after_maxchars": "reports/phase3/139-full-suite-after-maxchars-20261115.json",
   "latest_full_suite_after_semantic_context": "reports/phase3/143-full-suite-after-semantic-context-20261115.json",
   "latest_full_suite_after_reasoning_option": "reports/phase3/148-full-suite-after-reasoning-option-20261115.json",
+  "latest_full_suite_after_compiled_context": "reports/phase3/153-full-suite-after-compiled-context-20261115.json",
   "validation": {
     "focused_tests_passed": 71,
     "full_suite_initial": {

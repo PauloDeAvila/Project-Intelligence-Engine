@@ -231,7 +231,22 @@ foi 80,761%, com 6/6 oráculos aprovados; o ganho continua distante de 95% e a
 opção permanece específica do provedor local. Evidência:
 [149-web-harness-semantic-reasoning-none-3pairs-20261115.json](149-web-harness-semantic-reasoning-none-3pairs-20261115.json).
 
+O Context Runtime compilado foi então aplicado somente ao braço otimizado,
+mantendo o baseline com o prompt completo. Em três pares alternados, foram
+medidos 8.094 tokens baseline contra 737 tokens otimizados: **90,894% de
+economia**, com 6/6 oráculos aprovados. Isso é uma comparação de produto com
+compilação de contexto, separada da compactação transparente.
+Evidência: [151-web-harness-compiled-optimized-only-3pairs-20261115.json](151-web-harness-compiled-optimized-only-3pairs-20261115.json).
+
+Uma tentativa de limitar a saída do provedor a 64 tokens falhou fechada:
+`oracle_pass=false` por truncamento, sem retry. A economia não foi contabilizada.
+Evidência: [152-web-harness-compiled-max-tokens-64-failed-closed-20261115.json](152-web-harness-compiled-max-tokens-64-failed-closed-20261115.json).
+
 A suíte completa após esse ajuste passou novamente com 644 testes, 5 ignorados
 e 0 erros. Evidência: [139-full-suite-after-maxchars-20261115.json](139-full-suite-after-maxchars-20261115.json).
+
+A suíte completa após o Context Runtime compilado passou com 648 testes, 5
+ignorados e 0 erros. Evidência:
+[153-full-suite-after-compiled-context-20261115.json](153-full-suite-after-compiled-context-20261115.json).
 
 Auditoria requisito‑por‑requisito: [115-completion-audit-20261115.json](115-completion-audit-20261115.json).

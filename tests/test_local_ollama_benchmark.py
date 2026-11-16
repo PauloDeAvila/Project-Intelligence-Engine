@@ -373,6 +373,31 @@ class LocalOllamaBenchmarkTests(unittest.TestCase):
                 result = run_local_model(scenario, obs, "gambiarraapi/glm-5.3-flash", 20, 4096)
         self.assertTrue(result["oracle_pass"])
 
+    def test_compiled_context_is_opt_in_for_optimized_arm_only(self):
+        scenario = {"application": "web", "expected_exact": '{"title":"T"}',
+                    "prompt": "Extract title."}
+        obs = {"schema_json": "SCHEMA", "observations_json": "EVIDENCE"}
+        reply = {"choices": [{"message": {"content": '{"title":"T"}'}}],
+                 "usage": {"prompt_tokens": 10, "completion_tokens": 2, "total_tokens": 12}}
+
+        class FakeResponse:
+            def __enter__(self): return self
+            def __exit__(self, *_): return False
+            def getcode(self): return 200
+            def read(self, _): return json.dumps(reply).encode()
+
+        requests = []
+        def call(req, timeout):
+            requests.append(json.loads(req.data))
+            return FakeResponse()
+
+        with patch.dict("os.environ", {"PIE_PROVIDER_BASE_URL": "http://127.0.0.1:8080/v1"}, clear=False):
+            with patch("benchmark_local_ollama.urlopen", side_effect=call):
+                run_local_model(scenario, obs, "model", 20, 4096, "compiled", "baseline")
+                run_local_model(scenario, obs, "model", 20, 4096, "compiled", "optimized")
+        self.assertIn("Available MCP tool schemas", requests[0]["messages"][2]["content"])
+        self.assertEqual(requests[1]["messages"][1]["content"], "EVIDENCE=EVIDENCE")
+
 
 if __name__ == "__main__":
     unittest.main()
