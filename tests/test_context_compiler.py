@@ -179,3 +179,112 @@ def test_context_compilation_error_remains_value_error():
     assert error.reason == "context_compilation_error"
     with pytest.raises(ValueError):
         compile_context({"a": 1}, required_paths=[["missing"]])
+
+
+def test_compile_context_token_budget_without_counter_fails_closed():
+    with pytest.raises(ContextCompilationError) as excinfo:
+        compile_context(
+            {"a": 1}, required_paths=[["a"]], token_budget=100
+        )
+    assert excinfo.value.state == "UNSATISFIED"
+    assert excinfo.value.reason == "token_counter_unavailable"
+
+
+def test_compile_context_token_budget_invalid():
+    with pytest.raises(ContextCompilationError) as excinfo:
+        compile_context(
+            {"a": 1},
+            required_paths=[["a"]],
+            token_budget=0,
+            token_counter=lambda text: 1,
+        )
+    assert excinfo.value.state == "UNSATISFIED"
+    assert excinfo.value.reason == "token_budget_invalid"
+
+
+def test_compile_context_token_budget_exceeded():
+    calls = []
+
+    def counter(text: str) -> int:
+        calls.append(text)
+        return 10_000
+
+    with pytest.raises(ContextCompilationError) as excinfo:
+        compile_context(
+            {"a": 1},
+            required_paths=[["a"]],
+            token_budget=100,
+            token_counter=counter,
+        )
+    assert excinfo.value.state == "UNSATISFIED"
+    assert excinfo.value.reason == "evidence_exceeds_token_budget"
+    assert len(calls) == 1
+
+
+def test_compile_context_token_budget_accepted():
+    def counter(text: str) -> int:
+        return len(text)
+
+    compiled = compile_context(
+        {"a": 1},
+        required_paths=[["a"]],
+        token_budget=1000,
+        token_counter=counter,
+    )
+    assert isinstance(compiled, CompiledContext)
+    assert json.loads(compiled.model_payload()) == {"a": 1}
+
+
+def test_compile_context_broken_counter_fails_closed():
+    def raising_counter(text: str) -> int:
+        raise RuntimeError("counter exploded")
+
+    with pytest.raises(ContextCompilationError) as excinfo:
+        compile_context(
+            {"a": 1},
+            required_paths=[["a"]],
+            token_budget=100,
+            token_counter=raising_counter,
+        )
+    assert excinfo.value.state == "UNSATISFIED"
+    assert excinfo.value.reason == "token_counter_unavailable"
+
+    with pytest.raises(ContextCompilationError) as excinfo:
+        compile_context(
+            {"a": 1},
+            required_paths=[["a"]],
+            token_budget=100,
+            token_counter=lambda text: "not-an-int",
+        )
+    assert excinfo.value.reason == "token_counter_unavailable"
+
+
+def test_compile_task_checkpoint_token_budget(root):
+    task = start_task(root, "budgeted checkpoint")
+    checkpoint_task(root, task["task_id"], {"plan": {"stage": "verify"}})
+
+    compiled = compile_task_checkpoint(
+        root,
+        task["task_id"],
+        required_paths=[["plan", "stage"]],
+        token_budget=10_000,
+        token_counter=lambda text: len(text),
+    )
+    assert isinstance(compiled, CompiledContext)
+
+    with pytest.raises(ContextCompilationError) as excinfo:
+        compile_task_checkpoint(
+            root,
+            task["task_id"],
+            required_paths=[["plan", "stage"]],
+            token_budget=1,
+            token_counter=lambda text: len(text),
+        )
+    assert excinfo.value.state == "UNSATISFIED"
+    assert excinfo.value.reason == "evidence_exceeds_token_budget"
+
+
+def test_compile_context_without_budget_regression():
+    compiled = compile_context({"a": 1}, required_paths=[["a"]])
+    assert isinstance(compiled, CompiledContext)
+    assert json.loads(compiled.model_payload()) == {"a": 1}

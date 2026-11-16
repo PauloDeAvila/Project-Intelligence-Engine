@@ -10,7 +10,7 @@ from dataclasses import dataclass
 import hashlib
 import json
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Callable, Sequence
 
 from pie.retrieval import task_memory
 
@@ -34,6 +34,7 @@ class ContextCompilationError(ValueError):
 
 PathPart = str | int
 Path = tuple[PathPart, ...]
+TokenCounter = Callable[[str], int]
 
 
 @dataclass(frozen=True)
@@ -142,18 +143,56 @@ def _insert(target: Any, path: Path, value: Any) -> Any:
     return target
 
 
+def _validate_token_counter(
+    token_counter: TokenCounter | None,
+    token_budget: int | None,
+) -> None:
+    if token_budget is None:
+        return
+    if not isinstance(token_budget, int) or isinstance(token_budget, bool) or token_budget < 1:
+        raise ContextCompilationError(
+            "token_budget is outside the safe bound",
+            state="UNSATISFIED", reason="token_budget_invalid")
+    if not callable(token_counter):
+        raise ContextCompilationError(
+            "token_budget requires a valid token_counter",
+            state="UNSATISFIED", reason="token_counter_unavailable")
+
+
+def _measure_tokens(payload: str, token_counter: TokenCounter) -> int:
+    try:
+        measured = token_counter(payload)
+    except Exception as exc:
+        raise ContextCompilationError(
+            "token_counter failed while measuring the candidate context",
+            state="UNSATISFIED", reason="token_counter_unavailable") from exc
+    if not isinstance(measured, int) or isinstance(measured, bool) or measured < 0:
+        raise ContextCompilationError(
+            "token_counter returned an invalid measurement",
+            state="UNSATISFIED", reason="token_counter_unavailable")
+    return measured
+
+
 def compile_context(
     source: Any,
     *,
     required_paths: Sequence[Sequence[PathPart]],
     max_chars: int = 4096,
     recovery_available: bool = True,
+    token_budget: int | None = None,
+    token_counter: TokenCounter | None = None,
 ) -> CompiledContext:
-    """Project explicit source fields without estimating or fabricating tokens."""
+    """Project explicit source fields without estimating or fabricating tokens.
+
+    When ``token_budget`` is provided, a callable ``token_counter`` must also be
+    provided and the candidate projection is measured with it (never estimated
+    from characters). Failure is fail-closed and no partial projection escapes.
+    """
     if not isinstance(max_chars, int) or isinstance(max_chars, bool) or not 1 <= max_chars <= 1_000_000:
         raise ContextCompilationError(
             "max_chars is outside the safe bound",
             state="UNSATISFIED", reason="max_chars_invalid")
+    _validate_token_counter(token_counter, token_budget)
     canonical = _canonical(source)
     if len(canonical) > 2_000_000:
         raise ContextCompilationError(
@@ -169,6 +208,12 @@ def compile_context(
         raise ContextCompilationError(
             "required evidence exceeds the context budget",
             state="UNSATISFIED", reason="evidence_exceeds_budget")
+    if token_budget is not None:
+        measured = _measure_tokens(payload, token_counter)
+        if measured > token_budget:
+            raise ContextCompilationError(
+                "required evidence exceeds the token budget",
+                state="UNSATISFIED", reason="evidence_exceeds_token_budget")
     return CompiledContext(
         "pie-context-compiler-v1",
         hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
@@ -184,6 +229,8 @@ def compile_task_checkpoint(
     task_id: str,
     required_paths: Sequence[Sequence[PathPart]],
     max_chars: int = 4096,
+    token_budget: int | None = None,
+    token_counter: TokenCounter | None = None,
 ) -> CompiledContext:
     """Project only selected fields from a verified task checkpoint."""
     try:
@@ -211,6 +258,8 @@ def compile_task_checkpoint(
             required_paths=required_paths,
             max_chars=max_chars,
             recovery_available=True,
+            token_budget=token_budget,
+            token_counter=token_counter,
         )
     except ContextCompilationError:
         raise

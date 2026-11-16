@@ -14,7 +14,12 @@ from typing import Any
 from pie.certification.regression import RunEvidence, evaluate_golden_suite, evaluate_pair
 from pie.retrieval import task_memory
 from pie.retrieval.adaptive_runtime import MeasuredCandidate, choose_candidate
-from pie.retrieval.context_compiler import CompiledContext, compile_context, compile_task_checkpoint
+from pie.retrieval.context_compiler import (
+    CompiledContext,
+    TokenCounter,
+    compile_context,
+    compile_task_checkpoint,
+)
 from pie.runtime.local_execution import ExecutionContext, LocalExecutionEngine, OperationSpec
 from pie.runtime.multi_agent_memory import MultiAgentMemory
 from pie.runtime.replay import ExecutionJournal
@@ -119,8 +124,13 @@ class ContextRuntime:
         task_id: str,
         required_paths: Sequence[Sequence[str | int]],
         max_chars: int = 4096,
+        token_budget: int | None = None,
+        token_counter: TokenCounter | None = None,
     ) -> CompiledContext:
-        return compile_task_checkpoint(self.root, task_id, required_paths, max_chars)
+        return compile_task_checkpoint(
+            self.root, task_id, required_paths, max_chars,
+            token_budget=token_budget, token_counter=token_counter,
+        )
 
     @staticmethod
     def compile(
@@ -129,12 +139,16 @@ class ContextRuntime:
         required_paths: Sequence[Sequence[str | int]],
         max_chars: int = 4096,
         recovery_available: bool = True,
+        token_budget: int | None = None,
+        token_counter: TokenCounter | None = None,
     ) -> CompiledContext:
         return compile_context(
             source,
             required_paths=required_paths,
             max_chars=max_chars,
             recovery_available=recovery_available,
+            token_budget=token_budget,
+            token_counter=token_counter,
         )
 
     @staticmethod
