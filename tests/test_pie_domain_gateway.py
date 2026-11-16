@@ -14,7 +14,8 @@ from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"src"))
 
 from pie.gateway.domain import domain_route, register_codex, register_plan
-from pie.gateway.web_results import web_result_eligible,web_snapshot_preview
+from pie.gateway.web_results import (web_context_query, web_result_eligible,
+                                      web_snapshot_preview)
 from pie.retrieval.output_pipeline import recover_output
 
 
@@ -53,6 +54,18 @@ class WebReducerTests(unittest.TestCase):
         self.assertFalse(view["complete"])
         self.assertGreater(view["omitted_lines"],0)
         self.assertNotIn("ref=e139",view["preview"])
+
+    def test_semantic_context_selects_query_matches_without_authorizing_actions(self):
+        result = web_context_query(
+            SNAPSHOT + "\n- button \"Inspect materials\" [ref=e999]\n",
+            "Products Inspect materials", 700)
+        self.assertEqual(result["schema"], "pie-web-context-v1")
+        self.assertIn("Products", result["preview"])
+        self.assertIn("Inspect materials", result["preview"])
+        self.assertFalse(result["complete"])
+        self.assertFalse(result["safe_to_execute"])
+        with self.assertRaises(ValueError):
+            web_context_query(SNAPSHOT, "missing-term", 700)
 
 
 class DomainConfigTests(unittest.TestCase):
@@ -257,6 +270,35 @@ for line in sys.stdin:
         self.assertEqual(responses[5]["result"]["content"][0]["type"],"image")
         self.assertIn("SECRET:",responses[6]["result"]["content"][0]["text"])
         self.assertEqual(responses[7]["result"]["structuredContent"]["status"],"OK")
+
+    def test_opt_in_semantic_context_tool_is_local_and_read_only(self):
+        upstream=r'''
+import json,sys
+snap="### Page URL\nhttps://example.test\n### Page Title\nStore\n### Snapshot\n- heading \"Products\" [ref=e2]\n- button \"Inspect materials\" [ref=e9]\n- paragraph \"Deterministic browser certification fixture.\" [ref=e10]\n" + "- link \"Catalog entry\" [ref=e11]\n" * 30
+for line in sys.stdin:
+  q=json.loads(line)
+  if "id" not in q: continue
+  if q.get("method")=="tools/list":
+    value={"tools":[{"name":n,"inputSchema":{"type":"object"}} for n in ("browser_navigate","browser_snapshot")]}
+  elif q.get("method")=="tools/call":
+    value={"content":[{"type":"text","text":snap}]}
+  else:
+    value={"serverInfo":{"name":"mock-web","version":"1"},"protocolVersion":"2025-03-26","capabilities":{"tools":{}}}
+  print(json.dumps({"jsonrpc":"2.0","id":q["id"],"result":value}),flush=True)
+'''
+        requests=[request(1,"initialize",{}),request(2,"tools/list",{}),
+                  request(3,"tools/call",{"name":"browser_navigate","arguments":{"url":"https://example.test"}}),
+                  request(4,"tools/call",{"name":"pie_web_context","arguments":{"query":"Products Inspect materials"}})]
+        run=self._run("web",upstream,requests,expose_tools=("browser_navigate","pie_web_context"))
+        self.assertEqual(run.returncode,0,run.stderr)
+        responses={m["id"]:m for m in (json.loads(line) for line in run.stdout.splitlines())}
+        self.assertEqual(responses[3]["result"]["content"][0]["text"], "PIE_NAVIGATED")
+        names=[tool["name"] for tool in responses[2]["result"]["tools"]]
+        self.assertIn("pie_web_context",names)
+        context=json.loads(responses[4]["result"]["content"][0]["text"])
+        self.assertEqual(context["schema"],"pie-web-context-v1")
+        self.assertIn("Products",context["preview"])
+        self.assertIn("Inspect materials",context["preview"])
 
     def test_blender_bridge_tools_and_write_outputs_are_preserved(self):
         upstream=r"""

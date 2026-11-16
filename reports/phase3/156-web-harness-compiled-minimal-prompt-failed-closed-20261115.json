@@ -1,0 +1,25 @@
+{
+  "schema": "pie-local-ollama-mcp-replay-v1",
+  "scenario": "web-local-page-cert-v2",
+  "model": "gambiarraapi/glm-5.3-flash",
+  "provider": "openai_compat",
+  "methodology": "deterministic_mcp_tool_replay_not_codex_agent",
+  "schema_scope": "profile",
+  "blender_mode": null,
+  "web_mode": "semantic",
+  "context_mode": "compiled",
+  "local_prompt_sha256": "e4793d2e34742bff11e8f3326f0613f0699000c894afad8a0335d7740d887fcf",
+  "prompt_modified_for_experiment": false,
+  "codex_sessions_started": 0,
+  "codex_quota_consumed": false,
+  "codex_certification": "NOT_CERTIFIED",
+  "runs": [],
+  "failure": {
+    "status": "FAILED_CLOSED",
+    "failure_stage": "MCP_OR_MODEL",
+    "error_type": "ValueError",
+    "error": "Web semantic mode requires scenario.semantic_query",
+    "completed_pairs": 0,
+    "automatic_retry": false
+  }
+}

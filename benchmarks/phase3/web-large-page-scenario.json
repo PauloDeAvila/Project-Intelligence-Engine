@@ -1,0 +1,31 @@
+{
+  "schema": "pie-phase3-web-task-v1",
+  "scenario_id": "web-large-page-cert-v1",
+  "application": "web",
+  "required_mcp_server": "web",
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "fixture_spec": "fixtures/phase3/web-large/index.html",
+  "fixture_url": "http://127.0.0.1:8767/index.html",
+  "semantic_query": "PIE Browser Fixture PIE Web Fixture Inspect materials Deterministic browser certification fixture",
+  "prompt": "Use only the configured Playwright MCP server and the local fixture URL http://127.0.0.1:8767/index.html. Navigate exactly once with browser_navigate and take exactly one browser_snapshot. In the optimized configuration, if the snapshot is a compact PIE response, use only the provided PIE recovery tool when necessary to preserve the required facts. Do not access external URLs, click, evaluate JavaScript, or use another server. Reply with one minified JSON object only, with keys in this order: title, heading, button, paragraph. Copy the exact visible values from the page; do not infer or invent them.",
+  "expected_exact": "{\"title\":\"PIE Browser Fixture\",\"heading\":\"PIE Web Fixture\",\"button\":\"Inspect materials\",\"paragraph\":\"Deterministic browser certification fixture.\"}",
+  "expected_mcp_tools_by_condition": {
+    "baseline": ["browser_navigate", "browser_snapshot"],
+    "optimized": ["browser_navigate", "browser_snapshot", "pie_gateway_output_get"]
+  },
+  "oracle": {
+    "kind": "exact_text",
+    "fixture_id": "pie-phase3-web-large-v1",
+    "required_text": ["PIE Web Fixture", "Inspect materials", "Deterministic browser certification fixture."]
+  },
+  "constraints": {
+    "same_fixture": true,
+    "local_only": true,
+    "max_sessions": 2,
+    "automatic_retry": false,
+    "provider_usage_required": true,
+    "certificate_status": "NOT_CERTIFIED"
+  },
+  "experiment_type": "transparent_compaction_product_comparison"
+}

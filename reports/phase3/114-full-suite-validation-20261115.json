@@ -1,0 +1,9 @@
+{
+  "schema": "pie-phase3-full-suite-validation-v1",
+  "command": "uv run python -m unittest discover -s tests -q",
+  "initial_run": {"status": "FAILED", "tests_run": 641, "skipped": 5, "errors": 1, "error": "ConnectionAbortedError WinError 10053 in test_pie_evidence_gateway.CertifiedGatewayTests.test_http_health_and_ask_and_block_browser_origin", "automatic_retry": false},
+  "isolated_recheck": {"status": "PASS", "command": "uv run python -m unittest tests.test_pie_evidence_gateway.CertifiedGatewayTests.test_http_health_and_ask_and_block_browser_origin -v", "tests_run": 1},
+  "second_full_run": {"status": "PASS", "tests_run": 641, "skipped": 5, "errors": 0, "duration_seconds": 59.849},
+  "interpretation": "The initial HTTP error was environment-sensitive; the isolated test and the second complete suite passed.",
+  "compileall": "passed"
+}

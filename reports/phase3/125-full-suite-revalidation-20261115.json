@@ -1,0 +1,17 @@
+{
+  "schema": "pie-phase3-validation-run-v1",
+  "timestamp_utc": "2026-11-15T23:10:56.0808779Z",
+  "command": "uv run python -m unittest discover -s tests -q",
+  "status": "PASS",
+  "tests_run": 641,
+  "skipped": 5,
+  "errors": 0,
+  "duration_seconds": 67.539,
+  "working_tree_commit": "6bc8bc1",
+  "codex_sessions_started": 0,
+  "quota_consumed": false,
+  "notes": [
+    "The suite emitted an internal diagnostic state BLOCKED_WITH_EVIDENCE/disk full from a diagnostic component; unittest still completed OK and reported zero errors.",
+    "No Codex provider benchmark was started by this validation run."
+  ]
+}

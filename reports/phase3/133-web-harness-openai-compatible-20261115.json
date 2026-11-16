@@ -1,0 +1,42 @@
+{
+  "schema": "pie-phase3-external-provider-live-v1",
+  "timestamp_utc": "2026-11-15T23:49:44.3554355Z",
+  "domain": "web",
+  "scenario": "web-large-page-cert-v1",
+  "fixture": "fixtures/phase3/web-large/index.html",
+  "provider": "openai_compat_local_harness",
+  "base_url": "http://127.0.0.1:8080/v1",
+  "model": "gambiarraapi/glm-5.3-flash",
+  "valid_pairs": 1,
+  "baseline": {
+    "input_tokens": 2667,
+    "output_tokens": 31,
+    "total_tokens": 2698,
+    "reasoning_output_tokens": 0,
+    "mcp_calls": 2,
+    "oracle_pass": true,
+    "exact_text_pass": true
+  },
+  "optimized": {
+    "input_tokens": 1307,
+    "output_tokens": 90,
+    "total_tokens": 1397,
+    "reasoning_output_tokens": 59,
+    "mcp_calls": 2,
+    "oracle_pass": true,
+    "exact_text_pass": true
+  },
+  "comparison": {
+    "total_savings_percent": 48.221,
+    "input_savings_percent": 50.994,
+    "output_savings_percent": -190.323,
+    "mcp_calls_delta": 0,
+    "provider_duration_ms": null
+  },
+  "source_report": "C:/Users/phsra/AppData/Local/Temp/pie-web-ollama-b0f95d1f8dac.json",
+  "credentials_persisted": false,
+  "codex_sessions_started": 0,
+  "quota_consumed": false,
+  "codex_certification": "NOT_CERTIFIED",
+  "limitation": "The harness exposed GLM, not a DeepSeek model in its /v1/models response. This is external-provider evidence, not Codex certification."
+}

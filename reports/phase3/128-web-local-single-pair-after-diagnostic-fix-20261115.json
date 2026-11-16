@@ -1,0 +1,36 @@
+{
+  "schema": "pie-phase3-local-ollama-live-v1",
+  "timestamp_utc": "2026-11-15T23:19:37.3342710Z",
+  "domain": "web",
+  "scenario": "web-large-page-cert-v1",
+  "model": "qwen3:4b",
+  "schema_scope": "profile",
+  "status": "VALID_SINGLE_PAIR",
+  "pair_order": ["baseline", "optimized"],
+  "baseline": {
+    "total_tokens": 834,
+    "input_tokens": 792,
+    "output_tokens": 42,
+    "oracle_pass": true,
+    "mcp_calls": 2
+  },
+  "optimized": {
+    "total_tokens": 834,
+    "input_tokens": 792,
+    "output_tokens": 42,
+    "oracle_pass": true,
+    "mcp_calls": 2
+  },
+  "comparison": {
+    "total_savings_percent": 0.0,
+    "input_savings_percent": 0.0,
+    "recovery_calls": 0,
+    "exact_text_pass": false,
+    "semantic_oracle": "PASS"
+  },
+  "source_report": "C:/Users/phsra/AppData/Local/Temp/pie-web-ollama-071f60c2c1dd.json",
+  "codex_sessions_started": 0,
+  "quota_consumed": false,
+  "codex_certification": "NOT_CERTIFIED",
+  "note": "The improved runner diagnostics allowed a clean single-pair run after the earlier intermittent invalid-JSON failure; no retry was added to the benchmark."
+}

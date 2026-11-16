@@ -19,6 +19,7 @@ from typing import Any
 from pie.integrations.blender_delta import (
     SceneDeltaCache, snapshot_code, parse_execution_reply, parse_query_reply,
     query_scene_code, validate_query_arguments,
+    get_object_code, parse_get_object_reply, validate_get_object_arguments,
 )
 
 OBSERVATION_TOOLS = frozenset({"get_scene_info", "get_object_info"})
@@ -78,6 +79,17 @@ QUERY_SCENE_TOOL: dict[str, Any] = {
             "next_offset": {"type": ["integer", "null"]},
             "complete": {"type": "boolean"},
         },
+    },
+}
+
+GET_OBJECT_TOOL: dict[str, Any] = {
+    "name": "pie_blender_get_object",
+    "description": "Read-only exact object lookup by name in the active scene. Returns only name, type, location and material names as a minimal JSON object. No edits.",
+    "inputSchema": {
+        "type": "object",
+        "properties": {"name": {"type": "string", "minLength": 1, "maxLength": 128}},
+        "required": ["name"],
+        "additionalProperties": False,
     },
 }
 
@@ -180,7 +192,7 @@ def extend_tools(message: dict[str, Any], exposed_tools: frozenset[str] = frozen
     if isinstance(result, dict) and isinstance(result.get("tools"), list):
         values = [tool for tool in result["tools"]
                   if not exposed_tools or (isinstance(tool, dict) and tool.get("name") in exposed_tools)]
-        for extra in (EXPAND_TOOL, SCENE_DELTA_TOOL, QUERY_SCENE_TOOL):
+        for extra in (EXPAND_TOOL, SCENE_DELTA_TOOL, QUERY_SCENE_TOOL, GET_OBJECT_TOOL):
             if ((not exposed_tools or extra["name"] in exposed_tools) and
                     not any(isinstance(t, dict) and t.get("name") == extra["name"] for t in values)):
                 values.append(extra)
@@ -287,6 +299,30 @@ class BlenderMcpBridge:
                             isinstance(params, dict) and params.get("name") not in self.exposed_tools):
                         self._write({"jsonrpc": "2.0", "id": message["id"],
                                      "result": _error("PIE_TOOL_NOT_EXPOSED")})
+                        continue
+                    if (method == "tools/call" and isinstance(params, dict)
+                            and params.get("name") == GET_OBJECT_TOOL["name"]):
+                        try:
+                            object_args = params.get("arguments", {})
+                            validate_get_object_arguments(object_args)
+                            code = get_object_code(object_args)
+                        except ValueError as exc:
+                            self._write({"jsonrpc": "2.0", "id": message["id"],
+                                         "result": _error(str(exc))})
+                            continue
+                        internal_id = "__pie_object__" + _key(message["id"])
+                        with self.pending_lock:
+                            self.pending[_key(internal_id)] = "__blender_object__"
+                            self.query_clients[_key(internal_id)] = message["id"]
+                        raw = _json({"jsonrpc": "2.0", "id": internal_id,
+                                     "method": "tools/call",
+                                     "params": {"name": "execute_blender_code",
+                                                "arguments": {"code": code}}}) + "\n"
+                        try:
+                            process.stdin.write(raw)
+                            process.stdin.flush()
+                        except (BrokenPipeError, OSError):
+                            break
                         continue
                     if (method == "tools/call" and isinstance(params, dict)
                             and params.get("name") == QUERY_SCENE_TOOL["name"]):
@@ -401,6 +437,17 @@ class BlenderMcpBridge:
                         except (ValueError, KeyError, TypeError, OverflowError) as exc:
                             result = _error("PIE_DELTA_UNAVAILABLE: " + str(exc)[:250])
                         self._write({"jsonrpc": "2.0", "id": message["id"], "result": result})
+                    elif tool_name == "__blender_object__":
+                        with self.pending_lock:
+                            client_id = self.query_clients.pop(_key(message["id"]), None)
+                        try:
+                            value = parse_get_object_reply(message)
+                            # This tool intentionally has no outputSchema:
+                            # one compact text JSON, never duplicated in structuredContent.
+                            result = {"content": [{"type": "text", "text": _json(value)}]}
+                        except (ValueError, KeyError, TypeError, OverflowError) as exc:
+                            result = _error("PIE_OBJECT_UNAVAILABLE: " + str(exc)[:250])
+                        self._write({"jsonrpc": "2.0", "id": client_id, "result": result})
                     elif tool_name == "__blender_query__":
                         with self.pending_lock:
                             client_id = self.query_clients.pop(_key(message["id"]), None)

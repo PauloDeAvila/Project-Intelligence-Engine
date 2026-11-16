@@ -32,6 +32,39 @@ class Probe:
             for _ in stream:
                 pass
 
+    @staticmethod
+    def _windows_descendants(root_pid: int) -> list[int]:
+        """Find descendants that wrappers such as uvx may detach from taskkill."""
+        script = (
+            "Get-CimInstance Win32_Process | "
+            "Select-Object ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+        )
+        try:
+            result = subprocess.run(
+                ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
+                capture_output=True, text=True, encoding="utf-8", errors="replace",
+                timeout=5, check=False,
+            )
+            rows = json.loads(result.stdout) if result.stdout.strip() else []
+            if isinstance(rows, dict):
+                rows = [rows]
+            children: dict[int, list[int]] = {}
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                pid, parent = row.get("ProcessId"), row.get("ParentProcessId")
+                if isinstance(pid, int) and isinstance(parent, int):
+                    children.setdefault(parent, []).append(pid)
+            pending = list(children.get(root_pid, []))
+            found = []
+            while pending:
+                pid = pending.pop()
+                found.append(pid)
+                pending.extend(children.get(pid, []))
+            return found
+        except (OSError, subprocess.SubprocessError, TypeError, ValueError):
+            return []
+
     def call(self, identifier: int, method: str, params: dict | None = None) -> dict:
         message = {"jsonrpc": "2.0", "id": identifier, "method": method}
         if params is not None:
@@ -64,10 +97,36 @@ class Probe:
         if self.process.stdin:
             self.process.stdin.close()
         try:
-            self.process.wait(timeout=10)
+            self.process.wait(timeout=5)
         except subprocess.TimeoutExpired:
-            self.process.terminate()
-            self.process.wait(timeout=10)
+            if os.name == "nt":
+                descendants = self._windows_descendants(self.process.pid)
+                for pid in reversed(descendants):
+                    subprocess.run(
+                        ["taskkill", "/PID", str(pid), "/F"],
+                        capture_output=True, check=False, timeout=5,
+                    )
+                subprocess.run(
+                    ["taskkill", "/PID", str(self.process.pid), "/T", "/F"],
+                    capture_output=True, check=False, timeout=5,
+                )
+            else:
+                self.process.terminate()
+            try:
+                self.process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self.process.kill()
+                self.process.wait(timeout=5)
+        finally:
+            if os.name == "nt":
+                for pid in reversed(self._windows_descendants(self.process.pid)):
+                    subprocess.run(
+                        ["taskkill", "/PID", str(pid), "/F"],
+                        capture_output=True, check=False, timeout=5,
+                    )
+            for stream in (self.process.stdout, self.process.stderr):
+                if stream is not None and not stream.closed:
+                    stream.close()
 
 
 def _profile(path: Path, workspace: Path) -> tuple[dict, str, list[str], dict[str, str]]:

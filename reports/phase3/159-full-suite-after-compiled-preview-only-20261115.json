@@ -1,0 +1,17 @@
+{
+  "schema": "pie-phase3-validation-v1",
+  "command": "uv run python -m unittest discover -s tests -q",
+  "status": "PASS",
+  "tests_run": 649,
+  "skipped": 5,
+  "errors": 0,
+  "exit_code": 0,
+  "duration_seconds": 56.747,
+  "warnings": [
+    "ResourceWarning from intentionally simulated HTTP errors",
+    "existing diagnostic output BLOCKED_WITH_EVIDENCE/disk full"
+  ],
+  "codex_sessions_started": 0,
+  "codex_quota_consumed": false,
+  "certification": "NOT_CERTIFIED"
+}

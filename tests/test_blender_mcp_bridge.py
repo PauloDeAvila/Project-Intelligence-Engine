@@ -114,9 +114,9 @@ class BlenderProxyUnitTests(unittest.TestCase):
             {"name":"get_scene_info","inputSchema":{"type":"object"}},
         ],"nextCursor":"next"}}
         tools = extend_tools(raw)["result"]["tools"]
-        self.assertEqual([t["name"] for t in tools], ["execute_blender_code", "get_scene_info", "pie_blender_expand", "pie_blender_scene_delta", "pie_blender_query_scene"])
+        self.assertEqual([t["name"] for t in tools], ["execute_blender_code", "get_scene_info", "pie_blender_expand", "pie_blender_scene_delta", "pie_blender_query_scene", "pie_blender_get_object"])
         extend_tools(raw)
-        self.assertEqual(len(raw["result"]["tools"]), 5)
+        self.assertEqual(len(raw["result"]["tools"]), 6)
 
     def test_invalid_budget(self):
         with self.assertRaises(ValueError):
@@ -147,7 +147,11 @@ for line in sys.stdin:
     elif m=="tools/call":
         name=q["params"]["name"]
         code=q.get("params", {}).get("arguments", {}).get("code", "")
-        if "PIE_QUERY_SCENE_V1=" in code:
+        if "PIE_GET_OBJECT_V1=" in code:
+            result={"content":[{"type":"text","text":"Code executed successfully: PIE_GET_OBJECT_V1=" + json.dumps({
+                "object_name": "PIE_Large_Cube_00", "object_type":"MESH",
+                "location":[0.0,0.0,0.0], "material_names":["PIE_Large_Material_00"]})}]}
+        elif "PIE_QUERY_SCENE_V1=" in code:
             query_calls += 1
             result={"content":[{"type":"text","text":"Code executed successfully: PIE_QUERY_SCENE_V1=" + json.dumps({
                 "schema":"pie-blender-query-scene-v1", "query":"find_objects", "scene":"Scene",
@@ -173,6 +177,9 @@ for line in sys.stdin:
              "params": {"name": "pie_blender_query_scene", "arguments": {
                  "query": "find_objects", "filters": {"name_prefix": "PIE_"},
                  "fields": ["name", "type", "material_count"], "limit": 20}}},
+            {"jsonrpc": "2.0", "id": 6, "method": "tools/call",
+             "params": {"name": "pie_blender_get_object",
+                        "arguments": {"name": "PIE_Large_Cube_00"}}},
         ]
         env = dict(os.environ)
         env["PYTHONPATH"] = str(Path(__file__).resolve().parents[1] / "src")
@@ -186,7 +193,7 @@ for line in sys.stdin:
         responses = {r["id"]:r for r in (json.loads(line) for line in process.stdout.splitlines())}
         self.assertEqual(responses[1]["result"]["serverInfo"]["name"], "mock-blender")
         names = [x["name"] for x in responses[2]["result"]["tools"]]
-        self.assertEqual(names, ["get_scene_info","execute_blender_code","pie_blender_expand","pie_blender_scene_delta","pie_blender_query_scene"])
+        self.assertEqual(names, ["get_scene_info","execute_blender_code","pie_blender_expand","pie_blender_scene_delta","pie_blender_query_scene","pie_blender_get_object"])
         compact = json.loads(responses[3]["result"]["content"][0]["text"])
         self.assertEqual(compact["status"], "PARTIAL")
         self.assertEqual(responses[4]["result"]["content"][0]["text"], "MATERIAL_CREATED"*150)
@@ -195,6 +202,15 @@ for line in sys.stdin:
         self.assertEqual(query["items"][0]["name"], "PIE_Large_Cube_00")
         self.assertEqual(query["query_calls"], 1)
         self.assertEqual(responses[5]["result"]["structuredContent"]["items"], query["items"])
+        minimal = responses[6]["result"]
+        self.assertNotIn("structuredContent", minimal)
+        self.assertEqual(len(minimal["content"]), 1)
+        value = json.loads(minimal["content"][0]["text"])
+        self.assertEqual(set(value), {"object_name", "object_type", "location", "material_names"})
+        self.assertEqual(value["object_name"], "PIE_Large_Cube_00")
+        self.assertEqual(value["material_names"], ["PIE_Large_Material_00"])
+        self.assertNotIn("scene", value)
+        self.assertNotIn("total", value)
 
     def test_exposed_profile_rejects_forbidden_tool_without_upstream_call(self):
         marker = Path(self.id().replace(".", "_") + ".marker")

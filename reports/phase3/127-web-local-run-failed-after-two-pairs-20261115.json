@@ -1,0 +1,30 @@
+{
+  "schema": "pie-phase3-local-ollama-failure-v1",
+  "timestamp_utc": "2026-11-15T23:16:47.5182760Z",
+  "domain": "web",
+  "scenario": "web-large-page-cert-v1",
+  "model": "qwen3:4b",
+  "schema_scope": "profile",
+  "status": "FAILED_CLOSED",
+  "completed_pairs": 2,
+  "automatic_retry": false,
+  "codex_sessions_started": 0,
+  "quota_consumed": false,
+  "valid_pairs": {
+    "baseline_total_tokens": 1668,
+    "optimized_total_tokens": 1668,
+    "total_savings_percent": 0.0,
+    "oracle_passes": "4/4",
+    "mcp_calls_per_arm": 2,
+    "recovery_calls": 0
+  },
+  "failure": {
+    "stage": "MCP_OR_MODEL",
+    "error_type": "RuntimeError",
+    "error": "Local Ollama unavailable or returned invalid JSON",
+    "failed_after": "two valid pairs"
+  },
+  "source_report": "C:/Users/phsra/AppData/Local/Temp/pie-web-ollama-1e9675d5b0eb.json",
+  "codex_certification": "NOT_CERTIFIED",
+  "limitation": "This run is not comparable to the earlier three-pair Web report until the provider parsing failure and fixture configuration are investigated."
+}

@@ -1,0 +1,216 @@
+{
+  "schema": "pie-local-ollama-mcp-replay-v1",
+  "scenario": "web-large-page-cert-v1",
+  "model": "gambiarraapi/glm-5.3-flash",
+  "provider": "openai_compat",
+  "methodology": "deterministic_mcp_tool_replay_not_codex_agent",
+  "schema_scope": "profile",
+  "blender_mode": null,
+  "web_mode": "semantic",
+  "context_mode": "compiled",
+  "local_prompt_sha256": "9be9416272505bc297c23a6858b170927509ed4d5f06b0e444e11ede5b0fa720",
+  "prompt_modified_for_experiment": false,
+  "codex_sessions_started": 0,
+  "codex_quota_consumed": false,
+  "codex_certification": "NOT_CERTIFIED",
+  "runs": [
+    {
+      "repetition": 1,
+      "pair_id": "pair-web-large-page-cert-v1-7ef039d023d1-r1",
+      "task_id": "web-large-page-cert-v1",
+      "order": [
+        "baseline",
+        "optimized"
+      ],
+      "arms": {
+        "baseline": {
+          "server": "playwright-baseline",
+          "tool_names": [
+            "browser_navigate",
+            "browser_snapshot"
+          ],
+          "recovery_calls": 0,
+          "tool_count": 2,
+          "server_tool_count": 25,
+          "schema_scope": "profile",
+          "tool_schema_chars": 1332,
+          "observation_chars": 8006,
+          "tool_elapsed_ms": 374.878,
+          "usage": {
+            "input_tokens": 2666,
+            "output_tokens": 31,
+            "total_tokens": 2697,
+            "total_duration_ms": null,
+            "reasoning_output_tokens": 0
+          },
+          "oracle_pass": true,
+          "exact_text_pass": true,
+          "answer_sha256": "652456942e7c73ecf647d32e79f49a3117c54ee5f9abf93a8a5946b4c4f9bb4f",
+          "model": "gambiarraapi/glm-5.3-flash"
+        },
+        "optimized": {
+          "server": "pie-web-optimized",
+          "tool_names": [
+            "browser_navigate",
+            "pie_web_context"
+          ],
+          "recovery_calls": 0,
+          "tool_count": 2,
+          "server_tool_count": 2,
+          "schema_scope": "profile",
+          "tool_schema_chars": 658,
+          "observation_chars": 501,
+          "tool_elapsed_ms": 455.642,
+          "usage": {
+            "input_tokens": 117,
+            "output_tokens": 45,
+            "total_tokens": 162,
+            "total_duration_ms": null,
+            "reasoning_output_tokens": 14
+          },
+          "oracle_pass": true,
+          "exact_text_pass": true,
+          "answer_sha256": "652456942e7c73ecf647d32e79f49a3117c54ee5f9abf93a8a5946b4c4f9bb4f",
+          "model": "gambiarraapi/glm-5.3-flash"
+        }
+      },
+      "comparison": {
+        "state": "LOCAL_PROVIDER_TOKENS_COMPARED",
+        "total_token_savings_percent": 93.993,
+        "input_token_savings_percent": 95.611
+      }
+    },
+    {
+      "repetition": 2,
+      "pair_id": "pair-web-large-page-cert-v1-5ff31bac67e5-r2",
+      "task_id": "web-large-page-cert-v1",
+      "order": [
+        "optimized",
+        "baseline"
+      ],
+      "arms": {
+        "optimized": {
+          "server": "pie-web-optimized",
+          "tool_names": [
+            "browser_navigate",
+            "pie_web_context"
+          ],
+          "recovery_calls": 0,
+          "tool_count": 2,
+          "server_tool_count": 2,
+          "schema_scope": "profile",
+          "tool_schema_chars": 658,
+          "observation_chars": 501,
+          "tool_elapsed_ms": 390.82,
+          "usage": {
+            "input_tokens": 117,
+            "output_tokens": 42,
+            "total_tokens": 159,
+            "total_duration_ms": null,
+            "reasoning_output_tokens": 11
+          },
+          "oracle_pass": true,
+          "exact_text_pass": true,
+          "answer_sha256": "652456942e7c73ecf647d32e79f49a3117c54ee5f9abf93a8a5946b4c4f9bb4f",
+          "model": "gambiarraapi/glm-5.3-flash"
+        },
+        "baseline": {
+          "server": "playwright-baseline",
+          "tool_names": [
+            "browser_navigate",
+            "browser_snapshot"
+          ],
+          "recovery_calls": 0,
+          "tool_count": 2,
+          "server_tool_count": 25,
+          "schema_scope": "profile",
+          "tool_schema_chars": 1332,
+          "observation_chars": 8006,
+          "tool_elapsed_ms": 428.254,
+          "usage": {
+            "input_tokens": 2667,
+            "output_tokens": 31,
+            "total_tokens": 2698,
+            "total_duration_ms": null,
+            "reasoning_output_tokens": 0
+          },
+          "oracle_pass": true,
+          "exact_text_pass": true,
+          "answer_sha256": "652456942e7c73ecf647d32e79f49a3117c54ee5f9abf93a8a5946b4c4f9bb4f",
+          "model": "gambiarraapi/glm-5.3-flash"
+        }
+      },
+      "comparison": {
+        "state": "LOCAL_PROVIDER_TOKENS_COMPARED",
+        "total_token_savings_percent": 94.107,
+        "input_token_savings_percent": 95.613
+      }
+    },
+    {
+      "repetition": 3,
+      "pair_id": "pair-web-large-page-cert-v1-0889b5db7084-r3",
+      "task_id": "web-large-page-cert-v1",
+      "order": [
+        "baseline",
+        "optimized"
+      ],
+      "arms": {
+        "baseline": {
+          "server": "playwright-baseline",
+          "tool_names": [
+            "browser_navigate",
+            "browser_snapshot"
+          ],
+          "recovery_calls": 0,
+          "tool_count": 2,
+          "server_tool_count": 25,
+          "schema_scope": "profile",
+          "tool_schema_chars": 1332,
+          "observation_chars": 8006,
+          "tool_elapsed_ms": 406.223,
+          "usage": {
+            "input_tokens": 2667,
+            "output_tokens": 31,
+            "total_tokens": 2698,
+            "total_duration_ms": null,
+            "reasoning_output_tokens": 0
+          },
+          "oracle_pass": true,
+          "exact_text_pass": true,
+          "answer_sha256": "652456942e7c73ecf647d32e79f49a3117c54ee5f9abf93a8a5946b4c4f9bb4f",
+          "model": "gambiarraapi/glm-5.3-flash"
+        },
+        "optimized": {
+          "server": "pie-web-optimized",
+          "tool_names": [
+            "browser_navigate",
+            "pie_web_context"
+          ],
+          "recovery_calls": 0,
+          "tool_count": 2,
+          "server_tool_count": 2,
+          "schema_scope": "profile",
+          "tool_schema_chars": 658,
+          "observation_chars": 501,
+          "tool_elapsed_ms": 447.762,
+          "usage": {
+            "input_tokens": 117,
+            "output_tokens": 40,
+            "total_tokens": 157,
+            "total_duration_ms": null,
+            "reasoning_output_tokens": 9
+          },
+          "oracle_pass": true,
+          "exact_text_pass": true,
+          "answer_sha256": "652456942e7c73ecf647d32e79f49a3117c54ee5f9abf93a8a5946b4c4f9bb4f",
+          "model": "gambiarraapi/glm-5.3-flash"
+        }
+      },
+      "comparison": {
+        "state": "LOCAL_PROVIDER_TOKENS_COMPARED",
+        "total_token_savings_percent": 94.181,
+        "input_token_savings_percent": 95.613
+      }
+    }
+  ]
+}

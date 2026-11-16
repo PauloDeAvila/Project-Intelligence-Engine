@@ -1,0 +1,25 @@
+{
+  "schema": "pie-phase3-telemetry-correlation-v1",
+  "status": "PARTIAL_COVERAGE_WITH_CORRELATED_PIE_EVENTS",
+  "source_log": ".pie-live-store/mcp-lifecycle.jsonl",
+  "execution_id": "b06904ea01f0",
+  "optimized": {
+    "tasks": ["cube-13-middle", "cube-63-last", "cube-00-first"],
+    "gateway_server": "pie-blender-optimized",
+    "mcp_tool": "pie_blender_get_object",
+    "calls_with_run_id": 3,
+    "calls_with_pair_id": 3,
+    "calls_with_task_id": 3,
+    "successful_tool_responses": 3,
+    "durations_ms": [43.545, 16.404, 7.08],
+    "teardown_exit_codes": [0, 0, 1]
+  },
+  "baseline": {
+    "expected_calls": 3,
+    "telemetry_events": 0,
+    "coverage": "UNINSTRUMENTED_ORIGINAL_SERVER",
+    "reason": "The baseline uses the original mcp-for-blender process directly and intentionally bypasses the PIE gateway."
+  },
+  "interpretation": "PIE task/run correlation is proven for optimized calls. Baseline calls remain identifiable only in the runner report, not in the PIE lifecycle store. The final optimized upstream exit code 1 occurred after a successful tool response and is retained for follow-up.",
+  "certification": "NOT_CERTIFIED"
+}

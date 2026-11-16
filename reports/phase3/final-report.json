@@ -1,25 +1,326 @@
 {
   "schema": "pie-phase3-report-v1",
-  "certification": {"status": "NOT_CERTIFIED", "reason": "Blender and Web each now have one valid paired baseline/optimized execution with exact lifecycle correlation, but neither pair demonstrates total-token savings and the required repeated A/B pairs remain incomplete. Offline analysis found no extra calls or reasoning increase; optimized compaction was not activated. Structural overhead was measured and selective exposure was validated offline."},
-  "applications": {
-    "blender": {"tasks": ["blender-material-inspection-v1"], "baseline": {"input_tokens": 226951, "cached_input_tokens": 186752, "output_tokens": 1426, "total_tokens": 228377, "duration_ms_average": 19641.01, "mcp_calls": 4}, "optimized": {"input_tokens": 196052, "cached_input_tokens": 156416, "output_tokens": 1201, "total_tokens": 197253, "duration_ms_average": 17135.5155, "mcp_calls": 5}, "savings_percent": {"input": 13.614833, "uncached_input": 1.400532, "total": 13.628343}, "pairs": 2, "oracle_pass_rate": 1.0},
-    "web": {"tasks": ["web-navigation-snapshot-v1"], "baseline": {"input_tokens": 355463, "cached_input_tokens": 318720, "output_tokens": 1333, "total_tokens": 356796, "duration_ms_average": 21267.7425, "mcp_calls": 8}, "optimized": {"input_tokens": 399269, "cached_input_tokens": 356992, "output_tokens": 1672, "total_tokens": 400941, "duration_ms_average": 23727.8075, "mcp_calls": 8}, "savings_percent": {"input": -12.323645, "uncached_input": -15.061372, "total": -12.372616}, "pairs": 2, "oracle_pass_rate": 1.0}
+  "certification": {
+    "status": "NOT_CERTIFIED",
+    "reason": "Current real-provider evidence is local Ollama only; Codex provider A/B certification remains incomplete.",
+    "codex_sessions_started_in_current_worktree": 0,
+    "codex_quota_consumed_in_current_worktree": false
   },
-  "monitoring": {"status": "PARTIAL_COVERAGE", "provider_usage_available": true, "configured_routing_ratio": 0.4, "active_mcp_servers": 5, "wrapped_stdio": 2, "sqlite_gateway_observations": 2, "sqlite_provider_imports": 12, "sqlite_apps_observed": ["blender", "web"], "overhead_ms": null},
-  "validation": {"authorized_codex_calls": 20, "completed_codex_calls": 16, "diagnostic_attempts": 2, "provider_turns_from_diagnostic": 0, "approval_probe_exit_code": 2, "approval_probe_model_sessions": 0, "followup_calls_consumed": 4, "followup_calls_not_run": 2, "retries": 0, "pilot_attempts": 1, "pilot_valid_runs": 0, "pilot_mcp_dispatches": 0, "pytest": {"passed": 587, "skipped": 5, "subtests": 133}, "compileall": "passed", "offline_compaction_acceptance": "COMPACTION_READY_FOR_AB", "blender_real_fixture_gate": "PASS", "offline_environment_gates": "READY_FOR_MODEL_ONLY_AFTER_REVIEW", "structured_content_compatibility": "OFFLINE_VALIDATED", "real_blender_structured_probe": "PASSTHROUGH_SAFE", "selective_blender_query": "PASS", "selective_task_simulation": "PASS", "selective_query_code_audit": "APPROVED_WITH_RESERVATIONS", "selective_a_plan": "READY_FOR_MANUAL_PILOT", "latest_local_validation": "reports/phase3/90-effective-codex-mcp-isolation.md", "source_tree_identity_preflight": "PASS", "mcp_isolation_preflight": "PASS", "oracle_diagnostic_sanitized": "PASS"},
-  "routing": {"user_config_modified": false, "original_servers_preserved": true, "pie_servers": ["pie-blender-optimized", "pie-web-optimized"], "node_repl_modified": false, "telemetry_route_proof": "incomplete", "latest_optimized_route": "INSUFFICIENT_EVIDENCE"},
-  "costs": {"status": "UNAVAILABLE", "total": null, "reason": "No verified tariff supplied for gpt-5.6-luna"},
-  "latest_incident": {"status": "OPTIMIZED_WEB_VALID", "reason": "Explicit runtime profile produced exact gateway lifecycle correlation; Web total-token savings were negative.", "reports": ["reports/phase3/67-web-baseline-result.json", "reports/phase3/68-web-optimized-result.json", "reports/phase3/68-web-optimized-result-record.json", "reports/phase3/69-web-pair-comparison.json", "reports/phase3/70-web-route-audit.json"], "pilot_authorized_sessions": 1, "pilot_consumed_sessions": 1, "pilot_remaining_not_run": 0, "pilot_pairs_accepted": 2, "pilot_retries": 0, "current_ab_attempted_sessions": 5, "current_ab_completed_records": 5, "current_ab_valid_pairs": 2, "current_ab_valid_pairs_by_application": {"blender": 1, "web": 1}, "ab_certification": "NOT_CERTIFIED"},
-  "verdict": "NOT_CERTIFIED",
-  "latest_plan_review": "PREFLIGHT_PASS_PILOT_ROUTE_FAILED",
-  "latest_no_model_probe": "reports/phase3/86-no-model-profile-revalidation.json",
-  "latest_codex_preflight": "reports/phase3/91-isolated-pilot-preflight.json",
-  "latest_pilot_attempt": "reports/phase3/101-blender-v3-pair.json",
-  "latest_local_test_run": {"passed": 588, "skipped": 5, "command": "uv run python -m unittest discover -s tests -q", "note": "pytest executable unavailable; unittest suite completed with disk-full diagnostic emitted by the local test harness"},
-  "latest_paid_attempt": {"status": "VALID_BLENDER_V3_PAIR", "report": "reports/phase3/101-blender-v3-pair.json", "sessions_consumed": 2, "input_tokens_baseline": 44726, "input_tokens_optimized": 44554, "cached_input_tokens_baseline": 39040, "cached_input_tokens_optimized": 39040, "output_tokens_baseline": 593, "output_tokens_optimized": 321, "total_tokens_baseline": 45319, "total_tokens_optimized": 44875, "total_savings_percent": 0.98, "optimized_not_run": false, "automatic_retry": false, "route_verified": true, "oracle_pass": true, "remaining_required_pairs": "not yet completed"},
-  "latest_v3_blender_pair": {"pair_id": "pair-2928e0249c46abec905c1342", "baseline_run_id": "baseline-b96107c4a25cbaffa283fd97", "optimized_run_id": "optimized-48e7b0a263a8cc63c33343f1", "savings_percent": {"input": 0.385, "uncached_input": 3.024, "total": 0.98}, "latency_ms": {"baseline": 18378.347, "optimized": 13446.835}, "mcp_calls": {"baseline": 1, "optimized": 1}, "oracle": "PASS", "provider_usage": "available"},
-  "current_authorization_ledger": {"authorized_codex_calls": 20, "completed_codex_calls": 20, "additional_paid_calls_allowed": 0, "reason": "The current authorization ledger is exhausted; remaining A/B pairs require a new authorization."},
-  "latest_web_preflight": {"status": "PASS_NO_MODEL_GATE", "report": "reports/phase3/105-web-v2-no-model-gate.json", "node": "v24.22.1", "npm": "11.20.0", "npx": "11.20.0", "playwright_mcp": "@playwright/mcp@0.0.85", "model_sessions": 0, "quota_consumed": false},
-  "frozen_ab_manifest": {"status": "BLOCKED_BY_QUOTA", "report": "reports/phase3/106-frozen-ab-manifest.json", "remaining_pairs": {"blender": 2, "web": 3}, "remaining_sessions": 10},
-  "reports": ["reports/phase3/09-blender-real-ab.json", "reports/phase3/10-web-real-ab.json", "reports/phase3/11-token-certification.json", "reports/phase3/12-cost-efficiency.json", "reports/phase3/13-telemetry-persistence.json", "reports/phase3/14-offline-root-cause.json", "reports/phase3/15-live-gateway-runtime.json", "reports/phase3/17-final-blender-attempt.json", "reports/phase3/18-blender-failure-diagnosis.json", "reports/phase3/17-codex-mcp-lifecycle-audit.md", "reports/phase3/18-mcp-lifecycle-events.json", "reports/phase3/19-mcp-root-cause.md", "reports/phase3/20-mcp-remediation-validation.json", "reports/phase3/21-codex-diagnostic-call.json", "reports/phase3/22-codex-mcp-probe-result.json", "reports/phase3/23-mcp-offline-forensics.md", "reports/phase3/24-mcp-bootstrap-validation.json", "reports/phase3/25-mcp-offline-integration.json", "reports/phase3/26-codex-mcp-probe-fase38.json", "reports/phase3/27-approval-policy-compatibility.json", "reports/phase3/28-approval-policy-probe.json", "reports/phase3/29-cli-compatibility.json", "reports/phase3/30-interactive-approval-preparation.json", "reports/phase3/31-interactive-probe-blocked.json", "reports/phase3/32-restricted-blender-probe.json", "reports/phase3/33-restricted-web-probe.json", "reports/phase3/34-ab-offline-audit.json", "reports/phase3/34-ab-offline-audit.md", "reports/phase3/35-route-evidence-gate.json", "reports/phase3/35-route-evidence-gate.md", "reports/phase3/36-current-ab-initial-blocked.json", "reports/phase3/36-current-ab-initial-blocked.md", "reports/phase3/37-current-offline-prep.json", "reports/phase3/38-current-probe-route-failure.json", "reports/phase3/39-initial-real-pairs.json", "reports/phase3/39-initial-real-pairs.md", "reports/phase3/41-blender-material-oracle.json", "reports/phase3/51-pilot-manifest.json", "reports/phase3/51-preflight-pilot.json", "reports/phase3/52-pilot-failure.json", "reports/phase3/53-blender-execution-diagnosis.json", "reports/phase3/54-pilot-manifest-deterministic.json", "reports/phase3/55-preflight-deterministic.json", "reports/phase3/56-failure-recovery-audit.json", "reports/phase3/56-failure-recovery-audit.md"]
+  "provider_measurements": {
+    "provider": "local_ollama",
+    "model": "qwen3:4b",
+    "context": 8192,
+    "usage_source": "Ollama prompt_eval_count and eval_count",
+    "cost": null,
+    "cost_reason": "No verified tariff was supplied."
+  },
+  "applications": {
+    "blender": {
+      "deterministic_routing": {
+        "tasks": 3,
+        "mcp_calls": 6,
+        "oracle_passes": 6,
+        "model_requests": 0,
+        "status": "VALID_LOCAL_ROUTING_NO_MODEL",
+        "live_report": "reports/phase3/116-blender-live-deterministic-routing-20261115.json"
+      },
+      "model_target_evidence": {
+        "tasks": 3,
+        "valid_pairs": 3,
+        "baseline_total_tokens": 1125,
+        "optimized_total_tokens": 1077,
+        "total_savings_percent": 4.267,
+        "oracle_passes": 6,
+        "mcp_calls": 6,
+        "provider_requests": 12,
+        "report": "C:/Users/phsra/AppData/Local/Temp/pie-blender-multi-choice-d85ba89bc293.json",
+        "status": "VALID_LOCAL_PAIRS"
+      },
+      "query_scene_comparison": {
+        "valid_pairs": 3,
+        "baseline_total_tokens": 1941,
+        "optimized_total_tokens": 2340,
+        "total_savings_percent": -20.556,
+        "oracle_passes": 6,
+        "status": "VALID_LOCAL_PAIRS_REGRESSION"
+      }
+    },
+    "web": {
+    "large_fixture": {
+        "scenario": "web-large-page-cert-v1",
+      "fixture": "fixtures/phase3/web-large/index.html",
+        "valid_pairs": 3,
+      "baseline_total_tokens": 8967,
+      "optimized_total_tokens": 4455,
+      "total_savings_percent": 50.318,
+        "oracle_passes": 6,
+        "recovery_calls": 0,
+      "report": "reports/phase3/129-web-large-correct-fixture-live-20261115.json",
+      "status": "VALID_LOCAL_PAIRS",
+      "historical_prior_run": {
+        "baseline_total_tokens": 9259,
+        "optimized_total_tokens": 4417,
+        "total_savings_percent": 52.295,
+        "report": "C:/Users/phsra/AppData/Local/Temp/pie-web-ollama-5e706cde9c68.json"
+      }
+      },
+      "live_mcp_routing": {
+        "repetitions": 3,
+        "mcp_tool_calls": 12,
+        "recovery_calls": 0,
+        "provider_requests": 0,
+        "status": "PASS_LOCAL_ROUTING_NO_MODEL",
+        "report": "reports/phase3/117-web-live-mcp-routing-20261115.json"
+      },
+      "small_fixture": {
+        "valid_pairs": 3,
+        "baseline_total_tokens": 2502,
+        "optimized_total_tokens": 2502,
+        "total_savings_percent": 0.0,
+        "oracle_passes": 6,
+        "recovery_calls": 0,
+        "status": "VALID_LOCAL_PAIRS_NO_GAIN"
+      }
+    }
+  },
+  "monitoring": {
+    "status": "PARTIAL_COVERAGE",
+    "provider_usage_available": true,
+    "provider_usage_scope": "local_ollama_only",
+    "codex_usage_scope": "not_verified_in_current_worktree",
+    "sqlite_persistence": "validated by 33 local persistence/lifecycle tests",
+    "persistence_report": "reports/phase3/113-telemetry-persistence-validation-20261115.json",
+    "overhead_ms": null,
+    "structural_overhead_report": "reports/phase3/111-tool-overhead-20261115.json",
+    "timing_overhead_report": "reports/phase3/112-tool-overhead-timing-20261115.json",
+    "live_correlation_report": "reports/phase3/118-telemetry-correlation-live-routing-20261115.json",
+    "baseline_original_server_telemetry": "UNINSTRUMENTED_BY_DESIGN",
+    "web_correlation_report": "reports/phase3/120-web-telemetry-correlation-20261115.json"
+  },
+  "codex_routing_preflight": "reports/phase3/122-codex-routing-preflight-20261115.json",
+  "persistent_routing_activation": "reports/phase3/123-persistent-codex-routing-activation-20261115.json",
+  "persistent_route_revalidation": "reports/phase3/124-persistent-route-revalidation-20261115.json",
+  "latest_full_suite_revalidation": "reports/phase3/125-full-suite-revalidation-20261115.json",
+  "latest_local_blender_model_run": "reports/phase3/126-blender-model-target-evidence-live-20261115.json",
+  "latest_local_web_run": "reports/phase3/127-web-local-run-failed-after-two-pairs-20261115.json",
+  "latest_local_web_single_pair": "reports/phase3/128-web-local-single-pair-after-diagnostic-fix-20261115.json",
+  "latest_local_web_large_correct_fixture": "reports/phase3/129-web-large-correct-fixture-live-20261115.json",
+  "latest_full_suite_after_diagnostics": "reports/phase3/130-full-suite-after-ollama-diagnostics-20261115.json",
+  "web_fixture_guard": "reports/phase3/131-web-fixture-preflight-guard-20261115.json",
+  "web_fixture_guard_bidirectional": "reports/phase3/132-web-fixture-guard-bidirectional-20261115.json",
+  "latest_external_provider_run": "reports/phase3/133-web-harness-openai-compatible-20261115.json",
+  "latest_full_suite_after_external_provider": "reports/phase3/134-full-suite-after-external-provider-20261115.json",
+  "latest_external_provider_tuning": {
+    "provider": "openai_compat_local_harness",
+    "model": "gambiarraapi/glm-5.3-flash",
+    "valid_runs": [
+      {
+        "max_chars": 1600,
+        "total_savings_percent": 59.522,
+        "input_savings_percent": 59.88,
+        "oracle_pass": true,
+        "report": "reports/phase3/135-web-harness-maxchars-1600-20261115.json"
+      },
+      {
+        "max_chars": 1200,
+        "total_savings_percent": 60.378,
+        "input_savings_percent": 63.93,
+        "oracle_pass": true,
+        "report": "reports/phase3/136-web-harness-maxchars-1200-20261115.json"
+      },
+      {
+        "max_chars": 1000,
+        "total_savings_percent": 63.788,
+        "input_savings_percent": 65.879,
+        "oracle_pass": true,
+        "report": "reports/phase3/137-web-harness-maxchars-1000-20261115.json"
+      },
+      {
+        "max_chars": 900,
+        "total_savings_percent": 64.381,
+        "input_savings_percent": 67.192,
+        "oracle_pass": true,
+        "report": "reports/phase3/141-web-harness-maxchars-900-20261115.json"
+      },
+      {
+        "max_chars": 850,
+        "total_savings_percent": 65.208,
+        "input_savings_percent": 67.505,
+        "oracle_pass": true,
+        "report": "reports/phase3/140-web-harness-maxchars-850-20261115.json"
+      }
+    ],
+    "failed_closed": {
+      "max_chars": 800,
+      "provider_requests_started": false,
+      "report": "reports/phase3/138-web-harness-maxchars-800-failed-closed-20261115.json"
+    }
+  },
+  "latest_semantic_context_run": {
+    "provider": "openai_compat_local_harness",
+    "model": "gambiarraapi/glm-5.3-flash",
+    "mode": "semantic",
+    "baseline_total_tokens": 2697,
+    "optimized_total_tokens": 695,
+    "total_savings_percent": 74.231,
+    "input_savings_percent": 75.094,
+    "oracle_passes": 2,
+    "baseline_tools": ["browser_navigate", "browser_snapshot"],
+    "optimized_tools": ["browser_navigate", "pie_web_context"],
+    "internal_snapshot_hidden_from_model": true,
+    "report": "reports/phase3/142-web-harness-semantic-context-20261115.json"
+  },
+  "latest_semantic_context_3pair_run": {
+    "provider": "openai_compat_local_harness",
+    "model": "gambiarraapi/glm-5.3-flash",
+    "valid_pairs": 3,
+    "baseline_total_tokens": 8093,
+    "optimized_total_tokens": 2084,
+    "total_savings_percent": 74.249,
+    "oracle_passes": 6,
+    "orders": ["baseline_optimized", "optimized_baseline", "baseline_optimized"],
+    "report": "reports/phase3/144-web-harness-semantic-context-3pairs-20261115.json"
+  },
+  "latest_semantic_minimal_3pair_run": {
+    "provider": "openai_compat_local_harness",
+    "model": "gambiarraapi/glm-5.3-flash",
+    "valid_pairs": 3,
+    "baseline_total_tokens": 8091,
+    "optimized_total_tokens": 1613,
+    "total_savings_percent": 80.064,
+    "input_savings_percent": 82.071,
+    "oracle_passes": 6,
+    "optimized_observation_chars": 501,
+    "report": "reports/phase3/146-web-harness-semantic-minimal-3pairs-20261115.json"
+  },
+  "latest_semantic_reasoning_low_run": {
+    "provider": "openai_compat_local_harness",
+    "model": "gambiarraapi/glm-5.3-flash",
+    "provider_option": "reasoning_effort=low",
+    "valid_pairs": 3,
+    "baseline_total_tokens": 8093,
+    "optimized_total_tokens": 1616,
+    "total_savings_percent": 80.032,
+    "oracle_passes": 6,
+    "interpretation": "No material improvement over the default semantic-minimal run; retained as opt-in only.",
+    "report": "reports/phase3/147-web-harness-semantic-reasoning-low-3pairs-20261115.json"
+  },
+  "latest_semantic_reasoning_none_run": {
+    "provider": "openai_compat_local_harness",
+    "model": "gambiarraapi/glm-5.3-flash",
+    "provider_option": "reasoning_effort=none",
+    "valid_pairs": 3,
+    "baseline_total_tokens": 8093,
+    "optimized_total_tokens": 1557,
+    "total_savings_percent": 80.761,
+    "oracle_passes": 6,
+    "interpretation": "Accepted by the harness but still far below 95%; retained as opt-in only.",
+    "report": "reports/phase3/149-web-harness-semantic-reasoning-none-3pairs-20261115.json"
+  },
+  "latest_compiled_context_optimized_only_run": {
+    "provider": "openai_compat_local_harness",
+    "model": "gambiarraapi/glm-5.3-flash",
+    "context_mode": "compiled_optimized_only",
+    "valid_pairs": 3,
+    "baseline_total_tokens": 8094,
+    "optimized_total_tokens": 737,
+    "total_savings_percent": 90.894,
+    "oracle_passes": 6,
+    "report": "reports/phase3/151-web-harness-compiled-optimized-only-3pairs-20261115.json"
+  },
+  "latest_compiled_envelope_run": {
+    "provider": "openai_compat_local_harness",
+    "model": "gambiarraapi/glm-5.3-flash",
+    "context_mode": "compiled_semantic_preview_envelope",
+    "valid_pairs": 3,
+    "baseline_total_tokens": 8093,
+    "optimized_total_tokens": 478,
+    "total_savings_percent": 94.094,
+    "oracle_passes": 6,
+    "report": "reports/phase3/155-web-harness-compiled-envelope-3pairs-20261115.json",
+    "interpretation": "Promising local result, below 95%; not Codex certification."
+  },
+  "latest_compiled_preview_only_run": {
+    "provider": "openai_compat_local_harness",
+    "model": "gambiarraapi/glm-5.3-flash",
+    "context_mode": "compiled_semantic_preview_only",
+    "valid_pairs": 3,
+    "baseline_total_tokens": 8094,
+    "optimized_total_tokens": 476,
+    "total_savings_percent": 94.119,
+    "oracle_passes": 6,
+    "report": "reports/phase3/158-web-harness-compiled-preview-only-3pairs-20261115.json",
+    "interpretation": "Best validated local result, still below 95%; not Codex certification."
+  },
+  "compiled_output_limit_failure": "reports/phase3/152-web-harness-compiled-max-tokens-64-failed-closed-20261115.json",
+  "compiled_minimal_prompt_failure": "reports/phase3/156-web-harness-compiled-minimal-prompt-failed-closed-20261115.json",
+  "provider_control_single_pair_probe": "reports/phase3/160-web-harness-provider-thinking-off-single-pair-20261115.json",
+  "provider_control_variability": "reports/phase3/161-web-harness-provider-reasoning-variability-3pairs-20261115.json",
+  "latest_full_suite_after_maxchars": "reports/phase3/139-full-suite-after-maxchars-20261115.json",
+  "latest_full_suite_after_semantic_context": "reports/phase3/143-full-suite-after-semantic-context-20261115.json",
+  "latest_full_suite_after_reasoning_option": "reports/phase3/148-full-suite-after-reasoning-option-20261115.json",
+  "latest_full_suite_after_compiled_context": "reports/phase3/153-full-suite-after-compiled-context-20261115.json",
+  "latest_full_suite_after_compiled_envelope": "reports/phase3/157-full-suite-after-compiled-envelope-20261115.json",
+  "latest_full_suite_after_compiled_preview_only": "reports/phase3/159-full-suite-after-compiled-preview-only-20261115.json",
+  "latest_full_suite_after_provider_control": "reports/phase3/162-full-suite-after-provider-control-20261115.json",
+  "validation": {
+    "focused_tests_passed": 71,
+    "full_suite_initial": {
+      "status": "FAILED",
+      "tests_run": 641,
+      "skipped": 5,
+      "errors": 1,
+      "report": "reports/phase3/114-full-suite-validation-20261115.json"
+    },
+    "full_suite_second_run": {
+      "status": "PASS",
+      "tests_run": 641,
+      "skipped": 5,
+      "errors": 0
+    },
+    "correlation_runner_latest": {
+      "status": "PASS",
+      "tests_run": 641,
+      "skipped": 5,
+      "errors": 0,
+      "report": "reports/phase3/119-correlation-runner-validation-20261115.json"
+    },
+    "web_correlation_full_suite": {
+      "status": "PASS",
+      "tests_run": 641,
+      "skipped": 5,
+      "errors": 0,
+      "report": "reports/phase3/121-web-correlation-full-suite-20261115.json"
+    },
+    "latest_after_compiled_envelope": {
+      "status": "PASS",
+      "tests_run": 649,
+      "skipped": 5,
+      "errors": 0,
+      "report": "reports/phase3/157-full-suite-after-compiled-envelope-20261115.json"
+    },
+    "latest_after_compiled_preview_only": {
+      "status": "PASS",
+      "tests_run": 649,
+      "skipped": 5,
+      "errors": 0,
+      "report": "reports/phase3/159-full-suite-after-compiled-preview-only-20261115.json"
+    },
+    "isolated_http_recheck": "PASS",
+    "pytest": "not installed in this worktree",
+    "diff_check": "passed",
+    "automatic_retries": false,
+    "destructive_actions": false,
+    "playwright_version": "@playwright/mcp@0.0.85",
+    "latest_commit": "43d874f",
+    "working_tree_validation_commit": "UNCOMMITTED_EXPERIMENTAL_TUNING"
+  },
+  "limitations": [
+    "Local Ollama measurements are not Codex provider certification.",
+    "The configured PIE MCP index available to this session points to a different workspace root and was not used as repository evidence.",
+    "No verified pricing is available.",
+    "Savings vary by workload: Web large is positive, Web small is neutral, Blender query_scene is negative, and Blender exact evidence is modestly positive."
+  ],
+  "completion_audit": "reports/phase3/115-completion-audit-20261115.json",
+  "evidence_report": "reports/phase3/109-local-routing-and-web-measurement-20261115.md"
 }

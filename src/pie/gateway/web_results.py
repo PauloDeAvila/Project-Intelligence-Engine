@@ -41,6 +41,20 @@ _HEAD = re.compile(r"(?i)^\s*[-*]?\s*(?:heading|title|alert|status|dialog|main|n
 _MARKER = re.compile(r"(?im)^###\s*(?:snapshot|page snapshot|page url|page title|aria snapshot)\b")
 _LONG_LINE = 560
 
+WEB_CONTEXT_NAME = "pie_web_context"
+WEB_CONTEXT_TOOL = {
+    "name": WEB_CONTEXT_NAME,
+    "description": "Read-only relevant evidence from the current page; never executes actions.",
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "query": {"type": "string", "minLength": 1, "maxLength": 512},
+        },
+        "required": ["query"],
+        "additionalProperties": False,
+    },
+}
+
 
 def web_result_eligible(text: str, tool: str) -> bool:
     """Fail closed on errors/secrets/unknown formats BEFORE persistent storage."""
@@ -128,3 +142,54 @@ def web_snapshot_preview(text: str, max_chars: int) -> dict | None:
             "trust":"UNTRUSTED_PAGE_DATA","complete":False,
             "ref_policy":"original_refs_unmodified_if_included",
             "safe_to_execute":False}
+
+
+def web_context_query(text: str, query: str, max_chars: int) -> dict:
+    """Return only source lines relevant to an explicit read-only task query.
+
+    This is deliberately opt-in and does not claim the excerpt is complete.
+    Omitted source remains available to the gateway's normal recovery path when
+    the snapshot was captured by the compacting pipeline.
+    """
+    if not isinstance(text, str) or not web_result_eligible(text, "browser_snapshot"):
+        raise ValueError("A valid browser snapshot is required")
+    if not isinstance(query, str) or not 1 <= len(query) <= 512:
+        raise ValueError("query must contain 1..512 characters")
+    if type(max_chars) is not int or not 250 <= max_chars <= 16000:
+        raise ValueError("max_chars must be 250..16000")
+    cleaned = _redact(text)
+    terms = tuple(dict.fromkeys(re.findall(r"[A-Za-z0-9][A-Za-z0-9'_-]{1,63}", query.lower())))
+    lines = cleaned.splitlines()
+    ranked: list[tuple[int, int, str]] = []
+    for index, raw in enumerate(lines):
+        row = raw.strip()
+        if not row or len(row) > _LONG_LINE:
+            continue
+        lowered = row.lower()
+        hits = sum(lowered.count(term) for term in terms)
+        if hits:
+            if re.search(r"(?i)\b(?:ignore (?:all )?(?:previous|prior) instructions|system prompt|developer message|reveal the password)\b", row):
+                row = "[UNTRUSTED_PAGE_INSTRUCTION]"
+            ranked.append((hits, index, row))
+    ranked.sort(key=lambda item: (-item[0], item[1]))
+    selected: list[str] = []
+    # Keep the response bounded while restoring original page order.
+    budget = max_chars - 260
+    used = 0
+    for _, _, row in sorted(ranked, key=lambda item: item[1]):
+        size = len(row) + 1
+        if used + size > budget:
+            continue
+        used += size
+        selected.append(row)
+    preview = "\n".join(selected)
+    if not preview:
+        raise ValueError("query matched no safe snapshot lines")
+    return {
+        "schema": "pie-web-context-v1",
+        "preview": preview,
+        "omitted_lines": max(0, len(lines) - len(selected)),
+        "complete": False,
+        "trust": "UNTRUSTED_PAGE_DATA",
+        "safe_to_execute": False,
+    }

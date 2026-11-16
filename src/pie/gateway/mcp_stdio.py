@@ -18,12 +18,15 @@ from pathlib import Path
 import subprocess
 import sys
 import threading
+import uuid
 from typing import Any, TextIO
 
 from pie.gateway.metrics import record
 from pie.gateway.bootstrap import path as bootstrap_path
 from pie.gateway.policy import mcp_compactable, reduce_text
-from pie.gateway.web_results import web_result_eligible, web_snapshot_preview
+from pie.gateway.web_results import (WEB_CONTEXT_NAME, WEB_CONTEXT_TOOL,
+                                     web_context_query, web_result_eligible,
+                                     web_snapshot_preview)
 from pie.indexing.global_workspace import detect_workspace
 from pie.retrieval.output_pipeline import recover_output
 from pie.storage.locations import ENV_HOME, global_home
@@ -126,6 +129,12 @@ class MCPStdioGateway:
         self._output_schema_tools:set[str]=set()
         self._listed_tools:set[str]=set()
         self._collision=False
+        self._last_web_source: str | None = None
+        self._web_source_ready = threading.Condition(threading.RLock())
+        self._upstream_write_lock = threading.RLock()
+        self._internal_lock = threading.RLock()
+        self._internal_waiters: dict[str, tuple[threading.Event, dict | None]] = {}
+        self._upstream_stdin: TextIO | None = None
         self._diagnostics_path=bootstrap_path()
         self._diagnostic("gateway_constructed", profile=profile,
                          workspace_id=_workspace_fingerprint(self.root),
@@ -215,6 +224,11 @@ class MCPStdioGateway:
                 if (not self.exposed_tools or RECOVERY_NAME in self.exposed_tools) and not self._collision and not any(t.get("name")==RECOVERY_NAME
                                                    for t in body["tools"] if isinstance(t,dict)):
                     body["tools"].append(dict(RECOVERY_TOOL))
+                if (self.profile == "web" and not self._collision
+                        and (not self.exposed_tools or WEB_CONTEXT_NAME in self.exposed_tools)
+                        and not any(t.get("name") == WEB_CONTEXT_NAME
+                                     for t in body["tools"] if isinstance(t, dict))):
+                    body["tools"].append(dict(WEB_CONTEXT_TOOL))
                 self._diagnostic("tools_list_complete", tool_count=len(body["tools"]),
                                  recovery_collision=self._collision)
             return response
@@ -237,10 +251,24 @@ class MCPStdioGateway:
             observe_passthrough("ERROR" if "error" in response else "STRUCTURED_PASSTHROUGH")
             return response
         content=body["content"]
+        if (self.profile == "web" and WEB_CONTEXT_NAME in self.exposed_tools
+                and tool == "browser_navigate" and not body.get("isError")):
+            content[:] = [{"type": "text", "text": "PIE_NAVIGATED"}]
+            try:
+                record(self.root, surface="mcp", tool=tool,
+                       state="SEMANTIC_NAVIGATION_ACK", source_chars=0,
+                       returned_chars=len("PIE_NAVIGATED"), elapsed_ms=elapsed_ms)
+            except (OSError, ValueError):
+                pass
+            return response
         if len(content)!=1 or not isinstance(content[0],dict) or not isinstance(content[0].get("text"),str):
             observe_passthrough("STRUCTURED_PASSTHROUGH")
             return response
         source=content[0]["text"]
+        if self.profile == "web" and web_result_eligible(source, tool):
+            with self._web_source_ready:
+                self._last_web_source = source
+                self._web_source_ready.notify_all()
         eligible=(not self._collision and tool in self._listed_tools and
                   mcp_compactable(response,tool,self.compress_tools,
                                   has_output_schema=tool in self._output_schema_tools))
@@ -299,6 +327,67 @@ class MCPStdioGateway:
             return response
         return response
 
+    def _handle_web_context(self, message: dict) -> dict:
+        args = message.get("params", {}).get("arguments", {})
+        try:
+            if not isinstance(args, dict) or set(args) - {"query"}:
+                raise ValueError("Invalid web context parameters")
+            if self._last_web_source is None:
+                self._request_internal_snapshot()
+            deadline = time.monotonic() + self.request_timeout_sec
+            with self._web_source_ready:
+                while self._last_web_source is None:
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        raise ValueError("No browser snapshot is available")
+                    self._web_source_ready.wait(timeout=remaining)
+                source = self._last_web_source
+            result = web_context_query(source,
+                                       args.get("query", ""),
+                                       700)
+            return {"jsonrpc": "2.0", "id": message.get("id"),
+                    "result": {"content": [{"type": "text", "text": _json(result)}]}}
+        except (ValueError, TypeError) as exc:
+            return _tool_error(message.get("id"), "PIE_WEB_CONTEXT_FAILED: " + str(exc))
+
+    def _request_internal_snapshot(self) -> None:
+        """Fetch one snapshot without forwarding it through the client context."""
+        if self._upstream_stdin is None:
+            raise ValueError("Upstream is not ready")
+        internal_id = "pie-internal-snapshot-" + uuid.uuid4().hex
+        event = threading.Event()
+        with self._internal_lock:
+            self._internal_waiters[internal_id] = (event, None)
+        request = {"jsonrpc": "2.0", "id": internal_id, "method": "tools/call",
+                   "params": {"name": "browser_snapshot", "arguments": {}}}
+        try:
+            with self._upstream_write_lock:
+                self._upstream_stdin.write(_json(request) + "\n")
+                self._upstream_stdin.flush()
+            if not event.wait(self.request_timeout_sec):
+                raise ValueError("Internal browser snapshot timed out")
+            with self._internal_lock:
+                result = self._internal_waiters[internal_id][1]
+            if not isinstance(result, dict) or "error" in result:
+                raise ValueError("Internal browser snapshot failed")
+            body = result.get("result")
+            parts = body.get("content") if isinstance(body, dict) else None
+            text = parts[0].get("text") if isinstance(parts, list) and parts else None
+            if not isinstance(text, str) or not web_result_eligible(text, "browser_snapshot"):
+                raise ValueError("Internal response is not a valid browser snapshot")
+            with self._web_source_ready:
+                self._last_web_source = text
+                self._web_source_ready.notify_all()
+            try:
+                record(self.root, surface="mcp", tool="browser_snapshot",
+                       state="INTERNAL_CONTEXT", source_chars=len(text),
+                       returned_chars=0, elapsed_ms=0.0)
+            except (OSError, ValueError):
+                pass
+        finally:
+            with self._internal_lock:
+                self._internal_waiters.pop(internal_id, None)
+
     def _expire(self, key: str, stdout: TextIO) -> None:
         with self._pending_lock:
             pending = self._pending.pop(key, None)
@@ -336,11 +425,20 @@ class MCPStdioGateway:
         self._diagnostic("upstream_spawned", pid=upstream.pid)
         self._diagnostic("UPSTREAM_STARTED", pid=upstream.pid)
         assert upstream.stdin is not None and upstream.stdout is not None
+        self._upstream_stdin = upstream.stdin
 
         def read_upstream() -> None:
             for line in upstream.stdout:
                 try:
                     payload=json.loads(line)
+                    internal_id = payload.get("id") if isinstance(payload, dict) else None
+                    with self._internal_lock:
+                        internal = self._internal_waiters.get(internal_id) if isinstance(internal_id, str) else None
+                        if internal is not None:
+                            event, _ = internal
+                            self._internal_waiters[internal_id] = (event, payload)
+                            event.set()
+                            continue
                     response=self._transform(payload) if isinstance(payload,dict) else payload
                     if response is None:
                         continue
@@ -388,6 +486,12 @@ class MCPStdioGateway:
                             and not self._collision):
                         self._send(stdout,self._handle_recovery(request))
                         continue
+                    if (request.get("method") == "tools/call"
+                            and isinstance(request.get("params"), dict)
+                            and request["params"].get("name") == WEB_CONTEXT_NAME
+                            and self.profile == "web" and not self._collision):
+                        self._send(stdout, self._handle_web_context(request))
+                        continue
                     name=(request.get("params") or {}).get("name","") if isinstance(request.get("params"),dict) else ""
                     key=_id(request["id"])
                     with self._pending_lock:
@@ -402,8 +506,9 @@ class MCPStdioGateway:
                         self._request_history[key]=(request.get("method",""),name,started)
                         timer.daemon=True
                         timer.start()
-                upstream.stdin.write(line)
-                upstream.stdin.flush()
+                with self._upstream_write_lock:
+                    upstream.stdin.write(line)
+                    upstream.stdin.flush()
         finally:
             upstream.stdin.close()
             try:

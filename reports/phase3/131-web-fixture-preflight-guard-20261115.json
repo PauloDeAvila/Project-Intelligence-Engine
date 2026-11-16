@@ -1,0 +1,24 @@
+{
+  "schema": "pie-phase3-web-fixture-guard-v1",
+  "timestamp_utc": "2026-11-15T23:26:38.7985343Z",
+  "status": "PASS",
+  "change": "run_phase3_local.ps1 validates a scenario-specific HTTP fixture marker before MCP/model execution",
+  "wrong_fixture_test": {
+    "served_directory": "fixtures/phase3/web",
+    "requested_variant": "large",
+    "status": "REJECTED_BEFORE_MCP",
+    "error_class": "Web fixture mismatch"
+  },
+  "correct_fixture_test": {
+    "served_directory": "fixtures/phase3/web-large",
+    "requested_variant": "large",
+    "status": "MCP_PROBE_PASS",
+    "repetitions": 3,
+    "baseline_observation_chars": [8006, 8006, 8006],
+    "optimized_observation_chars": [2812, 2812, 2905],
+    "model_started": false,
+    "quota_consumed": false
+  },
+  "codex_certification": "NOT_CERTIFIED",
+  "note": "The guard prevents invalid fixture comparisons; it does not measure token savings."
+}

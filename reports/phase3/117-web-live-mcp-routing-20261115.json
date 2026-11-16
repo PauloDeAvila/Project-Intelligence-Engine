@@ -1,0 +1,23 @@
+{
+  "schema": "pie-phase3-live-routing-evidence-v1",
+  "status": "PASS_LOCAL_ROUTING_NO_MODEL",
+  "domain": "web",
+  "fixture": "fixtures/phase3/web-large",
+  "fixture_url": "http://127.0.0.1:8767/index.html",
+  "upstream": "@playwright/mcp@0.0.85",
+  "command": ".\\tools\\run_phase3_local.ps1 -Domain web -WebVariant large -NpxExe 'C:\\Program Files\\nodejs\\npx.cmd' -ProbeOnly",
+  "source_report": "C:/Users/phsra/AppData/Local/Temp/pie-web-ollama-d724a555414d9.json",
+  "repetitions": 3,
+  "order": ["baseline_then_optimized", "optimized_then_baseline", "baseline_then_optimized"],
+  "tool_names": ["browser_navigate", "browser_snapshot"],
+  "baseline_server": "playwright-baseline",
+  "optimized_server": "pie-web-optimized",
+  "mcp_tool_calls": 12,
+  "recovery_calls": 0,
+  "provider_requests": 0,
+  "codex_sessions_started": 0,
+  "observation_chars": {"baseline": [8006, 8061, 8061], "optimized": [2812, 2774, 2774], "mean_reduction_percent": 65.36},
+  "tool_elapsed_ms": {"baseline": [761.541, 52.806, 47.414], "optimized": [451.386, 87.085, 84.518]},
+  "interpretation": "Real Playwright MCP routing and local-fixture observations verified. No token savings claim is permitted because no model/provider inference occurred.",
+  "certification": "NOT_CERTIFIED"
+}

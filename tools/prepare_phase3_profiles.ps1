@@ -63,14 +63,14 @@ if ($BlenderPort -ne 0) { $blenderUpstreamArgs += @("--port", "$BlenderPort") }
 $optimizedBlenderArgs += @("--", $BlenderUpstream) + $blenderUpstreamArgs
 $optimizedWebArgs = @("-m", "pie.gateway.domain", "serve", "--domain", "web", "--workspace", $root, "--max-chars", "$MaxChars")
 foreach ($tool in $OptimizedExposeTool) { $optimizedWebArgs += @("--expose-tool", $tool) }
-$optimizedWebArgs += @("--", $NpxExe, "--yes", $PlaywrightVersion, "--headless", "--browser", "chrome")
+$optimizedWebArgs += @("--", $NpxExe, "--yes", $PlaywrightVersion, "--headless", "--isolated", "--browser", "chrome")
 $webBaseline = @(
     "[mcp_servers.playwright-baseline]",
     "enabled = true",
     "enabled_tools = ['browser_navigate', 'browser_snapshot']",
     ("command = '{0}'" -f $NpxExe),
     $(if ($diagnosticsWeb) { "env = { PIE_MCP_DIAGNOSTICS_PATH = '$diagnosticsWeb' }" }),
-    ("args = {0}" -f (TomlArray @("--yes", $PlaywrightVersion, "--headless", "--browser", "chrome"))),
+    ("args = {0}" -f (TomlArray @("--yes", $PlaywrightVersion, "--headless", "--isolated", "--browser", "chrome"))),
     "",
     "[mcp_servers.playwright-baseline.tools.browser_navigate]",
     "approval_mode = 'approve'",

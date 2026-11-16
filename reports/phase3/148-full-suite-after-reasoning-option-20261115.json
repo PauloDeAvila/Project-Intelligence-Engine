@@ -1,0 +1,16 @@
+{
+  "schema": "pie-phase3-validation-run-v1",
+  "timestamp_utc": null,
+  "timestamp_note": "The unittest command did not emit an event timestamp; completion was observed directly in the terminal.",
+  "command": "uv run python -m unittest discover -s tests -q",
+  "status": "PASS",
+  "tests_run": 647,
+  "skipped": 5,
+  "errors": 0,
+  "codex_sessions_started": 0,
+  "quota_consumed": false,
+  "warnings": [
+    "ResourceWarning entries for simulated HTTP error responses were emitted by tests and did not fail the suite.",
+    "An existing diagnostic component emitted BLOCKED_WITH_EVIDENCE/disk full text; unittest still completed successfully."
+  ]
+}

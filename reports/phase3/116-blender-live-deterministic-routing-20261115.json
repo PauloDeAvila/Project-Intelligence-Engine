@@ -1,0 +1,19 @@
+{
+  "schema": "pie-phase3-live-routing-evidence-v1",
+  "status": "PASS_LOCAL_ROUTING_NO_MODEL",
+  "domain": "blender",
+  "blender_port": 9993,
+  "fixture": "C:/Users/phsra/AppData/Local/Temp/pie-local-blender-fixture/fixture.blend",
+  "command": ".\\tools\\run_blender_choice_agent.ps1 -BlenderPort 9993 -RouteMode deterministic -MaxTasks 3",
+  "source_report": "C:/Users/phsra/AppData/Local/Temp/pie-blender-multi-choice-c9bbe356c9bb.json",
+  "tasks": 3,
+  "baseline_mcp_calls": 3,
+  "optimized_mcp_calls": 3,
+  "oracle_passes": 6,
+  "provider_requests": 0,
+  "codex_sessions_started": 0,
+  "tool_routes": {"baseline": "execute_blender_code", "optimized": "pie_blender_get_object"},
+  "latency_ms": {"baseline": [52.672, 51.003, 55.226], "optimized": [51.871, 49.185, 48.4]},
+  "interpretation": "Real MCP routing and source-data correctness verified against the disposable Blender fixture. No token savings claim is permitted because no model/provider inference occurred.",
+  "certification": "NOT_CERTIFIED"
+}

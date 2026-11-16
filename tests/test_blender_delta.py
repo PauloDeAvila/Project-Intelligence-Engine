@@ -7,7 +7,9 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from pie.integrations.blender_delta import (
-    QUERY_SCHEMA, QUERY_MARKER, SceneDeltaCache, parse_execution_reply, parse_query_reply, snapshot_code,
+    QUERY_SCHEMA, QUERY_MARKER, GET_OBJECT_MARKER, SceneDeltaCache, parse_execution_reply,
+    parse_query_reply, snapshot_code, get_object_code, parse_get_object_reply,
+    validate_get_object_arguments,
 )
 
 
@@ -29,6 +31,34 @@ def fixture():
 
 
 class BlenderDeltaTests(unittest.TestCase):
+    def test_exact_object_code_and_reply_are_minimal_and_read_only(self):
+        name = 'Cube"); __import__("os").system("echo bad") #'
+        code = get_object_code({"name": name})
+        self.assertIn("bpy.context.scene.objects.get(pie_object_name)", code)
+        self.assertNotIn("bpy.ops", code)
+        self.assertNotIn("exec(", code)
+        self.assertIn(json.dumps(name, ensure_ascii=True), code)
+        value = {"object_name": "PIE_Large_Cube_00", "object_type": "MESH",
+                 "location": [0.0, 0.0, 0.0],
+                 "material_names": ["PIE_Large_Material_00"]}
+        reply = {"result": {"content": [{"type": "text",
+                  "text": "Code executed successfully: " + GET_OBJECT_MARKER
+                          + json.dumps(value)}]}}
+        self.assertEqual(parse_get_object_reply(reply), value)
+        self.assertEqual(len(parse_get_object_reply(reply)), 4)
+        for invalid in ({}, {"name": ""}, {"name": "Cube", "code": "print(1)"},
+                        {"name": 7}, {"name": "a" * 129}):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                validate_get_object_arguments(invalid)
+        with self.assertRaisesRegex(ValueError, "not found"):
+            parse_get_object_reply({"result": {"content": [{"type": "text",
+                "text": GET_OBJECT_MARKER + '{"error":"OBJECT_NOT_FOUND"}'}]}})
+        with self.assertRaises(ValueError):
+            parse_get_object_reply({"result": {"content": [{"type": "text",
+                "text": GET_OBJECT_MARKER + '{"object_name":"only"}'}]}})
+        with self.assertRaises(ValueError):
+            parse_get_object_reply({"result": {"isError": True, "content": []}})
+
     def test_query_parser_accepts_structured_content_result(self):
         query = {"schema": QUERY_SCHEMA, "query": "find_objects", "scene": "Scene",
                  "items": [], "total": 0, "offset": 0, "limit": 20,
