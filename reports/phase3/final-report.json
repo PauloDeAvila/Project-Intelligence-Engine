@@ -134,6 +134,20 @@
         "input_savings_percent": 65.879,
         "oracle_pass": true,
         "report": "reports/phase3/137-web-harness-maxchars-1000-20261115.json"
+      },
+      {
+        "max_chars": 900,
+        "total_savings_percent": 64.381,
+        "input_savings_percent": 67.192,
+        "oracle_pass": true,
+        "report": "reports/phase3/141-web-harness-maxchars-900-20261115.json"
+      },
+      {
+        "max_chars": 850,
+        "total_savings_percent": 65.208,
+        "input_savings_percent": 67.505,
+        "oracle_pass": true,
+        "report": "reports/phase3/140-web-harness-maxchars-850-20261115.json"
       }
     ],
     "failed_closed": {

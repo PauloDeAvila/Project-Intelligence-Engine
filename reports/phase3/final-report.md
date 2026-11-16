@@ -185,6 +185,12 @@ certificação oficial. Evidências: [135](135-web-harness-maxchars-1600-2026111
 [137](137-web-harness-maxchars-1000-20261115.json) e
 [138](138-web-harness-maxchars-800-failed-closed-20261115.json).
 
+Uma nova sondagem em `max_chars=900` e `850` manteve os oráculos aprovados e
+elevou a economia para 64,381% e 65,208%, respectivamente. O valor de 850 é
+o melhor ponto seguro observado nesta sequência; não representa certificação
+geral nem deve ser extrapolado para páginas arbitrárias. Evidência:
+[140](140-web-harness-maxchars-850-20261115.json).
+
 A suíte completa após esse ajuste passou novamente com 644 testes, 5 ignorados
 e 0 erros. Evidência: [139-full-suite-after-maxchars-20261115.json](139-full-suite-after-maxchars-20261115.json).
 
