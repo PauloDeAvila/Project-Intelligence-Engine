@@ -28,7 +28,9 @@ checkpoint para o agente receptor, com proveniência da origem. O receptor
 restaura somente esse checkpoint, sem receber o histórico completo.
 
 O contrato é coberto por test_multi_agent_memory_handoff_survives_agent_boundary
-e pela integração da facade em test_context_runtime.py.
+e pela integração da facade em test_context_runtime.py. Um handoff controlado
+OpenCode/DeepSeek também foi executado; ele não representa certificação geral
+de qualidade ou economia.
 
 ## Fase 6 — Contexto incremental e cache
 

@@ -3,8 +3,8 @@
   "status": "PARTIAL_LOCAL_VALIDATION",
   "certification": "NOT_CERTIFIED",
   "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
-  "head_before_report_commit": "6183a0e",
-  "implementation_commit": "e1964f5",
+  "head_before_report_commit": "8440c7a",
+  "implementation_commit": "8440c7a",
   "index": {
     "source": "uv run python -m pie.interfaces.cli status --root .",
     "project": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean",
@@ -16,17 +16,17 @@
   },
   "tests": {
     "focused": {
-      "command": "uv run --with pytest python -m pytest -q tests/test_multi_agent_memory.py tests/test_context_runtime.py tests/test_runtime_mcp.py --basetemp .pytest-tmp-phase4-3",
-      "passed": 40,
+      "command": "uv run --with pytest python -m pytest -q tests/test_task_memory_checkpoints.py tests/test_multi_agent_memory.py tests/test_context_compiler.py tests/test_evidence_atoms.py --basetemp .pytest-tmp-phase6-1",
+      "passed": 74,
       "failed": 0
     },
     "full": {
-      "command": "uv run --with pytest python -m pytest -q --basetemp .pytest-tmp-phase4-full",
+      "command": "uv run --with pytest python -m pytest -q --basetemp .pytest-tmp-phase4-final",
       "passed": 709,
       "skipped": 4,
       "subtests": 126,
       "failed": 0,
-      "duration_seconds": 34.71
+      "duration_seconds": 36.51
     }
   },
   "verifier": {
@@ -46,18 +46,22 @@
       ]
     },
     "5_multi_agent_memory": {
-      "status": "PASS_LOCAL_CONTRACT",
+      "status": "PASS_EXTERNAL_CONTROLLED",
       "evidence": [
         "explicit codex-to-deepseek checkpoint handoff",
+        "durable context_version exposed from the checkpoint sequence",
         "source hash and provenance preserved",
-        "receiver restores without task history"
+        "receiver restores without task history",
+        "OpenCode DeepSeek source and receiver returned HANDOFF_READY/HANDOFF_RESUMED"
       ],
-      "external_live_agent": "NOT_RUN"
+      "external_live_agent": "PASS_CONTROLLED"
     },
     "6_incremental_context_cache": {
-      "status": "PARTIAL_LOCAL",
+      "status": "PASS_LOCAL_RESTART",
       "evidence": [
         "hash-backed compiler and checkpoint tests passed",
+        "persistent evidence cache reopens across calls and invalidates on source hash change",
+        "context checkpoint version survives ContextRuntime restart",
         "real provider evidence remains separate from synthetic token gate"
       ],
       "external_restart_token_proof": "MISSING"
@@ -86,7 +90,7 @@
   },
   "limitations": [
     "The configured PIE MCP server in this session reports another workspace root and was not used as evidence.",
-    "No live model agent handoff was executed; the handoff contract is locally verified.",
+    "Only one controlled live handoff was executed; general multi-agent quality is not certified.",
     "Character reduction and synthetic counters are not token certification."
   ]
 }

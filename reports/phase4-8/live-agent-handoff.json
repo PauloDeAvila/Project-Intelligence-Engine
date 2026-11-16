@@ -1,0 +1,42 @@
+{
+  "schema": "pie-live-agent-handoff-v1",
+  "status": "PASS_EXTERNAL_CONTROLLED",
+  "model": "infinity/deepseek-v3.2",
+  "provider": "infinity",
+  "task_id": "cbfb6b57-fe4d-4661-a64b-32d22a0120b5",
+  "source_agent": {
+    "agent_id": "deepseek-a",
+    "decision": "HANDOFF_READY",
+    "context_version": 1,
+    "provider_usage": {
+      "input_tokens": 4323,
+      "output_tokens": 20,
+      "reasoning_output_tokens": 127,
+      "cache_read_tokens": 2285
+    }
+  },
+  "handoff": {
+    "state": "HANDOFF_CREATED",
+    "target_agent": "deepseek-b",
+    "context_version": 2,
+    "source_state_hash_verified": true,
+    "restart_between_checkpoint_and_restore": true,
+    "full_task_history_sent_to_target": false
+  },
+  "target_agent": {
+    "agent_id": "deepseek-b",
+    "decision": "HANDOFF_RESUMED",
+    "provider_usage": {
+      "input_tokens": 127,
+      "output_tokens": 17,
+      "reasoning_output_tokens": 195,
+      "cache_read_tokens": 6514
+    }
+  },
+  "evidence": {
+    "source": "OpenCode JSONL step_finish usage plus local PIE ContextRuntime",
+    "prompts_and_responses_persisted": false,
+    "checkpoint_storage": "SQLite hash-verified task checkpoint",
+    "scope": "single controlled handoff; not a certification of general agent quality"
+  }
+}
