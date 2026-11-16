@@ -151,7 +151,7 @@ não negativo, acompanhado de uso do provedor disponível. Sem tarifa ou uso
 verificados, o candidato é inelegível; o PIE não estima preço a partir de
 caracteres ou de limites de assinatura.
 
-A suíte completa atual passou com 697 testes (`697 passed, 4 skipped, 126
+A suíte completa atual passou com 705 testes (`705 passed, 4 skipped, 126
 subtests`). O verificador recente mantém o status `PASS_LOCAL` com
 certificação `NOT_CERTIFIED`.
 

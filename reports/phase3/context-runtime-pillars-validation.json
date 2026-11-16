@@ -72,7 +72,7 @@
   },
   "validation": {
     "targeted_tests": "hard timeout isolated with focused tests passed",
-    "full_suite": "697 passed, 4 skipped, 126 subtests passed",
+    "full_suite": "705 passed, 4 skipped, 126 subtests passed",
     "provider_usage": "NOT_AVAILABLE",
     "certification": "NOT_CERTIFIED"
   },
