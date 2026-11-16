@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import pytest
+import time
 
 from pie.certification.task_telemetry import record_task, report as task_report
 from pie.gateway.metrics import record, report as gateway_report
-from pie.gateway.mcp_stdio import _event_id
+from pie.gateway.mcp_stdio import MCPStdioGateway, _event_id, _id
 
 
 def test_gateway_event_id_is_stable_and_content_free():
@@ -69,6 +70,22 @@ def test_event_id_validation_fails_closed(root_tmp_path):
             elapsed_ms=0,
             source_event_id="contains spaces",
         )
+
+
+def test_mcp_transform_records_response_and_allows_reused_request_id(root_tmp_path):
+    gateway = MCPStdioGateway(root_tmp_path, ["python", "-c", "pass"])
+    gateway._listed_tools.add("get_scene_info")
+    response = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {"content": [{"type": "text", "text": "small observation"}]},
+    }
+    gateway._pending[_id(1)] = ("tools/call", "get_scene_info", time.perf_counter(), None)
+    assert gateway._transform(response) == response
+    time.sleep(0.001)
+    gateway._pending[_id(1)] = ("tools/call", "get_scene_info", time.perf_counter(), None)
+    assert gateway._transform(response) == response
+    assert gateway_report(root_tmp_path)["events"] == 2
 
 
 @pytest.fixture
