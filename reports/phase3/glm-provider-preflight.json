@@ -15,7 +15,9 @@
     "status": "TIMEOUT",
     "provider_usage_status": "unavailable",
     "usage": null,
-    "reason": "The local chat-completions request exceeded the configured client timeout.",
+    "reason": "A fresh local chat-completions probe with a 60-second timeout also expired without a response.",
+    "last_probe_elapsed_ms": 60043,
+    "last_probe_model": "gambiarraapi/glm-5.3-flash",
     "benchmark_started": false
   },
   "upstream_probe": {

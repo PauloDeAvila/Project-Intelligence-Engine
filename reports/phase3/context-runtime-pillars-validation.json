@@ -9,7 +9,8 @@
         "ContextRuntime.start delegates to task_memory.start_task",
         "ContextRuntime.record delegates to task_memory.record_task",
         "ContextRuntime.resume delegates to task_memory.resume_task",
-        "hash-verified checkpoints covered by existing task-memory tests"
+        "hash-verified checkpoints covered by existing task-memory tests",
+        "single ContextRuntime six-pillar integration test"
       ]
     },
     "context_compiler": {
@@ -39,8 +40,8 @@
     }
   },
   "validation": {
-    "targeted_tests": "8 passed",
-    "full_suite": "503 passed, 4 skipped, 126 subtests passed",
+    "targeted_tests": "14 passed",
+    "full_suite": "505 passed, 4 skipped, 126 subtests passed",
     "provider_usage": "NOT_AVAILABLE",
     "certification": "NOT_CERTIFIED"
   },

@@ -5,7 +5,9 @@ import json
 import pytest
 
 from pie.interfaces.mcp_server import dispatch
+from pie.retrieval.task_memory import start_task
 from pie.runtime.context_runtime import ContextRuntime
+from pie.storage.database import connect
 
 
 def _call(root, arguments):
@@ -45,6 +47,27 @@ def test_runtime_tool_reads_graph_and_agent_metadata_without_state_payload(tmp_p
     assert [node["node_id"] for node in graph["nodes"]] == ["check", "source"]
     order = _text(_call(tmp_path, {"operation": "graph_order", "task_id": "task-1"}))
     assert order["order"] == ["source", "check"]
+
+
+def test_runtime_tool_returns_only_agent_checkpoint_metadata(tmp_path):
+    (tmp_path / ".pie").mkdir()
+    connect(tmp_path / ".pie" / "index.sqlite3").close()
+    task = start_task(tmp_path, "metadata fixture")
+    with ContextRuntime(tmp_path) as runtime:
+        runtime.checkpoint_agent(task["task_id"], "agent-a", {"fact": "not returned"})
+    refs = _text(_call(tmp_path, {
+        "operation": "agent_references",
+        "task_id": task["task_id"],
+        "agent_id": "agent-a",
+    }))
+    agents = _text(_call(tmp_path, {
+        "operation": "agents",
+        "task_id": task["task_id"],
+    }))
+    assert refs["state"] == "FOUND"
+    assert agents["agents"] == ["agent-a"]
+    assert "state_value" not in json.dumps(refs)
+    assert "not returned" not in json.dumps(refs)
 
 
 def test_runtime_tool_rejects_invalid_ids_and_execution_like_operations(tmp_path):

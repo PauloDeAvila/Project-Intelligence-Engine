@@ -123,3 +123,58 @@ def test_runtime_composes_local_execution_graph_and_shared_memory(tmp_path: Path
         assert runtime.graph_order(task["task_id"])["order"] == ["a", "b"]
         runtime.memory.checkpoint(task["task_id"], "agent-a", {"value": 4})
         assert runtime.memory.restore(task["task_id"], "agent-a")["state"] == "FOUND"
+
+
+def test_context_runtime_integrates_all_six_pillars(tmp_path: Path):
+    storage = tmp_path / ".pie"
+    storage.mkdir()
+    connect(storage / "index.sqlite3").close()
+
+    def evidence(condition: str) -> RunEvidence:
+        return RunEvidence(
+            pair_id="pair-six-pillars",
+            scenario_id="scenario-six-pillars",
+            application="web",
+            condition=condition,
+            model="fixture-model",
+            prompt_sha256="prompt-sha",
+            configuration_sha256="config-sha",
+            provider_usage_status="available",
+            input_tokens=100 if condition == "baseline" else 80,
+            cached_input_tokens=20,
+            output_tokens=10,
+            latency_ms=5.0,
+            mcp_calls=1,
+            oracle_pass=True,
+            route_verified=True,
+        )
+
+    with ContextRuntime(
+        tmp_path,
+        journal_path=Path(".pie") / "runtime.sqlite3",
+        graph_path=Path(".pie") / "context-runtime-graph.sqlite3",
+    ) as runtime:
+        task = runtime.start("six pillar fixture")
+        runtime.record(task["task_id"], "note", "created")
+        runtime.checkpoint_agent(task["task_id"], "agent-a", {"fact": {"value": 7}})
+        compiled = runtime.compile_checkpoint(task["task_id"], [["fact", "value"]])
+        assert compiled.data == {"fact": {"value": 7}}
+
+        selected = runtime.choose([
+            MeasuredCandidate("wide", "available", 100, 20, 10, 5.0),
+            MeasuredCandidate("compact", "available", 80, 20, 10, 5.0),
+        ])
+        assert selected["representation"] == "compact"
+
+        runtime.register_operation(OperationSpec("read_value", lambda args: args["value"]))
+        assert runtime.execute_local("read_value", {"value": 7})["status"] == "SUCCESS"
+        assert runtime.execute_local("read_value", {"value": 7})["status"] == "REPLAYED"
+
+        runtime.add_graph_node(task["task_id"], "observe", "step")
+        runtime.add_graph_node(task["task_id"], "verify", "step")
+        runtime.add_graph_edge(task["task_id"], "observe", "verify", "depends")
+        assert runtime.graph_order(task["task_id"])["order"] == ["observe", "verify"]
+        assert runtime.memory.agents(task["task_id"])["agents"] == ["agent-a"]
+
+        certified = runtime.evaluate_suite([(evidence("baseline"), evidence("optimized"))])
+        assert certified["status"] == "CERTIFIED"
