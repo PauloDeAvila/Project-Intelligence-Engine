@@ -18,7 +18,7 @@ não comprova economia de tokens de um provedor quando não existe um payload
 | --- | --- | --- |
 | State Engine | `ContextRuntime.start`, `record`, `resume`, checkpoints e restauração hash-verificada | PASS local |
 | Context Compiler | projeção por caminhos obrigatórios, `token_budget`/`token_counter` explícitos com falha fechada e SHA-256 | PASS local |
-| Local Execution | allowlist, JSON limitado, timeout cooperativo e replay idempotente | PASS local |
+| Local Execution | allowlist, JSON limitado, timeout cooperativo por padrão, `OperationSpec(hard_timeout=True)` em processo spawn isolado (`hard_timeout_unavailable`/`hard_timeout_exceeded`) e replay idempotente | PASS local |
 | Adaptive Runtime | seleção por tokens, latência e `cost_usd` explícito; qualidade obrigatória | PASS local |
 | Multi-Agent Memory | checkpoints por agente, proveniência e referências sem payload de estado | PASS local |
 | Continuous Certification | avaliador pareado fail-closed para tokens, rota, oráculo, latência e chamadas | PASS local / piloto GLM real v5 (3 tarefas, `PILOT_VALID`) — certificação externa `NOT_CERTIFIED` |
@@ -27,6 +27,14 @@ A facade do runtime é coberta por testes dedicados: guardas fail-closed após
 `close()` (acesso a `memory`, checkpoints e restauração levantam `RuntimeError`),
 fechamento tolerante a falha de recursos, execução local sem journal sem replay,
 round-trip de `restore_state` e snapshots do grafo.
+
+A facade pública `pillars.py` expõe os seis componentes, incluindo
+`LocalExecutionEngine` e `MultiAgentMemory`.
+
+A execução local mantém o timeout cooperativo como padrão. O modo
+`OperationSpec(hard_timeout=True)` roda o handler em um processo spawn isolado e
+falha fechado: `hard_timeout_unavailable` quando o processo isolado não pode ser
+iniciado e `hard_timeout_exceeded` quando o limite rígido é atingido.
 
 O adaptador `pie.certification.provider_usage` normaliza respostas
 OpenAI-compatíveis, incluindo cache e reasoning, e deixa o status
@@ -89,7 +97,7 @@ uv run pie status --root .
 Resultado observado:
 
 ```text
-683 passed, 4 skipped, 126 subtests passed
+695 passed, 4 skipped, 126 subtests passed
 PIE index_state=CURRENT
 workspace_match=true
 verifier status=PASS_LOCAL

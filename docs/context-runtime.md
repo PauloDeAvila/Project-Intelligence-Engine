@@ -72,11 +72,26 @@ com `BEGIN IMMEDIATE` para serializar escritores antes do cálculo de
 `MAX(version) + 1`. Falha de persistência degrada para memória, como no resto
 do cache.
 
+## Facade pública dos pilares
+
+A facade `pillars.py` expõe os seis componentes do Context Runtime, incluindo
+`LocalExecutionEngine` e `MultiAgentMemory`, além dos demais pilares. Isso
+permite importar e exercitar cada capacidade diretamente, com os mesmos
+contratos cobertos pelos testes.
+
 ## Execução local
 
 Somente operações registradas por `OperationSpec` podem ser executadas. Os
 argumentos e resultados são JSON limitados, chaves sensíveis são bloqueadas e
-timeouts são cooperativos: o handler precisa consultar `ExecutionContext`.
+timeouts são cooperativos por padrão: o handler precisa consultar
+`ExecutionContext`.
+
+Operações registradas com `OperationSpec(hard_timeout=True)` recebem um limite
+rígido adicional: o handler roda em um processo spawn isolado e é encerrado no
+limite com erro `hard_timeout_exceeded`. Se o runtime não conseguir iniciar o
+processo isolado, a operação falha fechado com `hard_timeout_unavailable` — a
+execução nunca continua sem o limite prometido.
+
 Com journal, a mesma operação é executada uma vez; uma repetição retorna
 `REPLAYED` sem reexecutar nem recuperar automaticamente o resultado privado.
 
@@ -135,6 +150,10 @@ O objetivo `cost` do Adaptive Runtime exige um `cost_usd` explícito, finito e
 não negativo, acompanhado de uso do provedor disponível. Sem tarifa ou uso
 verificados, o candidato é inelegível; o PIE não estima preço a partir de
 caracteres ou de limites de assinatura.
+
+A suíte completa atual passou com 695 testes (`695 passed, 4 skipped, 126
+subtests`). O verificador recente mantém o status `PASS_LOCAL` com
+certificação `NOT_CERTIFIED`.
 
 No estado atual, a validação local está aprovada. O piloto GLM local mais
 recente de 3 tarefas (v5) reportou uso real do provedor

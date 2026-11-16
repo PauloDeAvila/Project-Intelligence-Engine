@@ -10,12 +10,16 @@
         "ContextRuntime.record delegates to task_memory.record_task",
         "ContextRuntime.resume delegates to task_memory.resume_task",
         "hash-verified checkpoints covered by existing task-memory tests",
-        "single ContextRuntime six-pillar integration test"
+        "single ContextRuntime six-pillar integration test",
+        "StateEngine facade exposed by pie.runtime.pillars and covered by test_runtime_pillars"
       ]
     },
     "context_compiler": {
       "status": "PASS_LOCAL",
-      "evidence": ["required-path projection and checkpoint compilation tests"]
+      "evidence": [
+        "required-path projection and checkpoint compilation tests",
+        "ContextCompiler facade exposed by pie.runtime.pillars and covered by test_runtime_pillars"
+      ]
     },
     "local_execution_engine": {
       "status": "PASS_LOCAL",
@@ -23,32 +27,52 @@
         "allowlisted operation execution",
         "bounded JSON arguments/results",
         "cooperative deadlines",
-        "idempotent journal replay"
+        "idempotent journal replay",
+        "hard timeout isolated and validated by focused tests in tests/test_local_execution.py",
+        "LocalExecutionEngine facade exposed by pie.runtime.pillars and covered by test_runtime_pillars"
       ]
     },
     "adaptive_runtime": {
       "status": "PASS_LOCAL",
       "evidence": [
         "provider-usage-aware and quality-gated candidate selection tests",
-        "explicit verified cost objective with fail-closed missing-cost behavior"
+        "explicit verified cost objective with fail-closed missing-cost behavior",
+        "AdaptiveRuntime facade exposed by pie.runtime.pillars and covered by test_runtime_pillars"
       ]
     },
     "multi_agent_memory": {
       "status": "PASS_LOCAL",
-      "evidence": ["agent checkpoint provenance and hash verification tests"]
+      "evidence": [
+        "agent checkpoint provenance and hash verification tests",
+        "MultiAgentMemory facade exposed by pie.runtime.pillars and covered by test_runtime_pillars"
+      ]
     },
     "continuous_certification": {
       "status": "PASS_LOCAL_FAIL_CLOSED",
       "evidence": [
         "paired oracle/token validation tests",
         "OpenAI-compatible provider usage parser tests",
-        "unavailable provider usage remains uncertified"
+        "unavailable provider usage remains uncertified",
+        "ContinuousCertification facade exposed by pie.runtime.pillars and covered by test_runtime_pillars"
       ]
     }
   },
+  "public_facade": {
+    "module": "pie.runtime.pillars",
+    "exposed": true,
+    "pillars": [
+      "StateEngine",
+      "ContextCompiler",
+      "LocalExecutionEngine",
+      "AdaptiveRuntime",
+      "MultiAgentMemory",
+      "ContinuousCertification"
+    ],
+    "evidence": "test_runtime_pillars verifies delegation to existing contracts, re-exported symbols without wrappers, and local operation/memory checkpoint execution"
+  },
   "validation": {
-    "targeted_tests": "23 passed",
-    "full_suite": "511 passed, 4 skipped, 126 subtests passed",
+    "targeted_tests": "hard timeout isolated with focused tests passed",
+    "full_suite": "695 passed, 4 skipped, 126 subtests passed",
     "provider_usage": "NOT_AVAILABLE",
     "certification": "NOT_CERTIFIED"
   },
