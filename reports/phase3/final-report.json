@@ -240,6 +240,18 @@
     "report": "reports/phase3/155-web-harness-compiled-envelope-3pairs-20261115.json",
     "interpretation": "Promising local result, below 95%; not Codex certification."
   },
+  "latest_compiled_preview_only_run": {
+    "provider": "openai_compat_local_harness",
+    "model": "gambiarraapi/glm-5.3-flash",
+    "context_mode": "compiled_semantic_preview_only",
+    "valid_pairs": 3,
+    "baseline_total_tokens": 8094,
+    "optimized_total_tokens": 476,
+    "total_savings_percent": 94.119,
+    "oracle_passes": 6,
+    "report": "reports/phase3/158-web-harness-compiled-preview-only-3pairs-20261115.json",
+    "interpretation": "Best validated local result, still below 95%; not Codex certification."
+  },
   "compiled_output_limit_failure": "reports/phase3/152-web-harness-compiled-max-tokens-64-failed-closed-20261115.json",
   "compiled_minimal_prompt_failure": "reports/phase3/156-web-harness-compiled-minimal-prompt-failed-closed-20261115.json",
   "latest_full_suite_after_maxchars": "reports/phase3/139-full-suite-after-maxchars-20261115.json",
@@ -247,6 +259,7 @@
   "latest_full_suite_after_reasoning_option": "reports/phase3/148-full-suite-after-reasoning-option-20261115.json",
   "latest_full_suite_after_compiled_context": "reports/phase3/153-full-suite-after-compiled-context-20261115.json",
   "latest_full_suite_after_compiled_envelope": "reports/phase3/157-full-suite-after-compiled-envelope-20261115.json",
+  "latest_full_suite_after_compiled_preview_only": "reports/phase3/159-full-suite-after-compiled-preview-only-20261115.json",
   "validation": {
     "focused_tests_passed": 71,
     "full_suite_initial": {
@@ -282,6 +295,13 @@
       "skipped": 5,
       "errors": 0,
       "report": "reports/phase3/157-full-suite-after-compiled-envelope-20261115.json"
+    },
+    "latest_after_compiled_preview_only": {
+      "status": "PASS",
+      "tests_run": 649,
+      "skipped": 5,
+      "errors": 0,
+      "report": "reports/phase3/159-full-suite-after-compiled-preview-only-20261115.json"
     },
     "isolated_http_recheck": "PASS",
     "pytest": "not installed in this worktree",

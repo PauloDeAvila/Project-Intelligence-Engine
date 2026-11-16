@@ -92,12 +92,11 @@ def compiled_web_evidence(observations_json: str) -> str:
     unique = list(dict.fromkeys(previews))
     if not unique:
         return observations_json
-    # Retain a tiny typed envelope. Bare lines reduce input tokens further but
+    # Retain a tiny JSON envelope. Bare lines reduce input tokens further but
     # caused the provider to spend substantially more reasoning tokens in the
     # first live probe, so the compiler preserves semantic status without
     # forwarding the full gateway metadata.
-    return compact_json({"preview": "\n".join(unique), "complete": False,
-                         "trust": "UNTRUSTED_PAGE_DATA"})
+    return compact_json({"preview": "\n".join(unique)})
 
 
 def sha(text: str) -> str:

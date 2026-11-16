@@ -425,8 +425,7 @@ class LocalOllamaBenchmarkTests(unittest.TestCase):
                 run_local_model(scenario, obs, "model", 20, 4096, "compiled", "optimized")
         self.assertEqual(
             requests[0]["messages"][1]["content"],
-            'EVIDENCE={"complete":false,"preview":"title: T",'
-            '"trust":"UNTRUSTED_PAGE_DATA"}')
+            'EVIDENCE={"preview":"title: T"}')
 
 
 if __name__ == "__main__":

@@ -265,4 +265,15 @@ A suíte completa após o envelope compilado passou com **649 testes**, 5
 ignorados e 0 erros. Evidência:
 [157-full-suite-after-compiled-envelope-20261115.json](157-full-suite-after-compiled-envelope-20261115.json).
 
+Uma variante final removeu também os metadados do envelope, mantendo somente o
+`preview` em JSON. Três pares produziram 8.094 tokens baseline contra 476
+otimizados: **94,119% de economia**, com 6/6 oráculos aprovados. Esta é a
+melhor medição local validada até agora, ainda abaixo da meta de 95%.
+Evidência:
+[158-web-harness-compiled-preview-only-3pairs-20261115.json](158-web-harness-compiled-preview-only-3pairs-20261115.json).
+
+A suíte completa após essa variante final passou novamente: **649 testes**, 5
+ignorados e 0 erros. Evidência:
+[159-full-suite-after-compiled-preview-only-20261115.json](159-full-suite-after-compiled-preview-only-20261115.json).
+
 Auditoria requisito‑por‑requisito: [115-completion-audit-20261115.json](115-completion-audit-20261115.json).
