@@ -95,3 +95,17 @@ def test_graph_reports_truncation_instead_of_silent_partial_results(tmp_path):
         assert result["nodes_truncated"] is True
     finally:
         store.close()
+
+
+def test_read_only_graph_does_not_initialize_or_mutate(tmp_path):
+    path = tmp_path / "graph.sqlite3"
+    store = TaskGraphStore(path)
+    store.add_node("task-1", "n1", "source", {"value": "ok"})
+    store.close()
+    readonly = TaskGraphStore(path, read_only=True)
+    try:
+        assert readonly.get_graph("task-1")["state"] == "FOUND"
+        with pytest.raises(GraphValidationError, match="read-only"):
+            readonly.add_node("task-1", "n2", "source", {})
+    finally:
+        readonly.close()

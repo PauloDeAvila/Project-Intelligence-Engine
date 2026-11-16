@@ -104,54 +104,64 @@ def _verified_metadata(encoded: str, expected_hash: str) -> dict[str, object]:
 class TaskGraphStore:
     """Thread-safe SQLite graph with idempotent writes and cycle detection."""
 
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path, *, read_only: bool = False) -> None:
         self._path = Path(path)
         if self._path.is_symlink() or self._path.is_dir():
             raise GraphValidationError("graph path must be a regular file")
-        self._path.parent.mkdir(parents=True, exist_ok=True)
-        self._connection = sqlite3.connect(
-            self._path, timeout=5, isolation_level=None, check_same_thread=False
-        )
+        self._read_only = read_only
+        if read_only:
+            if not self._path.is_file():
+                raise GraphValidationError("read-only graph path must exist")
+            uri = f"file:{self._path.resolve().as_posix()}?mode=ro"
+            self._connection = sqlite3.connect(
+                uri, uri=True, timeout=5, isolation_level=None, check_same_thread=False
+            )
+        else:
+            self._path.parent.mkdir(parents=True, exist_ok=True)
+            self._connection = sqlite3.connect(
+                self._path, timeout=5, isolation_level=None, check_same_thread=False
+            )
         self._connection.row_factory = sqlite3.Row
         self._lock = threading.RLock()
         self._closed = False
         with self._lock:
-            self._connection.execute("PRAGMA journal_mode=WAL")
             self._connection.execute("PRAGMA busy_timeout=5000")
-            self._connection.execute("PRAGMA synchronous=FULL")
-            self._connection.execute(
-                """
-                CREATE TABLE IF NOT EXISTS pie_task_graph_nodes (
-                    task_id TEXT NOT NULL,
-                    node_id TEXT NOT NULL,
-                    kind TEXT NOT NULL,
-                    metadata_json TEXT NOT NULL,
-                    metadata_sha256 TEXT NOT NULL,
-                    created_utc TEXT NOT NULL,
-                    PRIMARY KEY (task_id, node_id)
+            if not read_only:
+                self._connection.execute("PRAGMA journal_mode=WAL")
+                self._connection.execute("PRAGMA synchronous=FULL")
+                self._connection.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS pie_task_graph_nodes (
+                        task_id TEXT NOT NULL,
+                        node_id TEXT NOT NULL,
+                        kind TEXT NOT NULL,
+                        metadata_json TEXT NOT NULL,
+                        metadata_sha256 TEXT NOT NULL,
+                        created_utc TEXT NOT NULL,
+                        PRIMARY KEY (task_id, node_id)
+                    )
+                    """
                 )
-                """
-            )
-            self._connection.execute(
-                """
-                CREATE TABLE IF NOT EXISTS pie_task_graph_edges (
-                    task_id TEXT NOT NULL,
-                    from_node TEXT NOT NULL,
-                    to_node TEXT NOT NULL,
-                    relation TEXT NOT NULL,
-                    created_utc TEXT NOT NULL,
-                    PRIMARY KEY (task_id, from_node, to_node, relation)
+                self._connection.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS pie_task_graph_edges (
+                        task_id TEXT NOT NULL,
+                        from_node TEXT NOT NULL,
+                        to_node TEXT NOT NULL,
+                        relation TEXT NOT NULL,
+                        created_utc TEXT NOT NULL,
+                        PRIMARY KEY (task_id, from_node, to_node, relation)
+                    )
+                    """
                 )
-                """
-            )
-            self._connection.execute(
-                "CREATE INDEX IF NOT EXISTS idx_pie_graph_nodes_task "
-                "ON pie_task_graph_nodes(task_id, node_id)"
-            )
-            self._connection.execute(
-                "CREATE INDEX IF NOT EXISTS idx_pie_graph_edges_task "
-                "ON pie_task_graph_edges(task_id, from_node, to_node)"
-            )
+                self._connection.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_pie_graph_nodes_task "
+                    "ON pie_task_graph_nodes(task_id, node_id)"
+                )
+                self._connection.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_pie_graph_edges_task "
+                    "ON pie_task_graph_edges(task_id, from_node, to_node)"
+                )
 
     def _ensure_open(self) -> None:
         if self._closed:
@@ -171,6 +181,8 @@ class TaskGraphStore:
         node_id = _identifier(node_id, "node_id")
         kind = _identifier(kind, "kind")
         encoded, digest = _metadata(metadata)
+        if self._read_only:
+            raise GraphValidationError("read-only graph cannot be mutated")
         with self._lock:
             self._ensure_open()
             self._connection.execute("BEGIN IMMEDIATE")
@@ -205,6 +217,8 @@ class TaskGraphStore:
         relation = _identifier(relation, "relation")
         if from_node == to_node:
             raise GraphValidationError("self-loop is not allowed")
+        if self._read_only:
+            raise GraphValidationError("read-only graph cannot be mutated")
         with self._lock:
             self._ensure_open()
             self._connection.execute("BEGIN IMMEDIATE")
