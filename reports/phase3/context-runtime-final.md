@@ -23,6 +23,10 @@ não comprova economia de tokens de um provedor quando não existe um payload
 | Multi-Agent Memory | checkpoints por agente, proveniência e referências sem payload de estado | PASS local |
 | Continuous Certification | avaliador pareado fail-closed para tokens, rota, oráculo, latência e chamadas | PASS local / uso externo pendente |
 
+O adaptador `pie.certification.provider_usage` normaliza respostas
+OpenAI-compatíveis, incluindo cache e reasoning, e deixa o status
+`unavailable` quando qualquer campo obrigatório não é reportado.
+
 Componentes complementares já cobertos pelo projeto: deltas Blender/Web,
 recuperação paginada de outputs, hashes de proveniência e grafo de tarefas.
 Eles permanecem sujeitos aos mesmos limites e não substituem tokens reais.

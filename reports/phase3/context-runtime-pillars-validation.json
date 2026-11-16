@@ -39,12 +39,16 @@
     },
     "continuous_certification": {
       "status": "PASS_LOCAL_FAIL_CLOSED",
-      "evidence": ["paired oracle/token validation tests", "unavailable provider usage remains uncertified"]
+      "evidence": [
+        "paired oracle/token validation tests",
+        "OpenAI-compatible provider usage parser tests",
+        "unavailable provider usage remains uncertified"
+      ]
     }
   },
   "validation": {
-    "targeted_tests": "20 passed",
-    "full_suite": "508 passed, 4 skipped, 126 subtests passed",
+    "targeted_tests": "23 passed",
+    "full_suite": "511 passed, 4 skipped, 126 subtests passed",
     "provider_usage": "NOT_AVAILABLE",
     "certification": "NOT_CERTIFIED"
   },
