@@ -210,6 +210,13 @@ O caminho semântico foi repetido em três pares alternados. Foram medidos
 inferior a 0,05 ponto percentual. Evidência:
 [144-web-harness-semantic-context-3pairs-20261115.json](144-web-harness-semantic-context-3pairs-20261115.json).
 
+O contrato semântico foi então minimizado e o acknowledgment de navegação foi
+reduzido no modo opt-in. Em três pares alternados, o resultado foi 8.091 tokens
+baseline contra 1.613 tokens PIE: **80,064% de economia**, com 6/6 oráculos
+aprovados. A resposta MCP otimizada ficou em 501 caracteres agregados por
+execução; o snapshot interno permaneceu fora do contexto do modelo. Evidência:
+[146-web-harness-semantic-minimal-3pairs-20261115.json](146-web-harness-semantic-minimal-3pairs-20261115.json).
+
 A suíte completa após esse ajuste passou novamente com 644 testes, 5 ignorados
 e 0 erros. Evidência: [139-full-suite-after-maxchars-20261115.json](139-full-suite-after-maxchars-20261115.json).
 

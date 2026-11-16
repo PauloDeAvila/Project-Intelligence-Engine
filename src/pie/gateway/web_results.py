@@ -44,12 +44,11 @@ _LONG_LINE = 560
 WEB_CONTEXT_NAME = "pie_web_context"
 WEB_CONTEXT_TOOL = {
     "name": WEB_CONTEXT_NAME,
-    "description": "Select a bounded, read-only evidence excerpt from the latest sanitized browser snapshot. This never executes page actions.",
+    "description": "Read-only relevant evidence from the current page; never executes actions.",
     "inputSchema": {
         "type": "object",
         "properties": {
             "query": {"type": "string", "minLength": 1, "maxLength": 512},
-            "max_chars": {"type": "integer", "minimum": 250, "maximum": 16000},
         },
         "required": ["query"],
         "additionalProperties": False,
@@ -188,10 +187,7 @@ def web_context_query(text: str, query: str, max_chars: int) -> dict:
         raise ValueError("query matched no safe snapshot lines")
     return {
         "schema": "pie-web-context-v1",
-        "query": query,
         "preview": preview,
-        "matched_lines": len(selected),
-        "candidate_lines": len(ranked),
         "omitted_lines": max(0, len(lines) - len(selected)),
         "complete": False,
         "trust": "UNTRUSTED_PAGE_DATA",

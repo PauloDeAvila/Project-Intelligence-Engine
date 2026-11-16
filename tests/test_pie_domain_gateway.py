@@ -288,10 +288,11 @@ for line in sys.stdin:
 '''
         requests=[request(1,"initialize",{}),request(2,"tools/list",{}),
                   request(3,"tools/call",{"name":"browser_navigate","arguments":{"url":"https://example.test"}}),
-                  request(4,"tools/call",{"name":"pie_web_context","arguments":{"query":"Products Inspect materials","max_chars":700}})]
+                  request(4,"tools/call",{"name":"pie_web_context","arguments":{"query":"Products Inspect materials"}})]
         run=self._run("web",upstream,requests,expose_tools=("browser_navigate","pie_web_context"))
         self.assertEqual(run.returncode,0,run.stderr)
         responses={m["id"]:m for m in (json.loads(line) for line in run.stdout.splitlines())}
+        self.assertEqual(responses[3]["result"]["content"][0]["text"], "PIE_NAVIGATED")
         names=[tool["name"] for tool in responses[2]["result"]["tools"]]
         self.assertIn("pie_web_context",names)
         context=json.loads(responses[4]["result"]["content"][0]["text"])

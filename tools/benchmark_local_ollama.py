@@ -162,7 +162,7 @@ def _tool_calls(application: str, condition: str, *, scenario: dict | None = Non
         query = (scenario or {}).get("semantic_query")
         if not isinstance(query, str) or not query:
             raise ValueError("Web semantic mode requires scenario.semantic_query")
-        calls.append(("pie_web_context", {"query": query, "max_chars": 700}))
+        calls.append(("pie_web_context", {"query": query}))
     else:
         calls.append(("browser_snapshot", {}))
     return calls

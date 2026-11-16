@@ -251,6 +251,16 @@ class MCPStdioGateway:
             observe_passthrough("ERROR" if "error" in response else "STRUCTURED_PASSTHROUGH")
             return response
         content=body["content"]
+        if (self.profile == "web" and WEB_CONTEXT_NAME in self.exposed_tools
+                and tool == "browser_navigate" and not body.get("isError")):
+            content[:] = [{"type": "text", "text": "PIE_NAVIGATED"}]
+            try:
+                record(self.root, surface="mcp", tool=tool,
+                       state="SEMANTIC_NAVIGATION_ACK", source_chars=0,
+                       returned_chars=len("PIE_NAVIGATED"), elapsed_ms=elapsed_ms)
+            except (OSError, ValueError):
+                pass
+            return response
         if len(content)!=1 or not isinstance(content[0],dict) or not isinstance(content[0].get("text"),str):
             observe_passthrough("STRUCTURED_PASSTHROUGH")
             return response
@@ -320,7 +330,7 @@ class MCPStdioGateway:
     def _handle_web_context(self, message: dict) -> dict:
         args = message.get("params", {}).get("arguments", {})
         try:
-            if not isinstance(args, dict) or set(args) - {"query", "max_chars"}:
+            if not isinstance(args, dict) or set(args) - {"query"}:
                 raise ValueError("Invalid web context parameters")
             if self._last_web_source is None:
                 self._request_internal_snapshot()
@@ -334,7 +344,7 @@ class MCPStdioGateway:
                 source = self._last_web_source
             result = web_context_query(source,
                                        args.get("query", ""),
-                                       args.get("max_chars", 1200))
+                                       700)
             return {"jsonrpc": "2.0", "id": message.get("id"),
                     "result": {"content": [{"type": "text", "text": _json(result)}]}}
         except (ValueError, TypeError) as exc:
