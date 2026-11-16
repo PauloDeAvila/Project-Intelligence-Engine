@@ -1,0 +1,32 @@
+{
+  "certification": "NOT_CERTIFIED",
+  "external_provider_usage": "unavailable",
+  "local_validation": true,
+  "note": "Synthetic evaluator evidence is not external provider usage.",
+  "pillars": {
+    "adaptive_runtime": {
+      "status": "PASS"
+    },
+    "context_compiler": {
+      "status": "PASS"
+    },
+    "continuous_certification": {
+      "status": "PASS_SYNTHETIC_ONLY"
+    },
+    "local_execution_engine": {
+      "status": "PASS"
+    },
+    "mcp_projection": {
+      "status": "PASS"
+    },
+    "multi_agent_memory": {
+      "status": "PASS"
+    },
+    "state_engine": {
+      "status": "PASS"
+    }
+  },
+  "schema": "pie-context-runtime-verifier-v1",
+  "status": "PASS_LOCAL",
+  "synthetic_provider_evidence": true
+}

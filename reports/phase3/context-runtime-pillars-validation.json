@@ -43,8 +43,8 @@
     }
   },
   "validation": {
-    "targeted_tests": "19 passed",
-    "full_suite": "507 passed, 4 skipped, 126 subtests passed",
+    "targeted_tests": "20 passed",
+    "full_suite": "508 passed, 4 skipped, 126 subtests passed",
     "provider_usage": "NOT_AVAILABLE",
     "certification": "NOT_CERTIFIED"
   },

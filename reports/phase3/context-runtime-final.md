@@ -43,6 +43,7 @@ $env:PYTHONPATH="$(Get-Location);$(Join-Path (Get-Location) 'src')"
 uv run --with pytest python -m pytest -q
 uv run python -m compileall -q src/pie tests
 uv build --wheel --out-dir "$env:TEMP\pie-wheel-check-context-runtime-final"
+uv run python tools/verify_context_runtime.py --output reports/phase3/context-runtime-verifier.json
 uv run pie status --root .
 ```
 
@@ -52,6 +53,8 @@ Resultado observado:
 507 passed, 4 skipped, 126 subtests passed
 PIE index_state=CURRENT
 workspace_match=true
+verifier status=PASS_LOCAL
+verifier certification=NOT_CERTIFIED
 ```
 
 ## Limitações honestas
