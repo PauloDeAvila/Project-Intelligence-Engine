@@ -56,6 +56,11 @@ def _json(value: Any) -> str:
     return json.dumps(value, separators=(",",":"), ensure_ascii=False)
 
 
+def _event_id(req_id: Any, prefix: str) -> str:
+    """Create a bounded event ID without storing request content."""
+    return prefix + "-" + hashlib.sha256(_id(req_id).encode("utf-8")).hexdigest()[:32]
+
+
 def _tool_error(req_id: Any, message: str) -> dict:
     return {"jsonrpc":"2.0","id":req_id,
             "result":{"isError":True,"content":[{"type":"text","text":message[:700]}]}}
@@ -175,7 +180,8 @@ class MCPStdioGateway:
                 page=json.loads(result["content"][0]["text"])
                 record(self.root,surface="mcp",tool=RECOVERY_NAME,state="RECOVERY",
                        source_chars=int(page["total_chars"]),returned_chars=len(_json(result)),
-                       elapsed_ms=(time.perf_counter()-started)*1000)
+                       elapsed_ms=(time.perf_counter()-started)*1000,
+                       source_event_id=_event_id(message.get("id"), "recovery"))
             except (OSError,ValueError,TypeError,KeyError,IndexError):
                 pass
             return {"jsonrpc":"2.0","id":message.get("id"),"result":result}
@@ -257,7 +263,8 @@ class MCPStdioGateway:
             try:
                 record(self.root, surface="mcp", tool=tool,
                        state="SEMANTIC_NAVIGATION_ACK", source_chars=0,
-                       returned_chars=len("PIE_NAVIGATED"), elapsed_ms=elapsed_ms)
+                       returned_chars=len("PIE_NAVIGATED"), elapsed_ms=elapsed_ms,
+                       source_event_id=_event_id(response["id"], "resp"))
             except (OSError, ValueError):
                 pass
             return response
@@ -283,7 +290,8 @@ class MCPStdioGateway:
             try:
                 record(self.root,surface="mcp",tool=tool,
                        state="PASSTHROUGH" if not eligible else "SMALL",
-                       source_chars=len(source),returned_chars=len(source),elapsed_ms=elapsed_ms)
+                       source_chars=len(source),returned_chars=len(source),elapsed_ms=elapsed_ms,
+                       source_event_id=_event_id(response["id"], "resp"))
             except (OSError, ValueError):
                 pass
             return response
@@ -296,7 +304,8 @@ class MCPStdioGateway:
                 # Oversize source cannot be fully recovered; do not rewrite it.
                 record(self.root,surface="mcp",tool=tool,state="OVERSIZE_PASSTHROUGH",
                        source_chars=len(source),returned_chars=len(source),
-                       elapsed_ms=elapsed_ms)
+                       elapsed_ms=elapsed_ms,
+                       source_event_id=_event_id(response["id"], "resp"))
                 return response
             envelope={"pie_gateway":"v1","state":reduced["state"],
                       "tool":tool,"preview":reduced["text"],
@@ -321,7 +330,8 @@ class MCPStdioGateway:
             record(self.root,surface="mcp",tool=tool,state="COMPACTED",
                    source_chars=len(source),returned_chars=len(encoded),
                    elapsed_ms=elapsed_ms,
-                   output_id=reduced["output_id"])
+                   output_id=reduced["output_id"],
+                   source_event_id=_event_id(response["id"], "resp"))
         except (ValueError, RuntimeError, OSError):
             # Fail open for exact tool semantics; never invent a successful summary.
             return response
@@ -401,7 +411,8 @@ class MCPStdioGateway:
             try:
                 record(self.root, surface="mcp", tool=tool, state="TIMEOUT",
                        source_chars=0, returned_chars=0,
-                       elapsed_ms=(time.perf_counter() - started) * 1000)
+                       elapsed_ms=(time.perf_counter() - started) * 1000,
+                       source_event_id=_event_id(json.loads(key), "timeout"))
             except (OSError, ValueError):
                 pass
         try:
