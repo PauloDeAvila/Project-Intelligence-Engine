@@ -8,6 +8,7 @@ import os
 import re
 from pathlib import Path
 
+from pie.indexing.global_workspace import detect_workspace
 from pie.storage.locations import workspace_file
 from pie.certification.task_telemetry import record_task
 
@@ -56,7 +57,7 @@ def record(root: Path, *, surface: str, tool: str, state: str,
         raise ValueError("Invalid character counts")
     if source_event_id is not None and not _EVENT_ID.fullmatch(source_event_id):
         raise ValueError("Invalid source event identifier")
-    database=workspace_file(root)
+    database=workspace_file(detect_workspace(root))
     database.parent.mkdir(parents=True,exist_ok=True)
     with closing(_connect(database)) as db:
         with db:
@@ -85,7 +86,7 @@ def record(root: Path, *, surface: str, tool: str, state: str,
 
 
 def report(root: Path) -> dict:
-    database = workspace_file(root)
+    database = workspace_file(detect_workspace(root))
     if not database.is_file():
         return {"events": 0, "measurement": "characters_not_model_tokens"}
     with closing(_connect(database)) as db:

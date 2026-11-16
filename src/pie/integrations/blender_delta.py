@@ -3,14 +3,25 @@
 No bpy import occurs inside the PIE Python interpreter. The snapshot script is
 sent to the already configured Blender MCP execute_blender_code tool only when
 the user/agent explicitly requests pie_blender_scene_delta. All observations
-are local, read-only, scoped and process memory only. No background polling.
+are local, read-only and scoped. Engine state lives in process memory unless a persistent delta store root is
+configured, in which case only scene fingerprints (digests, counts, timestamps)
+are persisted to a table in the existing ``index.sqlite3`` under the workspace
+storage directory. No background polling.
 """
 from __future__ import annotations
 
 from collections import OrderedDict
+from contextlib import closing
+from datetime import datetime, timezone
 from hashlib import sha256
 import json
+import os
+import sqlite3
+import threading
+from pathlib import Path
 from typing import Any
+
+from pie.storage.locations import workspace_storage
 
 MAX_SNAPSHOT_CHARS = 2_000_000
 MAX_ITEMS = 500
@@ -324,9 +335,16 @@ def parse_query_reply(message: dict[str, Any]) -> dict[str, Any]:
     return value
 
 
+DELTA_STORE_SCHEMA = "pie-blender-scene-delta-store-v1"
+
+
 def _digest(value: Any) -> str:
     return sha256(json.dumps(value, sort_keys=True, separators=(",", ":"),
                              ensure_ascii=False, allow_nan=False).encode("utf8")).hexdigest()
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="microseconds")
 
 
 def _entity_map(items: Any, kind: str) -> dict[str, dict]:
@@ -392,12 +410,129 @@ def _diff_entities(old: dict, new: dict) -> dict[str, Any]:
 
 
 class SceneDeltaCache:
-    """Stateful, per-scene and per-scope fingerprints; no local disk writes."""
+    """Stateful, per-scene and per-scope fingerprints.
 
-    def __init__(self, capacity: int = 6) -> None:
+    Without ``root`` the cache is process memory only (previous behavior).
+    With ``root`` fingerprints of the last complete baselines are persisted
+    to a table in the existing ``index.sqlite3`` under the workspace storage
+    directory, so a new process observing an identical scene reports
+    UNCHANGED instead of INITIAL.
+
+    Privacy: only digests, scene/scope names, entity counts and timestamps
+    are stored. No snapshot content, no entity fields, no prompts, model
+    replies, credentials or cookies are ever written.
+
+    Persistence is best-effort and fail-closed in the privacy sense: a
+    persistence error never alters the state returned by ``observe``; it is
+    reported via ``persistence_diagnostic`` and persistence is disabled for
+    the remainder of the process.
+    """
+
+    STORE_VERSION = 1
+    _TABLE = "scene_delta_fingerprints"
+
+    def __init__(self, capacity: int = 6, root: str | os.PathLike[str] | None = None) -> None:
+        if type(capacity) is not int or capacity < 1:
+            raise ValueError("capacity must be a positive integer")
         self.capacity = capacity
-        self._snapshots: OrderedDict[tuple[str, str], tuple[str, dict]] = OrderedDict()
+        # (scene, scope) -> (digest, counts, updated_at); counts is a JSON string.
+        self._fingerprints: OrderedDict[tuple[str, str], tuple[str, str, str]] = OrderedDict()
+        self._lock = threading.RLock()
+        self._persist_error: str | None = None
+        self._db_path: Path | None = None
+        if root is not None:
+            try:
+                self._db_path = self._resolve_db(root)
+                self._load_store()
+            except (OSError, ValueError, sqlite3.Error) as exc:
+                self._persist_error = f"{type(exc).__name__}: {exc}"
+                self._db_path = None
 
+    # ------------------------------------------------------------------ persistence
+    @staticmethod
+    def _resolve_db(root: str | os.PathLike[str]) -> Path:
+        root_path = Path(root).expanduser().resolve(strict=True)
+        if not root_path.is_dir():
+            raise ValueError("Project root must be a directory")
+        storage_dir = workspace_storage(root_path)
+        if storage_dir.is_symlink() or storage_dir.resolve() != workspace_storage(root_path).resolve():
+            raise ValueError("Project storage must not redirect outside the root")
+        database = storage_dir / "index.sqlite3"
+        if not database.is_file() or database.is_symlink():
+            raise ValueError("Run pie init/index first")
+        return database
+
+    def _connect(self) -> sqlite3.Connection:
+        assert self._db_path is not None
+        connection = sqlite3.connect(str(self._db_path), timeout=10.0)
+        try:
+            connection.executescript(
+                f"""
+                CREATE TABLE IF NOT EXISTS {self._TABLE} (
+                    scene TEXT NOT NULL,
+                    scope TEXT NOT NULL CHECK (scope IN ('selected','all')),
+                    digest TEXT NOT NULL,
+                    counts TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    PRIMARY KEY (scene, scope)
+                );
+                """
+            )
+        except BaseException:
+            connection.close()
+            raise
+        return connection
+
+    def _load_store(self) -> None:
+        assert self._db_path is not None
+        loaded: OrderedDict[tuple[str, str], tuple[str, str, str]] = OrderedDict()
+        with closing(self._connect()) as connection:
+            rows = connection.execute(
+                f"SELECT scene, scope, digest, counts, updated_at FROM {self._TABLE} "
+                "ORDER BY updated_at"
+            ).fetchall()
+        for scene, scope, digest, counts, updated_at in rows:
+            if (not isinstance(scene, str) or not scene or len(scene) > 512
+                    or scope not in ("selected", "all")
+                    or not isinstance(digest, str) or len(digest) != 64
+                    or not isinstance(counts, str) or not isinstance(updated_at, str)):
+                raise ValueError("Invalid delta store entry")
+            loaded[(scene, scope)] = (digest, counts, updated_at)
+        for key in list(loaded)[: -self.capacity]:
+            del loaded[key]
+        with self._lock:
+            self._fingerprints = loaded
+
+    def _flush_store(self) -> None:
+        """Best-effort persistence; failure degrades to memory-only."""
+        db_path = self._db_path
+        if db_path is None:
+            return
+        try:
+            with closing(self._connect()) as connection:
+                with connection:
+                    connection.execute(f"DELETE FROM {self._TABLE}")
+                    connection.executemany(
+                        f"INSERT INTO {self._TABLE} "
+                        "(scene, scope, digest, counts, updated_at) VALUES (?,?,?,?,?)",
+                        [
+                            (scene, scope, digest, counts, updated_at)
+                            for (scene, scope), (digest, counts, updated_at)
+                            in self._fingerprints.items()
+                        ],
+                    )
+        except (OSError, ValueError, sqlite3.Error) as exc:
+            # Persistence must never break the MCP call: keep the in-memory
+            # baseline for this process and report the failure explicitly.
+            self._persist_error = f"{type(exc).__name__}: {exc}"
+            self._db_path = None
+
+    @property
+    def persistence_diagnostic(self) -> str | None:
+        """Human-readable reason persistence was disabled, or None."""
+        return self._persist_error
+
+    # ------------------------------------------------------------------ observation
     def observe(self, snapshot: dict, *, max_chars: int = 4000) -> dict[str, Any]:
         if type(max_chars) is not int or not 1000 <= max_chars <= 64000:
             raise ValueError("max_chars must be in 1000..64000")
@@ -408,46 +543,59 @@ class SceneDeltaCache:
             raise ValueError("Invalid scene or scope")
         if len(json.dumps(snapshot, ensure_ascii=False)) > MAX_SNAPSHOT_CHARS:
             raise ValueError("Snapshot too large")
-        objects = _entity_map(snapshot.get("objects"), "objects")
-        materials = _entity_map(snapshot.get("materials"), "materials")
-        omissions = snapshot.get("omissions", {})
-        if not isinstance(omissions, dict):
-            raise ValueError("Invalid omission metadata")
-        complete = snapshot.get("complete") is True and not any(omissions.values())
-        # A partial snapshot must never replace a complete baseline.
-        fingerprint = _digest(snapshot)
-        key = (scene, scope)
-        previous = self._snapshots.get(key)
-        if not complete:
-            return {"schema": DELTA_SCHEMA, "state": "PARTIAL", "scene": scene, "scope": scope,
-                    "complete": False, "omissions": omissions, "digest": fingerprint,
-                    "note": "Partial Blender inventory cannot prove absence or unchanged entities"}
-        if previous is None:
-            state = "INITIAL"
-        elif previous[0] == fingerprint:
-            state = "UNCHANGED"
-        else:
-            state = "DELTA"
-        result: dict[str, Any] = {
-            "schema": DELTA_SCHEMA, "state": state, "scene": scene, "scope": scope,
-            "complete": True, "digest": fingerprint,
-            "previous_digest": previous[0] if previous else None,
-            "counts": {"objects": len(objects), "materials": len(materials)},
-            "coverage": "tracked_object_material_shader_node_fields_only",
-        }
-        if state == "DELTA":
-            old = previous[1]
-            result["objects"] = _diff_entities(_entity_map(old["objects"], "objects"), objects)
-            result["materials"] = _diff_entities(_entity_map(old["materials"], "materials"), materials)
-        encoded = json.dumps(result, ensure_ascii=False, separators=(",", ":"))
-        if len(encoded) > max_chars:
-            # Do not update baseline when changes cannot be conveyed faithfully.
-            return {"schema": DELTA_SCHEMA, "state": "BUDGET_EXCEEDED",
-                    "scene": scene, "scope": scope, "digest": fingerprint,
-                    "required_chars": len(encoded), "max_chars": max_chars,
-                    "note": "Request a larger budget; current baseline was not changed"}
-        self._snapshots[key] = (fingerprint, snapshot)
-        self._snapshots.move_to_end(key)
-        while len(self._snapshots) > self.capacity:
-            self._snapshots.popitem(last=False)
-        return result
+        with self._lock:
+            objects = _entity_map(snapshot.get("objects"), "objects")
+            materials = _entity_map(snapshot.get("materials"), "materials")
+            omissions = snapshot.get("omissions", {})
+            if not isinstance(omissions, dict):
+                raise ValueError("Invalid omission metadata")
+            complete = snapshot.get("complete") is True and not any(omissions.values())
+            # A partial snapshot must never replace a complete baseline.
+            fingerprint = _digest(snapshot)
+            key = (scene, scope)
+            previous = self._fingerprints.get(key)
+            if not complete:
+                return {"schema": DELTA_SCHEMA, "state": "PARTIAL", "scene": scene, "scope": scope,
+                        "complete": False, "omissions": omissions, "digest": fingerprint,
+                        "note": "Partial Blender inventory cannot prove absence or unchanged entities"}
+            if previous is None:
+                state = "INITIAL"
+            elif previous[0] == fingerprint:
+                state = "UNCHANGED"
+            else:
+                state = "DELTA"
+            result: dict[str, Any] = {
+                "schema": DELTA_SCHEMA, "state": state, "scene": scene, "scope": scope,
+                "complete": True, "digest": fingerprint,
+                "previous_digest": previous[0] if previous else None,
+                "counts": {"objects": len(objects), "materials": len(materials)},
+                "coverage": "tracked_object_material_shader_node_fields_only",
+            }
+            if state == "DELTA":
+                # Only fingerprints are retained (in memory and on disk), so the
+                # change cannot be detailed here. Counts of the previous
+                # baseline are available and are reported when parseable.
+                try:
+                    previous_counts = json.loads(previous[1])
+                    if not isinstance(previous_counts, dict):
+                        previous_counts = None
+                except ValueError:
+                    previous_counts = None
+                if previous_counts is not None:
+                    result["previous_counts"] = previous_counts
+                result["note"] = ("Fingerprint-level delta; entity-level details "
+                                  "require a fresh full inventory observation")
+            encoded = json.dumps(result, ensure_ascii=False, separators=(",", ":"))
+            if len(encoded) > max_chars:
+                # Do not update baseline when changes cannot be conveyed faithfully.
+                return {"schema": DELTA_SCHEMA, "state": "BUDGET_EXCEEDED",
+                        "scene": scene, "scope": scope, "digest": fingerprint,
+                        "required_chars": len(encoded), "max_chars": max_chars,
+                        "note": "Request a larger budget; current baseline was not changed"}
+            counts_json = json.dumps(result["counts"], sort_keys=True, separators=(",", ":"))
+            self._fingerprints[key] = (fingerprint, counts_json, _utc_now())
+            self._fingerprints.move_to_end(key)
+            while len(self._fingerprints) > self.capacity:
+                self._fingerprints.popitem(last=False)
+            self._flush_store()
+            return result

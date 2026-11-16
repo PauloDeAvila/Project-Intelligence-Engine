@@ -90,4 +90,28 @@ def test_mcp_transform_records_response_and_allows_reused_request_id(root_tmp_pa
 
 @pytest.fixture
 def root_tmp_path(tmp_path):
+    # Give tmp_path its own workspace marker so detect_workspace(tmp_path)
+    # resolves to tmp_path itself instead of walking up into the repo (or
+    # wherever --basetemp points), which would share storage across tests.
+    (tmp_path / "pyproject.toml").write_text("[project]\n", encoding="utf-8")
     return tmp_path
+
+
+def test_record_and_report_agree_on_child_root_under_workspace(tmp_path):
+    # A root that sits inside a detectable workspace (marker at the parent)
+    # must canonicalize to the workspace root for both record and report, so
+    # the gateway never splits metrics across two storage locations.
+    (tmp_path / "pyproject.toml").write_text("[project]\n", encoding="utf-8")
+    child = tmp_path / "child"
+    child.mkdir()
+    record(
+        child,
+        surface="mcp",
+        tool="browser_snapshot",
+        state="PASSTHROUGH",
+        source_chars=50,
+        returned_chars=10,
+        elapsed_ms=1.0,
+    )
+    assert gateway_report(child)["events"] == 1
+    assert gateway_report(tmp_path)["events"] == 1
