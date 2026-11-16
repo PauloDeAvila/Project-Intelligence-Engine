@@ -156,7 +156,22 @@
       "report": "reports/phase3/138-web-harness-maxchars-800-failed-closed-20261115.json"
     }
   },
+  "latest_semantic_context_run": {
+    "provider": "openai_compat_local_harness",
+    "model": "gambiarraapi/glm-5.3-flash",
+    "mode": "semantic",
+    "baseline_total_tokens": 2697,
+    "optimized_total_tokens": 695,
+    "total_savings_percent": 74.231,
+    "input_savings_percent": 75.094,
+    "oracle_passes": 2,
+    "baseline_tools": ["browser_navigate", "browser_snapshot"],
+    "optimized_tools": ["browser_navigate", "pie_web_context"],
+    "internal_snapshot_hidden_from_model": true,
+    "report": "reports/phase3/142-web-harness-semantic-context-20261115.json"
+  },
   "latest_full_suite_after_maxchars": "reports/phase3/139-full-suite-after-maxchars-20261115.json",
+  "latest_full_suite_after_semantic_context": "reports/phase3/143-full-suite-after-semantic-context-20261115.json",
   "validation": {
     "focused_tests_passed": 71,
     "full_suite_initial": {

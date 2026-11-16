@@ -13,6 +13,7 @@ param(
     [ValidateSet("profile", "server")][string]$SchemaScope = "profile",
     [int]$BlenderPort = 9877,
     [ValidateSet("query", "exact")][string]$BlenderMode = "query",
+    [ValidateSet("transparent", "semantic")][string]$WebMode = "transparent",
     [string]$NpxExe = "",
     [string]$OutputDirectory = $env:TEMP,
     [switch]$EnableWebRecovery,
@@ -39,7 +40,11 @@ if ($Domain -eq "blender") {
     $profileArgs.BlenderPort = $BlenderPort
 } else {
     $profileArgs.BaselineExposeTool = @("browser_navigate", "browser_snapshot")
-    $profileArgs.OptimizedExposeTool = @("browser_navigate", "browser_snapshot")
+    $profileArgs.OptimizedExposeTool = if ($WebMode -eq "semantic") {
+        @("browser_navigate", "pie_web_context")
+    } else {
+        @("browser_navigate", "browser_snapshot")
+    }
     if ($EnableWebRecovery) {
         $profileArgs.OptimizedExposeTool += "pie_gateway_output_get"
     }
@@ -119,6 +124,7 @@ $runnerArgs = @(
     "--num-ctx", ([string]$NumCtx),
     "--schema-scope", $SchemaScope,
     "--blender-mode", $BlenderMode,
+    "--web-mode", $WebMode,
     "--output", $report
 )
 if ($ProbeOnly) {

@@ -29,6 +29,11 @@ class LocalOllamaBenchmarkTests(unittest.TestCase):
         self.assertEqual(exact, [("pie_blender_get_object", {"name": "PIE_Large_Cube_00"})])
         self.assertEqual([x[0] for x in _tool_calls("web", "baseline")],
                          ["browser_navigate", "browser_snapshot"])
+        semantic = _tool_calls(
+            "web", "optimized", web_mode="semantic",
+            scenario={"fixture_url": "http://127.0.0.1:8767/index.html",
+                      "semantic_query": "Products"})
+        self.assertEqual(semantic[-1][0], "pie_web_context")
         large = _tool_calls("web", "optimized",
                             scenario={"fixture_url": "http://127.0.0.1:8767/index.html"})
         self.assertEqual(large[0][1]["url"], "http://127.0.0.1:8767/index.html")

@@ -191,6 +191,19 @@ o melhor ponto seguro observado nesta sequência; não representa certificação
 geral nem deve ser extrapolado para páginas arbitrárias. Evidência:
 [140](140-web-harness-maxchars-850-20261115.json).
 
+Foi então validado o caminho semântico opt-in. O braço otimizado utilizou
+`browser_navigate` e `pie_web_context`; o gateway executou internamente um
+`browser_snapshot` somente leitura e entregou ao modelo apenas as linhas
+relevantes. O snapshot bruto não entrou no contexto do modelo. O par produziu
+2.697 tokens baseline contra 695 tokens PIE, economia de 74,231%, com os dois
+oráculos aprovados. Essa é uma comparação de capacidades de produto, separada
+da compactação transparente. Evidência:
+[142-web-harness-semantic-context-20261115.json](142-web-harness-semantic-context-20261115.json).
+
+A suíte completa após a inclusão da ferramenta semântica passou com 646 testes,
+5 ignorados e 0 erros. Evidência:
+[143-full-suite-after-semantic-context-20261115.json](143-full-suite-after-semantic-context-20261115.json).
+
 A suíte completa após esse ajuste passou novamente com 644 testes, 5 ignorados
 e 0 erros. Evidência: [139-full-suite-after-maxchars-20261115.json](139-full-suite-after-maxchars-20261115.json).
 

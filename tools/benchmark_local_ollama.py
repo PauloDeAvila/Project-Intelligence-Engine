@@ -145,7 +145,7 @@ def fixture_pass(scenario: dict, responses: list[dict]) -> bool:
 
 
 def _tool_calls(application: str, condition: str, *, scenario: dict | None = None,
-                blender_mode: str = "query") -> list[tuple[str, dict]]:
+                blender_mode: str = "query", web_mode: str = "transparent") -> list[tuple[str, dict]]:
     if application == "blender":
         if condition == "baseline":
             return [("execute_blender_code", {"code": BLENDER_CODE})]
@@ -157,7 +157,15 @@ def _tool_calls(application: str, condition: str, *, scenario: dict | None = Non
     url = (scenario or {}).get("fixture_url", WEB_URL)
     if not isinstance(url, str) or not url:
         raise ValueError("Web scenario fixture_url must be a non-empty string")
-    return [("browser_navigate", {"url": url}), ("browser_snapshot", {})]
+    calls = [("browser_navigate", {"url": url})]
+    if condition == "optimized" and web_mode == "semantic":
+        query = (scenario or {}).get("semantic_query")
+        if not isinstance(query, str) or not query:
+            raise ValueError("Web semantic mode requires scenario.semantic_query")
+        calls.append(("pie_web_context", {"query": query, "max_chars": 700}))
+    else:
+        calls.append(("browser_snapshot", {}))
+    return calls
 
 
 def _recover_web_when_required(probe: Probe, responses: list[dict],
@@ -281,12 +289,14 @@ class MCPReplaySession:
 
     def __init__(self, profile: Path, workspace: Path, scenario: dict,
                  condition: str, schema_scope: str, blender_mode: str,
+                 web_mode: str,
                  identity: dict[str, str] | None = None) -> None:
         self.app = scenario["application"]
         self.scenario = scenario
         self.condition = condition
         self.schema_scope = schema_scope
         self.blender_mode = blender_mode
+        self.web_mode = web_mode
         config, server, args, configured_env = _profile(profile, workspace)
         if server != EXPECTED_SERVERS[self.app][condition]:
             raise RuntimeError("Wrong MCP server for condition")
@@ -321,7 +331,7 @@ class MCPReplaySession:
     def collect(self) -> dict:
         start = time.perf_counter()
         calls = _tool_calls(self.app, self.condition, scenario=self.scenario,
-                            blender_mode=self.blender_mode)
+                            blender_mode=self.blender_mode, web_mode=self.web_mode)
         available = {tool.get("name") for tool in self.tools if isinstance(tool, dict)}
         if any(name not in available for name, _ in calls):
             raise RuntimeError("Required MCP tool not exposed")
@@ -361,9 +371,10 @@ class MCPReplaySession:
 
 
 def collect_mcp(profile: Path, workspace: Path, scenario: dict, condition: str,
-                schema_scope: str = "profile", blender_mode: str = "query") -> dict:
+                schema_scope: str = "profile", blender_mode: str = "query",
+                web_mode: str = "transparent") -> dict:
     session = MCPReplaySession(profile, workspace, scenario, condition,
-                               schema_scope, blender_mode)
+                               schema_scope, blender_mode, web_mode)
     try:
         return session.collect()
     finally:
@@ -539,6 +550,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="profile: advertise only enabled_tools; server: raw tools/list legacy replay")
     parser.add_argument("--blender-mode", choices=("query", "exact"), default="query",
                         help="exact is an experimental four-field lookup; query preserves legacy comparison")
+    parser.add_argument("--web-mode", choices=("transparent", "semantic"), default="transparent",
+                        help="semantic is an opt-in task-query tool comparison")
     parser.add_argument("--timeout", type=int, default=240)
     parser.add_argument("--probe-only", action="store_true")
     parser.add_argument("--output", type=Path, required=True)
@@ -562,6 +575,7 @@ def main(argv: list[str] | None = None) -> int:
               "methodology": "deterministic_mcp_tool_replay_not_codex_agent",
               "schema_scope": args.schema_scope,
               "blender_mode": args.blender_mode if scenario["application"] == "blender" else None,
+              "web_mode": args.web_mode if scenario["application"] == "web" else None,
               "local_prompt_sha256": sha(local_scenario["prompt"]),
               "prompt_modified_for_experiment": local_scenario["prompt"] != scenario["prompt"],
               "codex_sessions_started": 0, "codex_quota_consumed": False,
@@ -579,7 +593,7 @@ def main(argv: list[str] | None = None) -> int:
                 for condition in order:
                     sessions[condition] = MCPReplaySession(
                         profiles[condition], workspace, scenario, condition,
-                        args.schema_scope, args.blender_mode,
+                        args.schema_scope, args.blender_mode, args.web_mode,
                         identity={
                             "PIE_RUN_ID": f"{condition}-{scenario['scenario_id']}-{uuid.uuid4().hex[:12]}-r{rep}",
                             "PIE_PAIR_ID": pair_id,

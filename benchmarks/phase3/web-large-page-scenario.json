@@ -7,6 +7,7 @@
   "reasoning_effort": "medium",
   "fixture_spec": "fixtures/phase3/web-large/index.html",
   "fixture_url": "http://127.0.0.1:8767/index.html",
+  "semantic_query": "PIE Browser Fixture PIE Web Fixture Inspect materials Deterministic browser certification fixture",
   "prompt": "Use only the configured Playwright MCP server and the local fixture URL http://127.0.0.1:8767/index.html. Navigate exactly once with browser_navigate and take exactly one browser_snapshot. In the optimized configuration, if the snapshot is a compact PIE response, use only the provided PIE recovery tool when necessary to preserve the required facts. Do not access external URLs, click, evaluate JavaScript, or use another server. Reply with one minified JSON object only, with keys in this order: title, heading, button, paragraph. Copy the exact visible values from the page; do not infer or invent them.",
   "expected_exact": "{\"title\":\"PIE Browser Fixture\",\"heading\":\"PIE Web Fixture\",\"button\":\"Inspect materials\",\"paragraph\":\"Deterministic browser certification fixture.\"}",
   "expected_mcp_tools_by_condition": {
