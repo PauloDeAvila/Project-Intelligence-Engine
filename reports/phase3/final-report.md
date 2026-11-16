@@ -226,6 +226,11 @@ A suíte completa após a opção de raciocínio passou com 647 testes, 5 ignora
 e 0 erros. Evidência:
 [148-full-suite-after-reasoning-option-20261115.json](148-full-suite-after-reasoning-option-20261115.json).
 
+O endpoint também aceitou `reasoning_effort=none`. Em três pares, a economia
+foi 80,761%, com 6/6 oráculos aprovados; o ganho continua distante de 95% e a
+opção permanece específica do provedor local. Evidência:
+[149-web-harness-semantic-reasoning-none-3pairs-20261115.json](149-web-harness-semantic-reasoning-none-3pairs-20261115.json).
+
 A suíte completa após esse ajuste passou novamente com 644 testes, 5 ignorados
 e 0 erros. Evidência: [139-full-suite-after-maxchars-20261115.json](139-full-suite-after-maxchars-20261115.json).
 
