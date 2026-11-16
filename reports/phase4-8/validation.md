@@ -6,7 +6,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 
 ## Evidência executada
 
-- Índice local: CURRENT, workspace_match=true, 263 arquivos, 2.204
+- Índice local: CURRENT, workspace_match=true, 263 arquivos, 2.210
   símbolos e 2.549 imports.
 - Testes focados: 74 passed.
 - Suíte completa: 709 passed, 4 skipped, 126 subtests passed.
