@@ -62,6 +62,55 @@ def test_runtime_state_engine_rejects_use_after_close(tmp_path: Path):
         runtime.start("should fail")
 
 
+def test_runtime_rejects_checkpoint_use_after_close(tmp_path: Path):
+    runtime = ContextRuntime(tmp_path)
+    runtime.close()
+    with pytest.raises(RuntimeError, match="closed"):
+        runtime.checkpoint("task-1", {"value": 1})
+    with pytest.raises(RuntimeError, match="closed"):
+        runtime.checkpoint_agent("task-1", "agent-a", {"value": 1})
+    with pytest.raises(RuntimeError, match="closed"):
+        runtime.list_agent_checkpoints("task-1")
+
+
+def test_runtime_rejects_restore_after_close(tmp_path: Path):
+    runtime = ContextRuntime(tmp_path)
+    runtime.close()
+    with pytest.raises(RuntimeError, match="closed"):
+        runtime.restore_state("task-1")
+
+
+def test_runtime_memory_is_not_operable_after_close(tmp_path: Path):
+    runtime = ContextRuntime(tmp_path)
+    runtime.close()
+    with pytest.raises(RuntimeError, match="closed"):
+        _ = runtime.memory
+
+
+def test_runtime_close_propagates_first_error_and_cleans_up(tmp_path: Path):
+    calls: list[str] = []
+
+    class ExplodingStore:
+        def __init__(self, name: str) -> None:
+            self._name = name
+
+        def close(self) -> None:
+            calls.append(self._name)
+            raise RuntimeError(f"{self._name} close failed")
+
+    runtime = ContextRuntime(tmp_path)
+    runtime._graph = ExplodingStore("graph")
+    runtime._journal = ExplodingStore("journal")
+    with pytest.raises(RuntimeError, match="graph close failed"):
+        runtime.close()
+    assert calls == ["graph", "journal"]  # both resources were attempted
+    assert runtime._closed
+    assert runtime._graph is None
+    assert runtime._journal is None
+    runtime.close()  # second call is idempotent even after a failed close
+    assert calls == ["graph", "journal"]
+
+
 def test_runtime_uses_measured_selection_and_replay(tmp_path: Path):
     runtime = ContextRuntime(tmp_path, journal_path=tmp_path / "runtime.sqlite3")
     selected = runtime.choose(

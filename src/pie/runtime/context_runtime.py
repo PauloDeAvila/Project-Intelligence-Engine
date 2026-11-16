@@ -73,6 +73,8 @@ class ContextRuntime:
 
     @property
     def memory(self) -> MultiAgentMemory:
+        if self._closed:
+            raise RuntimeError("Context runtime is closed")
         return self._memory
 
     @property
@@ -98,6 +100,8 @@ class ContextRuntime:
         return task_memory.resume_task(self.root, task_id, limit)
 
     def checkpoint(self, task_id: str, state: object, provenance: object | None = None) -> dict:
+        if self._closed:
+            raise RuntimeError("Context runtime is closed")
         return task_memory.checkpoint_task(self.root, task_id, state, provenance)
 
     def checkpoint_agent(
@@ -107,16 +111,22 @@ class ContextRuntime:
         state: object,
         provenance: object | None = None,
     ) -> dict:
+        if self._closed:
+            raise RuntimeError("Context runtime is closed")
         return task_memory.checkpoint_agent_state(
             self.root, task_id, agent_id, state, provenance
         )
 
     def restore_state(self, task_id: str, seq: int | None = None) -> dict:
+        if self._closed:
+            raise RuntimeError("Context runtime is closed")
         return task_memory.restore_state(self.root, task_id, seq)
 
     def list_agent_checkpoints(
         self, task_id: str, agent_id: str | None = None, limit: int = 100
     ) -> dict:
+        if self._closed:
+            raise RuntimeError("Context runtime is closed")
         return task_memory.list_agent_checkpoints(self.root, task_id, agent_id, limit)
 
     def compile_checkpoint(
@@ -244,12 +254,20 @@ class ContextRuntime:
         if self._closed:
             return
         self._closed = True
-        if self._graph is not None:
-            self._graph.close()
-            self._graph = None
-        if self._journal is not None:
-            self._journal.close()
-            self._journal = None
+        first_error: BaseException | None = None
+        for resource in (self._graph, self._journal):
+            if resource is None:
+                continue
+            try:
+                resource.close()
+            except Exception as exc:
+                if first_error is None:
+                    first_error = exc
+        self._graph = None
+        self._journal = None
+        self._memory = None
+        if first_error is not None:
+            raise first_error
 
     def __enter__(self) -> ContextRuntime:
         return self
