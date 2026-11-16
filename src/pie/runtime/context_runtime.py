@@ -15,13 +15,22 @@ from pie.certification.regression import RunEvidence, evaluate_golden_suite, eva
 from pie.retrieval import task_memory
 from pie.retrieval.adaptive_runtime import MeasuredCandidate, choose_candidate
 from pie.retrieval.context_compiler import CompiledContext, compile_context, compile_task_checkpoint
+from pie.runtime.local_execution import ExecutionContext, LocalExecutionEngine, OperationSpec
+from pie.runtime.multi_agent_memory import MultiAgentMemory
 from pie.runtime.replay import ExecutionJournal
+from pie.runtime.task_graph import TaskGraphStore
 
 
 class ContextRuntime:
     """Coordinate deterministic runtime services with explicit ownership."""
 
-    def __init__(self, root: Path, *, journal_path: Path | None = None) -> None:
+    def __init__(
+        self,
+        root: Path,
+        *,
+        journal_path: Path | None = None,
+        graph_path: Path | None = None,
+    ) -> None:
         self.root = Path(root).expanduser().resolve()
         if not self.root.is_dir():
             raise ValueError("Context runtime root must be an existing directory")
@@ -33,10 +42,37 @@ class ContextRuntime:
             self._journal = ExecutionJournal(
                 path if path.is_absolute() else self.root / path
             )
+        try:
+            self._graph = None
+            if graph_path is not None:
+                path = Path(graph_path)
+                self._graph = TaskGraphStore(
+                    path if path.is_absolute() else self.root / path
+                )
+            self._execution = LocalExecutionEngine(self._journal)
+            self._memory = MultiAgentMemory(self.root)
+        except Exception:
+            if self._graph is not None:
+                self._graph.close()
+            if self._journal is not None:
+                self._journal.close()
+            raise
 
     @property
     def journal(self) -> ExecutionJournal | None:
         return self._journal
+
+    @property
+    def graph(self) -> TaskGraphStore | None:
+        return self._graph
+
+    @property
+    def memory(self) -> MultiAgentMemory:
+        return self._memory
+
+    @property
+    def execution(self) -> LocalExecutionEngine:
+        return self._execution
 
     def checkpoint(self, task_id: str, state: object, provenance: object | None = None) -> dict:
         return task_memory.checkpoint_task(self.root, task_id, state, provenance)
@@ -109,6 +145,59 @@ class ContextRuntime:
             operation_id, payload, executor, result_metadata=result_metadata
         )
 
+    def register_operation(self, spec: OperationSpec) -> None:
+        if self._closed:
+            raise RuntimeError("Context runtime is closed")
+        self._execution.register(spec)
+
+    def execute_local(
+        self,
+        name: str,
+        args: dict[str, object] | None = None,
+        *,
+        operation_id: str | None = None,
+        context: ExecutionContext | None = None,
+    ) -> dict[str, object]:
+        if self._closed:
+            raise RuntimeError("Context runtime is closed")
+        return self._execution.execute(name, args, operation_id, context)
+
+    def add_graph_node(
+        self,
+        task_id: str,
+        node_id: str,
+        kind: str,
+        metadata: dict[str, object] | None = None,
+    ) -> dict[str, object]:
+        if self._closed:
+            raise RuntimeError("Context runtime is closed")
+        if self._graph is None:
+            raise RuntimeError("graph_path was not provided")
+        return self._graph.add_node(task_id, node_id, kind, metadata)
+
+    def add_graph_edge(
+        self, task_id: str, from_node: str, to_node: str, relation: str
+    ) -> dict[str, object]:
+        if self._closed:
+            raise RuntimeError("Context runtime is closed")
+        if self._graph is None:
+            raise RuntimeError("graph_path was not provided")
+        return self._graph.add_edge(task_id, from_node, to_node, relation)
+
+    def graph_snapshot(self, task_id: str, limit: int = 100) -> dict[str, object]:
+        if self._closed:
+            raise RuntimeError("Context runtime is closed")
+        if self._graph is None:
+            raise RuntimeError("graph_path was not provided")
+        return self._graph.get_graph(task_id, limit)
+
+    def graph_order(self, task_id: str) -> dict[str, object]:
+        if self._closed:
+            raise RuntimeError("Context runtime is closed")
+        if self._graph is None:
+            raise RuntimeError("graph_path was not provided")
+        return self._graph.topological_order(task_id)
+
     @staticmethod
     def evaluate_pair(baseline: RunEvidence, optimized: RunEvidence) -> dict[str, object]:
         return evaluate_pair(baseline, optimized)
@@ -123,6 +212,9 @@ class ContextRuntime:
         if self._closed:
             return
         self._closed = True
+        if self._graph is not None:
+            self._graph.close()
+            self._graph = None
         if self._journal is not None:
             self._journal.close()
             self._journal = None

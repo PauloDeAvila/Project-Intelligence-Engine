@@ -6,6 +6,7 @@ from pie.certification.regression import RunEvidence
 from pie.retrieval.adaptive_runtime import MeasuredCandidate
 from pie.retrieval.task_memory import start_task
 from pie.runtime.context_runtime import ContextRuntime
+from pie.runtime.local_execution import OperationSpec
 from pie.storage.database import connect
 
 
@@ -80,3 +81,26 @@ def test_runtime_delegates_pair_and_suite_evaluation(tmp_path: Path):
     assert pair["status"] == "CERTIFIED_PAIR"
     assert suite["status"] == "CERTIFIED"
     runtime.close()
+
+
+def test_runtime_composes_local_execution_graph_and_shared_memory(tmp_path: Path):
+    storage = tmp_path / ".pie"
+    storage.mkdir()
+    connect(storage / "index.sqlite3").close()
+    task = start_task(tmp_path, "runtime task")
+    with ContextRuntime(
+        tmp_path,
+        journal_path=tmp_path / "runtime.sqlite3",
+        graph_path=Path(".pie") / "graph.sqlite3",
+    ) as runtime:
+        runtime.register_operation(OperationSpec("read", lambda args: {"value": args["x"]}))
+        first = runtime.execute_local("read", {"x": 4})
+        second = runtime.execute_local("read", {"x": 4})
+        assert first["status"] == "SUCCESS"
+        assert second["status"] == "REPLAYED"
+        runtime.add_graph_node(task["task_id"], "a", "step")
+        runtime.add_graph_node(task["task_id"], "b", "step")
+        runtime.add_graph_edge(task["task_id"], "a", "b", "depends")
+        assert runtime.graph_order(task["task_id"])["order"] == ["a", "b"]
+        runtime.memory.checkpoint(task["task_id"], "agent-a", {"value": 4})
+        assert runtime.memory.restore(task["task_id"], "agent-a")["state"] == "FOUND"
