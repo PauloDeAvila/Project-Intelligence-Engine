@@ -277,8 +277,12 @@ def run():
     p.add_argument("--max-baseline-chars",type=int,default=60000)
     p.add_argument("--output",default="rich-results")
     p.add_argument("--pie-production",action="store_true")
+    p.add_argument("--output-tokens",type=int,default=None,
+                   help="Same provider output cap for both arms")
     p.add_argument("--dry-run",action="store_true")
     a=p.parse_args()
+    if a.output_tokens is not None and not 1 <= a.output_tokens <= 4096:
+        raise SystemExit("--output-tokens must be between 1 and 4096")
     root=Path(a.corpus).resolve()
     output=Path(a.output);output.mkdir(parents=True,exist_ok=True)
     index_start=time.perf_counter()
@@ -319,8 +323,11 @@ def run():
         jobs=[(task,mode) for task in tasks for mode in ("baseline","pie")]
         random.Random(a.seed).shuffle(jobs)
         for task,mode in jobs:
+            output_tokens = a.output_tokens
+            if output_tokens is None:
+                output_tokens = 900 if "nemotron" in model.lower() else 160
             reply=infer(base,key,model,task["question"],evidence[task["id"]][mode],
-                         900 if "nemotron" in model.lower() else 160)
+                        output_tokens)
             normalized=normalize_navigation_answer(reply.get("answer"))
             correct=bool(normalized) and normalized.get("path")==task["oracle"]["path"] and normalized.get("symbol")==task["oracle"]["symbol"]
             usage=reply.get("usage") if isinstance(reply.get("usage"),dict) else {}
