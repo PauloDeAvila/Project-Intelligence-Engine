@@ -1,0 +1,82 @@
+{
+  "schema": "pie-local-ollama-mcp-replay-v1",
+  "scenario": "web-large-page-cert-v1",
+  "model": "gambiarraapi/glm-5.3-flash",
+  "provider": "openai_compat",
+  "methodology": "deterministic_mcp_tool_replay_not_codex_agent",
+  "schema_scope": "profile",
+  "blender_mode": null,
+  "local_prompt_sha256": "9be9416272505bc297c23a6858b170927509ed4d5f06b0e444e11ede5b0fa720",
+  "prompt_modified_for_experiment": false,
+  "codex_sessions_started": 0,
+  "codex_quota_consumed": false,
+  "codex_certification": "NOT_CERTIFIED",
+  "runs": [
+    {
+      "repetition": 1,
+      "pair_id": "pair-web-large-page-cert-v1-89975f8f653a-r1",
+      "task_id": "web-large-page-cert-v1",
+      "order": [
+        "baseline",
+        "optimized"
+      ],
+      "arms": {
+        "baseline": {
+          "server": "playwright-baseline",
+          "tool_names": [
+            "browser_navigate",
+            "browser_snapshot"
+          ],
+          "recovery_calls": 0,
+          "tool_count": 2,
+          "server_tool_count": 25,
+          "schema_scope": "profile",
+          "tool_schema_chars": 1332,
+          "observation_chars": 8006,
+          "tool_elapsed_ms": 369.014,
+          "usage": {
+            "input_tokens": 2667,
+            "output_tokens": 31,
+            "total_tokens": 2698,
+            "total_duration_ms": null,
+            "reasoning_output_tokens": 0
+          },
+          "oracle_pass": true,
+          "exact_text_pass": true,
+          "answer_sha256": "652456942e7c73ecf647d32e79f49a3117c54ee5f9abf93a8a5946b4c4f9bb4f",
+          "model": "gambiarraapi/glm-5.3-flash"
+        },
+        "optimized": {
+          "server": "pie-web-optimized",
+          "tool_names": [
+            "browser_navigate",
+            "browser_snapshot"
+          ],
+          "recovery_calls": 0,
+          "tool_count": 2,
+          "server_tool_count": 2,
+          "schema_scope": "profile",
+          "tool_schema_chars": 1332,
+          "observation_chars": 1473,
+          "tool_elapsed_ms": 477.893,
+          "usage": {
+            "input_tokens": 910,
+            "output_tokens": 67,
+            "total_tokens": 977,
+            "total_duration_ms": null,
+            "reasoning_output_tokens": 36
+          },
+          "oracle_pass": true,
+          "exact_text_pass": true,
+          "answer_sha256": "652456942e7c73ecf647d32e79f49a3117c54ee5f9abf93a8a5946b4c4f9bb4f",
+          "model": "gambiarraapi/glm-5.3-flash"
+        }
+      },
+      "comparison": {
+        "state": "LOCAL_PROVIDER_TOKENS_COMPARED",
+        "total_token_savings_percent": 63.788,
+        "input_token_savings_percent": 65.879
+      }
+    }
+  ]
+}

@@ -9,6 +9,7 @@ param(
     [string]$Model = "qwen3:4b",
     [int]$Repetitions = 3,
     [int]$NumCtx = 8192,
+    [ValidateRange(800,64000)][int]$PieMaxChars = 2400,
     [ValidateSet("profile", "server")][string]$SchemaScope = "profile",
     [int]$BlenderPort = 9877,
     [ValidateSet("query", "exact")][string]$BlenderMode = "query",
@@ -30,6 +31,7 @@ $profileArgs = @{
     Workspace = $repo
     OutputDirectory = $profileRoot
     Domain = $Domain
+    MaxChars = $PieMaxChars
 }
 if ($Domain -eq "blender") {
     $profileArgs.BaselineExposeTool = @("execute_blender_code")

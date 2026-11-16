@@ -173,4 +173,19 @@ Após a integração do provider OpenAI-compatible, a suíte completa passou com
 simulados e não foram contados como falhas. Evidência:
 [134-full-suite-after-external-provider-20261115.json](134-full-suite-after-external-provider-20261115.json).
 
+O limite configurável de saída Web foi avaliado com o mesmo harness local e o
+mesmo cenário grande. Com `max_chars=1600`, `1200` e `1000`, os pares válidos
+produziram respectivamente 59,522%, 60,378% e 63,788% de economia total, com
+oráculos aprovados. O limite `800` falhou fechado antes de iniciar o modelo
+porque os fatos necessários não ficaram disponíveis; nenhum token de provedor
+foi consumido nessa tentativa. Essas medições são do modelo
+`gambiarraapi/glm-5.3-flash`, não do Codex, e não devem ser combinadas com a
+certificação oficial. Evidências: [135](135-web-harness-maxchars-1600-20261115.json),
+[136](136-web-harness-maxchars-1200-20261115.json),
+[137](137-web-harness-maxchars-1000-20261115.json) e
+[138](138-web-harness-maxchars-800-failed-closed-20261115.json).
+
+A suíte completa após esse ajuste passou novamente com 644 testes, 5 ignorados
+e 0 erros. Evidência: [139-full-suite-after-maxchars-20261115.json](139-full-suite-after-maxchars-20261115.json).
+
 Auditoria requisito‑por‑requisito: [115-completion-audit-20261115.json](115-completion-audit-20261115.json).

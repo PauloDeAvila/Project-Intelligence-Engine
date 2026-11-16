@@ -462,6 +462,10 @@ def run_local_model(scenario: dict, observation: dict, model: str,
         request.update({"format": "json", "think": False,
                         "options": {"temperature": 0, "seed": 42,
                                      "num_ctx": num_ctx, "num_predict": 256}})
+    else:
+        # Keep the same contract for both arms while making the JSON-only
+        # requirement explicit to OpenAI-compatible gateways.
+        request["response_format"] = {"type": "json_object"}
     encoded = compact_json(request).encode("utf-8")
     if len(encoded) > 2_000_000:
         raise RuntimeError("Local model payload exceeds 2 MB")
