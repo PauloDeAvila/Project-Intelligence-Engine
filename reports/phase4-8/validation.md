@@ -6,8 +6,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 
 ## Evidência executada
 
-- Índice local: CURRENT, workspace_match=true, 263 arquivos, 2.210
-  símbolos e 2.549 imports.
+- Índice local: CURRENT, workspace_match=true, 263 arquivos, 2.212 símbolos e 2.550 imports.
 - Testes focados: 74 passed.
 - Suíte completa: 710 passed, 4 skipped, 126 subtests passed.
 - O handoff codex → deepseek foi exercitado com checkpoint persistente,
