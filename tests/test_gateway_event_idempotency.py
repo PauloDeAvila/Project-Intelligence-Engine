@@ -11,6 +11,7 @@ def test_gateway_event_id_is_stable_and_content_free():
     first = _event_id({"id": 7}, "resp")
     second = _event_id({"id": 7}, "resp")
     assert first == second
+    assert first != _event_id({"id": 7}, "resp", 1.0)
     assert first.startswith("resp-")
     assert len(first) < 80
     assert "secret-response-body" not in _event_id("secret-response-body", "resp")

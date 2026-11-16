@@ -56,9 +56,10 @@ def _json(value: Any) -> str:
     return json.dumps(value, separators=(",",":"), ensure_ascii=False)
 
 
-def _event_id(req_id: Any, prefix: str) -> str:
+def _event_id(req_id: Any, prefix: str, nonce: object | None = None) -> str:
     """Create a bounded event ID without storing request content."""
-    return prefix + "-" + hashlib.sha256(_id(req_id).encode("utf-8")).hexdigest()[:32]
+    material = _id(req_id) + ("|" + str(nonce) if nonce is not None else "")
+    return prefix + "-" + hashlib.sha256(material.encode("utf-8")).hexdigest()[:32]
 
 
 def _tool_error(req_id: Any, message: str) -> dict:
@@ -181,7 +182,7 @@ class MCPStdioGateway:
                 record(self.root,surface="mcp",tool=RECOVERY_NAME,state="RECOVERY",
                        source_chars=int(page["total_chars"]),returned_chars=len(_json(result)),
                        elapsed_ms=(time.perf_counter()-started)*1000,
-                       source_event_id=_event_id(message.get("id"), "recovery"))
+                       source_event_id=_event_id(message.get("id"), "recovery", started))
             except (OSError,ValueError,TypeError,KeyError,IndexError):
                 pass
             return {"jsonrpc":"2.0","id":message.get("id"),"result":result}
@@ -249,7 +250,8 @@ class MCPStdioGateway:
             try:
                 record(self.root, surface="mcp", tool=tool, state=state,
                        source_chars=len(encoded), returned_chars=len(encoded),
-                       elapsed_ms=elapsed_ms)
+                       elapsed_ms=elapsed_ms,
+                       source_event_id=_event_id(response["id"], "resp", started))
             except (OSError, ValueError):
                 pass
         body=response.get("result")
@@ -264,7 +266,7 @@ class MCPStdioGateway:
                 record(self.root, surface="mcp", tool=tool,
                        state="SEMANTIC_NAVIGATION_ACK", source_chars=0,
                        returned_chars=len("PIE_NAVIGATED"), elapsed_ms=elapsed_ms,
-                       source_event_id=_event_id(response["id"], "resp"))
+                       source_event_id=_event_id(response["id"], "resp", started))
             except (OSError, ValueError):
                 pass
             return response
@@ -291,7 +293,7 @@ class MCPStdioGateway:
                 record(self.root,surface="mcp",tool=tool,
                        state="PASSTHROUGH" if not eligible else "SMALL",
                        source_chars=len(source),returned_chars=len(source),elapsed_ms=elapsed_ms,
-                       source_event_id=_event_id(response["id"], "resp"))
+                       source_event_id=_event_id(response["id"], "resp", started))
             except (OSError, ValueError):
                 pass
             return response
@@ -305,7 +307,7 @@ class MCPStdioGateway:
                 record(self.root,surface="mcp",tool=tool,state="OVERSIZE_PASSTHROUGH",
                        source_chars=len(source),returned_chars=len(source),
                        elapsed_ms=elapsed_ms,
-                       source_event_id=_event_id(response["id"], "resp"))
+                       source_event_id=_event_id(response["id"], "resp", started))
                 return response
             envelope={"pie_gateway":"v1","state":reduced["state"],
                       "tool":tool,"preview":reduced["text"],
@@ -331,7 +333,7 @@ class MCPStdioGateway:
                    source_chars=len(source),returned_chars=len(encoded),
                    elapsed_ms=elapsed_ms,
                    output_id=reduced["output_id"],
-                   source_event_id=_event_id(response["id"], "resp"))
+                   source_event_id=_event_id(response["id"], "resp", started))
         except (ValueError, RuntimeError, OSError):
             # Fail open for exact tool semantics; never invent a successful summary.
             return response
@@ -391,7 +393,8 @@ class MCPStdioGateway:
             try:
                 record(self.root, surface="mcp", tool="browser_snapshot",
                        state="INTERNAL_CONTEXT", source_chars=len(text),
-                       returned_chars=0, elapsed_ms=0.0)
+                       returned_chars=0, elapsed_ms=0.0,
+                       source_event_id=_event_id(internal_id, "internal"))
             except (OSError, ValueError):
                 pass
         finally:
@@ -412,7 +415,7 @@ class MCPStdioGateway:
                 record(self.root, surface="mcp", tool=tool, state="TIMEOUT",
                        source_chars=0, returned_chars=0,
                        elapsed_ms=(time.perf_counter() - started) * 1000,
-                       source_event_id=_event_id(json.loads(key), "timeout"))
+                       source_event_id=_event_id(json.loads(key), "timeout", started))
             except (OSError, ValueError):
                 pass
         try:
