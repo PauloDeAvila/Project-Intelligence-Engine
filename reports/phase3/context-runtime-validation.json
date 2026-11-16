@@ -21,6 +21,13 @@
       "failed": 0
     },
     "compileall": "PASS",
+    "integration_smoke": {
+      "checkpoint_compiled": {"fact": {"value": 3}},
+      "adaptive_choice": "small",
+      "local_first": "SUCCESS",
+      "local_second": "REPLAYED",
+      "graph_order": ["a", "b"]
+    },
     "wheel_build": "PASS",
     "pie_index": {
       "state": "CURRENT",
