@@ -5,6 +5,7 @@ from pathlib import Path
 from pie.indexing.python_ast import parse_python_content
 from pie.scanning.discovery import iter_files
 from pie.storage import analysis as symbol_store
+from pie.storage.locations import workspace_file
 from pie.storage.database import connect
 
 
@@ -47,8 +48,15 @@ def _refresh_symbol_documents(connection, file_id: int, content: bytes) -> None:
          for row in symbols)
     )
 
-def index_project(root: Path) -> dict[str, object]:
-    db_path = root / ".pie" / "index.sqlite3"
+def index_project(root: Path, *, selected_paths: set[str] | None = None) -> dict[str, object]:
+    """Full reconcile or read/reparse only explicitly changed Python paths.
+
+    The global scanner provides selected_paths from independent filesystem
+    metadata. Even with one changed file, all existing source records remain
+    indexed; only confirmed deleted paths are removed.
+    """
+    root = Path(root).resolve(strict=True)
+    db_path = workspace_file(root)
     unreadable_paths: set[Path] = set()
     unreadable_directories: set[Path] = set()
     oversized_paths: set[Path] = set()
@@ -57,6 +65,7 @@ def index_project(root: Path) -> dict[str, object]:
         unreadable_paths=unreadable_paths,
         unreadable_directories=unreadable_directories,
         oversized_paths=oversized_paths,
+        selected_paths=selected_paths,
     )
     connection = connect(db_path)
     try:
@@ -106,6 +115,8 @@ def index_project(root: Path) -> dict[str, object]:
                 or root_scan_failed
             }
             for old_path in existing_paths:
+                if selected_paths is not None and old_path not in selected_paths:
+                    continue
                 if root_scan_failed or old_path in seen or any(
                     old_path == directory.as_posix() or old_path.startswith(directory.as_posix().rstrip("/") + "/")
                     for directory in unreadable_directories
@@ -176,6 +187,7 @@ def index_project(root: Path) -> dict[str, object]:
     try:
         metadata = {row["key"]: row["value"] for row in connection.execute("SELECT key, value FROM metadata")}
         return {
+            "incremental": selected_paths is not None,
             "changed_files": sorted(changed),
             "removed_files": sorted(removed),
             "files": connection.execute("SELECT COUNT(*) FROM files").fetchone()[0],
