@@ -115,6 +115,19 @@ nem a bateria pareada Blender/Web e não eleva o status acima de
 `NOT_CERTIFIED`. Sondas anteriores com HTTP 429 permanecem registradas como
 histórico negativo, não como evidência positiva.
 
+## Guardas fail-closed após o fechamento
+
+O `ContextRuntime` mantém guarda fail-closed após `close()`: o acesso à facade
+`memory` e os métodos que tocam estado de memória ou checkpoints
+(`checkpoint`, `checkpoint_agent`, `restore_state`, `list_agent_checkpoints`)
+levantam `RuntimeError` quando o runtime já está fechado. O `close()` também
+fecha o grafo e o journal de forma tolerante a falha individual, zera as
+referências (incluindo `memory`) e repropaga o primeiro erro após liberar todos
+os recursos. Esses contratos e os contratos da facade (compilação com
+`token_budget` exigindo `token_counter`, execução local sem journal sem replay,
+round-trip de `restore_state` e snapshots do grafo com/sem tarefas) têm
+cobertura dedicada em `tests/test_context_runtime.py`.
+
 ## Histórico recente
 
 Commits que introduziram estes comportamentos:
@@ -124,6 +137,8 @@ Commits que introduziram estes comportamentos:
 - `b087093` test(runtime): verify token budget gates fail closed
 - `f004fc0` docs(runtime): record token budget homologation
 - `bdab33f` feat(blender): persist versioned delta history safely
+- `fa45fa6` fix(runtime): fail closed after context shutdown
+- `8bee2c1` test(runtime): cover facade contracts and budgets
 
 Evidências: `reports/phase3/context-runtime-pillars-validation.json` e
 `reports/phase3/context-runtime-mcp-exposure.json`.

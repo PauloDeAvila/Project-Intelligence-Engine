@@ -23,6 +23,11 @@ não comprova economia de tokens de um provedor quando não existe um payload
 | Multi-Agent Memory | checkpoints por agente, proveniência e referências sem payload de estado | PASS local |
 | Continuous Certification | avaliador pareado fail-closed para tokens, rota, oráculo, latência e chamadas | PASS local / uso externo pendente |
 
+A facade do runtime é coberta por testes dedicados: guardas fail-closed após
+`close()` (acesso a `memory`, checkpoints e restauração levantam `RuntimeError`),
+fechamento tolerante a falha de recursos, execução local sem journal sem replay,
+round-trip de `restore_state` e snapshots do grafo.
+
 O adaptador `pie.certification.provider_usage` normaliza respostas
 OpenAI-compatíveis, incluindo cache e reasoning, e deixa o status
 `unavailable` quando qualquer campo obrigatório não é reportado.
@@ -48,7 +53,14 @@ limitado a 5 versões, contendo apenas digest, counts, estado e timestamp, com
 upsert e `BEGIN IMMEDIATE` para serializar escritores.
 
 Commits que entregaram esses comportamentos: `ca8d343`, `a9f92af`, `b087093`,
-`f004fc0`, `bdab33f`.
+`f004fc0`, `bdab33f`, `fa45fa6` e `8bee2c1`.
+
+Os commits `fa45fa6` (fix(runtime): fail closed after context shutdown) e
+`8bee2c1` (test(runtime): cover facade contracts and budgets) adicionaram
+guardas fail-closed após o fechamento do runtime — acesso à facade `memory` e
+aos métodos de checkpoint/restauração levanta `RuntimeError` quando fechado,
+com `close()` tolerante a falha individual de recursos — além de cobertura de
+testes dedicada aos contratos da facade e aos orçamentos de tokens.
 
 ## Integração MCP
 
@@ -77,11 +89,12 @@ uv run pie status --root .
 Resultado observado:
 
 ```text
-653 passed, 4 skipped, 126 subtests passed
+664 passed, 4 skipped, 126 subtests passed
 PIE index_state=CURRENT
 workspace_match=true
 verifier status=PASS_LOCAL
 verifier certification=NOT_CERTIFIED
+token_budget_gate=PASS_SYNTHETIC_COUNTER
 ```
 
 ## Limitações honestas
