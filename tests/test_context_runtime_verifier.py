@@ -50,6 +50,13 @@ class ContextRuntimeVerifierTests(unittest.TestCase):
             "Synthetic evaluator evidence is not external provider usage.",
         )
         self.assertNotIn("external_evidence_status", result)
+        self.assertEqual(
+            result["pillars"]["context_compiler"]["status"], "PASS"
+        )
+        self.assertEqual(
+            result["pillars"]["context_compiler"]["token_budget_gate"],
+            "PASS_SYNTHETIC_COUNTER",
+        )
 
     def _write(self, directory, payload):
         path = Path(directory) / "summary.json"
