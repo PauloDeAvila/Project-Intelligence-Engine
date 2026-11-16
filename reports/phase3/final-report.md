@@ -204,6 +204,12 @@ A suíte completa após a inclusão da ferramenta semântica passou com 646 test
 5 ignorados e 0 erros. Evidência:
 [143-full-suite-after-semantic-context-20261115.json](143-full-suite-after-semantic-context-20261115.json).
 
+O caminho semântico foi repetido em três pares alternados. Foram medidos
+8.093 tokens baseline e 2.084 tokens otimizados: **74,249% de economia**, com
+6/6 oráculos aprovados e nenhuma recuperação extra. A variação entre pares foi
+inferior a 0,05 ponto percentual. Evidência:
+[144-web-harness-semantic-context-3pairs-20261115.json](144-web-harness-semantic-context-3pairs-20261115.json).
+
 A suíte completa após esse ajuste passou novamente com 644 testes, 5 ignorados
 e 0 erros. Evidência: [139-full-suite-after-maxchars-20261115.json](139-full-suite-after-maxchars-20261115.json).
 
