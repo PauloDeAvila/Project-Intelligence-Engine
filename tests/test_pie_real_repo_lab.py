@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 import unittest
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"tools"))
-from pie_real_repo_lab import normalize_navigation_answer, benchmark_tasks, validate_gateway_base_url, require_gateway_secrets, normalize_usage, summarize_rows
+from pie_real_repo_lab import normalize_navigation_answer, benchmark_tasks, select_paired_tasks, validate_gateway_base_url, require_gateway_secrets, normalize_usage, summarize_rows
 
 class GatewayUrlValidation(unittest.TestCase):
     def test_loopback_http_is_accepted(self):
@@ -285,5 +285,17 @@ class RealRepoLabTests(unittest.TestCase):
     def test_not_enough_real_modules_fails(self):
         rows=[{"path":"rich/a.py","symbol":"a","sentence":"A lengthy description of the function."}]
         with self.assertRaises(RuntimeError):benchmark_tasks(rows,3,123)
+
+    def test_paired_task_selection_requires_evidence_in_both_arms(self):
+        rows=[
+            {"path":"rich/a.py","symbol":"wanted","sentence":"Locate the unique alpha responsibility.","line":1,"snippet":"def wanted(): pass"},
+            {"path":"rich/b.py","symbol":"other","sentence":"Locate the unique beta responsibility.","line":1,"snippet":"def other(): pass"},
+        ]
+        modules={
+            "rich/a.py":"alpha responsibility wanted\n",
+            "rich/b.py":"beta responsibility other\n",
+        }
+        selected=select_paired_tasks(rows,modules,1,123,1000)
+        self.assertEqual(len(selected),1)
 
 if __name__=="__main__":unittest.main()

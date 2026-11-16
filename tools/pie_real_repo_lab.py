@@ -95,6 +95,24 @@ def search(question,modules,rows,budget):
         raise RuntimeError(f"File context too big: {len(baseline)}")
     return baseline,pie,candidate_paths,chosen
 
+def select_paired_tasks(rows,modules,count,seed,budget):
+    """Choose only tasks whose oracle is present in both contexts."""
+    candidates=benchmark_tasks(rows,len({r["path"] for r in rows}),seed)
+    selected=[]
+    for task in candidates:
+        baseline,pie,files,chosen=search(task["question"],modules,rows,budget)
+        baseline_hit=task["oracle"]["path"] in files
+        pie_hit=any(x["path"]==task["oracle"]["path"] and
+                    x["symbol"]==task["oracle"]["symbol"] for x in chosen)
+        if baseline_hit and pie_hit:
+            selected.append(task)
+            if len(selected)>=count:
+                return selected
+    raise RuntimeError(
+        f"Only {len(selected)} tasks have equivalent baseline/PIE evidence; "
+        f"requested {count}"
+    )
+
 def is_loopback_host(host):
     """True only when the hostname resolves to a loopback address."""
     if not isinstance(host,str) or not host:
@@ -270,7 +288,7 @@ def run():
     relationships=build_relationships(root)
     index_seconds=round(time.perf_counter()-index_start,5)
     modules,rows=source_inventory(root)
-    tasks=benchmark_tasks(rows,a.count,a.seed)
+    tasks=select_paired_tasks(rows,modules,a.count,a.seed,a.max_baseline_chars)
     evidence={};audit=[]
     for task in tasks:
         start=time.perf_counter()
