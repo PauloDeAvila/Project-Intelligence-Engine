@@ -1,0 +1,33 @@
+{
+  "schema": "pie-context-runtime-web-live-probe-v1",
+  "timestamp_utc": "2026-11-16T11:54:10Z",
+  "workspace": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean",
+  "fixture": {
+    "url": "http://127.0.0.1:8766/",
+    "type": "deterministic_local_http",
+    "external_side_effects": false
+  },
+  "observed": {
+    "browser_navigate": "PASS",
+    "browser_snapshot": "PASS",
+    "pie_web_context": "FAILED_ACTIVE_SERVER",
+    "failure": "PIE_WEB_CONTEXT_FAILED: Internal response is not a valid browser snapshot"
+  },
+  "coverage": {
+    "page_title_observed": "PIE Web Fixture",
+    "status_text_observed": "deterministic-local-content",
+    "tokens": null,
+    "provider_usage_status": "unavailable"
+  },
+  "root_integrity": {
+    "authoritative_local_index": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean",
+    "authoritative_local_index_state": "CURRENT",
+    "active_pie_server_root": "C:\\Users\\phsra\\Documents\\Codex\\2026-11-14\\contrato-de-uso-ativo-do-project",
+    "workspace_match": false,
+    "status": "WRONG_WORKSPACE_ACTIVE_SERVER"
+  },
+  "certification": {
+    "status": "NOT_CERTIFIED",
+    "reason": "The active MCP server is not the audited PIE-Clean checkout; no Web PASS is attributed to the current commit."
+  }
+}

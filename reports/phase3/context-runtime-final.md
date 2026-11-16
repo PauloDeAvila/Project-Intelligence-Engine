@@ -89,7 +89,7 @@ uv run pie status --root .
 Resultado observado:
 
 ```text
-671 passed, 4 skipped, 126 subtests passed
+683 passed, 4 skipped, 126 subtests passed
 PIE index_state=CURRENT
 workspace_match=true
 verifier status=PASS_LOCAL
@@ -116,6 +116,14 @@ Os relatórios do piloto são
 `reports/phase3/glm-real-pilot-live-v5/summary.json`. As sondas anteriores
 que retornaram HTTP 429 permanecem registradas como falhas históricas e não
 são usadas como evidência positiva.
+
+O filtro Web agora aceita snapshots locais válidos com envelope estrutural
+mínimo de 80 caracteres, mantendo marcador, role/ref, allowlist, redaction e
+rejeição de segredos/erros. O patch e seus 12 testes estão no commit `f8e8788`.
+O probe real da página local navegou e capturou o snapshot, mas
+`pie_web_context` falhou no servidor MCP ativo porque ele aponta para outra
+raiz; essa limitação está registrada em
+`reports/phase3/context-runtime-web-live-probe-20261116.json`.
 
 Evidências JSON:
 

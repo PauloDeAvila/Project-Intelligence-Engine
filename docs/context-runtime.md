@@ -113,6 +113,17 @@ símbolo entre colchetes. A correção (preservação da evidência exata de
 símbolo) está no commit `8cc6706`
 (fix(benchmark): preserve exact symbol evidence).
 
+## Correção Web de snapshots pequenos
+
+O filtro Web não rejeita mais snapshots locais válidos apenas por terem menos
+de 500 caracteres. O commit `f8e8788` usa um envelope estrutural mínimo de 80
+caracteres e preserva os demais gates: marcador, role/ref, allowlist,
+redaction, rejeição de segredos/erros e limite superior de 500.000 caracteres.
+Os 12 testes específicos e 47 testes de regressão passaram. A execução MCP
+real desta sessão ainda não é evidência do checkout atual porque o servidor
+PIE ativo reportou outra raiz; o detalhe está em
+`reports/phase3/context-runtime-web-live-probe-20261116.json`.
+
 ## Certificação
 
 `ContinuousCertification` só retorna `CERTIFIED_PAIR`/`CERTIFIED` quando as
@@ -160,6 +171,7 @@ Commits que introduziram estes comportamentos:
 - `fa45fa6` fix(runtime): fail closed after context shutdown
 - `8bee2c1` test(runtime): cover facade contracts and budgets
 - `8cc6706` fix(benchmark): preserve exact symbol evidence
+- `f8e8788` fix(web): accept bounded structural snapshots
 
 Evidências: `reports/phase3/context-runtime-pillars-validation.json`,
 `reports/phase3/context-runtime-mcp-exposure.json`,
