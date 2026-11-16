@@ -33,6 +33,7 @@ class MeasuredCandidate:
     quality_pass: bool = True
     mcp_calls: int | None = None
     recovery_calls: int | None = None
+    cost_usd: float | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.representation, str) or not self.representation.strip():
@@ -60,6 +61,14 @@ class MeasuredCandidate:
                 self.latency_ms, (int, float)
             ) or not math.isfinite(self.latency_ms) or self.latency_ms < 0:
                 raise ValueError("latency_ms must be a finite nonnegative number")
+        if self.cost_usd is not None:
+            if (
+                isinstance(self.cost_usd, bool)
+                or not isinstance(self.cost_usd, (int, float))
+                or not math.isfinite(self.cost_usd)
+                or self.cost_usd < 0
+            ):
+                raise ValueError("cost_usd must be a finite nonnegative number")
 
 
 def _token_rank(candidate: MeasuredCandidate) -> tuple[object, ...]:
@@ -74,6 +83,16 @@ def _latency_rank(candidate: MeasuredCandidate) -> tuple[object, ...]:
     return candidate.latency_ms, calls, candidate.representation
 
 
+def _cost_rank(candidate: MeasuredCandidate) -> tuple[object, ...]:
+    assert candidate.cost_usd is not None
+    latency = (0, candidate.latency_ms) if candidate.latency_ms is not None else (1, 0)
+    output = (0, candidate.output_tokens) if candidate.output_tokens is not None else (1, 0)
+    input_tokens = (0, candidate.input_tokens) if candidate.input_tokens is not None else (1, 0)
+    calls = (0, candidate.mcp_calls) if candidate.mcp_calls is not None else (1, 0)
+    recovery = (0, candidate.recovery_calls) if candidate.recovery_calls is not None else (1, 0)
+    return candidate.cost_usd, latency, output, input_tokens, calls, recovery, candidate.representation
+
+
 def choose_candidate(
     candidates: list[MeasuredCandidate],
     *,
@@ -83,8 +102,8 @@ def choose_candidate(
     """Choose a quality-valid representation using measured metrics only."""
     if not isinstance(candidates, list) or not candidates:
         raise ValueError("candidates must be a nonempty list")
-    if objective not in ("tokens", "latency"):
-        raise ValueError("objective must be 'tokens' or 'latency'")
+    if objective not in ("tokens", "latency", "cost"):
+        raise ValueError("objective must be 'tokens', 'latency' or 'cost'")
 
     eligible: list[MeasuredCandidate] = []
     reasons: list[str] = []
@@ -102,9 +121,16 @@ def choose_candidate(
             if candidate.input_tokens is None or candidate.output_tokens is None:
                 reasons.append(f"missing_total_tokens:{candidate.representation}")
                 continue
-        elif candidate.latency_ms is None:
+        elif objective == "latency" and candidate.latency_ms is None:
             reasons.append(f"missing_latency:{candidate.representation}")
             continue
+        elif objective == "cost":
+            if candidate.provider_usage_status != USAGE_STATUS_AVAILABLE:
+                reasons.append(f"usage_unavailable:{candidate.representation}")
+                continue
+            if candidate.cost_usd is None:
+                reasons.append(f"missing_cost:{candidate.representation}")
+                continue
         eligible.append(candidate)
 
     if not eligible:
@@ -122,9 +148,12 @@ def choose_candidate(
     if objective == "tokens":
         chosen = min(eligible, key=_token_rank)
         ranking = "total_tokens,latency_ms,mcp_calls,representation"
-    else:
+    elif objective == "latency":
         chosen = min(eligible, key=_latency_rank)
         ranking = "latency_ms,mcp_calls,representation"
+    else:
+        chosen = min(eligible, key=_cost_rank)
+        ranking = "cost_usd,latency_ms,output_tokens,input_tokens,mcp_calls,recovery_calls,representation"
 
     total_tokens = None
     uncached_input_tokens = None
@@ -145,6 +174,7 @@ def choose_candidate(
             "latency_ms": chosen.latency_ms,
             "mcp_calls": chosen.mcp_calls,
             "recovery_calls": chosen.recovery_calls,
+            "cost_usd": chosen.cost_usd,
         },
         "decision_basis": [
             f"objective={objective}",

@@ -68,3 +68,29 @@ def test_validation_rejects_bad_measurements():
 def test_empty_input_is_rejected():
     with pytest.raises(ValueError):
         choose_candidate([])
+
+
+def test_cost_objective_requires_verified_cost_and_is_deterministic():
+    result = choose_candidate(
+        [
+            MeasuredCandidate("expensive", "available", cost_usd=0.02, latency_ms=1.0),
+            MeasuredCandidate("cheap", "available", cost_usd=0.01, latency_ms=2.0),
+            MeasuredCandidate("unknown", "available", latency_ms=0.1),
+        ],
+        objective="cost",
+    )
+    assert result["representation"] == "cheap"
+    assert result["metrics"]["cost_usd"] == 0.01
+
+
+def test_cost_validation_is_fail_closed():
+    with pytest.raises(ValueError):
+        MeasuredCandidate("bool", "available", cost_usd=True)
+    with pytest.raises(ValueError):
+        MeasuredCandidate("nan", "available", cost_usd=float("nan"))
+    result = choose_candidate(
+        [MeasuredCandidate("no-cost", "available", input_tokens=1, output_tokens=1)],
+        objective="cost",
+    )
+    assert result["state"] == "NO_VALID_CANDIDATE"
+    assert "missing_cost:no-cost" in result["reasons"]

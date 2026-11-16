@@ -28,7 +28,10 @@
     },
     "adaptive_runtime": {
       "status": "PASS_LOCAL",
-      "evidence": ["provider-usage-aware and quality-gated candidate selection tests"]
+      "evidence": [
+        "provider-usage-aware and quality-gated candidate selection tests",
+        "explicit verified cost objective with fail-closed missing-cost behavior"
+      ]
     },
     "multi_agent_memory": {
       "status": "PASS_LOCAL",
@@ -40,8 +43,8 @@
     }
   },
   "validation": {
-    "targeted_tests": "14 passed",
-    "full_suite": "505 passed, 4 skipped, 126 subtests passed",
+    "targeted_tests": "19 passed",
+    "full_suite": "507 passed, 4 skipped, 126 subtests passed",
     "provider_usage": "NOT_AVAILABLE",
     "certification": "NOT_CERTIFIED"
   },

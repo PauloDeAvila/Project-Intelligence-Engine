@@ -8,7 +8,7 @@ de um modelo específico:
 | State Engine | `ContextRuntime.start`, `record`, `resume`, `checkpoint` | SQLite do PIE |
 | Context Compiler | `ContextRuntime.compile`, `compile_checkpoint` | Não persiste o payload compilado |
 | Local Execution | `register_operation`, `execute_local` | Journal opcional, sem argumentos/resultados |
-| Adaptive Runtime | `ContextRuntime.choose` | Usa somente métricas fornecidas |
+| Adaptive Runtime | `ContextRuntime.choose` | Usa somente métricas fornecidas; objetivos `tokens`, `latency` e `cost` |
 | Multi-Agent Memory | `runtime.memory.checkpoint`, `restore`, `references` | Checkpoints hash-verificados |
 | Continuous Certification | `evaluate_pair`, `evaluate_suite` | Evidência de uso do provedor |
 
@@ -71,6 +71,11 @@ para não aumentar o contexto padrão.
 duas execuções possuem uso do provedor disponível, tokens reais, rota
 verificada, oráculo aprovado, latência e chamadas MCP. Dados ausentes permanecem
 `NOT_CERTIFIED`; caracteres não são convertidos em tokens.
+
+O objetivo `cost` do Adaptive Runtime exige um `cost_usd` explícito, finito e
+não negativo, acompanhado de uso do provedor disponível. Sem tarifa ou uso
+verificados, o candidato é inelegível; o PIE não estima preço a partir de
+caracteres ou de limites de assinatura.
 
 No estado atual, a validação local está aprovada, mas a certificação externa de
 tokens permanece `NOT_CERTIFIED` porque o upstream GLM observado retornou

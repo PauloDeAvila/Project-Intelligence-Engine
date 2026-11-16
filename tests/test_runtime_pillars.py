@@ -3,10 +3,26 @@ from __future__ import annotations
 from pie.certification.regression import RunEvidence
 from pie.retrieval.adaptive_runtime import MeasuredCandidate
 from pie.runtime.pillars import AdaptiveRuntime, ContextCompiler, ContinuousCertification, StateEngine
+from pie.runtime import (
+    AdaptiveRuntime as ExportedAdaptiveRuntime,
+    ContextCompiler as ExportedContextCompiler,
+    ContinuousCertification as ExportedContinuousCertification,
+    StateEngine as ExportedStateEngine,
+    CompiledContext,
+    MeasuredCandidate,
+    RunEvidence,
+)
 from pie.storage.database import connect
 
 
 def test_named_pillars_delegate_to_existing_contracts(tmp_path):
+    assert ExportedAdaptiveRuntime is AdaptiveRuntime
+    assert ExportedContextCompiler is ContextCompiler
+    assert ExportedContinuousCertification is ContinuousCertification
+    assert ExportedStateEngine is StateEngine
+    assert CompiledContext.__name__ == "CompiledContext"
+    assert MeasuredCandidate.__name__ == "MeasuredCandidate"
+    assert RunEvidence.__name__ == "RunEvidence"
     storage = tmp_path / ".pie"
     storage.mkdir()
     connect(storage / "index.sqlite3").close()
