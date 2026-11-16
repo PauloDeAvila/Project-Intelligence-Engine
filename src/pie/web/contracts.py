@@ -34,7 +34,12 @@ _SAFE_ERROR_CODES = {
     "action_blocked",
     "action_rejected",
     "execution_failed",
+    "journal_error",
+    "journal_failed",
+    "journal_metadata_invalid",
+    "journal_metadata_missing",
     "origin_not_allowed",
+    "reconciliation_required",
     "session_failed",
     "stale_reference",
     "timeout",
@@ -814,7 +819,14 @@ class ActionResult(_Contract):
             raise WebStateError("blocked, rejected, and stale actions cannot execute or verify")
         if self.status == ActionStatus.FAILED:
             execution_failure = (
-                self.error_code == "execution_failed"
+                self.error_code in {
+                    "execution_failed",
+                    "journal_error",
+                    "journal_failed",
+                    "journal_metadata_invalid",
+                    "journal_metadata_missing",
+                    "reconciliation_required",
+                }
                 and self.execution_state in {ExecutionState.STARTED, ExecutionState.UNKNOWN}
                 and self.verification == VerificationState.NOT_RUN
             )

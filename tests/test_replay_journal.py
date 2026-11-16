@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import sqlite3
 import threading
 
@@ -106,3 +107,71 @@ def test_concurrent_duplicate_callers_do_not_duplicate_side_effect(journal):
     statuses = [result["status"] for result in results]
     assert statuses.count("EXECUTED") == 1
     assert all(status in {"REPLAYED", "REQUIRES_RECONCILIATION"} for status in statuses if status != "EXECUTED")
+
+
+def test_result_metadata_round_trips_without_result_body(tmp_path):
+    journal = ExecutionJournal(tmp_path / "metadata.sqlite3")
+    first = journal.execute_once(
+        "metadata-1",
+        {"request": 1},
+        lambda: {"private": "result-body"},
+        result_metadata=lambda result: {"status": "verified", "size": len(result)},
+    )
+    duplicate = journal.execute_once(
+        "metadata-1",
+        {"request": 1},
+        lambda: {"private": "must-not-run"},
+        result_metadata=lambda result: {"status": "wrong"},
+    )
+    assert first["result_metadata"] == {"size": 1, "status": "verified"}
+    assert duplicate["status"] == "REPLAYED"
+    assert duplicate["result_metadata"] == first["result_metadata"]
+    row = journal._connection.execute(
+        "SELECT result_metadata_json,result_metadata_sha256 FROM execution_journal "
+        "WHERE operation_id=?",
+        ("metadata-1",),
+    ).fetchone()
+    assert row[0] == '{"size":1,"status":"verified"}'
+    assert row[1]
+    assert "result-body" not in row[0]
+    journal.close()
+
+
+def test_result_metadata_is_bounded_and_fail_closed(tmp_path):
+    journal = ExecutionJournal(tmp_path / "metadata-invalid.sqlite3")
+    nonfinite = journal.execute_once(
+        "metadata-2",
+        {"request": 1},
+        lambda: {"ok": True},
+        result_metadata=lambda result: {"number": math.inf},
+    )
+    assert nonfinite["status"] == "FAILED"
+    assert nonfinite["error_code"] == "metadata_not_serializable"
+    sensitive = journal.execute_once(
+        "metadata-3",
+        {"request": 1},
+        lambda: {"ok": True},
+        result_metadata=lambda result: {"access_token": "x"},
+    )
+    assert sensitive["status"] == "FAILED"
+    assert sensitive["error_code"] == "metadata_not_serializable"
+    journal.close()
+
+
+def test_result_metadata_schema_migrates_legacy_database(tmp_path):
+    path = tmp_path / "legacy.sqlite3"
+    connection = sqlite3.connect(path)
+    connection.execute(
+        "CREATE TABLE execution_journal (operation_id TEXT PRIMARY KEY, "
+        "payload_sha256 TEXT NOT NULL, status TEXT NOT NULL, result_sha256 TEXT, "
+        "error_code TEXT, started_utc TEXT NOT NULL, finished_utc TEXT)"
+    )
+    connection.commit()
+    connection.close()
+    journal = ExecutionJournal(path)
+    columns = {
+        row[1]
+        for row in journal._connection.execute("PRAGMA table_info(execution_journal)")
+    }
+    assert {"result_metadata_json", "result_metadata_sha256"} <= columns
+    journal.close()
