@@ -11,6 +11,7 @@ from pie.retrieval.task_memory import (
     checkpoint_agent_state,
     list_agent_checkpoints,
     record_task,
+    resume_task,
     restore_state,
     start_task,
 )
@@ -170,6 +171,42 @@ def test_checkpoint_does_not_copy_objective_or_event_text(root):
     serialized = json.dumps(_rows(root, task_id), ensure_ascii=False)
     assert objective not in serialized
     assert event_text not in serialized
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "prompt: summarize the repository",
+        "the answer is forty-two",
+        "cookie=session-id",
+        "user password rotated",
+        "client secret stored",
+        "credential handed off",
+        "bearer token refreshed",
+        "PROMPT IN UPPERCASE",
+    ],
+)
+def test_record_task_rejects_sensitive_text(root, text):
+    task_id = _task(root)
+    with pytest.raises(ValueError):
+        record_task(root, task_id, "note", text)
+    # Nothing may be persisted for a rejected event.
+    assert resume_task(root, task_id)["events"] == []
+    assert _rows(root, task_id) == []
+
+
+def test_record_task_rejects_sensitive_reference(root):
+    task_id = _task(root)
+    with pytest.raises(ValueError):
+        record_task(root, task_id, "note", "safe text", reference="see secret.md")
+    assert resume_task(root, task_id)["events"] == []
+
+
+def test_record_task_allows_neutral_text(root):
+    task_id = _task(root)
+    record_task(root, task_id, "note", "indexed the storage module", reference="storage/database.py")
+    events = resume_task(root, task_id)["events"]
+    assert [event["text"] for event in events] == ["indexed the storage module"]
 
 
 def test_agent_checkpoint_is_explicit_and_filterable(root):

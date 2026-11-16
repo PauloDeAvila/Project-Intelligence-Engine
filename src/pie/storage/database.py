@@ -125,12 +125,34 @@ def _migrate_symbol_locations(connection: sqlite3.Connection) -> None:
         raise
 
 
-def connect(path: Path) -> sqlite3.Connection:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(path)
+def connect(path: Path | str) -> sqlite3.Connection:
+    if isinstance(path, str):
+        if path != ":memory:":
+            # Filesystem strings are accepted for convenience and normalised to
+            # Path so the parent directory can be created like a Path argument.
+            path = Path(path)
+        target: Path | str = path
+    else:
+        target = path
+    if not isinstance(target, str):
+        target.parent.mkdir(parents=True, exist_ok=True)
+    connection = sqlite3.connect(target)
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA busy_timeout = 5000")
     connection.execute("PRAGMA foreign_keys = ON")
+    if not isinstance(target, str):
+        # File-backed databases need WAL so concurrent index writers/readers do
+        # not starve each other; FULL synchronizes commits to disk.  ``:memory:``
+        # databases do not support WAL and there is nothing to durably sync.
+        # FULL is applied regardless of the journal_mode outcome so durability is
+        # never silently reduced when WAL is unavailable.  Commit explicitly so
+        # the mode applies to the database rather than only this transaction.
+        try:
+            connection.execute("PRAGMA journal_mode = WAL")
+        except sqlite3.DatabaseError:
+            pass
+        connection.execute("PRAGMA synchronous = FULL")
+        connection.commit()
     connection.executescript(SCHEMA)
     _migrate_symbol_locations(connection)
     from pie.retrieval.fts import ensure_fts

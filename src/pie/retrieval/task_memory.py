@@ -435,6 +435,13 @@ def record_task(root: Path, task_id: str, kind: str, text: str,
     task_id = _text(task_id, "task_id", 64)
     kind = _text(kind, "kind", 32)
     text = _text(text, "text", 4096)
+    for field_name, value in (("text", text), ("reference", reference)):
+        if value is not None:
+            for fragment in _SENSITIVE_FRAGMENTS:
+                if fragment in value.lower():
+                    raise ValueError(
+                        f"Task event contains a sensitive fragment in {field_name}"
+                    )
     if kind not in KINDS:
         raise ValueError("Unsupported event kind")
     if reference is not None:

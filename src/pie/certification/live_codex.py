@@ -585,42 +585,64 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
           "--cd",str(workspace),"--model",scenario["model"]]
     if effective_profile is not None:args += ["--profile",effective_profile]
     args += ["-"]
+    base_evidence={"run_id":run_id,"pair_id":pair_id,"condition":condition,
+                   "scenario_id":scenario["scenario_id"],"model":scenario["model"],
+                   "expected_mcp_server":expected_server,"forensic_path":str(forensic_root)}
     t0=time.perf_counter()
     try:
         run=subprocess.run(args,cwd=workspace,env=env,input=scenario["prompt"],
                            text=True,capture_output=True,timeout=timeout,check=False)
     except subprocess.TimeoutExpired as ex:
-        _forensic_capture_process(forensic_root,stdout=getattr(ex,"output","") or "",
+        runtime_ms=round((time.perf_counter()-t0)*1000,3)
+        event_count,mcp_count=_forensic_capture_process(forensic_root,stdout=getattr(ex,"output","") or "",
                                   stderr=getattr(ex,"stderr","") or "",returncode=None,
-                                  duration_ms=round((time.perf_counter()-t0)*1000,3),timed_out=True)
-        _forensic_finish(forensic_root,status="timeout",duration_ms=round((time.perf_counter()-t0)*1000,3),
+                                  duration_ms=runtime_ms,timed_out=True)
+        _forensic_finish(forensic_root,status="timeout",duration_ms=runtime_ms,
                          error="Codex execution timeout",timed_out=True)
-        raise RuntimeError("Codex execution unavailable/timeout") from ex
+        evidence=dict(base_evidence,runtime_ms=runtime_ms,event_count=event_count,
+                      mcp_event_count=mcp_count,timed_out=True,provider_reported=False,
+                      certification_status="TIMEOUT")
+        raise CodexCaptureError("Codex execution unavailable/timeout",evidence=evidence) from ex
     except FileNotFoundError as ex:
-        _forensic_finish(forensic_root,status="executor_failed",duration_ms=round((time.perf_counter()-t0)*1000,3),
+        runtime_ms=round((time.perf_counter()-t0)*1000,3)
+        _forensic_finish(forensic_root,status="executor_failed",duration_ms=runtime_ms,
                          error="Codex execution unavailable")
-        raise RuntimeError("Codex execution unavailable/timeout") from ex
+        evidence=dict(base_evidence,runtime_ms=runtime_ms,event_count=0,mcp_event_count=0,
+                      timed_out=False,provider_reported=False,
+                      certification_status="EXECUTOR_UNAVAILABLE")
+        raise CodexCaptureError("Codex execution unavailable/timeout",evidence=evidence) from ex
+    runtime_ms=round((time.perf_counter()-t0)*1000,3)
     event_count,mcp_count=_forensic_capture_process(
         forensic_root,stdout=run.stdout,stderr=run.stderr,returncode=run.returncode,
-        duration_ms=round((time.perf_counter()-t0)*1000,3))
+        duration_ms=runtime_ms)
     if run.returncode:
         _forensic_finish(forensic_root,status="process_failed",returncode=run.returncode,
-                         duration_ms=round((time.perf_counter()-t0)*1000,3),
+                         duration_ms=runtime_ms,
                          error=f"Codex failed with exit code {run.returncode}")
+        evidence=dict(base_evidence,runtime_ms=runtime_ms,returncode=run.returncode,
+                      event_count=event_count,mcp_event_count=mcp_count,provider_reported=False,
+                      certification_status="PROCESS_FAILED")
         raise CodexCaptureError(f"Codex failed with exit code {run.returncode}; no certification",
-                                evidence={"run_id":run_id,"pair_id":pair_id,"forensic_path":str(forensic_root),
-                                          "event_count":event_count,"mcp_event_count":mcp_count})
+                                evidence=evidence)
     try:parsed=parse_codex_jsonl(run.stdout)
     except (ValueError,TypeError) as exc:
         _forensic_finish(forensic_root,status="provider_usage_failed",returncode=run.returncode,
-                         duration_ms=round((time.perf_counter()-t0)*1000,3),error=str(exc))
+                         duration_ms=runtime_ms,error=str(exc))
+        evidence=dict(base_evidence,runtime_ms=runtime_ms,returncode=run.returncode,
+                      event_count=event_count,mcp_event_count=mcp_count,provider_reported=False,
+                      certification_status="PROVIDER_USAGE_FAILED")
         raise CodexCaptureError("Codex JSONL/provider usage evidence unavailable",
-                                evidence={"run_id":run_id,"pair_id":pair_id,"forensic_path":str(forensic_root)}) from exc
+                                evidence=evidence) from exc
     if not parsed["mcp_tools"]:
         _forensic_finish(forensic_root,status="route_evidence_failed",returncode=run.returncode,
-                         duration_ms=round((time.perf_counter()-t0)*1000,3),
+                         duration_ms=runtime_ms,
                          error="MCP route evidence unavailable; no mcp_tool_call records")
-        raise RuntimeError("MCP route evidence unavailable; no mcp_tool_call records")
+        evidence=dict(base_evidence,runtime_ms=runtime_ms,returncode=run.returncode,
+                      event_count=event_count,mcp_event_count=mcp_count,
+                      tool_events=parsed["tool_events"],mcp_tools=[],usage=parsed["usage"],
+                      provider_reported=True,certification_status="ROUTE_EVIDENCE_MISSING")
+        raise CodexCaptureError("MCP route evidence unavailable; no mcp_tool_call records",
+                                evidence=evidence)
     if expected_server is not None and any(
         item.get("server")!=expected_server or item.get("status")!="completed"
         for item in parsed["mcp_tools"]):
@@ -631,13 +653,11 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
                          error=f"MCP route evidence failed; expected {expected_server}; observed {observed}")
         raise CodexCaptureError(
             f"MCP route evidence failed; expected {expected_server}; observed {observed}",
-            evidence={"run_id":run_id,"pair_id":pair_id,"condition":condition,
-                      "scenario_id":scenario["scenario_id"],"model":scenario["model"],
-                      "expected_mcp_server":expected_server,"runtime_ms":round((time.perf_counter()-t0)*1000,3),
-                      "tool_events":parsed["tool_events"],"mcp_tools":parsed["mcp_tools"],
-                      "usage":parsed["usage"],"provider_reported":True,
-                      "certification_status":"INVALID_ROUTE_EVIDENCE",
-                      "forensic_path":str(forensic_root)})
+            evidence=dict(base_evidence,runtime_ms=runtime_ms,returncode=run.returncode,
+                          event_count=event_count,mcp_event_count=mcp_count,
+                          tool_events=parsed["tool_events"],mcp_tools=parsed["mcp_tools"],
+                          usage=parsed["usage"],provider_reported=True,
+                          certification_status="INVALID_ROUTE_EVIDENCE"))
     expected_tools=_expected_mcp_tools(scenario,condition)
     if expected_tools is not None:
         observed_tools=[item.get("tool") for item in parsed["mcp_tools"]]
@@ -647,10 +667,13 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
                              error=f"MCP tool allowlist failed; expected {expected_tools} (recovery optional for Web); observed {observed_tools}")
             raise CodexCaptureError(
                 f"MCP tool allowlist failed; expected {expected_tools}; observed {observed_tools}",
-                evidence={"run_id":run_id,"pair_id":pair_id,"condition":condition,
-                          "expected_mcp_server":expected_server,"expected_mcp_tools":expected_tools,
-                          "observed_mcp_tools":observed_tools,"forensic_path":str(forensic_root),
-                          "certification_status":"INVALID_TOOL_ALLOWLIST"})
+                evidence=dict(base_evidence,runtime_ms=runtime_ms,returncode=run.returncode,
+                              event_count=event_count,mcp_event_count=mcp_count,
+                              expected_mcp_tools=expected_tools,
+                              observed_mcp_tools=observed_tools,
+                              tool_events=parsed["tool_events"],mcp_tools=parsed["mcp_tools"],
+                              usage=parsed["usage"],provider_reported=True,
+                              certification_status="INVALID_TOOL_ALLOWLIST"))
     actual=parsed.pop("answer").strip();expected=scenario["expected_exact"].strip()
     oracle_pass,oracle_kind=_evaluate_answer(scenario,actual)
     oracle_diagnostic=_oracle_diagnostic(scenario,actual,oracle_pass)
