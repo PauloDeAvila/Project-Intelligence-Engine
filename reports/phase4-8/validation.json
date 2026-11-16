@@ -4,6 +4,7 @@
   "certification": "NOT_CERTIFIED",
   "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
   "head_before_report_commit": "6183a0e",
+  "implementation_commit": "e1964f5",
   "index": {
     "source": "uv run python -m pie.interfaces.cli status --root .",
     "project": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean",
@@ -27,6 +28,13 @@
       "failed": 0,
       "duration_seconds": 34.71
     }
+  },
+  "verifier": {
+    "path": "reports/phase4-8/context-runtime-verifier.json",
+    "status": "PASS_LOCAL",
+    "certification": "NOT_CERTIFIED",
+    "external_pilot_pairs": 3,
+    "external_pilot_total_savings_percent": 88.875
   },
   "phases": {
     "4_consolidation": {
