@@ -253,16 +253,20 @@ class TaskGraphStore:
             nodes = self._connection.execute(
                 "SELECT node_id,kind,metadata_json,metadata_sha256 FROM "
                 "pie_task_graph_nodes WHERE task_id=? ORDER BY node_id LIMIT ?",
-                (task_id, limit),
+                (task_id, limit + 1),
             ).fetchall()
             if not nodes:
                 return {"state": "NOT_FOUND", "task_id": task_id, "nodes": [], "edges": []}
+            nodes_truncated = len(nodes) > limit
+            nodes = nodes[:limit]
             node_ids = {row["node_id"] for row in nodes}
             edges = self._connection.execute(
                 "SELECT from_node,to_node,relation FROM pie_task_graph_edges "
                 "WHERE task_id=? ORDER BY from_node,to_node,relation LIMIT ?",
-                (task_id, limit),
+                (task_id, limit + 1),
             ).fetchall()
+            edges_truncated = len(edges) > limit
+            edges = edges[:limit]
         result_nodes = [
             {
                 "node_id": row["node_id"], "kind": row["kind"],
@@ -278,7 +282,9 @@ class TaskGraphStore:
         return {
             "state": "FOUND", "task_id": task_id,
             "nodes": result_nodes, "edges": result_edges,
-            "complete": len(nodes) < limit,
+            "complete": not nodes_truncated and not edges_truncated,
+            "nodes_truncated": nodes_truncated,
+            "edges_truncated": edges_truncated,
         }
 
     def topological_order(self, task_id: str) -> dict[str, object]:

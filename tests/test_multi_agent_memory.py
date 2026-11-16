@@ -29,3 +29,16 @@ def test_multi_agent_memory_does_not_restore_another_agent_checkpoint(tmp_path):
     memory = MultiAgentMemory(tmp_path)
     memory.checkpoint(task["task_id"], "agent-a", {"value": 1})
     assert memory.restore(task["task_id"], "agent-b")["state"] == "NOT_FOUND"
+
+
+def test_multi_agent_memory_can_restore_an_old_explicit_sequence(tmp_path):
+    storage = tmp_path / ".pie"
+    storage.mkdir()
+    connect(storage / "index.sqlite3").close()
+    task = start_task(tmp_path, "agent coordination")
+    memory = MultiAgentMemory(tmp_path)
+    for value in range(101):
+        memory.checkpoint(task["task_id"], "agent-a", {"value": value})
+    restored = memory.restore(task["task_id"], "agent-a", seq=1)
+    assert restored["state"] == "FOUND"
+    assert restored["checkpoint"]["state_value"] == {"value": 0}

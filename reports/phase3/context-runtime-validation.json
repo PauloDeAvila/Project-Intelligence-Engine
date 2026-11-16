@@ -11,11 +11,11 @@
   },
   "validation": {
     "focused_tests": {
-      "passed": 19,
+      "passed": 24,
       "failed": 0
     },
     "full_suite": {
-      "passed": 491,
+      "passed": 496,
       "skipped": 4,
       "subtests_passed": 126,
       "failed": 0

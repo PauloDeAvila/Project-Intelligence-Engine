@@ -83,3 +83,15 @@ def test_graph_concurrent_same_node_is_idempotent(tmp_path):
         assert sorted(states) == ["CREATED", "EXISTING", "EXISTING", "EXISTING"]
     finally:
         store.close()
+
+
+def test_graph_reports_truncation_instead_of_silent_partial_results(tmp_path):
+    store = TaskGraphStore(tmp_path / "graph.sqlite3")
+    try:
+        for node in ("a", "b", "c"):
+            store.add_node("task-1", node, "step")
+        result = store.get_graph("task-1", limit=2)
+        assert result["complete"] is False
+        assert result["nodes_truncated"] is True
+    finally:
+        store.close()

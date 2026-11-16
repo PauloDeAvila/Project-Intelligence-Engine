@@ -52,6 +52,37 @@ def test_local_execution_supports_cooperative_timeout_and_context():
     assert engine.execute("read", {}, context=expired)["error_code"] == "deadline_expired"
 
 
+def test_local_execution_supports_keyword_only_context_without_mutating_caller():
+    seen = []
+
+    def handler(_args, *, context):
+        seen.append(context.remaining_ms())
+        return {"ok": True}
+
+    engine = LocalExecutionEngine()
+    engine.register(OperationSpec("read", handler, max_duration_ms=1000))
+    context = ExecutionContext.with_timeout_ms(5000)
+    assert engine.execute("read", {}, context=context)["status"] == "SUCCESS"
+    assert seen and seen[0] <= 1000
+    assert context.remaining_ms() > 1000
+
+
+def test_local_execution_does_not_misclassify_single_argument_named_context():
+    engine = LocalExecutionEngine()
+
+    def handler(context):
+        return {"received": context["value"]}
+
+    engine.register(OperationSpec("read", handler))
+    assert engine.execute("read", {"value": 8})["result"] == {"received": 8}
+
+
+def test_local_execution_rejects_empty_explicit_operation_id():
+    engine = LocalExecutionEngine()
+    engine.register(OperationSpec("read", lambda _args: {"ok": True}))
+    assert engine.execute("read", {}, operation_id="")["error_code"] == "invalid_arguments"
+
+
 def test_local_execution_uses_real_journal_without_double_execution(tmp_path):
     calls = 0
 

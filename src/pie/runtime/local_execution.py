@@ -163,33 +163,45 @@ class LocalExecutionEngine:
         return tuple(sorted(self._operations))
 
     @staticmethod
-    def _takes_context(handler: Callable[..., Any]) -> bool:
+    def _context_mode(handler: Callable[..., Any]) -> str:
         try:
-            parameters = inspect.signature(handler).parameters.values()
+            parameters = inspect.signature(handler).parameters
         except (TypeError, ValueError):
-            return False
+            return "args"
+        if "context" in parameters:
+            parameter = parameters["context"]
+            if parameter.kind is inspect.Parameter.KEYWORD_ONLY:
+                return "keyword"
         positional = [
-            item for item in parameters
-            if item.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+            item for item in parameters.values()
+            if item.kind in (
+                inspect.Parameter.POSITIONAL_ONLY,
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            )
         ]
-        return len(positional) >= 2
+        return "positional" if len(positional) >= 2 else "args"
 
     def _run(self, spec: OperationSpec, args: dict[str, object], context: ExecutionContext, started_ns: int) -> dict[str, object]:
         deadline = context._deadline_ns
         if spec.max_duration_ms is not None:
             candidate = started_ns + spec.max_duration_ms * 1_000_000
             deadline = candidate if deadline is None else min(deadline, candidate)
-            context._deadline_ns = deadline
-        if context.expired():
+        handler_context = context
+        if deadline != context._deadline_ns:
+            handler_context = ExecutionContext(deadline)
+        if handler_context.expired():
             return _envelope("TIMEOUT", spec.name, started_ns, error_code="deadline_expired")
         try:
-            if self._takes_context(spec.handler):
-                value = spec.handler(args, context)
+            context_mode = self._context_mode(spec.handler)
+            if context_mode == "keyword":
+                value = spec.handler(args, context=handler_context)
+            elif context_mode == "positional":
+                value = spec.handler(args, handler_context)
             else:
                 value = spec.handler(args)
         except Exception:
             return _envelope("ERROR", spec.name, started_ns, error_code="handler_error")
-        if context.expired():
+        if handler_context.expired():
             return _envelope("TIMEOUT", spec.name, started_ns, error_code="timeout")
         safe_value, valid = _validated_result(value)
         if not valid:
@@ -213,7 +225,10 @@ class LocalExecutionEngine:
         if context.expired():
             return _envelope("TIMEOUT", name, started_ns, error_code="deadline_expired")
         args_hash = hashlib.sha256(_canonical(safe_args).encode("utf-8")).hexdigest()
-        resolved_id = operation_id or f"op-{hashlib.sha256((name + args_hash).encode('ascii')).hexdigest()[:32]}"
+        if operation_id is None:
+            resolved_id = f"op-{hashlib.sha256((name + args_hash).encode('ascii')).hexdigest()[:32]}"
+        else:
+            resolved_id = operation_id
         if not _OPERATION_ID.fullmatch(resolved_id):
             return _envelope("ERROR", name, started_ns, error_code="invalid_arguments")
         if self._journal is None:
@@ -234,7 +249,10 @@ class LocalExecutionEngine:
         if status == "EXECUTED":
             return captured.get("envelope", _envelope("FAILED", name, started_ns, error_code="journal_failed"))  # type: ignore[return-value]
         if status == "REPLAYED":
-            return _envelope("REPLAYED", name, started_ns)
+            replay = _envelope("REPLAYED", name, started_ns)
+            replay["operation_id"] = resolved_id
+            replay["result_available"] = False
+            return replay
         if status == "REQUIRES_RECONCILIATION":
             return _envelope("REQUIRES_RECONCILIATION", name, started_ns, error_code="reconciliation_required")
         return _envelope("FAILED", name, started_ns, error_code="journal_failed")

@@ -40,22 +40,30 @@ class MultiAgentMemory:
     def restore(
         self, task_id: str, agent_id: str, seq: int | None = None
     ) -> dict:
+        if seq is not None:
+            restored = task_memory.restore_state(self.root, task_id, seq)
+            if restored.get("state") != "FOUND":
+                return {
+                    "state": "NOT_FOUND", "task_id": task_id,
+                    "agent_id": agent_id, "checkpoint": None,
+                }
+            provenance = restored.get("provenance")
+            if not isinstance(provenance, dict) or provenance.get("agent_id") != agent_id:
+                return {
+                    "state": "NOT_FOUND", "task_id": task_id,
+                    "agent_id": agent_id, "checkpoint": None,
+                }
+            return {
+                "state": "FOUND", "task_id": task_id, "agent_id": agent_id,
+                "checkpoint": restored,
+            }
         references = self.references(task_id, agent_id, 100)
         if references["state"] == "NOT_FOUND":
             return {
                 "state": "NOT_FOUND", "task_id": task_id,
                 "agent_id": agent_id, "checkpoint": None,
             }
-        selected = (
-            next((item for item in references["checkpoints"] if item["seq"] == seq), None)
-            if seq is not None
-            else references["checkpoints"][0]
-        )
-        if selected is None:
-            return {
-                "state": "NOT_FOUND", "task_id": task_id,
-                "agent_id": agent_id, "checkpoint": None,
-            }
+        selected = references["checkpoints"][0]
         restored = task_memory.restore_state(self.root, task_id, selected["seq"])
         if restored.get("state") != "FOUND":
             raise ValueError("agent checkpoint disappeared during restore")
