@@ -231,6 +231,14 @@ def main(argv: list[str] | None = None) -> int:
             root, args.query, max_chars=args.max_chars,
             limit=args.limit, requirements=args.requirement,
         )
+        elif args.command == "adaptive": result = adaptive_context(
+            root,
+            args.query,
+            max_chars=args.max_chars,
+            limit=args.limit,
+            mode=args.mode,
+            full_source_path=args.full_source_path,
+        )
         elif args.command == "serve-warm":
             from pie.retrieval.warm import serve
             serve(root)
