@@ -61,7 +61,9 @@ qualquer campo mantém NOT_CERTIFIED.
 
 O piloto GLM v5 existente é evidência complementar: três tarefas corretas em
 cada braço e 88,875% de economia total, mas não substitui a bateria Codex
-pareada Blender/Web nem uma amostra estatística mais ampla.
+pareada Blender/Web nem uma amostra estatística mais ampla. O piloto real
+DeepSeek 3.2 mediu 93,843% de redução total, porém o baseline acertou 2/3 e o
+PIE 3/3; por isso o resultado foi preservado como `NOT_CERTIFIED`.
 
 ## Resultado desta rodada
 

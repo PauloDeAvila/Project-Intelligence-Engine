@@ -9,7 +9,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 - Índice local: CURRENT, workspace_match=true, 263 arquivos, 2.210
   símbolos e 2.549 imports.
 - Testes focados: 74 passed.
-- Suíte completa: 709 passed, 4 skipped, 126 subtests passed.
+- Suíte completa: 710 passed, 4 skipped, 126 subtests passed.
 - O handoff codex → deepseek foi exercitado com checkpoint persistente,
   hash de origem e proveniência preservada.
 
@@ -21,7 +21,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 | 5 — Memória entre agentes | PASS_EXTERNAL_CONTROLLED | Handoff real OpenCode/DeepSeek executado após reinício; `context_version` durável e histórico completo não enviado. |
 | 6 — Contexto incremental/cache | PASS_LOCAL_RESTART | Hashes, compilador, cache persistente e invalidação após mudança cobertos; falta prova de tokens após reinício do agente. |
 | 7 — Execução local | PASS_LOCAL | Allowlist, limites, replay e timeouts fail-closed cobertos. |
-| 8 — Certificação contínua | PARTIAL_NOT_CERTIFIED | Piloto GLM existente é complementar, não certifica Codex/Blender/Web. |
+| 8 — Certificação contínua | PARTIAL_NOT_CERTIFIED | GLM v5 teve 3/3 em ambos os braços; DeepSeek teve uso real e 93,843% de redução observacional, mas baseline 2/3, portanto sem par de qualidade equivalente. |
 
 ## Alteração desta rodada
 

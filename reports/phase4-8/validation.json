@@ -4,7 +4,7 @@
   "certification": "NOT_CERTIFIED",
   "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
   "head_before_report_commit": "8440c7a",
-  "implementation_commit": "8440c7a",
+  "implementation_commit": "4aae2af",
   "index": {
     "source": "uv run python -m pie.interfaces.cli status --root .",
     "project": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean",
@@ -22,11 +22,11 @@
     },
     "full": {
       "command": "uv run --with pytest python -m pytest -q --basetemp .pytest-tmp-phase4-final",
-      "passed": 709,
+      "passed": 710,
       "skipped": 4,
       "subtests": 126,
       "failed": 0,
-      "duration_seconds": 36.51
+      "duration_seconds": 37.91
     }
   },
   "verifier": {
@@ -79,12 +79,15 @@
       "evidence": [
         "three-pair GLM v5 local provider pilot exists",
         "3/3 oracle correctness in both arms",
-        "88.875 percent total savings in that fixture"
+        "88.875 percent total savings in that fixture",
+        "DeepSeek 3.2 paired-evidence pilot reported real usage",
+        "DeepSeek candidate total reduction was 93.843 percent"
       ],
       "missing": [
         "Codex provider certification",
         "paired Blender/Web external battery",
-        "statistical generalization"
+        "statistical generalization",
+        "quality-equivalent DeepSeek pair: baseline was 2/3 correct"
       ]
     }
   },
