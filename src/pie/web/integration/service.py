@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+from ...runtime.replay import ExecutionJournal
 from ..actions import ActionExecutor, ActionPlan, ActionPlanner
 from ..contracts import BrowserSession, ElementCandidate, PageSnapshot, TaskIntent, WebStateError
 from ..evidence import WebEvidencePack, WebEvidencePackBuilder
@@ -20,7 +21,11 @@ WEB_MCP_TOOLS = (
 
 
 class WebIntelligenceService:
-    """Compose the certified local layers without owning browser transport."""
+    """Compose local layers without owning browser transport or journal storage.
+
+    A supplied ``ExecutionJournal`` remains owned and closed by the caller;
+    the service only attaches it to the supplied executor.
+    """
 
     def __init__(
         self,
@@ -30,12 +35,28 @@ class WebIntelligenceService:
         security: SecurityGate | None = None,
         planner: ActionPlanner | None = None,
         executor: ActionExecutor | None = None,
+        journal: ExecutionJournal | None = None,
     ) -> None:
         self.relevance = relevance or WebRelevanceGate()
         self.evidence = evidence or WebEvidencePackBuilder()
         self.security = security or SecurityGate()
         self.planner = planner or ActionPlanner(security=self.security)
         self.executor = executor
+        if journal is not None:
+            if not isinstance(journal, ExecutionJournal):
+                raise WebStateError("journal must be an ExecutionJournal")
+            if executor is None:
+                raise WebStateError("journal requires an existing action executor")
+            current = executor.journal
+            if current is not None and current is not journal:
+                raise WebStateError("executor is already bound to a different journal")
+            if current is None:
+                self.executor = ActionExecutor(
+                    executor.driver,
+                    preflight=executor.preflight,
+                    verifier=executor.verifier,
+                    journal=journal,
+                )
 
     @staticmethod
     def capabilities() -> tuple[dict[str, object], ...]:
