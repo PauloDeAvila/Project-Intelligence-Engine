@@ -398,6 +398,36 @@ class LocalOllamaBenchmarkTests(unittest.TestCase):
         self.assertIn("Available MCP tool schemas", requests[0]["messages"][2]["content"])
         self.assertEqual(requests[1]["messages"][1]["content"], "EVIDENCE=EVIDENCE")
 
+    def test_compiled_context_extracts_preview_from_semantic_envelope(self):
+        scenario = {"application": "web", "expected_exact": '{"title":"T"}',
+                    "prompt": "Extract title."}
+        obs = {"schema_json": "[]", "observations_json": json.dumps([
+            {"content": [{"type": "text", "text": json.dumps({
+                "schema": "pie-web-context-v1", "preview": "title: T",
+                "omitted_lines": 2, "safe_to_execute": False})}]}])}
+        reply = {"choices": [{"message": {"content": '{"title":"T"}'}}],
+                 "usage": {"prompt_tokens": 10, "completion_tokens": 2,
+                            "total_tokens": 12}}
+
+        class FakeResponse:
+            def __enter__(self): return self
+            def __exit__(self, *_): return False
+            def getcode(self): return 200
+            def read(self, _): return json.dumps(reply).encode()
+
+        requests = []
+        def call(req, timeout):
+            requests.append(json.loads(req.data))
+            return FakeResponse()
+
+        with patch.dict("os.environ", {"PIE_PROVIDER_BASE_URL": "http://127.0.0.1:8080/v1"}, clear=False):
+            with patch("benchmark_local_ollama.urlopen", side_effect=call):
+                run_local_model(scenario, obs, "model", 20, 4096, "compiled", "optimized")
+        self.assertEqual(
+            requests[0]["messages"][1]["content"],
+            'EVIDENCE={"complete":false,"preview":"title: T",'
+            '"trust":"UNTRUSTED_PAGE_DATA"}')
+
 
 if __name__ == "__main__":
     unittest.main()

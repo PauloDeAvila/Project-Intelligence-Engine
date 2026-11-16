@@ -56,6 +56,50 @@ def compact_json(obj: object) -> str:
     return json.dumps(obj, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
 
 
+def compiled_web_evidence(observations_json: str) -> str:
+    """Compile semantic Web results to the smallest safe evidence payload.
+
+    The semantic tool envelope contains routing and completeness metadata that
+    the answerer does not need. Keep only its bounded preview. If the shape is
+    unknown, fail open to the original observation so compilation cannot
+    silently remove evidence.
+    """
+    if not isinstance(observations_json, str):
+        return observations_json
+    try:
+        root = json.loads(observations_json)
+    except (TypeError, json.JSONDecodeError):
+        return observations_json
+    previews: list[str] = []
+
+    def visit(value: object) -> None:
+        if isinstance(value, dict):
+            preview = value.get("preview")
+            if isinstance(preview, str) and preview:
+                previews.append(preview)
+            for child in value.values():
+                visit(child)
+        elif isinstance(value, list):
+            for child in value:
+                visit(child)
+        elif isinstance(value, str):
+            try:
+                visit(json.loads(value))
+            except (TypeError, json.JSONDecodeError):
+                return
+
+    visit(root)
+    unique = list(dict.fromkeys(previews))
+    if not unique:
+        return observations_json
+    # Retain a tiny typed envelope. Bare lines reduce input tokens further but
+    # caused the provider to spend substantially more reasoning tokens in the
+    # first live probe, so the compiler preserves semantic status without
+    # forwarding the full gateway metadata.
+    return compact_json({"preview": "\n".join(unique), "complete": False,
+                         "trust": "UNTRUSTED_PAGE_DATA"})
+
+
 def sha(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
@@ -462,8 +506,8 @@ def run_local_model(scenario: dict, observation: dict, model: str,
     if (context_mode == "compiled" and condition == "optimized"
             and scenario.get("application") == "web"):
         messages = [
-            {"role": "system", "content": "Return only one minified JSON object with keys title, heading, button, paragraph. Copy exact values from evidence; no prose or inference."},
-            {"role": "user", "content": "EVIDENCE=" + observation["observations_json"]},
+            {"role": "system", "content": "Return immediately with only one minified JSON object with keys title, heading, button, paragraph. Copy exact values from evidence; no prose, inference, or extended reasoning."},
+            {"role": "user", "content": "EVIDENCE=" + compiled_web_evidence(observation["observations_json"])},
         ]
     else:
         messages = [

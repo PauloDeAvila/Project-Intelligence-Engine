@@ -249,4 +249,20 @@ A suíte completa após o Context Runtime compilado passou com 648 testes, 5
 ignorados e 0 erros. Evidência:
 [153-full-suite-after-compiled-context-20261115.json](153-full-suite-after-compiled-context-20261115.json).
 
+O Context Runtime foi refinado para enviar apenas um envelope mínimo contendo o
+`preview` semântico, preservando o tipo e a confiança sem transportar todo o
+metadata do gateway. Em três pares alternados, foram medidos 8.093 tokens
+baseline contra 478 otimizados: **94,094% de economia**, com 6/6 oráculos
+aprovados. O resultado continua sendo replay local com GLM, não certificação do
+Codex. Evidência:
+[155-web-harness-compiled-envelope-3pairs-20261115.json](155-web-harness-compiled-envelope-3pairs-20261115.json).
+
+Uma tentativa de reduzir ainda mais a instrução do modelo falhou no oráculo e
+foi encerrada sem contabilizar economia; a evidência foi preservada em
+[156-web-harness-compiled-minimal-prompt-failed-closed-20261115.json](156-web-harness-compiled-minimal-prompt-failed-closed-20261115.json).
+
+A suíte completa após o envelope compilado passou com **649 testes**, 5
+ignorados e 0 erros. Evidência:
+[157-full-suite-after-compiled-envelope-20261115.json](157-full-suite-after-compiled-envelope-20261115.json).
+
 Auditoria requisito‑por‑requisito: [115-completion-audit-20261115.json](115-completion-audit-20261115.json).
