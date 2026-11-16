@@ -1,0 +1,137 @@
+"""Explicit composition of the PIE Context Runtime pillars.
+
+The facade owns only resources it creates itself. It delegates validation and
+durability to the existing state, compiler, journal, adaptive, and
+certification modules instead of maintaining a second implementation.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Callable, Sequence
+from pathlib import Path
+from typing import Any
+
+from pie.certification.regression import RunEvidence, evaluate_golden_suite, evaluate_pair
+from pie.retrieval import task_memory
+from pie.retrieval.adaptive_runtime import MeasuredCandidate, choose_candidate
+from pie.retrieval.context_compiler import CompiledContext, compile_context, compile_task_checkpoint
+from pie.runtime.replay import ExecutionJournal
+
+
+class ContextRuntime:
+    """Coordinate deterministic runtime services with explicit ownership."""
+
+    def __init__(self, root: Path, *, journal_path: Path | None = None) -> None:
+        self.root = Path(root).expanduser().resolve()
+        if not self.root.is_dir():
+            raise ValueError("Context runtime root must be an existing directory")
+        self._closed = False
+        if journal_path is None:
+            self._journal = None
+        else:
+            path = Path(journal_path)
+            self._journal = ExecutionJournal(
+                path if path.is_absolute() else self.root / path
+            )
+
+    @property
+    def journal(self) -> ExecutionJournal | None:
+        return self._journal
+
+    def checkpoint(self, task_id: str, state: object, provenance: object | None = None) -> dict:
+        return task_memory.checkpoint_task(self.root, task_id, state, provenance)
+
+    def checkpoint_agent(
+        self,
+        task_id: str,
+        agent_id: str,
+        state: object,
+        provenance: object | None = None,
+    ) -> dict:
+        return task_memory.checkpoint_agent_state(
+            self.root, task_id, agent_id, state, provenance
+        )
+
+    def restore_state(self, task_id: str, seq: int | None = None) -> dict:
+        return task_memory.restore_state(self.root, task_id, seq)
+
+    def list_agent_checkpoints(
+        self, task_id: str, agent_id: str | None = None, limit: int = 100
+    ) -> dict:
+        return task_memory.list_agent_checkpoints(self.root, task_id, agent_id, limit)
+
+    def compile_checkpoint(
+        self,
+        task_id: str,
+        required_paths: Sequence[Sequence[str | int]],
+        max_chars: int = 4096,
+    ) -> CompiledContext:
+        return compile_task_checkpoint(self.root, task_id, required_paths, max_chars)
+
+    @staticmethod
+    def compile(
+        source: Any,
+        *,
+        required_paths: Sequence[Sequence[str | int]],
+        max_chars: int = 4096,
+        recovery_available: bool = True,
+    ) -> CompiledContext:
+        return compile_context(
+            source,
+            required_paths=required_paths,
+            max_chars=max_chars,
+            recovery_available=recovery_available,
+        )
+
+    @staticmethod
+    def choose(
+        candidates: list[MeasuredCandidate],
+        *,
+        objective: str = "tokens",
+        require_quality: bool = True,
+    ) -> dict[str, object]:
+        return choose_candidate(
+            candidates, objective=objective, require_quality=require_quality
+        )
+
+    def execute_once(
+        self,
+        operation_id: str,
+        payload: object,
+        executor: Callable[[], object],
+        result_metadata: Callable[[object], object] | None = None,
+    ) -> dict[str, object]:
+        if self._closed:
+            raise RuntimeError("Context runtime is closed")
+        if self._journal is None:
+            raise RuntimeError("journal_path was not provided")
+        return self._journal.execute_once(
+            operation_id, payload, executor, result_metadata=result_metadata
+        )
+
+    @staticmethod
+    def evaluate_pair(baseline: RunEvidence, optimized: RunEvidence) -> dict[str, object]:
+        return evaluate_pair(baseline, optimized)
+
+    @staticmethod
+    def evaluate_suite(
+        pairs: list[tuple[RunEvidence, RunEvidence]],
+    ) -> dict[str, object]:
+        return evaluate_golden_suite(pairs)
+
+    def close(self) -> None:
+        if self._closed:
+            return
+        self._closed = True
+        if self._journal is not None:
+            self._journal.close()
+            self._journal = None
+
+    def __enter__(self) -> ContextRuntime:
+        return self
+
+    def __exit__(self, exc_type: object, exc: object, traceback: object) -> None:
+        self.close()
+
+
+__all__ = ["ContextRuntime"]
