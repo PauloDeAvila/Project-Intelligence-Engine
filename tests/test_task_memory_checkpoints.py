@@ -53,7 +53,10 @@ def test_checkpoint_round_trip_latest_and_explicit(root):
 
     assert first["seq"] == 1
     assert second["seq"] == 2
+    assert first["context_version"] == first["seq"]
+    assert second["context_version"] == second["seq"]
     assert restore_state(root, task_id)["state_value"]["phase"] == 2
+    assert restore_state(root, task_id)["context_version"] == 2
     assert restore_state(root, task_id, first["seq"])["state_value"] == {"phase": 1}
     assert restore_state(root, task_id, second["seq"])["provenance"] == {
         "source": "fixture"
@@ -223,6 +226,10 @@ def test_agent_checkpoint_is_explicit_and_filterable(root):
     agent_a = list_agent_checkpoints(root, task_id, agent_id="agent-a")
     assert all_checkpoints["state"] == "FOUND"
     assert len(all_checkpoints["checkpoints"]) == 2
+    assert all(
+        item["context_version"] == item["seq"]
+        for item in all_checkpoints["checkpoints"]
+    )
     assert [item["provenance"]["agent_id"] for item in agent_a["checkpoints"]] == ["agent-a"]
     assert "state_json" not in json.dumps(all_checkpoints)
     with pytest.raises(ValueError):

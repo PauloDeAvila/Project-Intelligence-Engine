@@ -21,9 +21,11 @@ separadamente; status de outra raiz não é evidência deste checkout.
 
 ## Fase 5 — Memória entre agentes
 
-O agente de origem salva um checkpoint limitado e hash-verificado. O handoff
-explícito cria um checkpoint para o agente receptor, com proveniência da origem.
-O receptor restaura somente esse checkpoint, sem receber o histórico completo.
+O agente de origem salva um checkpoint limitado e hash-verificado. Cada
+checkpoint expõe `context_version`, uma versão durável derivada da sequência
+SQLite e vinculada ao agente pela proveniência. O handoff explícito cria um
+checkpoint para o agente receptor, com proveniência da origem. O receptor
+restaura somente esse checkpoint, sem receber o histórico completo.
 
 O contrato é coberto por test_multi_agent_memory_handoff_survives_agent_boundary
 e pela integração da facade em test_context_runtime.py.
@@ -31,8 +33,10 @@ e pela integração da facade em test_context_runtime.py.
 ## Fase 6 — Contexto incremental e cache
 
 Usar ContextCompiler, hashes de origem, deltas persistentes e recuperação
-fail-closed. Um orçamento só pode ser aplicado com contador de tokens real
-fornecido pelo chamador; caracteres não são convertidos em tokens.
+fail-closed. O cache de evidências é persistente e é revalidado após reinício;
+qualquer mudança no manifesto SHA-256 invalida a entrada. Um orçamento só pode
+ser aplicado com contador de tokens real fornecido pelo chamador; caracteres
+não são convertidos em tokens.
 
 Aceite externo exige usage do provedor após reinício do agente. O contador
 sintético do verificador é apenas um gate de contrato e não certifica tokens.

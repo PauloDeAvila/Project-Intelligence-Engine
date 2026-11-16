@@ -256,6 +256,10 @@ def checkpoint_task(
             return {
                 "task_id": task_id,
                 "seq": seq,
+                # The task-local checkpoint sequence is the durable context
+                # version.  Agent provenance scopes it to the producing agent
+                # without adding a second mutable counter or schema column.
+                "context_version": seq,
                 "schema_version": CHECKPOINT_SCHEMA_VERSION,
                 "state_hash": state_hash,
                 "provenance_hash": provenance_hash,
@@ -309,6 +313,7 @@ def restore_state(root: Path, task_id: str, seq: int | None = None) -> dict:
             "state": "FOUND",
             "task_id": task_id,
             "seq": checkpoint["seq"],
+            "context_version": checkpoint["seq"],
             "schema_version": checkpoint["schema_version"],
             "state_value": state,
             "state_hash": checkpoint["state_hash"],
@@ -394,6 +399,7 @@ def list_agent_checkpoints(
                 {
                     "task_id": row["task_id"],
                     "seq": row["seq"],
+                    "context_version": row["seq"],
                     "schema_version": row["schema_version"],
                     "state_hash": state_hash,
                     "provenance": provenance,
