@@ -59,11 +59,11 @@ verifier certification=NOT_CERTIFIED
 
 ## Limitações honestas
 
-O relay local GLM foi sondado novamente com `gambiarraapi/glm-5.3-flash` e
-expirou após 60043 ms, sem resposta nem `usage`. O upstream anterior também
-retornou HTTP 429. Portanto não há certificação real de tokens, economia ou
-custo para essa sonda, e nenhum número de caracteres foi convertido em
-tokens.
+O relay local GLM foi sondado novamente com `gambiarraapi/glm-5.3-flash` após
+o cooldown das chaves e expirou após 45075 ms, sem resposta nem `usage`. A
+sonda anterior expirou após 60043 ms e o upstream anterior retornou HTTP 429.
+Portanto não há certificação real de tokens, economia ou custo para essas
+sondas, e nenhum número de caracteres foi convertido em tokens.
 
 Evidências JSON:
 
