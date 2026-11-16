@@ -9,7 +9,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import json
+from pathlib import Path
 from typing import Any, Sequence
+
+from pie.retrieval import task_memory
 
 
 class ContextCompilationError(ValueError):
@@ -138,4 +141,50 @@ def compile_context(
     )
 
 
-__all__ = ["CompiledContext", "ContextCompilationError", "compile_context"]
+def compile_task_checkpoint(
+    root: Path,
+    task_id: str,
+    required_paths: Sequence[Sequence[PathPart]],
+    max_chars: int = 4096,
+) -> CompiledContext:
+    """Project only selected fields from a verified task checkpoint."""
+    try:
+        restored = task_memory.restore_state(root, task_id)
+    except ValueError as exc:
+        raise ContextCompilationError(f"checkpoint restore failed: {exc}") from exc
+    if restored.get("state") == "NOT_FOUND":
+        raise ContextCompilationError("no checkpoint found for the requested task")
+    if (
+        restored.get("state") != "FOUND"
+        or "state_value" not in restored
+        or not isinstance(restored.get("state_hash"), str)
+        or not restored["state_hash"]
+    ):
+        raise ContextCompilationError("invalid checkpoint shape returned by restore_state")
+    try:
+        compiled = compile_context(
+            restored["state_value"],
+            required_paths=required_paths,
+            max_chars=max_chars,
+            recovery_available=True,
+        )
+    except ContextCompilationError:
+        raise
+    except ValueError as exc:
+        raise ContextCompilationError(f"checkpoint compilation failed: {exc}") from exc
+    return CompiledContext(
+        "pie-task-context-compiler-v1",
+        restored["state_hash"],
+        compiled.data,
+        compiled.selected_paths,
+        compiled.omitted_paths,
+        compiled.recovery_available,
+    )
+
+
+__all__ = [
+    "CompiledContext",
+    "ContextCompilationError",
+    "compile_context",
+    "compile_task_checkpoint",
+]
