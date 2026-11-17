@@ -4,7 +4,7 @@ import hashlib,json,math,os,re,shutil,socket,subprocess,time,tomllib
 from pathlib import Path
 from datetime import datetime,timezone
 from pie.certification.blender_runtime import ensure_blender_mcp
-from pie.certification.codex_isolation import isolated_codex_home
+from pie.certification.codex_isolation import _merge_config, isolated_codex_home
 
 SCHEMA="pie-live-codex-usage-v1"
 CONDITIONS=frozenset(("baseline","optimized"))
@@ -404,7 +404,12 @@ def preflight_codex(scenario:dict,*,condition:str,workspace:Path,codex_home:Path
         checks["model"]="PASS" if model==scenario["model"] else {"state":"FAIL","configured":model}
         if model!=scenario["model"]:errors.append("PRECHECK_MODEL_INVALID")
         servers=dict(parsed.get("mcp_servers") if isinstance(parsed.get("mcp_servers"),dict) else {})
-        if isinstance(profile_parsed.get("mcp_servers"),dict):servers.update(profile_parsed["mcp_servers"])
+        if isinstance(profile_parsed.get("mcp_servers"),dict):
+            for name, value in profile_parsed["mcp_servers"].items():
+                if isinstance(value, dict) and isinstance(servers.get(name), dict):
+                    servers[name] = _merge_config(servers[name], value)
+                else:
+                    servers[name] = value
         required=_expected_mcp_server(scenario,condition) if scenario.get("required_mcp_server") else None
         enabled_servers = _enabled_mcp_servers(servers)
         if required and required not in enabled_servers:

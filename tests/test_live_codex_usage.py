@@ -93,6 +93,7 @@ def test_preflight_blocks_blender_before_provider_when_upstream_is_down(
     }
     monkeypatch.setattr(live_codex, "_git_clean_commit", lambda root: "a" * 40)
     monkeypatch.setattr(live_codex, "_auth_state", lambda *args: "AUTH_PRESENT_ENV")
+    monkeypatch.setattr(live_codex.shutil, "which", lambda name: sys.executable)
     monkeypatch.setattr(
         live_codex, "ensure_blender_mcp",
         lambda **kwargs: {"state": "FAIL", "reason": "UPSTREAM_UNAVAILABLE"},
@@ -105,6 +106,54 @@ def test_preflight_blocks_blender_before_provider_when_upstream_is_down(
     )
     assert result["state"] == "BLOCKED"
     assert "PRECHECK_BLENDER_UPSTREAM_UNAVAILABLE" in result["errors"]
+
+
+def test_preflight_profile_overlay_preserves_mcp_command_and_args(
+        monkeypatch, tmp_path):
+    import sys
+
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    codex_home = tmp_path / "codex-home"
+    codex_home.mkdir()
+    (codex_home / "auth.json").write_text("{}", encoding="utf-8")
+    command = json.dumps(sys.executable)
+    (codex_home / "config.toml").write_text(
+        f'model = "gpt-test"\n\n[mcp_servers.blender]\n'
+        f'command = {command}\nargs = ["--upstream"]\n',
+        encoding="utf-8")
+    (codex_home / "profile.config.toml").write_text(
+        '[mcp_servers.blender]\nenabled_tools = ["get_scene_info"]\n',
+        encoding="utf-8")
+    scenario = {
+        "schema": "pie-scenario-v1",
+        "scenario_id": "blender-profile-overlay-0001",
+        "prompt": "read the scene",
+        "expected_exact": "ok",
+        "model": "gpt-test",
+        "required_mcp_server": "blender",
+        "expected_mcp_tools": ["get_scene_info"],
+    }
+    monkeypatch.setattr(live_codex, "_git_clean_commit", lambda root: "a" * 40)
+    monkeypatch.setattr(live_codex, "_auth_state", lambda *args: "AUTH_PRESENT_ENV")
+    monkeypatch.setattr(live_codex.shutil, "which", lambda name: sys.executable)
+    monkeypatch.setattr(
+        live_codex, "ensure_blender_mcp",
+        lambda **kwargs: {"state": "PASS"},
+    )
+    monkeypatch.setattr(live_codex, "_runtime_enabled_mcp_servers",
+                        lambda *args: {"blender"})
+    result = live_codex.preflight_codex(
+        scenario,
+        condition="baseline",
+        workspace=workspace,
+        codex_home=codex_home,
+        profile="profile",
+    )
+    assert result["state"] == "READY_FOR_BENCHMARK"
+    assert result["checks"]["mcp_command"] == "PASS"
+    assert result["checks"]["mcp_tools"] == {
+        "state": "PASS", "enabled_tools": ["get_scene_info"]}
 
 
 @pytest.mark.parametrize("bad", ["20", 20.5, True])
