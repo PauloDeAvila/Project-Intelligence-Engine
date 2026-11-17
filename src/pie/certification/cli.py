@@ -43,6 +43,7 @@ def main(argv=None)->int:
     c.add_argument("--timeout",type=int,default=240)
     c.add_argument("--codex-bin",default="codex")
     c.add_argument("--profile")
+    c.add_argument("--isolated-mcp",action="store_true")
     c.add_argument("--telemetry-workspace",type=Path)
     c.add_argument("--telemetry-app",choices=("blender","web"))
     c.add_argument("--telemetry-task-id")
@@ -50,7 +51,7 @@ def main(argv=None)->int:
     p.add_argument("--condition",choices=("baseline","optimized"),required=True)
     p.add_argument("--workspace",type=Path,required=True)
     p.add_argument("--codex-home",type=Path,required=True)
-    p.add_argument("--output",type=Path);p.add_argument("--codex-bin",default="codex");p.add_argument("--profile")
+    p.add_argument("--output",type=Path);p.add_argument("--codex-bin",default="codex");p.add_argument("--profile");p.add_argument("--isolated-mcp",action="store_true")
     q=subs.add_parser("compare");q.add_argument("records",nargs="+",type=Path)
     q.add_argument("--min-pairs",type=int,default=3)
     q.add_argument("--prices",type=Path);q.add_argument("--output",type=Path)
@@ -62,7 +63,8 @@ def main(argv=None)->int:
             scenario=validate_scenario(json.loads(args.scenario.read_text(encoding="utf-8")))
             result=capture_codex(scenario,condition=args.condition,
                     repetition=args.repetition,workspace=args.workspace,
-                    codex_home=args.codex_home,timeout=args.timeout,codex_bin=args.codex_bin,profile=args.profile)
+                    codex_home=args.codex_home,timeout=args.timeout,codex_bin=args.codex_bin,
+                    profile=args.profile,isolated_mcp=args.isolated_mcp)
             if args.telemetry_workspace is not None:
                 previous=os.environ.get("PIE_GLOBAL_STORAGE_ROOT")
                 os.environ["PIE_GLOBAL_STORAGE_ROOT"]=str(_telemetry_store(args.telemetry_workspace))
@@ -76,7 +78,8 @@ def main(argv=None)->int:
         elif args.cmd=="preflight":
             scenario=validate_scenario(json.loads(args.scenario.read_text(encoding="utf-8")))
             result=preflight_codex(scenario,condition=args.condition,workspace=args.workspace,
-                                   codex_home=args.codex_home,codex_bin=args.codex_bin,profile=args.profile)
+                                   codex_home=args.codex_home,codex_bin=args.codex_bin,profile=args.profile,
+                                   isolated_mcp=args.isolated_mcp)
         else:
             rates=json.loads(args.prices.read_text(encoding="utf-8")) if args.prices else None
             result=compare(_read_records(args.records),min_pairs=args.min_pairs,prices=rates)

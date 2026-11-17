@@ -279,7 +279,8 @@ def run_pilot(*, manifest: dict[str, Any], scenarios: Iterable[dict[str, Any]],
         home=baseline_home if entry["condition"]=="baseline" else optimized_home
         profile=baseline_profile if entry["condition"]=="baseline" else optimized_profile
         preflight=preflight_codex(scenario,condition=entry["condition"],workspace=root,
-                                  codex_home=home,codex_bin=codex_bin,profile=profile)
+                                  codex_home=home,codex_bin=codex_bin,profile=profile,
+                                  isolated_mcp=True)
         if preflight["state"]!="READY_FOR_BENCHMARK":
             _write_budget_ledger(_budget_ledger_path(output), state="failed",
                                  run_id=entry["run_id"], pair_id=entry["pair_id"],
@@ -297,7 +298,8 @@ def run_pilot(*, manifest: dict[str, Any], scenarios: Iterable[dict[str, Any]],
             record=capture_codex(scenario,condition=entry["condition"],repetition=1,
                                  workspace=root,codex_home=home,codex_bin=codex_bin,
                                  profile=profile,timeout=timeout,
-                                 run_id_override=entry["run_id"], pair_id_override=entry["pair_id"])
+                                 run_id_override=entry["run_id"], pair_id_override=entry["pair_id"],
+                                 isolated_mcp=True)
         except CodexCaptureError as exc:
             capture_status=_capture_certification_status(exc.evidence)
             capture_reason=_capture_failure_reason(exc.evidence)
@@ -569,7 +571,8 @@ def run_single(*, scenario: dict[str, Any], application: str, condition: str,
     home = baseline_home if condition == "baseline" else optimized_home
     profile = baseline_profile if condition == "baseline" else optimized_profile
     preflight = preflight_codex(scenario, condition=condition, workspace=root,
-                                codex_home=home, codex_bin=codex_bin, profile=profile)
+                                codex_home=home, codex_bin=codex_bin, profile=profile,
+                                isolated_mcp=True)
     if preflight["state"] != "READY_FOR_BENCHMARK":
         _write_budget_ledger(ledger, state="preflight_failed", run_id=run_id, pair_id=pair_id,
                              consumed_sessions=0, authorized_sessions=authorized_sessions,
@@ -593,7 +596,7 @@ def run_single(*, scenario: dict[str, Any], application: str, condition: str,
         record = capture_codex(
             scenario, condition=condition, repetition=repetition, workspace=root,
             codex_home=home, codex_bin=codex_bin, profile=profile, timeout=timeout,
-            run_id_override=run_id, pair_id_override=pair_id)
+            run_id_override=run_id, pair_id_override=pair_id, isolated_mcp=True)
     except RuntimeError as exc:
         status = _capture_certification_status(getattr(exc, "evidence", None))
         _write_budget_ledger(ledger, state="failed", run_id=run_id, pair_id=pair_id,
@@ -747,7 +750,8 @@ def main(argv: list[str] | None = None) -> int:
                 for condition, home, profile in (("baseline",args.baseline_home,args.baseline_profile),
                                                   ("optimized",args.optimized_home,args.optimized_profile)):
                     result=preflight_codex(scenario,condition=condition,workspace=args.workspace,
-                                           codex_home=home,codex_bin=args.codex_bin,profile=profile)
+                                           codex_home=home,codex_bin=args.codex_bin,profile=profile,
+                                           isolated_mcp=True)
                     rows.append({"scenario_id":scenario["scenario_id"],"condition":condition,**result})
             result={"schema":"pie-phase3-preflight-v1","state":"READY_FOR_BENCHMARK" if all(
                 row["state"]=="READY_FOR_BENCHMARK" for row in rows) else "BLOCKED",

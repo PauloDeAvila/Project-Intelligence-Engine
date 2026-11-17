@@ -4,6 +4,7 @@ import hashlib,json,math,os,re,shutil,socket,subprocess,time,tomllib
 from pathlib import Path
 from datetime import datetime,timezone
 from pie.certification.blender_runtime import ensure_blender_mcp
+from pie.certification.codex_isolation import isolated_codex_home
 
 SCHEMA="pie-live-codex-usage-v1"
 CONDITIONS=frozenset(("baseline","optimized"))
@@ -368,7 +369,7 @@ def _probe_blender_upstream(selected:dict)->dict:
 
 def preflight_codex(scenario:dict,*,condition:str,workspace:Path,codex_home:Path,
                     codex_bin:str="codex",evidence_dir:Path|None=None,
-                    profile:str|None=None)->dict:
+                    profile:str|None=None, isolated_mcp:bool=False)->dict:
     """Run all non-model checks required before a paid Codex capture."""
     checks={};errors=[]
     try:scenario=validate_scenario(scenario);checks["scenario"]="PASS"
@@ -409,7 +410,7 @@ def preflight_codex(scenario:dict,*,condition:str,workspace:Path,codex_home:Path
         enabled_servers = _enabled_mcp_servers(servers)
         if required and required not in enabled_servers:
             checks["mcp"]={"state":"FAIL","required_server":required};errors.append("PRECHECK_MCP_UNAVAILABLE")
-        elif required and enabled_servers != {required}:
+        elif required and enabled_servers != {required} and not isolated_mcp:
             checks["mcp"]={"state":"FAIL","required_server":required,"enabled_servers":sorted(enabled_servers)}
             errors.append("PRECHECK_MCP_ISOLATION_FAILED")
         else:
@@ -479,7 +480,10 @@ def preflight_codex(scenario:dict,*,condition:str,workspace:Path,codex_home:Path
                 else: checks["gateway_workspace"]="PASS"
             else:
                 checks["gateway_workspace"]="NOT_APPLICABLE"
-        if executable and Path(executable).is_file() and "codex" in Path(executable).name.lower() and required:
+        if isolated_mcp and required:
+            checks["mcp_runtime"]={"state":"DEFERRED_TO_ISOLATED_CAPTURE",
+                                    "required_server":required}
+        elif executable and Path(executable).is_file() and "codex" in Path(executable).name.lower() and required:
             runtime_servers = _runtime_enabled_mcp_servers(executable, codex_home, profile)
             if runtime_servers is None:
                 checks["mcp_runtime"]={"state":"FAIL"}
@@ -555,7 +559,8 @@ def _expected_mcp_server(scenario:dict,condition:str)->str|None:
     return required
 
 def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=240,codex_bin="codex",profile=None,
-                  run_id_override=None,pair_id_override=None):
+                  run_id_override=None,pair_id_override=None,isolated_mcp=False,
+                  _approve_for_me=False, _isolated_runtime=False):
     validate_scenario(scenario)
     if condition not in CONDITIONS or type(repetition) is not int or repetition<1:
         raise ValueError("Invalid condition or repetition")
@@ -576,6 +581,18 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
                  "PIE_GATEWAY_SERVER":expected_server or "",
                  "PIE_GLOBAL_STORAGE_ROOT":str(telemetry_store),
                  "PIE_MCP_DIAGNOSTICS_PATH":str(telemetry_store / "mcp-lifecycle.jsonl")}
+    if isolated_mcp:
+        with isolated_codex_home(Path(codex_home), profile=profile,
+                                 server=expected_server, model=scenario["model"],
+                                 runtime_env=runtime_env) as isolated_home:
+            result = capture_codex(
+                scenario, condition=condition, repetition=repetition,
+                workspace=workspace, codex_home=isolated_home, timeout=timeout,
+                codex_bin=codex_bin, profile=None,
+                run_id_override=run_id, pair_id_override=pair_id,
+                isolated_mcp=False, _approve_for_me=True, _isolated_runtime=True)
+        result["mcp_isolation"] = "temporary_codex_home"
+        return result
     effective_profile, _runtime_profile_path = _materialize_runtime_profile(
         Path(codex_home), profile, server=expected_server, runtime_env=runtime_env,
         run_id=run_id)
@@ -592,7 +609,8 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
                                    expected_server=expected_server,profile=effective_profile)
     try:
         preflight=preflight_codex(scenario,condition=condition,workspace=workspace,
-                                  codex_home=Path(codex_home),codex_bin=codex_bin,profile=effective_profile)
+                                  codex_home=Path(codex_home),codex_bin=codex_bin,profile=effective_profile,
+                                  isolated_mcp=_isolated_runtime)
     except Exception as exc:
         _forensic_finish(forensic_root,status="preflight_failed",error=str(exc))
         raise
@@ -612,8 +630,9 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
         _forensic_finish(forensic_root,status="executor_failed",error="Codex version unavailable")
         raise RuntimeError("Codex version unavailable")
     version=ver.stdout.strip().splitlines()[0][:120]
-    args=[executable,"exec","--json","--ephemeral","--sandbox","read-only",
-          "--cd",str(workspace),"--model",scenario["model"]]
+    args=[executable,"exec","--json","--ephemeral"]
+    args += ["--approve-for-me"] if _approve_for_me else ["--sandbox", "read-only"]
+    args += ["--cd",str(workspace),"--model",scenario["model"]]
     if effective_profile is not None:args += ["--profile",effective_profile]
     args += ["-"]
     base_evidence={"run_id":run_id,"pair_id":pair_id,"condition":condition,
@@ -724,6 +743,7 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
             "runtime_ms":round((time.perf_counter()-t0)*1000,3),
             "tool_events":parsed["tool_events"],"mcp_tools":parsed["mcp_tools"],"usage":parsed["usage"],
             "expected_mcp_server":expected_server,"mcp_route_verified":True,
+            "mcp_isolation":"temporary_codex_home" if _approve_for_me else "configured_home",
             "provider_reported":parsed["provider_reported"],"source":parsed["source"],
             "forensic_path":str(forensic_root),
             "note":"Codex provider usage, not billing or a raw transcript"}
