@@ -3,7 +3,7 @@
   "status": "PARTIAL_NOT_CERTIFIED",
   "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
   "implementation_head": "11c6d80",
-  "report_head": "fcd0cdd",
+  "report_head": "720ccf2",
   "certification": {
     "status": "NOT_CERTIFIED",
     "reason": "The roadmap acceptance requires broader statistical replication and consistent provider-backed A/B evidence; the current Codex sample has two valid Blender pairs, one valid Web pair, and one invalid Blender repetition."
