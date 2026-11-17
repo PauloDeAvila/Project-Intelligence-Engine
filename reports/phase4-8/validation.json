@@ -3,8 +3,8 @@
   "status": "PARTIAL_LOCAL_VALIDATION",
   "certification": "NOT_CERTIFIED",
   "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
-  "head_at_validation": "051570e",
-  "implementation_commit": "051570e",
+  "head_at_validation": "14b2442d1abcce848b2b2c52e3b80b7173d23403",
+  "implementation_commit": "14b2442d1abcce848b2b2c52e3b80b7173d23403",
   "index": {
     "source": "uv run python -m pie.interfaces.cli status --root .",
     "project": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean",
