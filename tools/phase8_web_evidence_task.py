@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import subprocess
@@ -10,6 +11,7 @@ import time
 import urllib.request
 import uuid
 from pathlib import Path
+from urllib.parse import urlparse
 
 from phase8_web_large_deepseek_pilot import ORACLE
 
@@ -44,9 +46,11 @@ class McpSession:
             cwd=root,
         )
         self.request_id = 0
+        self.calls: list[str] = []
 
     def call(self, method: str, params: dict | None = None) -> dict:
         self.request_id += 1
+        self.calls.append(method)
         request = {"jsonrpc": "2.0", "id": self.request_id, "method": method, "params": params or {}}
         assert self.process.stdin is not None and self.process.stdout is not None
         self.process.stdin.write(json.dumps(request) + "\n")
@@ -113,6 +117,7 @@ def _provider_call(base_url: str, key: str, model: str, context: dict,
         "\n\nBROWSER_CONTEXT:\n"
         + json.dumps(context, ensure_ascii=False, separators=(",", ":"))
     )
+    prompt_sha256 = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
     payload = {
         "model": model,
         "messages": [
@@ -149,12 +154,15 @@ def _provider_call(base_url: str, key: str, model: str, context: dict,
         "usage": usage,
         "finish_reason": choice.get("finish_reason"),
         "latency_s": round(time.perf_counter() - started, 4),
+        "prompt_sha256": prompt_sha256,
+        "actual_model": result.get("model"),
     }
 
 
 def _run_arm(command: list[str], root: Path, url: str, base_url: str, key: str,
-             model: str, task: dict, max_output_tokens: int) -> dict:
+             model: str, task: dict, max_output_tokens: int, arm: str) -> dict:
     session = McpSession(command, root)
+    route = "upstream_mcp" if arm == "baseline" else "pie_gateway"
     try:
         session.call(
             "initialize",
@@ -182,12 +190,22 @@ def _run_arm(command: list[str], root: Path, url: str, base_url: str, key: str,
         if not plan_oracle:
             return {
                 "tool_count": len(tools),
+                "arm": arm,
+                "route": route,
+                "route_verified": True,
+                "mcp_calls": len(session.calls),
+                "mcp_methods": session.calls,
+                "automatic_retry": False,
                 "context_chars": len(json.dumps(context, ensure_ascii=False, separators=(",", ":"))),
                 "plan": inference["plan"],
                 "plan_oracle_pass": False,
                 "source_oracle_pass": False,
                 "task_oracle_pass": False,
                 "usage": inference["usage"],
+                "provider_usage_status": "available" if all(isinstance(inference["usage"].get(key), int) for key in ("prompt_tokens", "completion_tokens", "total_tokens")) else "unavailable",
+                "cache_observed": isinstance((inference["usage"].get("prompt_tokens_details") or {}).get("cached_tokens"), int),
+                "prompt_sha256": inference["prompt_sha256"],
+                "actual_model": inference["actual_model"],
                 "finish_reason": inference["finish_reason"],
                 "latency_s": inference["latency_s"],
             }
@@ -203,6 +221,12 @@ def _run_arm(command: list[str], root: Path, url: str, base_url: str, key: str,
         click_ok = not click.get("result", {}).get("isError", False)
         return {
             "tool_count": len(tools),
+            "arm": arm,
+            "route": route,
+            "route_verified": True,
+            "mcp_calls": len(session.calls),
+            "mcp_methods": session.calls,
+            "automatic_retry": False,
             "context_chars": len(json.dumps(context, ensure_ascii=False, separators=(",", ":"))),
             "navigate_ok": navigate_ok,
             "click_ok": click_ok,
@@ -212,6 +236,10 @@ def _run_arm(command: list[str], root: Path, url: str, base_url: str, key: str,
             "source_oracle_pass": reconstructed == task["oracle"],
             "task_oracle_pass": navigate_ok and click_ok and reconstructed == task["oracle"],
             "usage": inference["usage"],
+            "provider_usage_status": "available" if all(isinstance(inference["usage"].get(key), int) for key in ("prompt_tokens", "completion_tokens", "total_tokens")) else "unavailable",
+            "cache_observed": isinstance((inference["usage"].get("prompt_tokens_details") or {}).get("cached_tokens"), int),
+            "prompt_sha256": inference["prompt_sha256"],
+            "actual_model": inference["actual_model"],
             "finish_reason": inference["finish_reason"],
             "latency_s": inference["latency_s"],
         }
@@ -229,30 +257,41 @@ def main() -> int:
     parser.add_argument("--max-chars", type=int, default=2400)
     parser.add_argument("--max-output-tokens", type=int, default=512)
     parser.add_argument("--pair-id", default=None)
+    parser.add_argument("--replication-index", type=int, default=None)
     parser.add_argument("--profile", choices=tuple(TASK_PROFILES), default="large")
     args = parser.parse_args()
     if not 1 <= args.max_output_tokens <= 4096:
         raise SystemExit("--max-output-tokens must be between 1 and 4096")
     task = TASK_PROFILES[args.profile]
     pair_id = args.pair_id or f"web-large-evidence-task-{uuid.uuid4().hex}"
+    task_prompt_sha256 = hashlib.sha256(json.dumps(
+        {"action": task["action"], "button_label": task["button_label"], "fields": list(task["oracle"])},
+        sort_keys=True,
+    ).encode("utf-8")).hexdigest()
     root = Path(__file__).resolve().parents[1]
     key = args.key_file.read_text(encoding="utf-8").strip()
     upstream = [r"C:\Program Files\nodejs\npx.cmd", "--yes", "@playwright/mcp@0.0.85", "--headless", "--browser", "chrome"]
     optimized = [sys.executable, "-m", "pie.gateway.domain", "serve", "--domain", "web", "--workspace", str(root), "--max-chars", str(args.max_chars), "--", *upstream]
-    baseline = _run_arm(upstream, root, args.url, args.base_url, key, args.model, task, args.max_output_tokens)
-    optimized_arm = _run_arm(optimized, root, args.url, args.base_url, key, args.model, task, args.max_output_tokens)
+    baseline = _run_arm(upstream, root, args.url, args.base_url, key, args.model, task, args.max_output_tokens, "baseline")
+    optimized_arm = _run_arm(optimized, root, args.url, args.base_url, key, args.model, task, args.max_output_tokens, "optimized")
     baseline["run_id"] = f"{pair_id}-baseline"
     optimized_arm["run_id"] = f"{pair_id}-optimized"
     report = {
         "schema": "pie-web-evidence-task-v1",
         "pair_id": pair_id,
+        "replication_index": args.replication_index,
         "profile": args.profile,
+        "task_id": f"web-{args.profile}-evidence-v1",
+        "prompt_sha256": task_prompt_sha256,
         "status": "PILOT_VALID_NOT_CERTIFIED" if baseline["task_oracle_pass"] and optimized_arm["task_oracle_pass"] else "PILOT_INVALID_QUALITY",
         "scope": "end_to_end_controlled_task; model selects action, code executes MCP and preserves values",
         "model": args.model,
         "url": args.url,
         "oracle": task["oracle"],
         "max_output_tokens": args.max_output_tokens,
+        "configuration_sha256": hashlib.sha256(json.dumps({"model": args.model, "url": args.url, "profile": args.profile, "max_chars": args.max_chars, "max_output_tokens": args.max_output_tokens}, sort_keys=True).encode("utf-8")).hexdigest(),
+        "fixture_sha256": hashlib.sha256((root / urlparse(args.url).path.lstrip("/")).read_bytes()).hexdigest() if (root / urlparse(args.url).path.lstrip("/")).is_file() else None,
+        "retry_count": 0,
         "baseline": baseline,
         "optimized": optimized_arm,
     }

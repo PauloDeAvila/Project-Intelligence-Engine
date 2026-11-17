@@ -1,8 +1,15 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
-from pie.certification.regression import RunEvidence, evaluate_golden_suite, evaluate_pair
+from pie.certification.regression import (
+    RunEvidence,
+    evaluate_golden_suite,
+    evaluate_pair,
+    evaluate_replication_suite,
+)
 
 
 def make_run(**overrides):
@@ -101,3 +108,35 @@ def test_golden_suite_requires_all_valid_pairs_and_aggregates_sums():
     assert duplicate["status"] == "NOT_CERTIFIED"
     assert "duplicate_pair_id" in duplicate["reasons"]
     assert evaluate_golden_suite([])["status"] == "NOT_CERTIFIED"
+
+
+def strict_pair(pair_id="pair-1", scenario_id="scenario-1", fixture="f" * 64, replication_index=1):
+    return (
+        make_run(pair_id=pair_id, scenario_id=scenario_id, fixture_sha256=fixture,
+                 actual_model="model-a", mcp_methods=("initialize", "tools/list", "tools/call"),
+                 cache_observed=True, replication_index=replication_index),
+        make_run(pair_id=pair_id, scenario_id=scenario_id, condition="optimized",
+                 fixture_sha256=fixture, actual_model="model-a",
+                 mcp_methods=("initialize", "tools/list", "tools/call"), cache_observed=True,
+                 replication_index=replication_index),
+    )
+
+
+def test_replication_suite_rejects_duplicate_scenario_fixture_and_missing_trace():
+    duplicate = evaluate_replication_suite([strict_pair(), strict_pair(pair_id="pair-2")])
+    assert duplicate["status"] == "NOT_CERTIFIED"
+    assert "duplicate_scenario_fixture" in duplicate["reasons"]
+    pair = strict_pair(pair_id="pair-3", scenario_id="scenario-3")
+    incomplete = (replace(pair[0], mcp_methods=None), pair[1])
+    result = evaluate_replication_suite([incomplete])
+    assert result["status"] == "NOT_CERTIFIED"
+    assert "baseline_mcp_trace_incomplete" in result["reasons"]
+
+
+def test_replication_suite_requires_cache_and_actual_provider_usage_identity():
+    pair = strict_pair(pair_id="pair-4", scenario_id="scenario-4")
+    pair = (pair[0], replace(pair[1], cache_observed=False, actual_model="other-model"))
+    result = evaluate_replication_suite([pair])
+    assert result["status"] == "NOT_CERTIFIED"
+    assert "optimized_cache_unobserved" in result["reasons"]
+    assert "pair-4_actual_model_mismatch" in result["reasons"]

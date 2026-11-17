@@ -1,0 +1,99 @@
+{
+  "schema": "pie-certification-replication-v1",
+  "status": "CERTIFIED",
+  "pair_count": 3,
+  "reasons": [],
+  "per_pair": [
+    {
+      "schema": "pie-certification-regression-v1",
+      "status": "CERTIFIED_PAIR",
+      "pair_id": "web-summary-gated-indexed-20261116-r1",
+      "reasons": [],
+      "savings": {
+        "baseline_input_tokens": 6764,
+        "baseline_cached_input_tokens": 5195,
+        "baseline_uncached_input_tokens": 1569,
+        "baseline_output_tokens": 64,
+        "baseline_total_tokens": 6828,
+        "optimized_input_tokens": 5849,
+        "optimized_cached_input_tokens": 5229,
+        "optimized_uncached_input_tokens": 620,
+        "optimized_output_tokens": 31,
+        "optimized_total_tokens": 5880,
+        "savings_input_percent": 60.484385,
+        "savings_total_percent": 13.884007,
+        "cached_input_delta": 34,
+        "output_token_delta": -33,
+        "latency_delta_ms": 69.99999999999955,
+        "mcp_call_delta": 0
+      }
+    },
+    {
+      "schema": "pie-certification-regression-v1",
+      "status": "CERTIFIED_PAIR",
+      "pair_id": "web-summary-gated-indexed-20261116-r2",
+      "reasons": [],
+      "savings": {
+        "baseline_input_tokens": 6764,
+        "baseline_cached_input_tokens": 5195,
+        "baseline_uncached_input_tokens": 1569,
+        "baseline_output_tokens": 73,
+        "baseline_total_tokens": 6837,
+        "optimized_input_tokens": 6021,
+        "optimized_cached_input_tokens": 5232,
+        "optimized_uncached_input_tokens": 789,
+        "optimized_output_tokens": 73,
+        "optimized_total_tokens": 6094,
+        "savings_input_percent": 49.713193,
+        "savings_total_percent": 10.867339,
+        "cached_input_delta": 37,
+        "output_token_delta": 0,
+        "latency_delta_ms": 330.2000000000003,
+        "mcp_call_delta": 0
+      }
+    },
+    {
+      "schema": "pie-certification-regression-v1",
+      "status": "CERTIFIED_PAIR",
+      "pair_id": "web-summary-gated-indexed-20261116-r3",
+      "reasons": [],
+      "savings": {
+        "baseline_input_tokens": 6764,
+        "baseline_cached_input_tokens": 5195,
+        "baseline_uncached_input_tokens": 1569,
+        "baseline_output_tokens": 73,
+        "baseline_total_tokens": 6837,
+        "optimized_input_tokens": 5847,
+        "optimized_cached_input_tokens": 5229,
+        "optimized_uncached_input_tokens": 618,
+        "optimized_output_tokens": 31,
+        "optimized_total_tokens": 5878,
+        "savings_input_percent": 60.611855,
+        "savings_total_percent": 14.02662,
+        "cached_input_delta": 34,
+        "output_token_delta": -42,
+        "latency_delta_ms": -499.0999999999999,
+        "mcp_call_delta": 0
+      }
+    }
+  ],
+  "aggregate_savings": {
+    "baseline_total_tokens": 20502,
+    "optimized_total_tokens": 17852,
+    "baseline_uncached_input_tokens": 4707,
+    "optimized_uncached_input_tokens": 2027,
+    "savings_total_percent": 12.925568,
+    "savings_input_percent": 56.936478
+  },
+  "reports": [
+    "reports\\phase4-8\\web-summary-gated-indexed-20261116-r1.json",
+    "reports\\phase4-8\\web-summary-gated-indexed-20261116-r2.json",
+    "reports\\phase4-8\\web-summary-gated-indexed-20261116-r3.json"
+  ],
+  "model": [
+    "gambiarraapi/deepseek-v3.2"
+  ],
+  "fixture_sha256": [
+    "4824c00fe2827f0b96d6813f24a4f074a77940f8c26d7a98c9fcedb07c563c84"
+  ]
+}

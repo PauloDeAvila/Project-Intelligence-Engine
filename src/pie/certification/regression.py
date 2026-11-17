@@ -27,6 +27,12 @@ class RunEvidence:
     oracle_pass: bool = False
     route_verified: bool = False
     duplicate_calls: int = 0
+    fixture_sha256: str | None = None
+    actual_model: str | None = None
+    mcp_methods: tuple[str, ...] | None = None
+    cache_observed: bool = False
+    automatic_retry: bool = False
+    replication_index: int | None = None
 
     def __post_init__(self) -> None:
         for name in (
@@ -50,6 +56,12 @@ class RunEvidence:
             value = getattr(self, name)
             if value is not None and (isinstance(value, bool) or not isinstance(value, int) or value < 0):
                 raise ValueError(f"{name} must be a nonnegative int or None")
+        if self.replication_index is not None and (
+            isinstance(self.replication_index, bool)
+            or not isinstance(self.replication_index, int)
+            or self.replication_index < 1
+        ):
+            raise ValueError("replication_index must be a positive int or None")
         if self.cached_input_tokens is not None and self.input_tokens is None:
             raise ValueError("cached_input_tokens requires input_tokens")
         if (
@@ -213,4 +225,49 @@ def evaluate_golden_suite(
     return suite
 
 
-__all__ = ["RunEvidence", "evaluate_pair", "evaluate_golden_suite"]
+def evaluate_replication_suite(
+    pairs: list[tuple[RunEvidence, RunEvidence]],
+) -> dict[str, object]:
+    """Apply strict identity and provenance gates before aggregating pairs."""
+    base = evaluate_golden_suite(pairs)
+    reasons = list(base.get("reasons", []))
+    identities: list[tuple[str, str, int]] = []
+    for baseline, optimized in pairs:
+        fixture_values = (baseline.fixture_sha256, optimized.fixture_sha256)
+        if not fixture_values[0] or fixture_values[0] != fixture_values[1]:
+            reasons.append(f"{baseline.pair_id}_fixture_sha256_invalid")
+        if baseline.actual_model != baseline.model or optimized.actual_model != optimized.model:
+            reasons.append(f"{baseline.pair_id}_actual_model_mismatch")
+        for label, run in (("baseline", baseline), ("optimized", optimized)):
+            if not run.cache_observed:
+                reasons.append(f"{label}_cache_unobserved")
+            if run.automatic_retry:
+                reasons.append(f"{label}_automatic_retry")
+            if not run.mcp_methods or not {"initialize", "tools/list", "tools/call"}.issubset(run.mcp_methods):
+                reasons.append(f"{label}_mcp_trace_incomplete")
+        if fixture_values[0] and baseline.replication_index is not None:
+            identities.append((baseline.scenario_id, fixture_values[0], baseline.replication_index))
+        elif fixture_values[0]:
+            reasons.append(f"{baseline.pair_id}_replication_index_missing")
+    if len(identities) != len(set(identities)):
+        reasons.append("duplicate_scenario_fixture")
+    if reasons:
+        return {
+            "schema": "pie-certification-replication-v1",
+            "status": "NOT_CERTIFIED",
+            "pair_count": len(pairs),
+            "reasons": sorted(set(reasons)),
+            "per_pair": base.get("per_pair", []),
+            "aggregate_savings": None,
+        }
+    return {
+        "schema": "pie-certification-replication-v1",
+        "status": base["status"],
+        "pair_count": base["pair_count"],
+        "reasons": [],
+        "per_pair": base["per_pair"],
+        "aggregate_savings": base["aggregate_savings"],
+    }
+
+
+__all__ = ["RunEvidence", "evaluate_pair", "evaluate_golden_suite", "evaluate_replication_suite"]
