@@ -76,13 +76,15 @@
   },
   "phases": {
     "4_consolidation": {
-      "status": "PASS_LOCAL",
+      "status": "PASS_EXTERNAL_CONTROLLED_READ_ONLY",
       "evidence": [
         "current index and workspace match",
         "full regression suite passed",
         "MCP runtime tests passed",
-        "current-root routing preflight passed Web end-to-end and Blender tools/list"
-      ]
+        "current-root routing preflight passed Web end-to-end",
+        "live Blender 5.3 gateway initialize, tools/list, get_addon_status and get_scene_info passed"
+      ],
+      "live_blender_probe": "reports/phase4-8/live-blender-gateway-probe-20261116.json"
     },
     "5_multi_agent_memory": {
       "status": "PASS_EXTERNAL_CONTROLLED",
@@ -137,6 +139,6 @@
     "The configured PIE MCP server in this session reports another workspace root and was not used as evidence.",
     "Only one controlled live handoff was executed; general multi-agent quality is not certified.",
     "Character reduction and synthetic counters are not token certification.",
-    "Initial live-domain probe recorded Blender WinError 10053 and Web ERR_CONNECTION_REFUSED; the corrected current-root preflight passed the full Web flow and Blender gateway tools/list, but Blender upstream remains WinError 10053."
+    "Initial live-domain probe recorded Blender WinError 10053 and Web ERR_CONNECTION_REFUSED; the later isolated factory-startup probe passed the live Blender path on the configured default port 9876."
   ]
 }

@@ -1,0 +1,41 @@
+{
+  "schema": "pie-live-blender-gateway-probe-v1",
+  "status": "PASS_EXTERNAL_CONTROLLED_READ_ONLY",
+  "workspace": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean",
+  "gateway": {
+    "domain": "blender",
+    "route": "PIE gateway -> uvx mcp-for-blender -> Blender addon",
+    "endpoint": "127.0.0.1:9876",
+    "gateway_returncode": 0,
+    "initialize": "PASS",
+    "tools_list": "PASS",
+    "tool_count": 15
+  },
+  "addon": {
+    "up_to_date": true,
+    "addon_version": [2, 0],
+    "protocol_version": 16,
+    "expected_protocol_version": 16,
+    "blender_version": "5.3.0",
+    "get_addon_status": "PASS"
+  },
+  "calls": {
+    "get_scene_info": {
+      "status": "PASS",
+      "is_error": false,
+      "text_chars": 284,
+      "oracle": "default factory-startup scene returned"
+    },
+    "pie_blender_query_scene": {
+      "status": "NOT_USED_FOR_CERTIFICATION",
+      "reason": "The isolated factory scene was not the large benchmark fixture."
+    }
+  },
+  "safety": {
+    "factory_startup": true,
+    "user_scene_loaded": false,
+    "scene_modified": false,
+    "external_pages_modified": false
+  },
+  "previous_diagnostic_correction": "The addon default and current mcp-for-blender route use port 9876; the earlier 9877 check was not the configured endpoint."
+}

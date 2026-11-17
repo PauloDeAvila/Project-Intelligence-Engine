@@ -18,7 +18,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 
 | Fase | Estado | Conclusão |
 |---|---|---|
-| 4 — Consolidação | PASS_LOCAL | Sem regressões locais; persistência após reinício coberta; MCP desta sessão aponta para outra raiz. |
+| 4 — Consolidação | PASS_EXTERNAL_CONTROLLED_READ_ONLY | Sem regressões locais; Web E2E e Blender 5.3 real passaram initialize, tools/list, get_addon_status e get_scene_info via PIE. A fixture Blender grande ainda não foi carregada. |
 | 5 — Memória entre agentes | PASS_EXTERNAL_CONTROLLED | Handoff real OpenCode/DeepSeek executado após reinício; `context_version` durável e histórico completo não enviado. |
 | 6 — Contexto incremental/cache | PASS_EXTERNAL_CONTROLLED_SINGLE_PAIR | Hashes, compilador, cache persistente e invalidação após mudança cobertos; um par DeepSeek real após reinício passou no oráculo: 237 → 167 tokens. Ainda não é evidência estatística. |
 | 7 — Execução local | PASS_LOCAL | Allowlist, limites, replay e timeouts fail-closed cobertos. |
@@ -53,6 +53,16 @@ certificação oficial Codex nem a bateria Blender/Web.
 O backup e o diff sanitizado da configuração Codex estão em
 `reports/phase4-8/routing-preflight-20261116.*`; o servidor original Blender e
 `node_repl` não foram modificados.
+
+## Probe Blender ao vivo
+
+O gateway atual foi iniciado contra o checkout correto e encaminhou chamadas ao
+addon real do Blender 5.3.0. O addon reportou versão 2.0 e protocolo 16/16;
+`tools/list` retornou 15 ferramentas e `get_scene_info` respondeu sem erro.
+Usou-se `--factory-startup`, com a cena padrão Cube/Light/Camera, sem alterar a
+cena do usuário.
+
+Evidência: `live-blender-gateway-probe-20261116.json`.
 
 ## Latência p95
 
