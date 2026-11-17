@@ -22,7 +22,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 | 5 — Memória entre agentes | PASS_EXTERNAL_CONTROLLED | Handoff real OpenCode/DeepSeek executado após reinício; `context_version` durável e histórico completo não enviado. |
 | 6 — Contexto incremental/cache | PASS_EXTERNAL_CONTROLLED_SINGLE_PAIR | Hashes, compilador, cache persistente e invalidação após mudança cobertos; um par DeepSeek real após reinício passou no oráculo: 237 → 167 tokens. Ainda não é evidência estatística. |
 | 7 — Execução local | PASS_LOCAL | Allowlist, limites, replay e timeouts fail-closed cobertos. |
-| 8 — Certificação contínua | PARTIAL_NOT_CERTIFIED | GLM v5 e DeepSeek 3.2 tiveram pilotos válidos de 3 pares; DeepSeek mediu 93,801% de redução total, p95 descritivo 3,765 s → 2,721 s e 3/3 em ambos os braços. Ainda faltam Codex, Blender/Web e generalização estatística. |
+| 8 — Certificação contínua | PARTIAL_NOT_CERTIFIED | GLM v5 e DeepSeek 3.2 tiveram pilotos válidos; o piloto DeepSeek ampliado cobriu 6 tarefas/12 chamadas, 93,226% de redução total e 6/6 em ambos os braços. Ainda faltam Codex, Blender/Web e generalização estatística independente. |
 
 ## Alteração desta rodada
 
@@ -63,3 +63,13 @@ não é uma estimativa estatística. O valor também mede a chamada ao provedor,
 não o p95 de uma consulta local indexada de 100 ms.
 
 Evidência: `phase8-latency-analysis-20261116.json`.
+
+## Piloto DeepSeek ampliado
+
+O mesmo corpus e seed foram executados com seis tarefas pareadas, sem retries.
+As doze chamadas reportaram uso real e passaram o oráculo: baseline 52.522
+tokens, PIE 3.558 tokens, redução total de 93,226%. Como as três primeiras
+tarefas se sobrepõem ao piloto anterior, o resultado amplia a cobertura, mas
+não deve ser tratado como seis pares estatisticamente independentes.
+
+Evidência: `deepseek-real-pilot-expanded-20261116.json`.

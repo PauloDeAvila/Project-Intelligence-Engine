@@ -43,6 +43,17 @@
     "external_pilot_pairs": 3,
     "external_pilot_total_savings_percent": 93.801
   },
+  "deepseek_expanded_pilot": {
+    "path": "reports/phase4-8/deepseek-real-pilot-expanded-20261116.json",
+    "tasks": 6,
+    "calls": 12,
+    "baseline_total_tokens": 52522,
+    "pie_total_tokens": 3558,
+    "total_savings_percent": 93.226,
+    "baseline_correct": 6,
+    "pie_correct": 6,
+    "status": "PILOT_VALID_NOT_CERTIFIED"
+  },
   "phases": {
     "4_consolidation": {
       "status": "PASS_LOCAL",
