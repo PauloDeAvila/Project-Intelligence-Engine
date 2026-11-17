@@ -43,6 +43,13 @@
     "external_pilot_pairs": 3,
     "external_pilot_total_savings_percent": 93.801
   },
+  "deepseek_opencode_connection": {
+    "path": "reports/phase4-8/opencode-deepseek-connection-20261116.json",
+    "status": "PASS",
+    "model": "gambiarraapi/deepseek-v3.2",
+    "input_tokens": 55,
+    "output_tokens": 6
+  },
   "deepseek_expanded_pilot": {
     "path": "reports/phase4-8/deepseek-real-pilot-expanded-20261116.json",
     "tasks": 6,

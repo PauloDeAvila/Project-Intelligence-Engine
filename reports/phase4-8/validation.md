@@ -26,6 +26,10 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 | 7 — Execução local | PASS_LOCAL | Allowlist, limites, replay e timeouts fail-closed cobertos. |
 | 8 — Certificação contínua | PARTIAL_NOT_CERTIFIED | GLM v5, DeepSeek 3.2, Blender e Web tiveram pilotos locais; Blender mediu 82,934%, mas Web teve −29,098% de economia total apesar de 3/3 oráculos. Ainda faltam certificação Codex e generalização ampla. |
 
+O provider atual do OpenCode também foi verificado separadamente: `infinity`
+expôs `gambiarraapi/deepseek-v3.2`, que respondeu ao probe real com 55 tokens de
+entrada e 6 de saída. Evidência: `opencode-deepseek-connection-20261116.json`.
+
 ## Alteração desta rodada
 
 MultiAgentMemory.handoff() e ContextRuntime.handoff() transferem um checkpoint
