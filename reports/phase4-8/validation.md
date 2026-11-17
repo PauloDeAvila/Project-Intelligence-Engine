@@ -6,11 +6,11 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 
 ## Evidência executada
 
-- Índice local: CURRENT, workspace_match=true, 270 arquivos, 2.251 símbolos e 2.610 imports, verificado no head `9b86b06`.
+- Índice local: CURRENT, workspace_match=true, 270 arquivos, 2.251 símbolos e 2.610 imports, verificado no head `051570e`.
 - Testes focados: 74 passed.
 - Suíte completa histórica: 710 passed, 4 skipped, 126 subtests passed.
 - Testes focados do gateway Web e do gate: 25 passed em 0,29 s.
-- Suíte de regressão executada neste head: `uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-suite-20261116-r6 -p no:cacheprovider` — 718 passed, 4 skipped, 126 subtests passed em 35,67 s.
+- Suíte de regressão executada neste head: `uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-suite-20261116-r7 -p no:cacheprovider` — 718 passed, 4 skipped, 126 subtests passed em 31,37 s.
 - O handoff codex → deepseek foi exercitado com checkpoint persistente,
   hash de origem e proveniência preservada.
 - O preflight de roteamento no checkout atual passou para Web completo e o
@@ -258,3 +258,18 @@ objetos mesh, SHA-256 `7de1f682...e6df1c` e nenhuma alteração na cena; ele ain
 não é um hash de arquivo `.blend` completo. Evidências:
 `blender-live-replication-gate-20261116.json` e
 `blender-live-scene-snapshot-20261116.json`.
+
+## Segundo cenário Blender
+
+O runner foi ampliado para uma segunda tarefa determinística, `PIE_Large_Cube_63`,
+validada diretamente no Blender antes do A/B.
+
+- Tokens: 5.266 → 279.
+- Economia: 94,702%.
+- Oráculos: 1/1 em ambos os braços.
+- Chamadas MCP: 3 por braço.
+- Gate: `CERTIFIED` para o par local.
+
+Esse cenário amplia a cobertura de objetos, mas ainda possui uma única repetição
+e não estabelece certificação estatística independente. Evidência:
+`blender-object63-replication-gate-20261116.json`.

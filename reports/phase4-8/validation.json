@@ -3,8 +3,8 @@
   "status": "PARTIAL_LOCAL_VALIDATION",
   "certification": "NOT_CERTIFIED",
   "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
-  "head_at_validation": "9b86b06",
-  "implementation_commit": "9b86b06",
+  "head_at_validation": "051570e",
+  "implementation_commit": "051570e",
   "index": {
     "source": "uv run python -m pie.interfaces.cli status --root .",
     "project": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean",
@@ -35,7 +35,7 @@
     "skipped": 4,
     "subtests": 126,
     "failed": 0,
-    "duration_seconds": 35.67
+    "duration_seconds": 31.37
   },
   "latest_web_gateway_focused": {
     "command": "uv run python -m pytest -q tests/test_regression_certification.py tests/test_gateway_web_results.py tests/test_gateway_web_context_exposure.py --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-gate-focused-20261116 -p no:cacheprovider",
@@ -125,6 +125,15 @@
     "mesh_objects": 64,
     "canonical_sha256": "7de1f6826295728782204299b599ebbbca0ed2df697caca7ec4d0eaa98e6df1c",
     "scene_modified": false
+  },
+  "blender_object63_gate": {
+    "path": "reports/phase4-8/blender-object63-replication-gate-20261116.json",
+    "status": "CERTIFIED_LOCAL_SINGLE_PAIR",
+    "task": "PIE_Large_Cube_63",
+    "baseline_total_tokens": 5266,
+    "optimized_total_tokens": 279,
+    "savings_percent": 94.702,
+    "oracle": "1/1 in both arms"
   },
   "web_deepseek_pilot": {
     "path": "reports/phase4-8/web-deepseek-ab-pilot-20261116.json",
@@ -295,7 +304,8 @@
         "Web Summary Evidence Task replication passed 3/3 with 9.837 percent weighted savings",
         "strict local replication gate passed 3/3 Web Summary pairs with 12.926 percent weighted savings",
         "post-fix large Web replication passed 3/3 but regressed latency",
-        "strict local replication gate passed 3/3 live Blender pairs with 93.526 percent weighted savings"
+        "strict local replication gate passed 3/3 live Blender pairs with 93.526 percent weighted savings",
+        "second live Blender task PIE_Large_Cube_63 passed a strict single pair with 94.702 percent savings"
       ],
       "missing": [
         "Codex provider certification",
