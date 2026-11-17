@@ -59,6 +59,12 @@
     "passed": 35,
     "failed": 0
   },
+  "memory_project_isolation": {
+    "path": "reports/phase4-8/memory-project-isolation-20261116.json",
+    "status": "PASS_LOCAL",
+    "cross_root_isolated": true,
+    "file_change_invalidation": "covered by existing hash-invalidation tests"
+  },
   "latest_web_gateway_focused": {
     "command": "uv run python -m pytest -q tests/test_regression_certification.py tests/test_gateway_web_results.py tests/test_gateway_web_context_exposure.py --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-gate-focused-20261116 -p no:cacheprovider",
     "passed": 25,

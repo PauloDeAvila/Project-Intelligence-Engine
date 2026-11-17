@@ -14,6 +14,8 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 - `uv run python tools/verify_context_runtime.py` — `PASS_LOCAL`; o verificador registra `external_provider_usage=unavailable` e não promove evidência sintética a certificação.
 - Testes de execução local, exposição Web e persistência Delta: 35 passed, 0 failed.
 - Consulta local indexada: 100 amostras, p95 de 3,6046 ms (meta de 100 ms aprovada), sem chamadas de provider.
+- Isolamento entre dois workspaces: restauração cruzada retornou `NOT_FOUND`, e
+  cada workspace restaurou somente seu próprio checkpoint.
 - O handoff codex → deepseek foi exercitado com checkpoint persistente,
   hash de origem e proveniência preservada.
 - Também foi executada uma sonda de compatibilidade checkpoint → GLM: o
@@ -31,7 +33,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 | Fase | Estado | Conclusão |
 |---|---|---|
 | 4 — Consolidação | PASS_EXTERNAL_CONTROLLED_READ_ONLY | Sem regressões locais; Web E2E e Blender 5.3 real passaram initialize, tools/list, get_addon_status e get_scene_info via PIE. A fixture Blender real com 64 objetos e 16 materiais também foi carregada e validada em modo somente leitura. |
-| 5 — Memória entre agentes | PASS_EXTERNAL_CONTROLLED | Handoff real OpenCode/DeepSeek executado após reinício; sonda separada confirmou compatibilidade checkpoint→GLM. A chamada oficial Codex→GLM permanece pendente. |
+| 5 — Memória entre agentes | PASS_EXTERNAL_CONTROLLED | Handoff real OpenCode/DeepSeek executado após reinício; isolamento entre workspaces passou; sonda separada confirmou compatibilidade checkpoint→GLM. A chamada oficial Codex→GLM permanece pendente. |
 | 6 — Contexto incremental/cache | PASS_EXTERNAL_CONTROLLED_SINGLE_PAIR | Hashes, compilador, cache persistente e invalidação após mudança cobertos; um par DeepSeek real após reinício passou no oráculo: 237 → 167 tokens. Ainda não é evidência estatística. |
 | 7 — Execução local | PASS_LOCAL | Allowlist, limites, replay, timeouts fail-closed e testes de segurança passaram; consulta SQLite local p95 de 3,6046 ms. |
 | 8 — Certificação contínua | PARTIAL_NOT_CERTIFIED | GLM v5, DeepSeek 3.2, Blender e Web tiveram pilotos locais; os gates estritos Blender mediram 93,526% e 94,762% em duas tarefas, enquanto Web Summary mediu 12,926% e um piloto Web anterior teve −29,098%. Ainda faltam certificação Codex e generalização ampla. |
