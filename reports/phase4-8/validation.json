@@ -119,6 +119,13 @@
     "retries": 0,
     "latency_variability": "high"
   },
+  "blender_live_scene_snapshot": {
+    "path": "reports/phase4-8/blender-live-scene-snapshot-20261116.json",
+    "status": "PASS_READ_ONLY",
+    "mesh_objects": 64,
+    "canonical_sha256": "7de1f6826295728782204299b599ebbbca0ed2df697caca7ec4d0eaa98e6df1c",
+    "scene_modified": false
+  },
   "web_deepseek_pilot": {
     "path": "reports/phase4-8/web-deepseek-ab-pilot-20261116.json",
     "pairs": 3,
@@ -302,7 +309,7 @@
     "The configured PIE MCP server in this session reports another workspace root and was not used as evidence.",
     "Only one controlled live handoff was executed; general multi-agent quality is not certified.",
     "Character reduction and synthetic counters are not token certification.",
-    "Live Blender strict gate uses a task-oracle fixture hash plus an independent live scene probe; it is not a full .blend snapshot hash.",
+    "Live Blender strict gate uses a task-oracle fixture hash; a separate read-only canonical scene snapshot is recorded, but it is not a full .blend file hash.",
     "Blender live gate latency is highly variable across the three local repetitions.",
     "Initial live-domain probe recorded Blender WinError 10053 and Web ERR_CONNECTION_REFUSED; the later isolated factory-startup probe passed the live Blender path on the configured default port 9876."
   ]

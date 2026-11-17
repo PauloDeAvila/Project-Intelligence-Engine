@@ -253,5 +253,8 @@ As duas primeiras tentativas inválidas foram mantidas: catálogo PIE sem
 allowlist causou limite de raciocínio; depois o oráculo foi corrigido para
 tratar `mesh`/`MESH` como o mesmo enum MCP, sem normalizar nomes ou valores.
 A latência teve alta variabilidade. O hash da fixture representa o oráculo e a
-identidade verificada da cena, não um snapshot `.blend` completo independente.
-Evidência: `blender-live-replication-gate-20261116.json`.
+identidade verificada da cena. Um snapshot canônico independente registrou 64
+objetos mesh, SHA-256 `7de1f682...e6df1c` e nenhuma alteração na cena; ele ainda
+não é um hash de arquivo `.blend` completo. Evidências:
+`blender-live-replication-gate-20261116.json` e
+`blender-live-scene-snapshot-20261116.json`.

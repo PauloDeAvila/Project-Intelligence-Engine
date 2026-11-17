@@ -21,9 +21,11 @@ completo e estourou o limite de raciocínio; outra revelou diferença semântica
 de capitalização (`mesh`/`MESH`) no oráculo. O piloto foi corrigido sem ocultar
 essas falhas.
 
-Limitações: a latência variou significativamente entre pares; o hash registrado
-é do oráculo determinístico da tarefa e da identidade verificada da cena, não
-um snapshot independente completo do arquivo `.blend`; portanto este resultado
-é uma certificação local do protocolo e não certificação oficial do Codex.
+Limitações: a latência variou significativamente entre pares. O gate usa o hash
+do oráculo determinístico da tarefa; adicionalmente, foi capturado um hash
+canônico independente da cena ao vivo (`7de1f682...e6df1c`), mas ele é uma
+observação do estado corrente, não um snapshot `.blend` completo. Portanto este
+resultado é uma certificação local do protocolo e não certificação oficial do
+Codex.
 
 Evidência: `blender-live-replication-gate-20261116.json`.

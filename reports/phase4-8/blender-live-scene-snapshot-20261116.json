@@ -1,0 +1,13 @@
+{
+  "schema": "pie-blender-live-scene-snapshot-v1",
+  "status": "PASS_READ_ONLY",
+  "workspace": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean",
+  "blender_version": "5.3.0",
+  "scene": "Scene",
+  "mesh_objects": 64,
+  "canonical_payload_chars": 6813,
+  "canonical_sha256": "7de1f6826295728782204299b599ebbbca0ed2df697caca7ec4d0eaa98e6df1c",
+  "source": "mcp__pie_blender_optimized__execute_blender_code",
+  "operation": "read-only sorted object names, types, locations and material names",
+  "scene_modified": false
+}
