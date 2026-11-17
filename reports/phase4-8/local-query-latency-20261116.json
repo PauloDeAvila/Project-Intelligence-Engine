@@ -1,0 +1,16 @@
+{
+  "schema": "pie-local-query-latency-v1",
+  "query": "ContextRuntime",
+  "samples": 100,
+  "result_count": 47,
+  "p50_ms": 2.8788,
+  "p95_ms": 3.6046,
+  "p99_ms": 3.8769,
+  "min_ms": 2.3759,
+  "max_ms": 3.9016,
+  "target_p95_ms": 100,
+  "target_pass": true,
+  "provider_calls": 0,
+  "model_tokens": null,
+  "scope": "same-process local indexed SQLite query; excludes model/provider latency"
+}

@@ -44,6 +44,21 @@
     "external_provider_usage": "unavailable",
     "synthetic_provider_evidence": true
   },
+  "local_query_latency": {
+    "path": "reports/phase4-8/local-query-latency-20261116.json",
+    "samples": 100,
+    "p50_ms": 2.8788,
+    "p95_ms": 3.6046,
+    "p99_ms": 3.8769,
+    "target_p95_ms": 100,
+    "target_pass": true,
+    "provider_calls": 0
+  },
+  "local_execution_security_tests": {
+    "command": "uv run python -m pytest -q tests/test_local_execution.py tests/test_gateway_web_context_exposure.py tests/test_gateway_delta_store.py --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase7-adversarial-20261116 -p no:cacheprovider",
+    "passed": 35,
+    "failed": 0
+  },
   "latest_web_gateway_focused": {
     "command": "uv run python -m pytest -q tests/test_regression_certification.py tests/test_gateway_web_results.py tests/test_gateway_web_context_exposure.py --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-gate-focused-20261116 -p no:cacheprovider",
     "passed": 25,
@@ -342,6 +357,7 @@
         "DeepSeek failed-quality pilot was preserved as NOT_CERTIFIED",
         "DeepSeek valid three-pair pilot reported 93.801 percent total savings and 3/3 oracle correctness",
         "Web gateway no longer announces pie_web_context by default",
+        "local indexed SQLite query p95 measured below 100 ms without provider calls",
         "large Web gateway compaction gate reduced 8632 to 2164 characters",
         "Web Evidence Agent selected exact fields in both arms",
         "Web Evidence Task executed MCP after model action selection with 21.624 percent total savings",
