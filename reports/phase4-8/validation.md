@@ -6,7 +6,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 
 ## Evidência executada
 
-- Índice local: CURRENT, workspace_match=true, 272 arquivos, 2.273 símbolos e 2.623 imports, verificado no head de implementação `4532b65`.
+- Índice local: CURRENT, workspace_match=true, 274 arquivos, 2.278 símbolos e 2.633 imports, verificado no head de implementação `b44d079`.
 - Testes focados: 74 passed.
 - Suíte completa histórica: 710 passed, 4 skipped, 126 subtests passed.
 - Testes focados do gateway Web e do gate: 25 passed em 0,29 s.
@@ -15,6 +15,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 - Testes de execução local, exposição Web e persistência Delta: 35 passed, 0 failed.
 - Checagem Blender ao vivo: processo `blender.exe` PID 18196, endpoint `127.0.0.1:9876`, Blender 5.3.0, addon 2.0, protocolo 16/16; leituras nativa e PIE de status/cena passaram.
 - Recuperação Blender: 5 testes focados passaram; o endpoint ativo foi reutilizado sem iniciar duplicata. O preflight Codex agora está conectado à recuperação; o caminho de processo ausente é coberto por teste unitário fail-closed, mas ainda não foi exercitado ao vivo.
+- Executor Codex isolado: `CODEX_HOME` temporário com apenas o servidor esperado, aprovação compatível e limpeza automática; 726 testes passaram na suíte completa. Ainda falta executar um novo par A/B oficial por esse caminho.
 - Consulta local indexada: 100 amostras, p95 de 3,6046 ms (meta de 100 ms aprovada), sem chamadas de provider.
 - Isolamento entre dois workspaces: restauração cruzada retornou `NOT_FOUND`, e
   cada workspace restaurou somente seu próprio checkpoint.

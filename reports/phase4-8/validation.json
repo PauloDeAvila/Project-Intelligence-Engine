@@ -3,16 +3,16 @@
   "status": "PARTIAL_LOCAL_VALIDATION",
   "certification": "NOT_CERTIFIED",
   "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
-  "head_at_validation": "4532b65",
-  "implementation_commit": "4532b65",
+  "head_at_validation": "b44d079",
+  "implementation_commit": "b44d079",
   "index": {
     "source": "uv run python -m pie.interfaces.cli status --root .",
     "project": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean",
     "index_state": "CURRENT",
     "workspace_match": true,
-    "files": 272,
-    "symbols": 2273,
-    "imports": 2623
+    "files": 274,
+    "symbols": 2278,
+    "imports": 2633
   },
   "current_blender_probe": {
     "checked_at": "2026-11-17",
@@ -42,6 +42,14 @@
     "provider_usage_available": true,
     "total_tokens": 72991
   },
+  "codex_isolated_executor": {
+    "path": "reports/phase4-8/codex-isolated-executor-20261117.json",
+    "status": "IMPLEMENTED_TESTED",
+    "implementation_commit": "b44d079",
+    "full_suite_passed": 726,
+    "temporary_home_cleanup": true,
+    "original_config_modified": false
+  },
   "blender_runtime_recovery": {
     "path": "reports/phase4-8/blender-runtime-recovery-20261117.json",
     "status": "PASS_LOCAL_AND_LIVE_REUSE",
@@ -67,12 +75,12 @@
   },
   "latest_regression_suite": {
     "command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-default-cube-20261117 -p no:cacheprovider",
-    "passed": 725,
+    "passed": 726,
     "skipped": 4,
     "subtests": 126,
     "failed": 0,
-    "duration_seconds": 30.63,
-    "rerun_command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-blender-recovery-full-20261117 -p no:cacheprovider",
+    "duration_seconds": 33.65,
+    "rerun_command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-codex-isolation-integrated-full-20261117 -p no:cacheprovider",
     "rerun_date": "2026-11-17"
   },
   "blender_upstream_preflight_gate": {
