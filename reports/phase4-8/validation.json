@@ -65,14 +65,16 @@
       "external_live_agent": "PASS_CONTROLLED"
     },
     "6_incremental_context_cache": {
-      "status": "PASS_LOCAL_RESTART",
+      "status": "PASS_EXTERNAL_CONTROLLED_SINGLE_PAIR",
       "evidence": [
         "hash-backed compiler and checkpoint tests passed",
         "persistent evidence cache reopens across calls and invalidates on source hash change",
         "context checkpoint version survives ContextRuntime restart",
-        "real provider evidence remains separate from synthetic token gate"
+        "real provider DeepSeek pair after runtime restart passed the independent oracle",
+        "baseline 237 tokens versus restored checkpoint 167 tokens"
       ],
-      "external_restart_token_proof": "MISSING"
+      "external_restart_token_proof": "PASS_CONTROLLED_SINGLE_PAIR",
+      "external_restart_token_proof_path": "reports/phase4-8/context-runtime-external-restart-token-proof.json"
     },
     "7_local_execution": {
       "status": "PASS_LOCAL",

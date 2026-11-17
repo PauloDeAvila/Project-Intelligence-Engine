@@ -1,0 +1,47 @@
+{
+  "schema": "pie-context-runtime-external-restart-token-proof-v1",
+  "status": "PASS_EXTERNAL_CONTROLLED_SINGLE_PAIR",
+  "certification": "NOT_CERTIFIED",
+  "provider": "infinity",
+  "model": "infinity/deepseek-v3.2",
+  "endpoint": "http://127.0.0.1:8080/v1",
+  "runtime": {
+    "checkpoint_context_version": 1,
+    "checkpoint_state_hash": "24dc90a46118b273ec29dcef61181f08b22c0a3f2714a6e812783c9c4b4e8da2",
+    "runtime_closed_and_reopened": true,
+    "restored_checkpoint_status": "FOUND",
+    "full_history_sent_to_optimized_arm": false
+  },
+  "arms": {
+    "baseline_full_context": {
+      "provider_input_tokens": 193,
+      "provider_output_tokens": 44,
+      "reasoning_output_tokens": 0,
+      "cache_read_tokens": 6413,
+      "total_tokens": 237,
+      "finish_reason": "stop",
+      "oracle_pass": true
+    },
+    "optimized_restored_checkpoint": {
+      "provider_input_tokens": 123,
+      "provider_output_tokens": 44,
+      "reasoning_output_tokens": 0,
+      "cache_read_tokens": 6402,
+      "total_tokens": 167,
+      "finish_reason": "stop",
+      "oracle_pass": true
+    }
+  },
+  "savings": {
+    "input_percent": 36.269,
+    "total_percent": 29.536,
+    "cache_read_percent": 0.171
+  },
+  "evidence": {
+    "prompts_and_responses_persisted": false,
+    "same_model": true,
+    "same_task_and_oracle": true,
+    "pair_count": 1,
+    "note": "A controlled local-provider proof after runtime restart; not sufficient for statistical or Codex certification."
+  }
+}
