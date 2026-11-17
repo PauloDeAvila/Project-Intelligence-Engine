@@ -3,7 +3,7 @@
   "status": "PARTIAL_LOCAL_VALIDATION",
   "certification": "NOT_CERTIFIED",
   "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
-  "head_at_validation": "051570e",
+  "head_at_validation": "ce64ec8",
   "implementation_commit": "051570e",
   "index": {
     "source": "uv run python -m pie.interfaces.cli status --root .",
@@ -128,12 +128,26 @@
   },
   "blender_object63_gate": {
     "path": "reports/phase4-8/blender-object63-replication-gate-20261116.json",
-    "status": "CERTIFIED_LOCAL_SINGLE_PAIR",
+    "status": "CERTIFIED_LOCAL_SUITE",
     "task": "PIE_Large_Cube_63",
-    "baseline_total_tokens": 5266,
-    "optimized_total_tokens": 279,
-    "savings_percent": 94.702,
-    "oracle": "1/1 in both arms"
+    "pairs": 3,
+    "baseline_total_tokens": 15979,
+    "optimized_total_tokens": 837,
+    "savings_percent": 94.762,
+    "baseline_uncached_input_tokens": 10183,
+    "optimized_uncached_input_tokens": 184,
+    "uncached_input_savings_percent": 98.193,
+    "oracle": "3/3 in both arms",
+    "mcp_calls_per_arm": 3,
+    "retries": 0,
+    "mean_latency_seconds": {
+      "baseline": 3.4557,
+      "optimized": 1.8092
+    },
+    "latency_range_seconds": {
+      "baseline": [3.1273, 3.7629],
+      "optimized": [1.5965, 2.1859]
+    }
   },
   "web_deepseek_pilot": {
     "path": "reports/phase4-8/web-deepseek-ab-pilot-20261116.json",
@@ -305,7 +319,7 @@
         "strict local replication gate passed 3/3 Web Summary pairs with 12.926 percent weighted savings",
         "post-fix large Web replication passed 3/3 but regressed latency",
         "strict local replication gate passed 3/3 live Blender pairs with 93.526 percent weighted savings",
-        "second live Blender task PIE_Large_Cube_63 passed a strict single pair with 94.702 percent savings"
+        "second live Blender task PIE_Large_Cube_63 passed a strict three-pair local gate with 94.762 percent savings"
       ],
       "missing": [
         "Codex provider certification",

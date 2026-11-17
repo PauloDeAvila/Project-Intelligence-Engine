@@ -6,7 +6,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 
 ## Evidência executada
 
-- Índice local: CURRENT, workspace_match=true, 270 arquivos, 2.251 símbolos e 2.610 imports, verificado no head `051570e`.
+- Índice local: CURRENT, workspace_match=true, 270 arquivos, 2.251 símbolos e 2.610 imports, verificado no head `ce64ec8`.
 - Testes focados: 74 passed.
 - Suíte completa histórica: 710 passed, 4 skipped, 126 subtests passed.
 - Testes focados do gateway Web e do gate: 25 passed em 0,29 s.
@@ -262,14 +262,18 @@ não é um hash de arquivo `.blend` completo. Evidências:
 ## Segundo cenário Blender
 
 O runner foi ampliado para uma segunda tarefa determinística, `PIE_Large_Cube_63`,
-validada diretamente no Blender antes do A/B.
+validada diretamente no Blender antes do A/B e repetida três vezes.
 
-- Tokens: 5.266 → 279.
-- Economia: 94,702%.
-- Oráculos: 1/1 em ambos os braços.
+- Tokens agregados: 15.979 → 837.
+- Economia ponderada: 94,762%.
+- Entrada não cacheada: 10.183 → 184, economia de 98,193%.
+- Oráculos: 3/3 em ambos os braços.
 - Chamadas MCP: 3 por braço.
-- Gate: `CERTIFIED` para o par local.
+- Retries: 0; modelo efetivo `gambiarraapi/deepseek-v3.2`.
+- Latência média: 3,4557 s → 1,8092 s.
+- Gate: `CERTIFIED` para a suíte local de três pares.
 
-Esse cenário amplia a cobertura de objetos, mas ainda possui uma única repetição
-e não estabelece certificação estatística independente. Evidência:
+Esse cenário amplia a cobertura de objetos, mas continua restrito à fixture
+Blender local e ao provider DeepSeek configurado. Não estabelece certificação
+oficial do Codex nem generalização para outras tarefas. Evidência:
 `blender-object63-replication-gate-20261116.json`.
