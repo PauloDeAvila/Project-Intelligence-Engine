@@ -3,16 +3,16 @@
   "status": "PARTIAL_LOCAL_VALIDATION",
   "certification": "NOT_CERTIFIED",
   "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
-  "head_at_validation": "27893fb",
-  "implementation_commit": "09277f3",
+  "head_at_validation": "11c6d80",
+  "implementation_commit": "11c6d80",
   "index": {
     "source": "uv run python -m pie.interfaces.cli status --root .",
     "project": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean",
     "index_state": "CURRENT",
     "workspace_match": true,
     "files": 278,
-    "symbols": 2279,
-    "imports": 2641
+    "symbols": 2280,
+    "imports": 2642
   },
   "current_blender_probe": {
     "checked_at": "2026-11-17",
@@ -46,7 +46,7 @@
     "path": "reports/phase4-8/codex-isolated-executor-20261117.json",
     "status": "IMPLEMENTED_TESTED",
     "implementation_commit": "09277f3",
-    "full_suite_passed": 726,
+    "full_suite_passed": 727,
     "temporary_home_cleanup": true,
     "original_config_modified": false
   },
@@ -62,6 +62,20 @@
     "baseline_mcp_server": "blender",
     "optimized_mcp_server": "pie-blender-optimized",
     "same_commit": "09277f3af1d22ed78a9e14ba2d7be0629ceabd2d"
+  },
+  "codex_web_controlled_pair": {
+    "path": "reports/phase4-8/codex-web-local-controlled-pair-20261117.json",
+    "status": "VALID_SINGLE_PAIR_NOT_CERTIFIED",
+    "provider_usage_available": true,
+    "baseline_total_tokens": 63601,
+    "optimized_total_tokens": 92520,
+    "total_savings_percent": -45.469411,
+    "baseline_oracle_pass": true,
+    "optimized_oracle_pass": true,
+    "baseline_mcp_server": "playwright-baseline",
+    "optimized_mcp_server": "pie-web-optimized",
+    "same_commit": "11c6d80c1db095820ec2a375c90d546a57b4e1cb",
+    "same_worktree_path": true
   },
   "blender_runtime_recovery": {
     "path": "reports/phase4-8/blender-runtime-recovery-20261117.json",
@@ -88,11 +102,11 @@
   },
   "latest_regression_suite": {
     "command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-default-cube-20261117 -p no:cacheprovider",
-    "passed": 726,
+    "passed": 727,
     "skipped": 4,
     "subtests": 126,
     "failed": 0,
-    "duration_seconds": 33.65,
+    "duration_seconds": 30.30,
     "rerun_command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-codex-isolation-integrated-full-20261117 -p no:cacheprovider",
     "rerun_date": "2026-11-17"
   },

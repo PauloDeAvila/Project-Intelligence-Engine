@@ -30,11 +30,12 @@
         "isolated temporary Codex home exposed only pie-blender-optimized and passed both Blender calls",
         "integrated executor now materializes and cleans the isolated Codex home",
       "one official provider-backed Codex Blender pair passed through the integrated isolated executor with 51.306812 percent total token savings",
+      "one controlled official provider-backed Codex Web pair passed through pie-web-optimized with the oracle passing and 45.469411 percent total token regression",
         "one live baseline versus PIE default-scene pair with DeepSeek 3.2 passed the oracle and reported 95.27 percent total savings",
-        "gateway runtime tests and full regression suite pass"
+      "gateway runtime tests and full regression suite pass (727 passed, 4 skipped, 126 subtests)"
       ],
       "missing": [
-      "two additional Blender repetitions and three Web pairs are still pending for the planned coverage",
+      "two additional Blender repetitions and two additional controlled Web pairs are still pending for the planned coverage",
         "one end-to-end runtime shared by Codex and OpenCode is not proven as a single production service"
       ],
       "evidence": [
@@ -42,10 +43,11 @@
         "reports/phase4-8/codex-pie-blender-route-probe-20261117.json",
         "reports/phase4-8/codex-pie-blender-isolated-route-probe-20261117.json",
       "reports/phase4-8/codex-blender-default-pair-20261117.json",
+      "reports/phase4-8/codex-web-local-controlled-pair-20261117.json",
         "reports/phase4-8/blender-live-availability-20261117.json",
         "reports/phase4-8/blender-runtime-recovery-20261117.json",
         "reports/phase4-8/validation.json",
-        "latest regression: 726 passed, 4 skipped, 126 subtests"
+      "latest regression: 727 passed, 4 skipped, 126 subtests"
       ]
     },
     "5_multi_agent_memory": {
@@ -102,6 +104,7 @@
       ],
       "missing": [
         "official Codex baseline versus PIE A/B pairs",
+      "two additional repetitions per domain for the planned three-pair sample",
         "broad statistical certification across domains and tasks",
         "quality equivalence beyond the recorded fixtures"
       ],
@@ -116,6 +119,6 @@
   },
   "certification": {
     "status": "NOT_CERTIFIED",
-    "reason": "Only one official Codex Blender pair is complete; required repetitions, Web pairs, and broader cross-domain coverage remain pending."
+    "reason": "One official pair per domain is complete; required repetitions and broader cross-domain coverage remain pending."
   }
 }

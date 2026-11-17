@@ -1,0 +1,101 @@
+{
+  "schema": "pie-phase4-8-codex-ab-v1",
+  "status": "VALID_SINGLE_PAIR_NOT_CERTIFIED",
+  "certification": {
+    "status": "NOT_CERTIFIED",
+    "reason": "One controlled Web pair only; required repetitions and cross-domain sample size are still pending."
+  },
+  "pair_id": "pair-codex-web-local-controlled-20261117",
+  "scenario_id": "web-local-fixture-codex-v1",
+  "workspace_commit": "11c6d80c1db095820ec2a375c90d546a57b4e1cb",
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "fixture": "http://127.0.0.1:8766/index.html; local-only navigation",
+  "prompt_sha256": "1577c2377182a7360238acf98716d74314e5170957cfe8f7e267c0345f94acb4",
+  "oracle": {
+    "kind": "exact_text",
+    "fixture_id": "PIE_WEB_FIXTURE_V1",
+    "baseline_pass": true,
+    "optimized_pass": true,
+    "answer_sha256": "23e8dcabd2e74c21396c8d3700f11da2d5ffa5c14be34281ff2e341caffb7663",
+    "external_pages_accessed": false
+  },
+  "arms": {
+    "baseline": {
+      "run_id": "codex-web-local-controlled-baseline-r1",
+      "server": "playwright-baseline",
+      "mcp_tools": ["browser_navigate", "browser_snapshot", "browser_click", "browser_snapshot"],
+      "mcp_calls": 4,
+      "tool_events": 4,
+      "provider_reported": true,
+      "oracle_pass": true,
+      "usage": {
+        "input_tokens": 63224,
+        "cached_input_tokens": 50816,
+        "uncached_input_tokens": 12408,
+        "output_tokens": 377,
+        "reasoning_output_tokens": 181,
+        "total_tokens": 63601
+      },
+      "duration_ms": 18481.357,
+      "configuration_sha256": "400cd4d33146b49d8d1a2a07543ca905e71072a8cfbd4296559d369d99289e8d",
+      "forensic_path": "C:\\Users\\phsra\\AppData\\Local\\Temp\\.pie-codex-web-paired-11c6d80-20261117-pie-live-store\\runs\\codex-web-local-controlled-baseline-r1"
+    },
+    "optimized": {
+      "run_id": "codex-web-local-controlled-optimized-r1",
+      "server": "pie-web-optimized",
+      "mcp_tools": ["browser_navigate", "browser_snapshot", "browser_click", "browser_snapshot"],
+      "mcp_calls": 4,
+      "tool_events": 4,
+      "provider_reported": true,
+      "oracle_pass": true,
+      "usage": {
+        "input_tokens": 92201,
+        "cached_input_tokens": 75776,
+        "uncached_input_tokens": 16425,
+        "output_tokens": 319,
+        "reasoning_output_tokens": 110,
+        "total_tokens": 92520
+      },
+      "duration_ms": 18485.529,
+      "configuration_sha256": "8bcf6f80044bd5690d1bdcc2529b65b5d6e8a6b9eda0de1878427f3519ca0708",
+      "forensic_path": "C:\\Users\\phsra\\AppData\\Local\\Temp\\.pie-codex-web-paired-11c6d80-20261117-pie-live-store\\runs\\codex-web-local-controlled-optimized-r1"
+    }
+  },
+  "comparison": {
+    "input_savings_percent": -45.832279,
+    "uncached_input_savings_percent": -32.374275,
+    "cached_input_savings_percent": -49.118388,
+    "output_savings_percent": 15.384615,
+    "total_savings_percent": -45.469411,
+    "latency_delta_percent": 0.022574,
+    "latency_interpretation": "optimized marginally slower",
+    "mcp_call_delta": 0,
+    "reasoning_note": "reasoning_output_tokens are reported separately and are not added to total_tokens."
+  },
+  "telemetry": {
+    "optimized_gateway_store": "C:\\Users\\phsra\\AppData\\Local\\Temp\\.pie-codex-web-paired-11c6d80-20261117-pie-live-store",
+    "optimized_lifecycle_events": 25,
+    "optimized_mcp_tool_call_events": 4,
+    "optimized_completed_tool_call_events": 4,
+    "same_worktree_path_for_arms": true,
+    "baseline_artifact_cleanup": "Only .playwright-mcp files created by this local fixture were removed between arms; checkout was verified clean.",
+    "credentials_stored": false,
+    "transcripts_stored": false
+  },
+  "cost": {
+    "status": "UNAVAILABLE",
+    "total": null,
+    "reason": "No verified tariff was supplied for gpt-5.6-luna."
+  },
+  "preflight_failures_not_counted": [
+    "Initial scenario validation rejected the repeated browser_snapshot sequence before model start.",
+    "A second no-model attempt hit the existing forensic directory for the same run_id.",
+    "A prior Web optimized attempt was blocked because baseline Playwright left .playwright-mcp in its worktree."
+  ],
+  "limitations": [
+    "This is one controlled real Codex pair, not the three-pair-per-domain certification sample.",
+    "The optimized path increased total tokens by 45.469411% in this Web fixture despite lower output tokens.",
+    "The result is evidence against claiming generic Web token savings for this task."
+  ]
+}
