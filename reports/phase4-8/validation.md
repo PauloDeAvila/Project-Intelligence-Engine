@@ -23,6 +23,11 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
   apenas o contexto compilado, sem o histórico completo. O oráculo passou; uso
   reportado: 69 tokens de entrada, 34 de saída e 103 totais. Não houve chamada
   do provider oficial Codex. Evidência: `glm-agent-handoff-20261116.json`.
+- A primeira sonda real do Codex confirmou o roteamento para
+  `pie-blender-optimized`, sem chamar servidores proibidos. As duas ferramentas
+  de leitura falharam porque não havia processo Blender conectado; os tokens
+  reportados foram 137.115 de entrada e 1.019 de saída. Evidência:
+  `codex-pie-blender-route-probe-20261117.json`.
 - O preflight de roteamento no checkout atual passou para Web completo e o
   gateway Blender isolado passou initialize, `tools/list`, `get_addon_status` e
   `get_scene_info`; a falha anterior do processo não foi usada como evidência
@@ -32,7 +37,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 
 | Fase | Estado | Conclusão |
 |---|---|---|
-| 4 — Consolidação | PASS_EXTERNAL_CONTROLLED_READ_ONLY | Sem regressões locais; Web E2E e Blender 5.3 real passaram initialize, tools/list, get_addon_status e get_scene_info via PIE. A fixture Blender real com 64 objetos e 16 materiais também foi carregada e validada em modo somente leitura. |
+| 4 — Consolidação | PARTIAL_EXTERNAL_CONTROLLED | Roteamento Codex → `pie-blender-optimized` comprovado, mas a sonda oficial não alcançou o Blender porque o processo/addon estava indisponível; o probe local anterior continua válido separadamente. |
 | 5 — Memória entre agentes | PASS_EXTERNAL_CONTROLLED | Handoff real OpenCode/DeepSeek executado após reinício; isolamento entre workspaces passou; sonda separada confirmou compatibilidade checkpoint→GLM. A chamada oficial Codex→GLM permanece pendente. |
 | 6 — Contexto incremental/cache | PASS_EXTERNAL_CONTROLLED_SINGLE_PAIR | Hashes, compilador, cache persistente e invalidação após mudança cobertos; um par DeepSeek real após reinício passou no oráculo: 237 → 167 tokens. Ainda não é evidência estatística. |
 | 7 — Execução local | PASS_LOCAL | Allowlist, limites, replay, timeouts fail-closed e testes de segurança passaram; consulta SQLite local p95 de 3,6046 ms. |

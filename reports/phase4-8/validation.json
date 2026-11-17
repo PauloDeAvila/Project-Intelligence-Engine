@@ -116,6 +116,18 @@
     "output_tokens": 34,
     "total_tokens": 103
   },
+  "codex_pie_blender_route_probe": {
+    "path": "reports/phase4-8/codex-pie-blender-route-probe-20261117.json",
+    "status": "ROUTE_PASS_BLENDER_UNAVAILABLE",
+    "model": "gpt-5.6-luna",
+    "server_observed": "pie-blender-optimized",
+    "forbidden_servers_observed": [],
+    "mcp_calls": 2,
+    "successful_mcp_calls": 0,
+    "input_tokens": 137115,
+    "cached_input_tokens": 114048,
+    "output_tokens": 1019
+  },
   "deepseek_expanded_pilot": {
     "path": "reports/phase4-8/deepseek-real-pilot-expanded-20261116.json",
     "tasks": 6,
@@ -328,6 +340,7 @@
       "status": "PASS_EXTERNAL_CONTROLLED",
       "evidence": [
         "explicit codex-to-deepseek checkpoint handoff",
+        "Codex route probe observed pie-blender-optimized without forbidden servers; Blender addon unavailable",
         "checkpoint-compatible GLM restore after runtime restart; official Codex call not executed",
         "durable context_version exposed from the checkpoint sequence",
         "source hash and provenance preserved",

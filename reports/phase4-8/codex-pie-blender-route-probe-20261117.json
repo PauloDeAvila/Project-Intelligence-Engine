@@ -1,0 +1,32 @@
+{
+  "schema": "pie-codex-pie-blender-route-probe-v1",
+  "status": "ROUTE_PASS_BLENDER_UNAVAILABLE",
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "provider_usage_status": "available",
+  "codex_thread_id": "01a1e76f-3fec-7d03-a64e-9a9961aeff3e",
+  "server_requested": "pie-blender-optimized",
+  "server_observed": ["pie-blender-optimized"],
+  "forbidden_servers_observed": [],
+  "mcp_calls": [
+    {
+      "tool": "get_addon_status",
+      "status": "ERROR",
+      "error": "Could not connect to Blender. Make sure the Blender addon is running."
+    },
+    {
+      "tool": "get_scene_info",
+      "status": "ERROR",
+      "error": "Could not connect to Blender. Make sure the Blender addon is running."
+    }
+  ],
+  "usage": {
+    "input_tokens": 137115,
+    "cached_input_tokens": 114048,
+    "output_tokens": 1019,
+    "reasoning_output_tokens": 526
+  },
+  "scene_modified": false,
+  "persistent_configuration_changed": false,
+  "next_prerequisite": "Blender process and enabled addon bridge must be running before another Codex probe"
+}
