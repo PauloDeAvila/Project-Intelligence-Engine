@@ -13,7 +13,10 @@ import uuid
 from pathlib import Path
 from urllib.parse import urlparse
 
-from phase8_web_large_deepseek_pilot import ORACLE
+try:
+    from phase8_web_large_deepseek_pilot import ORACLE
+except ModuleNotFoundError:
+    from tools.phase8_web_large_deepseek_pilot import ORACLE
 
 TASK_PROFILES = {
     "large": {

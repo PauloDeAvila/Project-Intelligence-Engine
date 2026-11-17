@@ -1,0 +1,102 @@
+{
+  "schema": "pie-certification-replication-v1",
+  "status": "CERTIFIED",
+  "pair_count": 3,
+  "reasons": [],
+  "per_pair": [
+    {
+      "schema": "pie-certification-regression-v1",
+      "status": "CERTIFIED_PAIR",
+      "pair_id": "blender-live-evidence-1",
+      "reasons": [],
+      "savings": {
+        "baseline_input_tokens": 5218,
+        "baseline_cached_input_tokens": 449,
+        "baseline_uncached_input_tokens": 4769,
+        "baseline_output_tokens": 48,
+        "baseline_total_tokens": 5266,
+        "optimized_input_tokens": 231,
+        "optimized_cached_input_tokens": 191,
+        "optimized_uncached_input_tokens": 40,
+        "optimized_output_tokens": 48,
+        "optimized_total_tokens": 279,
+        "savings_input_percent": 99.16125,
+        "savings_total_percent": 94.701861,
+        "cached_input_delta": -258,
+        "output_token_delta": 0,
+        "latency_delta_ms": -322.0,
+        "mcp_call_delta": 0
+      }
+    },
+    {
+      "schema": "pie-certification-regression-v1",
+      "status": "CERTIFIED_PAIR",
+      "pair_id": "blender-live-evidence-2",
+      "reasons": [],
+      "savings": {
+        "baseline_input_tokens": 5218,
+        "baseline_cached_input_tokens": 5159,
+        "baseline_uncached_input_tokens": 59,
+        "baseline_output_tokens": 48,
+        "baseline_total_tokens": 5266,
+        "optimized_input_tokens": 270,
+        "optimized_cached_input_tokens": 223,
+        "optimized_uncached_input_tokens": 47,
+        "optimized_output_tokens": 144,
+        "optimized_total_tokens": 414,
+        "savings_input_percent": 20.338983,
+        "savings_total_percent": 92.138245,
+        "cached_input_delta": -4936,
+        "output_token_delta": 96,
+        "latency_delta_ms": 1157.4,
+        "mcp_call_delta": 0
+      }
+    },
+    {
+      "schema": "pie-certification-regression-v1",
+      "status": "CERTIFIED_PAIR",
+      "pair_id": "blender-live-evidence-3",
+      "reasons": [],
+      "savings": {
+        "baseline_input_tokens": 5355,
+        "baseline_cached_input_tokens": 561,
+        "baseline_uncached_input_tokens": 4794,
+        "baseline_output_tokens": 239,
+        "baseline_total_tokens": 5594,
+        "optimized_input_tokens": 270,
+        "optimized_cached_input_tokens": 191,
+        "optimized_uncached_input_tokens": 79,
+        "optimized_output_tokens": 81,
+        "optimized_total_tokens": 351,
+        "savings_input_percent": 98.352107,
+        "savings_total_percent": 93.72542,
+        "cached_input_delta": -370,
+        "output_token_delta": -158,
+        "latency_delta_ms": 1188.1,
+        "mcp_call_delta": 0
+      }
+    }
+  ],
+  "aggregate_savings": {
+    "baseline_total_tokens": 16126,
+    "optimized_total_tokens": 1044,
+    "baseline_uncached_input_tokens": 9622,
+    "optimized_uncached_input_tokens": 166,
+    "savings_total_percent": 93.525983,
+    "savings_input_percent": 98.274787
+  },
+  "reports": [
+    "reports\\phase4-8\\blender-live-evidence-20261116-r1-fixed.json",
+    "reports\\phase4-8\\blender-live-evidence-20261116-r2-fixed.json",
+    "reports\\phase4-8\\blender-live-evidence-20261116-r3.json"
+  ],
+  "model": [
+    "gambiarraapi/deepseek-v3.2"
+  ],
+  "application": [
+    "blender"
+  ],
+  "fixture_sha256": [
+    "3503ca3b7f5d3d3feba84fae2b9e12418d957d955560c5706a54c5ce559e4808"
+  ]
+}

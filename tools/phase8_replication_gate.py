@@ -21,7 +21,7 @@ def _run(report: dict, name: str) -> RunEvidence:
     return RunEvidence(
         pair_id=report["pair_id"],
         scenario_id=report["task_id"],
-        application="web",
+        application=report.get("application", "unknown"),
         condition=name,
         model=report["model"],
         prompt_sha256=report["prompt_sha256"],
@@ -54,6 +54,7 @@ def main() -> int:
     result = evaluate_replication_suite(pairs)
     result["reports"] = [str(path) for path in args.reports]
     result["model"] = sorted({report.get("model") for report in loaded})
+    result["application"] = sorted({report.get("application", "unknown") for report in loaded})
     result["fixture_sha256"] = sorted({report.get("fixture_sha256") for report in loaded})
     args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(result, ensure_ascii=False))
