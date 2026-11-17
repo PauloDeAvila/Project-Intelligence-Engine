@@ -6,10 +6,11 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 
 ## Evidência executada
 
-- Índice local: CURRENT, workspace_match=true, 267 arquivos, 2.238 símbolos e 2.586 imports, verificado no head `f6eb28b`.
+- Índice local: CURRENT, workspace_match=true, 267 arquivos, 2.239 símbolos e 2.587 imports, verificado no head `e2e4da9`.
 - Testes focados: 74 passed.
 - Suíte completa histórica: 710 passed, 4 skipped, 126 subtests passed.
-- Suíte de regressão executada neste head: `uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-suite-20261116-r3 -p no:cacheprovider` — 714 passed, 4 skipped, 126 subtests passed em 39,48 s.
+- Testes focados do gateway Web: 17 passed em 0,28 s.
+- Suíte de regressão executada neste head: `uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-suite-20261116-r4 -p no:cacheprovider` — 715 passed, 4 skipped, 126 subtests passed em 32,07 s.
 - O handoff codex → deepseek foi exercitado com checkpoint persistente,
   hash de origem e proveniência preservada.
 - O preflight de roteamento no checkout atual passou para Web completo e o
@@ -193,3 +194,19 @@ percentuais e os oráculos passaram em todos os braços. Essa é a melhor evidê
 reprodutível deste fluxo, mas ainda está limitada a uma fixture e ao provider
 local `gambiarraapi/deepseek-v3.2`. Evidência:
 `web-large-evidence-task-jsonmode-replication-analysis-20261116.json`.
+
+## Piloto Web Summary
+
+Uma segunda fixture Web determinística foi executada em três pares com o
+provider local `gambiarraapi/deepseek-v3.2` e resposta JSON estruturada. Os
+oráculos passaram em todos os braços: 3/3 baseline e 3/3 PIE.
+
+- Tokens: 19.965 → 18.001, economia ponderada de 9,837%.
+- Entrada: 19.872 → 17.820, redução de 10,326%.
+- Saída: 93 → 181, aumento de 94,624%.
+- Latência média: 4,1648 s → 2,4789 s.
+
+O ganho total é modesto e a saída aumentou no braço PIE. A diferença de cache
+também foi preservada (15.240 → 5.570 tokens), portanto o resultado não deve
+ser interpretado como efeito isolado da compactação. Evidência:
+`web-summary-evidence-task-replication-analysis-20261116.json`.
