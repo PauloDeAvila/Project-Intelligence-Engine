@@ -12,6 +12,9 @@
     "diagnostics": []
   },
   "overall_status": "PARTIAL_NOT_CERTIFIED",
+  "operational_risks": [
+    "preflight_codex validates the configured route but does not perform a live upstream Blender connectivity check before starting the provider; a missing addon can therefore consume provider context before the MCP error is returned"
+  ],
   "phases": {
     "4_consolidation": {
       "status": "PARTIAL_EXTERNAL_CONTROLLED",

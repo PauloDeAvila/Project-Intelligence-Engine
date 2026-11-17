@@ -99,6 +99,11 @@ uso real, mas continuam limitados às fixtures e aos cenários registrados; não
 substituem a certificação oficial Codex nem uma generalização ampla para
 Blender/Web.
 
+O preflight atual valida a configuração do gateway, mas não testa a
+conectividade do upstream Blender antes de iniciar o provider. Uma próxima
+execução paga de Blender deve adicionar esse gate ou ser explicitamente
+classificada como bloqueada antes do modelo.
+
 O backup e o diff sanitizado da configuração Codex estão em
 `reports/phase4-8/routing-preflight-20261116.*`; o servidor original Blender e
 `node_repl` não foram modificados.

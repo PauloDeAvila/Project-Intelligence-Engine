@@ -32,3 +32,11 @@ Nenhum token ausente foi estimado e nenhum resultado negativo foi descartado.
 
 Evidência estruturada: `completion-audit-20261117.json` e
 `validation.json`.
+
+## Risco operacional identificado
+
+`preflight_codex()` verifica o cenário, configuração, rota MCP, workspace,
+executável e autenticação, mas não executa uma verificação viva do upstream
+Blender antes de iniciar o provider. Assim, um addon ausente pode consumir
+contexto do Codex antes de a falha MCP ser observada. Isso deve ser corrigido
+antes de novas sessões pagas Blender; não foi mascarado por uma estimativa.
