@@ -74,6 +74,16 @@
     "range_percentage_points": 0.056,
     "status": "REPLICATED_DESCRIPTIVE_NOT_CERTIFIED"
   },
+  "blender_deepseek_pilot": {
+    "path": "reports/phase4-8/blender-deepseek-ab-pilot-20261116.json",
+    "pairs": 3,
+    "baseline_total_tokens": 2918,
+    "pie_total_tokens": 498,
+    "total_savings_percent": 82.934,
+    "baseline_correct": 3,
+    "pie_correct": 3,
+    "status": "PILOT_VALID_NOT_CERTIFIED"
+  },
   "phases": {
     "4_consolidation": {
       "status": "PASS_EXTERNAL_CONTROLLED_READ_ONLY",

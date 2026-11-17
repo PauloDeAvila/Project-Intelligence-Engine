@@ -22,7 +22,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 | 5 — Memória entre agentes | PASS_EXTERNAL_CONTROLLED | Handoff real OpenCode/DeepSeek executado após reinício; `context_version` durável e histórico completo não enviado. |
 | 6 — Contexto incremental/cache | PASS_EXTERNAL_CONTROLLED_SINGLE_PAIR | Hashes, compilador, cache persistente e invalidação após mudança cobertos; um par DeepSeek real após reinício passou no oráculo: 237 → 167 tokens. Ainda não é evidência estatística. |
 | 7 — Execução local | PASS_LOCAL | Allowlist, limites, replay e timeouts fail-closed cobertos. |
-| 8 — Certificação contínua | PARTIAL_NOT_CERTIFIED | GLM v5 e DeepSeek 3.2 tiveram pilotos válidos; o piloto DeepSeek ampliado cobriu 6 tarefas/12 chamadas, 93,226% de redução total e 6/6 em ambos os braços. Ainda faltam Codex, Blender/Web e generalização estatística independente. |
+| 8 — Certificação contínua | PARTIAL_NOT_CERTIFIED | GLM v5, DeepSeek 3.2 e um A/B Blender real tiveram pilotos válidos; Blender mediu 82,934% de redução total com 3/3 oráculos. Ainda faltam Codex, Web A/B e generalização estatística ampla. |
 
 ## Alteração desta rodada
 
@@ -102,3 +102,18 @@ descritiva promissora, mas não certificação estatística completa: ambas usam
 mesmo provider e corpus.
 
 Evidência: `deepseek-replication-analysis-20261117.json`.
+
+## Piloto A/B Blender com DeepSeek
+
+Na sessão Blender isolada, a fixture foi gerada com 64 objetos e 16 materiais e
+validada por consulta real. O baseline usou `get_scene_info`; o PIE usou
+`pie_blender_get_object` para o mesmo objeto e tarefa. Os três pares passaram o
+oráculo. O total caiu de 2.918 para 498 tokens, redução de 82,934%; a latência
+mediana, entretanto, aumentou 32,189% (2,4605 s → 3,2525 s).
+
+Esta é uma comparação de capacidade seletiva com contrato próprio, não uma
+prova de compactação transparente da mesma ferramenta. A especificação da
+fixture veio de outro worktree e seu SHA-256 está registrado; ela não foi
+tratada como código do checkout atual.
+
+Evidência: `blender-deepseek-ab-pilot-20261116.json`.

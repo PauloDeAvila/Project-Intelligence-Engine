@@ -1,0 +1,66 @@
+{
+  "schema": "pie-blender-deepseek-ab-pilot-v1",
+  "status": "PILOT_VALID_NOT_CERTIFIED",
+  "provider": "infinity",
+  "model": "gambiarraapi/deepseek-v3.2",
+  "endpoint": "http://127.0.0.1:8080",
+  "pair_count": 3,
+  "fixture": {
+    "source": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Local-MCP\\fixtures\\phase3\\blender\\large_scene_spec.json",
+    "source_sha256": "B250DB350E5BCC7DA687B261F4CA31478FFD38F733A98DDE3CEB348BED8C2EE9",
+    "source_is_outside_current_checkout": true,
+    "objects": 64,
+    "materials": 16,
+    "target": "PIE_Large_Cube_00",
+    "scene_isolated_factory_startup": true
+  },
+  "arms": {
+    "baseline": {
+      "tool": "get_scene_info",
+      "calls": 3,
+      "context_chars": 1522,
+      "input_tokens": 2815,
+      "cached_input_tokens": 1159,
+      "uncached_input_tokens": 1656,
+      "output_tokens": 103,
+      "total_tokens": 2918,
+      "oracle_pass": 3,
+      "median_latency_s": 2.4605
+    },
+    "optimized": {
+      "tool": "pie_blender_get_object",
+      "calls": 3,
+      "context_chars": 124,
+      "input_tokens": 345,
+      "cached_input_tokens": 208,
+      "uncached_input_tokens": 137,
+      "output_tokens": 153,
+      "total_tokens": 498,
+      "oracle_pass": 3,
+      "median_latency_s": 3.2525
+    }
+  },
+  "savings": {
+    "input_percent": 87.744,
+    "uncached_input_percent": 91.727,
+    "total_percent": 82.934,
+    "latency_percent": -32.189
+  },
+  "quality": {
+    "baseline_pass_rate": 1.0,
+    "optimized_pass_rate": 1.0,
+    "equivalent": true
+  },
+  "method": {
+    "same_task": true,
+    "same_oracle": true,
+    "same_model": true,
+    "prompts_and_responses_persisted": false,
+    "comparison_type": "selective-capability product comparison, not transparent compaction"
+  },
+  "limitations": [
+    "The fixture specification is outside the current PIE-Clean checkout and is explicitly identified above.",
+    "Only three pairs were executed.",
+    "The benchmark does not certify official Codex usage or generalize to Web."
+  ]
+}
