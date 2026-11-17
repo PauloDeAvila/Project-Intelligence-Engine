@@ -29,17 +29,19 @@
         "official Codex reached live Blender through pie-blender-optimized with addon and scene oracle passing",
         "isolated temporary Codex home exposed only pie-blender-optimized and passed both Blender calls",
         "integrated executor now materializes and cleans the isolated Codex home",
+      "one official provider-backed Codex Blender pair passed through the integrated isolated executor with 51.306812 percent total token savings",
         "one live baseline versus PIE default-scene pair with DeepSeek 3.2 passed the oracle and reported 95.27 percent total savings",
         "gateway runtime tests and full regression suite pass"
       ],
       "missing": [
-        "a new official provider-backed A/B pair through the integrated isolated executor is still pending",
+      "two additional Blender repetitions and three Web pairs are still pending for the planned coverage",
         "one end-to-end runtime shared by Codex and OpenCode is not proven as a single production service"
       ],
       "evidence": [
         "reports/phase4-8/codex-pie-web-route-probe-20261117.json",
         "reports/phase4-8/codex-pie-blender-route-probe-20261117.json",
         "reports/phase4-8/codex-pie-blender-isolated-route-probe-20261117.json",
+      "reports/phase4-8/codex-blender-default-pair-20261117.json",
         "reports/phase4-8/blender-live-availability-20261117.json",
         "reports/phase4-8/blender-runtime-recovery-20261117.json",
         "reports/phase4-8/validation.json",
@@ -114,6 +116,6 @@
   },
   "certification": {
     "status": "NOT_CERTIFIED",
-    "reason": "Official Codex provider A/B certification, strict Codex server isolation, and broader cross-domain coverage remain pending."
+    "reason": "Only one official Codex Blender pair is complete; required repetitions, Web pairs, and broader cross-domain coverage remain pending."
   }
 }

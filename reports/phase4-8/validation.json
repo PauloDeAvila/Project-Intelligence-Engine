@@ -3,16 +3,16 @@
   "status": "PARTIAL_LOCAL_VALIDATION",
   "certification": "NOT_CERTIFIED",
   "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
-  "head_at_validation": "b44d079",
-  "implementation_commit": "b44d079",
+  "head_at_validation": "09277f3",
+  "implementation_commit": "09277f3",
   "index": {
     "source": "uv run python -m pie.interfaces.cli status --root .",
     "project": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean",
     "index_state": "CURRENT",
     "workspace_match": true,
-    "files": 274,
-    "symbols": 2278,
-    "imports": 2633
+    "files": 278,
+    "symbols": 2279,
+    "imports": 2641
   },
   "current_blender_probe": {
     "checked_at": "2026-11-17",
@@ -45,10 +45,23 @@
   "codex_isolated_executor": {
     "path": "reports/phase4-8/codex-isolated-executor-20261117.json",
     "status": "IMPLEMENTED_TESTED",
-    "implementation_commit": "b44d079",
+    "implementation_commit": "09277f3",
     "full_suite_passed": 726,
     "temporary_home_cleanup": true,
     "original_config_modified": false
+  },
+  "codex_blender_default_pair": {
+    "path": "reports/phase4-8/codex-blender-default-pair-20261117.json",
+    "status": "VALID_SINGLE_PAIR_NOT_CERTIFIED",
+    "provider_usage_available": true,
+    "baseline_total_tokens": 172213,
+    "optimized_total_tokens": 83856,
+    "total_savings_percent": 51.306812,
+    "baseline_oracle_pass": true,
+    "optimized_oracle_pass": true,
+    "baseline_mcp_server": "blender",
+    "optimized_mcp_server": "pie-blender-optimized",
+    "same_commit": "09277f3af1d22ed78a9e14ba2d7be0629ceabd2d"
   },
   "blender_runtime_recovery": {
     "path": "reports/phase4-8/blender-runtime-recovery-20261117.json",
