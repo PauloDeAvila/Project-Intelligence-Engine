@@ -22,7 +22,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 | 5 — Memória entre agentes | PASS_EXTERNAL_CONTROLLED | Handoff real OpenCode/DeepSeek executado após reinício; `context_version` durável e histórico completo não enviado. |
 | 6 — Contexto incremental/cache | PASS_EXTERNAL_CONTROLLED_SINGLE_PAIR | Hashes, compilador, cache persistente e invalidação após mudança cobertos; um par DeepSeek real após reinício passou no oráculo: 237 → 167 tokens. Ainda não é evidência estatística. |
 | 7 — Execução local | PASS_LOCAL | Allowlist, limites, replay e timeouts fail-closed cobertos. |
-| 8 — Certificação contínua | PARTIAL_NOT_CERTIFIED | GLM v5, DeepSeek 3.2 e um A/B Blender real tiveram pilotos válidos; Blender mediu 82,934% de redução total com 3/3 oráculos. Ainda faltam Codex, Web A/B e generalização estatística ampla. |
+| 8 — Certificação contínua | PARTIAL_NOT_CERTIFIED | GLM v5, DeepSeek 3.2, Blender e Web tiveram pilotos locais; Blender mediu 82,934%, mas Web teve −29,098% de economia total apesar de 3/3 oráculos. Ainda faltam Codex e generalização ampla. |
 
 ## Alteração desta rodada
 
@@ -117,3 +117,18 @@ fixture veio de outro worktree e seu SHA-256 está registrado; ela não foi
 tratada como código do checkout atual.
 
 Evidência: `blender-deepseek-ab-pilot-20261116.json`.
+
+## Piloto A/B Web com DeepSeek
+
+Após corrigir o contrato MCP do clique (`target`, não `ref`), o piloto Web válido
+passou 3/3 no oráculo em ambos os braços. O input caiu de 627 para 563 tokens,
+mas a saída aumentou de 105 para 382; o total subiu de 732 para 945 tokens,
+resultando em **−29,098% de economia**. A latência mediana também piorou de
+1,8233 s para 3,1625 s.
+
+Esse resultado negativo permanece visível e impede promover a compactação Web
+como economia comprovada. A tentativa anterior com clique inválido está
+preservada separadamente como falha do harness.
+
+Evidência: `web-deepseek-ab-pilot-20261116.json` e
+`web-deepseek-ab-pilot-20261116-invalid-click.json`.

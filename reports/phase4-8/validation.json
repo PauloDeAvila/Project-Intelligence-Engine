@@ -84,6 +84,16 @@
     "pie_correct": 3,
     "status": "PILOT_VALID_NOT_CERTIFIED"
   },
+  "web_deepseek_pilot": {
+    "path": "reports/phase4-8/web-deepseek-ab-pilot-20261116.json",
+    "pairs": 3,
+    "baseline_total_tokens": 732,
+    "pie_total_tokens": 945,
+    "total_savings_percent": -29.098,
+    "baseline_correct": 3,
+    "pie_correct": 3,
+    "status": "PILOT_VALID_NEGATIVE_RESULT"
+  },
   "phases": {
     "4_consolidation": {
       "status": "PASS_EXTERNAL_CONTROLLED_READ_ONLY",

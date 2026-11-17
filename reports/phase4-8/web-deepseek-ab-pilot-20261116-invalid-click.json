@@ -1,0 +1,16 @@
+{
+  "schema": "pie-web-deepseek-ab-pilot-v1",
+  "status": "INVALID_HARNESS_NO_CLICK",
+  "model": "gambiarraapi/deepseek-v3.2",
+  "fixture_url": "http://127.0.0.1:8766/index.html",
+  "cause": "The probe sent browser_click arguments with ref instead of the Playwright MCP required target field.",
+  "evidence": {
+    "click_error": "Invalid arguments for tool browser_click: expected string, received undefined at target",
+    "baseline_oracle_pass": 3,
+    "optimized_oracle_pass": 2,
+    "baseline_total_tokens": 744,
+    "optimized_total_tokens": 1305
+  },
+  "certification": "EXCLUDED_FROM_VALID_ECONOMY",
+  "note": "Preserved as forensic evidence; it must not be interpreted as a PIE quality regression because the intended click never executed."
+}
