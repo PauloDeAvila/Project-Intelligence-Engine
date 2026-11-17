@@ -136,6 +136,17 @@
     "optimized_plan_correct": true,
     "source_oracles_correct": true
   },
+  "web_large_evidence_task": {
+    "path": "reports/phase4-8/web-large-evidence-task-v2-20261116.json",
+    "status": "PILOT_VALID_NOT_CERTIFIED",
+    "scope": "end_to_end_controlled_task",
+    "baseline_total_tokens": 7612,
+    "optimized_total_tokens": 5966,
+    "savings_percent": 21.624,
+    "baseline_task_oracle": true,
+    "optimized_task_oracle": true,
+    "mcp_calls_per_arm": 4
+  },
   "phases": {
     "4_consolidation": {
       "status": "PASS_EXTERNAL_CONTROLLED_READ_ONLY",
@@ -190,7 +201,8 @@
         "DeepSeek valid three-pair pilot reported 93.801 percent total savings and 3/3 oracle correctness",
         "Web gateway no longer announces pie_web_context by default",
         "large Web gateway compaction gate reduced 8632 to 2164 characters",
-        "Web Evidence Agent selected exact fields in both arms"
+        "Web Evidence Agent selected exact fields in both arms",
+        "Web Evidence Task executed MCP after model action selection with 21.624 percent total savings"
       ],
       "missing": [
         "Codex provider certification",

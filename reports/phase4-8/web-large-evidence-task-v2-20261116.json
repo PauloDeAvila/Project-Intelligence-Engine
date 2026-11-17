@@ -1,0 +1,99 @@
+{
+  "schema": "pie-web-evidence-task-v1",
+  "status": "PILOT_VALID_NOT_CERTIFIED",
+  "scope": "end_to_end_controlled_task; model selects action, code executes MCP and preserves values",
+  "model": "gambiarraapi/deepseek-v3.2",
+  "url": "http://127.0.0.1:8767/fixtures/phase4-8/web-large/index.html",
+  "oracle": {
+    "title": "PIE Large Web Fixture",
+    "status": "The deterministic large fixture is ready.",
+    "marker": "PIE_WEB_LARGE_FIXTURE_V1"
+  },
+  "max_output_tokens": 512,
+  "baseline": {
+    "tool_count": 25,
+    "context_chars": 30591,
+    "navigate_ok": true,
+    "click_ok": true,
+    "plan": {
+      "action": "reveal",
+      "target_ref": "e5",
+      "fields": [
+        "title",
+        "status",
+        "marker"
+      ]
+    },
+    "plan_oracle_pass": true,
+    "reconstructed_evidence": {
+      "title": "PIE Large Web Fixture",
+      "status": "The deterministic large fixture is ready.",
+      "marker": "PIE_WEB_LARGE_FIXTURE_V1"
+    },
+    "source_oracle_pass": true,
+    "task_oracle_pass": true,
+    "usage": {
+      "completion_tokens": 24,
+      "completion_tokens_details": {
+        "text_tokens": 24
+      },
+      "prompt_tokens": 7588,
+      "prompt_tokens_details": {
+        "cached_tokens": 4672,
+        "image_tokens": 0,
+        "text_tokens": 7588
+      },
+      "total_tokens": 7612
+    },
+    "finish_reason": "stop",
+    "latency_s": 3.328,
+    "input_tokens": 7588,
+    "output_tokens": 24,
+    "total_tokens": 7612
+  },
+  "optimized": {
+    "tool_count": 26,
+    "context_chars": 24573,
+    "navigate_ok": true,
+    "click_ok": true,
+    "plan": {
+      "action": "reveal",
+      "target_ref": "e5",
+      "fields": [
+        "title",
+        "status",
+        "marker"
+      ]
+    },
+    "plan_oracle_pass": true,
+    "reconstructed_evidence": {
+      "title": "PIE Large Web Fixture",
+      "status": "The deterministic large fixture is ready.",
+      "marker": "PIE_WEB_LARGE_FIXTURE_V1"
+    },
+    "source_oracle_pass": true,
+    "task_oracle_pass": true,
+    "usage": {
+      "completion_tokens": 24,
+      "completion_tokens_details": {
+        "text_tokens": 24
+      },
+      "prompt_tokens": 5942,
+      "prompt_tokens_details": {
+        "cached_tokens": 5012,
+        "image_tokens": 0,
+        "text_tokens": 5942
+      },
+      "total_tokens": 5966
+    },
+    "finish_reason": "stop",
+    "latency_s": 2.3249,
+    "input_tokens": 5942,
+    "output_tokens": 24,
+    "total_tokens": 5966
+  },
+  "savings": {
+    "input_percent": 21.692,
+    "total_percent": 21.624
+  }
+}

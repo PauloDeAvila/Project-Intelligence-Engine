@@ -165,3 +165,12 @@ O Evidence Agent separado resolveu a transcrição: o DeepSeek escolheu os campo
 planejamento caiu de 10.418 para 6.880 tokens (33,96%), com os dois oráculos
 aprovados. Esse resultado é `planning_only`; não substitui a certificação da
 tarefa completa. Evidência: `web-large-evidence-agent-20261116.json`.
+
+Depois, o runner ponta a ponta passou a deixar o modelo escolher a ação antes
+da chamada MCP. Na execução válida, o DeepSeek escolheu o botão, o MCP real
+executou quatro chamadas por braço e o código reconstruiu o resultado a partir
+de `navigate`, snapshot anterior e snapshot posterior. O consumo caiu de
+7.612 para 5.966 tokens (21,624%), com oráculos aprovados nos dois braços.
+Tentativas inválidas por limite de saída e perda de título no snapshot
+compactado foram preservadas separadamente. Evidência:
+`web-large-evidence-task-analysis-20261116.json`.

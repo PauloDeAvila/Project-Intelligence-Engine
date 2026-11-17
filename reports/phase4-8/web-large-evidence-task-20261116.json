@@ -1,0 +1,83 @@
+{
+  "schema": "pie-web-evidence-task-v1",
+  "status": "PILOT_INVALID_QUALITY",
+  "scope": "end_to_end_controlled_task; model selects action, code executes MCP and preserves values",
+  "model": "gambiarraapi/deepseek-v3.2",
+  "url": "http://127.0.0.1:8767/fixtures/phase4-8/web-large/index.html",
+  "oracle": {
+    "title": "PIE Large Web Fixture",
+    "status": "The deterministic large fixture is ready.",
+    "marker": "PIE_WEB_LARGE_FIXTURE_V1"
+  },
+  "baseline": {
+    "tool_count": 25,
+    "context_chars": 30591,
+    "navigate_ok": true,
+    "click_ok": true,
+    "plan": {
+      "action": "reveal",
+      "target_ref": "e5",
+      "fields": [
+        "title",
+        "status",
+        "marker"
+      ]
+    },
+    "plan_oracle_pass": true,
+    "reconstructed_evidence": {
+      "title": "PIE Large Web Fixture",
+      "status": "The deterministic large fixture is ready.",
+      "marker": "PIE_WEB_LARGE_FIXTURE_V1"
+    },
+    "source_oracle_pass": true,
+    "task_oracle_pass": true,
+    "usage": {
+      "completion_tokens": 24,
+      "completion_tokens_details": {
+        "text_tokens": 24
+      },
+      "prompt_tokens": 7588,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "image_tokens": 0,
+        "text_tokens": 7588
+      },
+      "total_tokens": 7612
+    },
+    "finish_reason": "stop",
+    "latency_s": 2.111,
+    "input_tokens": 7588,
+    "output_tokens": 24,
+    "total_tokens": 7612
+  },
+  "optimized": {
+    "tool_count": 26,
+    "context_chars": 24573,
+    "plan": {
+      "raw_excerpt": ""
+    },
+    "plan_oracle_pass": false,
+    "source_oracle_pass": false,
+    "task_oracle_pass": false,
+    "usage": {
+      "completion_tokens": 128,
+      "completion_tokens_details": {
+        "reasoning_tokens": 128
+      },
+      "prompt_tokens": 6083,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "total_tokens": 6211
+    },
+    "finish_reason": "length",
+    "latency_s": 2.9949,
+    "input_tokens": 6083,
+    "output_tokens": 128,
+    "total_tokens": 6211
+  },
+  "savings": {
+    "input_percent": 19.834,
+    "total_percent": 18.405
+  }
+}
