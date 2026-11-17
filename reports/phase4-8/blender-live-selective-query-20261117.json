@@ -1,0 +1,18 @@
+{
+  "schema": "pie-blender-live-selective-query-v1",
+  "status": "PASS_READ_ONLY_CURRENT_SCENE",
+  "server": "pie-blender-optimized",
+  "tool": "pie_blender_get_object",
+  "arguments": {"name": "Cube"},
+  "response": {
+    "object_name": "Cube",
+    "object_type": "MESH",
+    "location": [0.0, 0.0, 0.0],
+    "material_names": ["Material"]
+  },
+  "independent_scene_check": "Scene 'Scene' | 1 camera, 1 light, 1 mesh",
+  "scene_modified": false,
+  "provider_tokens": null,
+  "certification": "NOT_CERTIFIED",
+  "limitation": "This validates the selective contract on the current default scene, not the frozen PIE_Large fixture or token savings."
+}

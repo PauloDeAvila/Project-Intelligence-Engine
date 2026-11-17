@@ -161,6 +161,15 @@
     "scene_modified": false,
     "strict_server_isolation": false
   },
+  "blender_live_selective_query": {
+    "path": "reports/phase4-8/blender-live-selective-query-20261117.json",
+    "status": "PASS_READ_ONLY_CURRENT_SCENE",
+    "server": "pie-blender-optimized",
+    "tool": "pie_blender_get_object",
+    "oracle_pass": true,
+    "scene_modified": false,
+    "provider_tokens": null
+  },
   "codex_pie_web_route_probe": {
     "path": "reports/phase4-8/codex-pie-web-route-probe-20261117.json",
     "status": "ROUTE_AND_TASK_PASS_LOCAL_FIXTURE",

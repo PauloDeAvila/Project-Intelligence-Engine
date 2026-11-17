@@ -39,6 +39,11 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
   acionou automaticamente `cua_repl` para o resumo final; por isso a integração
   está comprovada, mas o isolamento estrito de servidores permanece parcial.
   Evidência: `codex-pie-blender-live-route-probe-20261117.json`.
+- A consulta seletiva `pie_blender_get_object("Cube")` também passou ao vivo e
+  retornou nome, tipo, localização e material corretos; a leitura posterior da
+  cena confirmou que nada foi alterado. Isso valida o contrato seletivo na cena
+  padrão, mas não mede tokens nem substitui a fixture `PIE_Large`.
+  Evidência: `blender-live-selective-query-20261117.json`.
 - O preflight de roteamento no checkout atual passou para Web completo e o
   gateway Blender isolado passou initialize, `tools/list`, `get_addon_status` e
   `get_scene_info`; a falha anterior do processo não foi usada como evidência
