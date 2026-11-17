@@ -6,10 +6,10 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 
 ## Evidência executada
 
-- Índice local: CURRENT, workspace_match=true, 263 arquivos, 2.212 símbolos e 2.550 imports.
+- Índice local: CURRENT, workspace_match=true, 266 arquivos, 2.227 símbolos e 2.575 imports, verificado no head `fa8a26d`.
 - Testes focados: 74 passed.
 - Suíte completa histórica: 710 passed, 4 skipped, 126 subtests passed.
-- Suíte de regressão mais recente: 714 passed, 4 skipped, 126 subtests passed.
+- Suíte de regressão executada neste head: `uv run python -m pytest -q --basetemp .pytest-tmp-current-run -p no:cacheprovider` — 714 passed, 4 skipped, 126 subtests passed em 41,47 s.
 - O handoff codex → deepseek foi exercitado com checkpoint persistente,
   hash de origem e proveniência preservada.
 - O preflight de roteamento no checkout atual passou para Web completo e o

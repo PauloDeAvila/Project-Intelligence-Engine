@@ -3,16 +3,16 @@
   "status": "PARTIAL_LOCAL_VALIDATION",
   "certification": "NOT_CERTIFIED",
   "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
-  "head_at_validation": "8e8b14d",
+  "head_at_validation": "fa8a26d",
   "implementation_commit": "4aae2af",
   "index": {
     "source": "uv run python -m pie.interfaces.cli status --root .",
     "project": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean",
     "index_state": "CURRENT",
     "workspace_match": true,
-    "files": 263,
-    "symbols": 2212,
-    "imports": 2550
+    "files": 266,
+    "symbols": 2227,
+    "imports": 2575
   },
   "tests": {
     "focused": {
@@ -30,12 +30,12 @@
     }
   },
   "latest_regression_suite": {
-    "command": "uv run --with pytest python -m pytest -q --basetemp .pytest-tmp-web-context-final",
+    "command": "uv run python -m pytest -q --basetemp .pytest-tmp-current-run -p no:cacheprovider",
     "passed": 714,
     "skipped": 4,
     "subtests": 126,
     "failed": 0,
-    "duration_seconds": 41.98
+    "duration_seconds": 41.47
   },
   "verifier": {
     "path": "reports/phase4-8/context-runtime-verifier.json",
