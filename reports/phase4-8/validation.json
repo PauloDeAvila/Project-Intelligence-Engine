@@ -136,6 +136,7 @@
   },
   "latest_runtime_verifier": {
     "command": "uv run python tools/verify_context_runtime.py",
+    "path": "reports/phase4-8/context-runtime-verifier-final-20261117.json",
     "status": "PASS_LOCAL",
     "certification": "NOT_CERTIFIED",
     "external_provider_usage": "unavailable",
