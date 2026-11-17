@@ -1,0 +1,33 @@
+{
+  "schema": "pie-phase4-8-acceptance-focus-v1",
+  "status": "PASS_LOCAL",
+  "certification": "NOT_CERTIFIED",
+  "workspace": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean",
+  "implementation_commit": "a5415ce",
+  "index": {
+    "state": "CURRENT",
+    "workspace_match": true,
+    "files": 280,
+    "symbols": 2280,
+    "imports": 2646,
+    "diagnostics": []
+  },
+  "command": "uv run python -m pytest -q tests/test_task_memory_checkpoints.py tests/test_multi_agent_memory.py tests/test_context_compiler.py tests/test_evidence_atoms.py tests/test_local_execution.py tests/test_regression_certification.py --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase4-8-acceptance-focus-20261117 -p no:cacheprovider",
+  "result": {
+    "passed": 95,
+    "failed": 0,
+    "duration_seconds": 9.37
+  },
+  "scope": [
+    "persistent task checkpoints",
+    "multi-agent memory and project isolation",
+    "context compiler and evidence atoms",
+    "local execution security",
+    "regression certification"
+  ],
+  "provider_calls": 0,
+  "limitations": [
+    "This is local automated evidence, not provider-backed token certification.",
+    "Official Codex A/B remains incomplete and NOT_CERTIFIED."
+  ]
+}
