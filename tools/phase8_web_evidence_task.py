@@ -171,16 +171,18 @@ def _run_arm(command: list[str], root: Path, url: str, base_url: str, key: str, 
             "snapshot_after": after.get("result", {}),
         }
         reconstructed = _extract_source_evidence(source_results)
+        navigate_ok = not navigate.get("result", {}).get("isError", False)
+        click_ok = not click.get("result", {}).get("isError", False)
         return {
             "tool_count": len(tools),
             "context_chars": len(json.dumps(context, ensure_ascii=False, separators=(",", ":"))),
-            "navigate_ok": not navigate.get("result", {}).get("isError", False),
-            "click_ok": not click.get("result", {}).get("isError", False),
+            "navigate_ok": navigate_ok,
+            "click_ok": click_ok,
             "plan": inference["plan"],
             "plan_oracle_pass": True,
             "reconstructed_evidence": reconstructed,
             "source_oracle_pass": reconstructed == ORACLE,
-            "task_oracle_pass": reconstructed == ORACLE,
+            "task_oracle_pass": navigate_ok and click_ok and reconstructed == ORACLE,
             "usage": inference["usage"],
             "finish_reason": inference["finish_reason"],
             "latency_s": inference["latency_s"],
@@ -199,6 +201,8 @@ def main() -> int:
     parser.add_argument("--max-chars", type=int, default=2400)
     parser.add_argument("--max-output-tokens", type=int, default=512)
     args = parser.parse_args()
+    if not 1 <= args.max_output_tokens <= 4096:
+        raise SystemExit("--max-output-tokens must be between 1 and 4096")
     root = Path(__file__).resolve().parents[1]
     key = args.key_file.read_text(encoding="utf-8").strip()
     upstream = [r"C:\Program Files\nodejs\npx.cmd", "--yes", "@playwright/mcp@0.0.85", "--headless", "--browser", "chrome"]
