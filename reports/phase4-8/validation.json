@@ -77,6 +77,16 @@
     "same_commit": "11c6d80c1db095820ec2a375c90d546a57b4e1cb",
     "same_worktree_path": true
   },
+  "codex_blender_aggregate": {
+    "path": "reports/phase4-8/codex-blender-default-aggregate-20261117.json",
+    "status": "PARTIAL_TWO_VALID_PAIRS_NOT_CERTIFIED",
+    "valid_pairs": 2,
+    "invalid_repetitions": [3],
+    "aggregate_total_savings_percent": 44.48434,
+    "aggregate_oracles_passed": "4/4",
+    "optimized_mean_latency_delta_percent": 9.164689,
+    "next_step": "Investigate extra baseline get_scene_info call before more quota."
+  },
   "blender_runtime_recovery": {
     "path": "reports/phase4-8/blender-runtime-recovery-20261117.json",
     "status": "PASS_LOCAL_AND_LIVE_REUSE",
