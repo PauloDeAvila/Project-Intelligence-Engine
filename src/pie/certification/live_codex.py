@@ -584,7 +584,8 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
     if isolated_mcp:
         with isolated_codex_home(Path(codex_home), profile=profile,
                                  server=expected_server, model=scenario["model"],
-                                 runtime_env=runtime_env) as isolated_home:
+                                 runtime_env=runtime_env,
+                                 workspace=Path(workspace).resolve()) as isolated_home:
             result = capture_codex(
                 scenario, condition=condition, repetition=repetition,
                 workspace=workspace, codex_home=isolated_home, timeout=timeout,

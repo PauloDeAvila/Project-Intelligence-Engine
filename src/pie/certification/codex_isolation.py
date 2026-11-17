@@ -28,12 +28,26 @@ def _toml_value(value):
     raise ValueError("Unsupported Codex configuration value")
 
 
+def _merge_config(base: dict, overlay: dict) -> dict:
+    merged = dict(base)
+    for key, value in overlay.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _merge_config(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
 def _server_table(source: Path, profile: str | None, server: str) -> dict:
     base = tomllib.loads((source / "config.toml").read_text(encoding="utf-8"))
     merged = dict(base.get("mcp_servers") or {})
     if profile:
         overlay = tomllib.loads((source / (profile + ".config.toml")).read_text(encoding="utf-8"))
-        merged.update(overlay.get("mcp_servers") or {})
+        for name, value in (overlay.get("mcp_servers") or {}).items():
+            if isinstance(value, dict) and isinstance(merged.get(name), dict):
+                merged[name] = _merge_config(merged[name], value)
+            else:
+                merged[name] = value
     selected = merged.get(server)
     if not isinstance(selected, dict):
         raise ValueError("Expected MCP server absent from Codex configuration")
@@ -41,7 +55,7 @@ def _server_table(source: Path, profile: str | None, server: str) -> dict:
 
 
 def _write_config(path: Path, model: str, server: str, selected: dict,
-                  runtime_env: dict[str, str]) -> None:
+                  runtime_env: dict[str, str], workspace: Path | None) -> None:
     lines = [f"model = {_toml_value(model)}", ""]
     lines.append(f"[mcp_servers.{json.dumps(server)}]")
     for key, value in selected.items():
@@ -50,6 +64,12 @@ def _write_config(path: Path, model: str, server: str, selected: dict,
         if key == "env":
             value = dict(value) if isinstance(value, dict) else {}
             value.update(runtime_env)
+        if key == "args" and workspace is not None and isinstance(value, list):
+            value = list(value)
+            if "--workspace" in value:
+                index = value.index("--workspace")
+                if index + 1 < len(value):
+                    value[index + 1] = str(workspace)
         lines.append(f"{key} = {_toml_value(value)}")
     if "env" not in selected and runtime_env:
         lines.append(f"env = {_toml_value(runtime_env)}")
@@ -65,7 +85,8 @@ def _write_config(path: Path, model: str, server: str, selected: dict,
 @contextmanager
 def isolated_codex_home(source_home: Path, *, profile: str | None,
                         server: str, model: str,
-                        runtime_env: dict[str, str]):
+                        runtime_env: dict[str, str],
+                        workspace: Path | None = None):
     """Yield a temporary authenticated CODEX_HOME and remove it on exit."""
     source_home = Path(source_home).expanduser().resolve(strict=True)
     selected = _server_table(source_home, profile, server)
@@ -75,5 +96,5 @@ def isolated_codex_home(source_home: Path, *, profile: str | None,
         auth = source_home / "auth.json"
         if auth.is_file():
             shutil.copy2(auth, target / "auth.json")
-        _write_config(target / "config.toml", model, server, selected, runtime_env)
+        _write_config(target / "config.toml", model, server, selected, runtime_env, workspace)
         yield target
