@@ -6,16 +6,16 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 
 ## Evidência executada
 
-- Índice local: CURRENT, workspace_match=true, 274 arquivos, 2.278 símbolos e 2.633 imports, verificado no head de implementação `b44d079`.
+- Índice local: CURRENT, workspace_match=true, 280 arquivos, 2.280 símbolos e 2.646 imports, verificado no head de implementação `11c6d80`.
 - Testes focados: 74 passed.
 - Suíte completa histórica: 710 passed, 4 skipped, 126 subtests passed.
 - Testes focados do gateway Web e do gate: 25 passed em 0,29 s.
-- Suíte de regressão executada neste head: `uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-completion-audit-20261117 -p no:cacheprovider` — 718 passed, 4 skipped, 126 subtests passed em 46,43 s.
+- Suíte de regressão mais recente: `uv run pytest -q --basetemp .pytest-tmp-full-web-fix` — 727 passed, 4 skipped, 126 subtests passed em 30,30 s.
 - `uv run python tools/verify_context_runtime.py` — `PASS_LOCAL`; o verificador registra `external_provider_usage=unavailable` e não promove evidência sintética a certificação.
 - Testes de execução local, exposição Web e persistência Delta: 35 passed, 0 failed.
 - Checagem Blender ao vivo: processo `blender.exe` PID 18196, endpoint `127.0.0.1:9876`, Blender 5.3.0, addon 2.0, protocolo 16/16; leituras nativa e PIE de status/cena passaram.
 - Recuperação Blender: 5 testes focados passaram; o endpoint ativo foi reutilizado sem iniciar duplicata. O preflight Codex agora está conectado à recuperação; o caminho de processo ausente é coberto por teste unitário fail-closed, mas ainda não foi exercitado ao vivo.
-- Executor Codex isolado: `CODEX_HOME` temporário com apenas o servidor esperado, aprovação compatível e limpeza automática; 726 testes passaram na suíte completa. Ainda falta executar um novo par A/B oficial por esse caminho.
+- Executor Codex isolado: `CODEX_HOME` temporário com apenas o servidor esperado, esforço `medium` preservado e limpeza automática; a suíte atual tem 727 testes aprovados. Dois pares oficiais Blender e um par Web controlado foram executados por esse caminho.
 - Consulta local indexada: 100 amostras, p95 de 3,6046 ms (meta de 100 ms aprovada), sem chamadas de provider.
 - Isolamento entre dois workspaces: restauração cruzada retornou `NOT_FOUND`, e
   cada workspace restaurou somente seu próprio checkpoint.
@@ -71,11 +71,11 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 
 | Fase | Estado | Conclusão |
 |---|---|---|
-| 4 — Consolidação | PARTIAL_EXTERNAL_CONTROLLED | Roteamento Codex → PIE comprovado nos dois domínios e Blender ao vivo alcançado; isolamento estrito falhou porque `cua_repl` foi acionado automaticamente. |
+| 4 — Consolidação | PARTIAL_EXTERNAL_CONTROLLED | Roteamento Codex → PIE e isolamento temporário comprovados nos dois domínios; persistência de eventos e recuperação Blender passaram. |
 | 5 — Memória entre agentes | PASS_EXTERNAL_CONTROLLED | Codex oficial criou o checkpoint pelo PIE e o GLM recebeu somente o contexto compilado, sem histórico completo; isolamento entre workspaces passou. |
 | 6 — Contexto incremental/cache | PASS_EXTERNAL_CONTROLLED_SINGLE_PAIR | Hashes, compilador, cache persistente e invalidação após mudança cobertos; um par DeepSeek real após reinício passou no oráculo: 237 → 167 tokens. Ainda não é evidência estatística. |
 | 7 — Execução local | PASS_LOCAL | Allowlist, limites, replay, timeouts fail-closed e testes de segurança passaram; consulta SQLite local p95 de 3,6046 ms. |
-| 8 — Certificação contínua | PARTIAL_NOT_CERTIFIED | GLM v5, DeepSeek 3.2, Blender e Web tiveram pilotos locais; os gates estritos Blender mediram 93,526% e 94,762% em duas tarefas, enquanto Web Summary mediu 12,926% e um piloto Web anterior teve −29,098%. Ainda faltam certificação Codex e generalização ampla. |
+| 8 — Certificação contínua | PARTIAL_NOT_CERTIFIED | Dois pares Codex Blender válidos produziram 44,484% de economia agregada; um par Web controlado produziu −45,469%. A terceira repetição Blender falhou por chamada MCP extra; faltam repetições e generalização. |
 
 O provider atual do OpenCode também foi verificado separadamente: `infinity`
 expôs `gambiarraapi/deepseek-v3.2`, que respondeu ao probe real com 55 tokens de
@@ -354,3 +354,45 @@ Esse cenário amplia a cobertura de objetos, mas continua restrito à fixture
 Blender local e ao provider DeepSeek configurado. Não estabelece certificação
 oficial do Codex nem generalização para outras tarefas. Evidência:
 `blender-object63-replication-gate-20261116.json`.
+
+## Atualização: A/B oficial Codex pelo executor isolado
+
+Em 2026-11-17, o executor isolado foi usado com `gpt-5.6-luna`, esforço
+`medium`, `CODEX_HOME` temporário e worktrees limpos.
+
+### Blender
+
+Dois pares válidos do cenário `Cube` passaram o oráculo independente e a rota:
+
+- Baseline: `blender` → `get_addon_status`, `get_scene_info`.
+- Optimized: `pie-blender-optimized` → `get_addon_status`,
+  `pie_blender_get_object`.
+- Agregado válido: `239.237` → `132.814` tokens, economia de `44,484%`.
+- Input não cacheado: `33.866` → `14.752`, economia de `56,440%`.
+- Latência média: optimized `9,165%` mais lenta.
+
+A repetição Blender R3 foi preservada como inválida porque o baseline chamou
+`get_scene_info` duas vezes. O braço optimized não foi iniciado e não houve
+retry automático. Evidências:
+`codex-blender-default-aggregate-20261117.json`,
+`codex-blender-default-r2-20261117.json` e
+`codex-blender-default-r3-invalid-20261117.json`.
+
+### Web
+
+Um par Web controlado passou o oráculo da fixture local e executou quatro
+chamadas em cada braço: navegação, snapshot, clique e snapshot.
+
+- Baseline: `63.601` tokens.
+- Optimized: `92.520` tokens.
+- Resultado: **−45,469% de economia** (regressão).
+- Latência praticamente estável, com optimized `0,023%` mais lento.
+- Nenhuma página externa foi acessada.
+
+O baseline criou apenas logs `.playwright-mcp`; eles foram removidos no
+worktree temporário e o checkout foi confirmado limpo antes do optimized.
+Evidência: `codex-web-local-controlled-pair-20261117.json`.
+
+Esses resultados são uso reportado pelo Codex e não estimativas por caracteres.
+Ainda assim, a certificação geral permanece `NOT_CERTIFIED`: falta completar a
+amostra de três pares por domínio e investigar a chamada Blender duplicada.
