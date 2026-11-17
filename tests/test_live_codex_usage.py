@@ -132,7 +132,7 @@ def test_preflight_profile_overlay_preserves_mcp_command_and_args(
         "expected_exact": "ok",
         "model": "gpt-test",
         "required_mcp_server": "blender",
-        "expected_mcp_tools": ["get_scene_info"],
+        "expected_mcp_tools": ["get_scene_info", "get_scene_info"],
     }
     monkeypatch.setattr(live_codex, "_git_clean_commit", lambda root: "a" * 40)
     monkeypatch.setattr(live_codex, "_auth_state", lambda *args: "AUTH_PRESENT_ENV")

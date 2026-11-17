@@ -422,7 +422,8 @@ def preflight_codex(scenario:dict,*,condition:str,workspace:Path,codex_home:Path
             selected=servers.get(required) if required else None
             expected_tools = _expected_mcp_tools(scenario, condition)
             configured_tools = selected.get("enabled_tools") if isinstance(selected, dict) else None
-            if expected_tools is not None and configured_tools != expected_tools:
+            expected_allowlist = list(dict.fromkeys(expected_tools or []))
+            if expected_tools is not None and configured_tools != expected_allowlist:
                 checks["mcp_tools"]={"state":"FAIL","expected":expected_tools,"configured":configured_tools}
                 errors.append("PRECHECK_MCP_ISOLATION_FAILED")
             else:
