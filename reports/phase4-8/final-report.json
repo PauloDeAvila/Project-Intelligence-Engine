@@ -2,7 +2,7 @@
   "schema": "pie-context-runtime-phase4-8-final-v1",
   "status": "PARTIAL_NOT_CERTIFIED",
   "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
-  "implementation_head": "11c6d80",
+  "implementation_head": "82d0a52",
   "report_head": "720ccf2",
   "certification": {
     "status": "NOT_CERTIFIED",
@@ -58,6 +58,6 @@
   },
   "quality": {"blender_valid_oracles": "4/4", "web_valid_oracles": "2/2", "external_pages_modified": false, "blender_scene_modified": false, "credentials_or_transcripts_stored": false},
   "tests": {"full_suite": "727 passed, 4 skipped, 126 subtests passed", "command": "PYTHONPATH=. uv run pytest -q --basetemp .pytest-tmp-full-web-fix", "focused_web_live_codex": "21 passed"},
-  "commits": ["11c6d80", "2195587", "a74748a", "16c9b1b", "103028f"],
+  "commits": ["11c6d80", "2195587", "a74748a", "16c9b1b", "103028f", "82d0a52"],
   "limitations": ["The current Git worktree contains pre-existing untracked runtime and pytest artifacts; they were not added to commits.", "The official provider sample is incomplete and includes a fail-closed invalid attempt.", "No financial cost is inferred from token counts."]
 }

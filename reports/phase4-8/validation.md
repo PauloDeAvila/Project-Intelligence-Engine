@@ -6,7 +6,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 
 ## Evidência executada
 
-- Índice local: CURRENT, workspace_match=true, 280 arquivos, 2.280 símbolos e 2.646 imports, verificado no head de implementação `11c6d80`.
+- Índice local: CURRENT, workspace_match=true, 280 arquivos, 2.282 símbolos e 2.648 imports, verificado no head de implementação `82d0a52`.
 - Testes focados: 74 passed.
 - Suíte completa histórica: 710 passed, 4 skipped, 126 subtests passed.
 - Revalidação focada das Fases 5–7: 95 passed, 0 failed; evidência em `acceptance-focus-rerun-20261117.json`.
@@ -14,6 +14,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 - Suíte de regressão mais recente: `uv run pytest -q --basetemp .pytest-tmp-full-web-fix` — 727 passed, 4 skipped, 126 subtests passed em 30,30 s.
 - `uv run python tools/verify_context_runtime.py` — `PASS_LOCAL`; o verificador registra `external_provider_usage=unavailable` e não promove evidência sintética a certificação.
 - Reexecução persistida em `context-runtime-verifier-final-20261117.json`; os seis pilares passaram localmente, com `NOT_CERTIFIED` mantido.
+- A fachada pública agora expõe `replication_suite`, delegando ao gate estrito de identidade, cache, trace MCP e modelo; cobertura em 33 testes focados.
 - Testes de execução local, exposição Web e persistência Delta: 35 passed, 0 failed.
 - Checagem Blender ao vivo: processo `blender.exe` PID 18196, endpoint `127.0.0.1:9876`, Blender 5.3.0, addon 2.0, protocolo 16/16; leituras nativa e PIE de status/cena passaram.
 - Recuperação Blender: 5 testes focados passaram; o endpoint ativo foi reutilizado sem iniciar duplicata. O preflight Codex agora está conectado à recuperação; o caminho de processo ausente é coberto por teste unitário fail-closed, mas ainda não foi exercitado ao vivo.

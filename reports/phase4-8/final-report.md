@@ -54,6 +54,7 @@ genérica.
 ## Implementação e validação
 
 - `11c6d80`: permite sequências legítimas com snapshots Web repetidos.
+- `82d0a52`: expõe a suíte estrita de replicação pelas fachadas públicas do runtime, sem alterar a suíte golden existente.
 - `16c9b1b`: atualiza o relatório Markdown consolidado.
 - `103028f`: consolida este relatório final.
 - Índice PIE: `CURRENT`, `workspace_match=true`, 280 arquivos, 2.280 símbolos,
