@@ -1,0 +1,26 @@
+{
+  "schema": "pie-blender-upstream-preflight-gate-v1",
+  "status": "PASS_LOCAL_FAIL_CLOSED",
+  "implementation": "src/pie/certification/live_codex.py::_probe_blender_upstream",
+  "behavior": {
+    "default_endpoint": "127.0.0.1:9876",
+    "configured_endpoint_supported": true,
+    "unavailable_endpoint_blocks_before_provider": true,
+    "probe_timeout_seconds": 0.75,
+    "scene_mutation": false
+  },
+  "tests": {
+    "focused_passed": 20,
+    "focused_failed": 0,
+    "full_passed": 721,
+    "full_skipped": 4,
+    "full_subtests": 126,
+    "full_failed": 0,
+    "full_duration_seconds": 47.18
+  },
+  "live_environment": {
+    "blender_process_present": false,
+    "blender_mcp_port_listening": false,
+    "live_blender_probe": "not_executed_after_gate_because_upstream_is_unavailable"
+  }
+}

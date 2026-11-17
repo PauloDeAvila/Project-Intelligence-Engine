@@ -30,14 +30,21 @@
     }
   },
   "latest_regression_suite": {
-    "command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-suite-20261116-r8 -p no:cacheprovider",
-    "passed": 718,
+    "command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-preflight-gate-20261117 -p no:cacheprovider",
+    "passed": 721,
     "skipped": 4,
     "subtests": 126,
     "failed": 0,
-    "duration_seconds": 46.43,
-    "rerun_command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-completion-audit-20261117 -p no:cacheprovider",
+    "duration_seconds": 47.18,
+    "rerun_command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-preflight-gate-20261117-r2 -p no:cacheprovider",
     "rerun_date": "2026-11-17"
+  },
+  "blender_upstream_preflight_gate": {
+    "path": "reports/phase4-8/blender-upstream-preflight-gate-20261117.json",
+    "status": "PASS_LOCAL_FAIL_CLOSED",
+    "focused_tests": 20,
+    "full_tests": 721,
+    "upstream_available_now": false
   },
   "latest_runtime_verifier": {
     "command": "uv run python tools/verify_context_runtime.py",
@@ -356,6 +363,7 @@
         "MCP runtime tests passed",
         "current-root routing preflight passed Web end-to-end",
         "official Codex route probe passed Web fixture through pie-web-optimized",
+        "Blender upstream preflight gate fails closed before provider when endpoint is unavailable",
         "live Blender 5.3 gateway initialize, tools/list, get_addon_status and get_scene_info passed"
       ],
       "live_blender_probe": "reports/phase4-8/live-blender-gateway-probe-20261116.json"

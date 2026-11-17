@@ -33,6 +33,76 @@ def test_reasoning_exceeding_output_fails():
         parse_codex_jsonl(_trace({"reasoning_output_tokens": 60}))
 
 
+def test_blender_upstream_probe_fails_closed(monkeypatch):
+    def unavailable(*args, **kwargs):
+        raise OSError("connection refused")
+
+    monkeypatch.setattr(live_codex.socket, "create_connection", unavailable)
+    result = live_codex._probe_blender_upstream({"env": {}})
+    assert result == {"state": "FAIL", "host": "127.0.0.1", "port": 9876,
+                      "reason": "UPSTREAM_UNAVAILABLE"}
+
+
+def test_blender_upstream_probe_uses_configured_endpoint(monkeypatch):
+    seen = {}
+
+    class Connection:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    def available(address, timeout):
+        seen["address"] = address
+        seen["timeout"] = timeout
+        return Connection()
+
+    monkeypatch.setattr(live_codex.socket, "create_connection", available)
+    result = live_codex._probe_blender_upstream({
+        "env": {"BLENDER_MCP_HOST": "127.0.0.2", "BLENDER_MCP_PORT": "9987"}
+    })
+    assert result == {"state": "PASS", "host": "127.0.0.2", "port": 9987}
+    assert seen == {"address": ("127.0.0.2", 9987), "timeout": 0.75}
+
+
+def test_preflight_blocks_blender_before_provider_when_upstream_is_down(
+        monkeypatch, tmp_path):
+    import sys
+
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    codex_home = tmp_path / "codex-home"
+    codex_home.mkdir()
+    (codex_home / "auth.json").write_text("{}", encoding="utf-8")
+    command = json.dumps(sys.executable)
+    (codex_home / "config.toml").write_text(
+        f'model = "gpt-test"\n\n[mcp_servers.blender]\ncommand = {command}\n',
+        encoding="utf-8")
+    scenario = {
+        "schema": "pie-scenario-v1",
+        "scenario_id": "blender-preflight-0001",
+        "prompt": "read the scene",
+        "expected_exact": "ok",
+        "model": "gpt-test",
+        "required_mcp_server": "blender",
+    }
+    monkeypatch.setattr(live_codex, "_git_clean_commit", lambda root: "a" * 40)
+    monkeypatch.setattr(live_codex, "_auth_state", lambda *args: "AUTH_PRESENT_ENV")
+    monkeypatch.setattr(
+        live_codex, "_probe_blender_upstream",
+        lambda selected: {"state": "FAIL", "reason": "UPSTREAM_UNAVAILABLE"},
+    )
+    result = live_codex.preflight_codex(
+        scenario,
+        condition="baseline",
+        workspace=workspace,
+        codex_home=codex_home,
+    )
+    assert result["state"] == "BLOCKED"
+    assert "PRECHECK_BLENDER_UPSTREAM_UNAVAILABLE" in result["errors"]
+
+
 @pytest.mark.parametrize("bad", ["20", 20.5, True])
 def test_invalid_reasoning_output_tokens_type_fails(bad):
     with pytest.raises(ValueError):

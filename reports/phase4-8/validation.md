@@ -99,10 +99,11 @@ uso real, mas continuam limitados às fixtures e aos cenários registrados; não
 substituem a certificação oficial Codex nem uma generalização ampla para
 Blender/Web.
 
-O preflight atual valida a configuração do gateway, mas não testa a
-conectividade do upstream Blender antes de iniciar o provider. Uma próxima
-execução paga de Blender deve adicionar esse gate ou ser explicitamente
-classificada como bloqueada antes do modelo.
+O preflight agora testa a conectividade TCP local do upstream Blender antes de
+iniciar o provider. Se `127.0.0.1:9876` (ou o endpoint configurado por
+`BLENDER_MCP_HOST`/`BLENDER_MCP_PORT`) não responder, a captura é bloqueada
+antes do modelo. A guarda passou nos testes focados e na suíte completa; o
+Blender ainda não está ativo neste host para validar o caminho positivo.
 
 O backup e o diff sanitizado da configuração Codex estão em
 `reports/phase4-8/routing-preflight-20261116.*`; o servidor original Blender e

@@ -1,6 +1,6 @@
 """Fail-closed Codex real token accounting. Never persist prompts, answers or traces."""
 from __future__ import annotations
-import hashlib,json,math,os,re,shutil,subprocess,time,tomllib
+import hashlib,json,math,os,re,shutil,socket,subprocess,time,tomllib
 from pathlib import Path
 from datetime import datetime,timezone
 
@@ -343,6 +343,28 @@ def _auth_state(home:Path, executable:str, env:dict)->str:
         return "AUTH_VALIDATED_LOCAL"
     return "AUTH_INVALID" if result.returncode==1 else "AUTH_UNAVAILABLE"
 
+def _probe_blender_upstream(selected:dict)->dict:
+    """Fail closed when the local Blender MCP endpoint is unavailable.
+
+    shortcut: mcp-for-blender default endpoint only, use explicit environment
+    variables when a deployment exposes a custom host or port.
+    """
+    configured_env=selected.get("env",{}) if isinstance(selected,dict) else {}
+    if not isinstance(configured_env,dict):configured_env={}
+    host=str(configured_env.get("BLENDER_MCP_HOST") or
+             configured_env.get("MCP_FOR_BLENDER_HOST") or "127.0.0.1")
+    raw_port=(configured_env.get("BLENDER_MCP_PORT") or
+              configured_env.get("MCP_FOR_BLENDER_PORT") or "9876")
+    try:port=int(raw_port)
+    except (TypeError,ValueError):return {"state":"FAIL","reason":"INVALID_ENDPOINT"}
+    if not 1<=port<=65535:return {"state":"FAIL","reason":"INVALID_ENDPOINT"}
+    try:
+        with socket.create_connection((host,port),timeout=0.75):
+            return {"state":"PASS","host":host,"port":port}
+    except (OSError,ValueError):
+        return {"state":"FAIL","host":host,"port":port,
+                "reason":"UPSTREAM_UNAVAILABLE"}
+
 def preflight_codex(scenario:dict,*,condition:str,workspace:Path,codex_home:Path,
                     codex_bin:str="codex",evidence_dir:Path|None=None,
                     profile:str|None=None)->dict:
@@ -406,6 +428,10 @@ def preflight_codex(scenario:dict,*,condition:str,workspace:Path,codex_home:Path
             checks["mcp_command"]="PASS" if command_ok else {"state":"FAIL"}
             if not command_ok:
                 errors.append("PRECHECK_MCP_COMMAND_UNAVAILABLE")
+            if _scenario_app(scenario)=="blender":
+                checks["blender_upstream"]=_probe_blender_upstream(selected)
+                if checks["blender_upstream"].get("state")!="PASS":
+                    errors.append("PRECHECK_BLENDER_UPSTREAM_UNAVAILABLE")
             if command_ok and isinstance(selected,dict) and "pie.gateway.domain" in (selected.get("args") or []):
                 configured_env=selected.get("env",{})
                 source_root=configured_env.get("PIE_SOURCE_ROOT") if isinstance(configured_env,dict) else None

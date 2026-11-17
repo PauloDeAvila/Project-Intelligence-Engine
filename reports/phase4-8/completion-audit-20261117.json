@@ -12,8 +12,12 @@
     "diagnostics": []
   },
   "overall_status": "PARTIAL_NOT_CERTIFIED",
+  "mitigations": [
+    "preflight_codex now performs a bounded local TCP probe for the Blender MCP endpoint and blocks before the provider when it is unavailable"
+  ],
   "operational_risks": [
-    "preflight_codex validates the configured route but does not perform a live upstream Blender connectivity check before starting the provider; a missing addon can therefore consume provider context before the MCP error is returned"
+    "the default probe uses 127.0.0.1:9876; deployments with a custom Blender MCP endpoint must set BLENDER_MCP_HOST/BLENDER_MCP_PORT",
+    "the current host still has no Blender process, so live Blender dispatch remains unverified after the new gate"
   ],
   "phases": {
     "4_consolidation": {
