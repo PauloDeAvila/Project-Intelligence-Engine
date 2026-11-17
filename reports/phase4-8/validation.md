@@ -139,3 +139,15 @@ preservada separadamente como falha do harness.
 
 Evidência: `web-deepseek-ab-pilot-20261116.json` e
 `web-deepseek-ab-pilot-20261116-invalid-click.json`.
+
+## Correção do overhead Web
+
+O gateway Web deixou de anunciar `pie_web_context` por padrão. A compactação
+transparente de `browser_snapshot` continua disponível para observações acima
+do orçamento; a ferramenta de consulta seletiva só aparece quando explicitamente
+exposta. O probe real passou `initialize` e `tools/list`, com 26 ferramentas e
+`pie_gateway_output_get` presente.
+
+A fixture atual retornou 415 caracteres, abaixo do orçamento de 2.400, portanto
+este gate não reivindica nova economia. Evidência:
+`web-transparent-compaction-gate-20261116.json`.

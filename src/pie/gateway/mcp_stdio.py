@@ -239,8 +239,10 @@ class MCPStdioGateway:
                 if (not self.exposed_tools or RECOVERY_NAME in self.exposed_tools) and not self._collision and not any(t.get("name")==RECOVERY_NAME
                                                    for t in body["tools"] if isinstance(t,dict)):
                     body["tools"].append(dict(RECOVERY_TOOL))
+                # shortcut: the query tool is opt-in; transparent snapshot
+                # compaction avoids an extra model round trip by default.
                 if (self.profile == "web" and not self._collision
-                        and (not self.exposed_tools or WEB_CONTEXT_NAME in self.exposed_tools)
+                        and WEB_CONTEXT_NAME in self.exposed_tools
                         and not any(t.get("name") == WEB_CONTEXT_NAME
                                      for t in body["tools"] if isinstance(t, dict))):
                     body["tools"].append(dict(WEB_CONTEXT_TOOL))
@@ -547,7 +549,8 @@ class MCPStdioGateway:
                     if (request.get("method") == "tools/call"
                             and isinstance(request.get("params"), dict)
                             and request["params"].get("name") == WEB_CONTEXT_NAME
-                            and self.profile == "web" and not self._collision):
+                            and self.profile == "web" and not self._collision
+                            and WEB_CONTEXT_NAME in self.exposed_tools):
                         self._send(stdout, self._handle_web_context(request))
                         continue
                     name=(request.get("params") or {}).get("name","") if isinstance(request.get("params"),dict) else ""

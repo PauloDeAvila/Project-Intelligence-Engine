@@ -101,6 +101,14 @@
     "pie_correct": 3,
     "status": "PILOT_VALID_NEGATIVE_RESULT"
   },
+  "web_transparent_compaction_gate": {
+    "path": "reports/phase4-8/web-transparent-compaction-gate-20261116.json",
+    "status": "PASS_GATE_NOT_CERTIFIED",
+    "pie_web_context_announced_by_default": false,
+    "live_tools_list": 26,
+    "fixture_snapshot_chars": 415,
+    "compaction_triggered": false
+  },
   "phases": {
     "4_consolidation": {
       "status": "PASS_EXTERNAL_CONTROLLED_READ_ONLY",
@@ -152,7 +160,8 @@
         "88.875 percent total savings in that fixture",
         "DeepSeek 3.2 paired-evidence pilot reported real usage",
         "DeepSeek failed-quality pilot was preserved as NOT_CERTIFIED",
-        "DeepSeek valid three-pair pilot reported 93.801 percent total savings and 3/3 oracle correctness"
+        "DeepSeek valid three-pair pilot reported 93.801 percent total savings and 3/3 oracle correctness",
+        "Web gateway no longer announces pie_web_context by default"
       ],
       "missing": [
         "Codex provider certification",
