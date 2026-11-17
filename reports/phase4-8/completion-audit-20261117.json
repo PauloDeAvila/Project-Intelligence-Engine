@@ -7,8 +7,8 @@
     "state": "CURRENT",
     "workspace_match": true,
     "files": 270,
-    "symbols": 2261,
-    "imports": 2613,
+    "symbols": 2273,
+    "imports": 2622,
     "diagnostics": []
   },
   "overall_status": "PARTIAL_NOT_CERTIFIED",
@@ -38,8 +38,9 @@
         "reports/phase4-8/codex-pie-web-route-probe-20261117.json",
         "reports/phase4-8/codex-pie-blender-route-probe-20261117.json",
         "reports/phase4-8/blender-live-availability-20261117.json",
+        "reports/phase4-8/blender-runtime-recovery-20261117.json",
         "reports/phase4-8/validation.json",
-        "latest regression: 722 passed, 4 skipped, 126 subtests"
+        "latest regression: 725 passed, 4 skipped, 126 subtests"
       ]
     },
     "5_multi_agent_memory": {

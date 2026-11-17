@@ -3,16 +3,16 @@
   "status": "PARTIAL_LOCAL_VALIDATION",
   "certification": "NOT_CERTIFIED",
   "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
-  "head_at_validation": "7f0738dc3b3b473782ab4ca1e8b6b3b2971c13a6",
-  "implementation_commit": "7f0738dc3b3b473782ab4ca1e8b6b3b2971c13a6",
+  "head_at_validation": "12db165",
+  "implementation_commit": "12db165",
   "index": {
     "source": "uv run python -m pie.interfaces.cli status --root .",
     "project": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean",
     "index_state": "CURRENT",
     "workspace_match": true,
-    "files": 270,
-    "symbols": 2261,
-    "imports": 2613
+    "files": 272,
+    "symbols": 2273,
+    "imports": 2622
   },
   "current_blender_probe": {
     "checked_at": "2026-11-17",
@@ -32,6 +32,13 @@
     "status": "AVAILABLE",
     "restart_action": "NOT_STARTED_ALREADY_RUNNING"
   },
+  "blender_runtime_recovery": {
+    "path": "reports/phase4-8/blender-runtime-recovery-20261117.json",
+    "status": "PASS_LOCAL_AND_LIVE_REUSE",
+    "focused_tests": 5,
+    "live_started": false,
+    "absent_process_path": "UNIT_TESTED_NOT_LIVE"
+  },
   "tests": {
     "focused": {
       "command": "uv run --with pytest python -m pytest -q tests/test_task_memory_checkpoints.py tests/test_multi_agent_memory.py tests/test_context_compiler.py tests/test_evidence_atoms.py --basetemp .pytest-tmp-phase6-1",
@@ -49,12 +56,12 @@
   },
   "latest_regression_suite": {
     "command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-default-cube-20261117 -p no:cacheprovider",
-    "passed": 722,
+    "passed": 725,
     "skipped": 4,
     "subtests": 126,
     "failed": 0,
-    "duration_seconds": 65.71,
-    "rerun_command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-default-cube-20261117 -p no:cacheprovider",
+    "duration_seconds": 37.39,
+    "rerun_command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-blender-runtime-full-20261117 -p no:cacheprovider",
     "rerun_date": "2026-11-17"
   },
   "blender_upstream_preflight_gate": {

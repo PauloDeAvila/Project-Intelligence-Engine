@@ -6,7 +6,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 
 ## Evidência executada
 
-- Índice local: CURRENT, workspace_match=true, 270 arquivos, 2.261 símbolos e 2.613 imports, verificado no head de implementação `7f0738dc3b3b473782ab4ca1e8b6b3b2971c13a6`.
+- Índice local: CURRENT, workspace_match=true, 272 arquivos, 2.273 símbolos e 2.622 imports, verificado no head de implementação `12db165`.
 - Testes focados: 74 passed.
 - Suíte completa histórica: 710 passed, 4 skipped, 126 subtests passed.
 - Testes focados do gateway Web e do gate: 25 passed em 0,29 s.
@@ -14,6 +14,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 - `uv run python tools/verify_context_runtime.py` — `PASS_LOCAL`; o verificador registra `external_provider_usage=unavailable` e não promove evidência sintética a certificação.
 - Testes de execução local, exposição Web e persistência Delta: 35 passed, 0 failed.
 - Checagem Blender ao vivo: processo `blender.exe` PID 18196, endpoint `127.0.0.1:9876`, Blender 5.3.0, addon 2.0, protocolo 16/16; leituras nativa e PIE de status/cena passaram.
+- Recuperação Blender: 5 testes focados passaram; o endpoint ativo foi reutilizado sem iniciar duplicata. O caminho de processo ausente está coberto por teste unitário fail-closed, mas ainda não foi exercitado ao vivo.
 - Consulta local indexada: 100 amostras, p95 de 3,6046 ms (meta de 100 ms aprovada), sem chamadas de provider.
 - Isolamento entre dois workspaces: restauração cruzada retornou `NOT_FOUND`, e
   cada workspace restaurou somente seu próprio checkpoint.
