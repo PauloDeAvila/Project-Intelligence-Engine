@@ -1,0 +1,19 @@
+{
+  "schema": "pie-phase3-single-result-v1",
+  "state": "BASELINE_BLENDER_VALID",
+  "run_id": "baseline-blender-default-cube-v2-r1",
+  "pair_id": "codex-blender-default-cube-v2-r1",
+  "ledger": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean\\reports\\phase4-8\\codex-blender-default-cube-v2-baseline-r1-20261117-budget-ledger.json",
+  "record": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean\\reports\\phase4-8\\codex-blender-default-cube-v2-baseline-r1-20261117-record.json",
+  "oracle": {
+    "passed": true,
+    "kind": "blender_scene_json",
+    "independent_live_probe_required": true
+  },
+  "route": {
+    "decision": "VALID",
+    "reason": "Provider, oracle and exact route evidence matched"
+  },
+  "quota_consumed": true,
+  "automatic_retry": false
+}

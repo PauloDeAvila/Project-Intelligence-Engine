@@ -1,63 +1,27 @@
 {
-  "schema": "pie-context-runtime-phase4-8-final-v1",
+  "schema": "pie-context-runtime-phase4-8-final-v2",
   "status": "PARTIAL_NOT_CERTIFIED",
   "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
-  "implementation_head": "82d0a52",
-  "report_head": "720ccf2",
-  "certification": {
-    "status": "NOT_CERTIFIED",
-    "reason": "The roadmap acceptance requires broader statistical replication and consistent provider-backed A/B evidence; the current Codex sample has two valid Blender pairs, one valid Web pair, and one invalid Blender repetition."
-  },
-  "index": {
-    "state": "CURRENT",
-    "workspace_match": true,
-    "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean",
-    "files": 280,
-    "symbols": 2280,
-    "imports": 2646,
-    "diagnostics": []
-  },
+  "implementation_head": "35f055ada1ebbbe8f05c2a39ae9797fbbe2e5141",
+  "certification": {"status": "NOT_CERTIFIED", "reason": "Web replication shows aggregate token regression; Blender has only two valid pairs and two fail-closed baseline attempts."},
+  "index": {"state": "CURRENT", "workspace_match": true, "workspace_root": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean", "files": 280, "symbols": 2285, "imports": 2650, "diagnostics": []},
   "phases": {
-    "4_consolidation": {
-      "status": "PARTIAL_EXTERNAL_CONTROLLED",
-      "acceptance": {"mcp_route": "PASS", "restart_persistence": "PASS_LOCAL", "blender_runtime_recovery": "PASS_UNIT_AND_LIVE_REUSE", "isolated_codex_home": "PASS", "no_regression": "PASS"},
-      "evidence": ["reports/phase4-8/blender-runtime-recovery-20261117.json", "reports/phase4-8/codex-isolated-executor-20261117.json", "reports/phase4-8/codex-blender-default-aggregate-20261117.json", "reports/phase4-8/codex-web-local-controlled-pair-20261117.json"],
-      "open_items": ["One production runtime shared by Codex and OpenCode is not proven as a single service."]
-    },
-    "5_multi_agent_memory": {
-      "status": "PASS_EXTERNAL_CONTROLLED",
-      "acceptance": "PASS",
-      "evidence": ["reports/phase4-8/codex-glm-official-handoff-20261117.json", "reports/phase4-8/memory-project-isolation-20261116.json", "reports/phase4-8/opencode-deepseek-connection-20261116.json"],
-      "open_items": []
-    },
-    "6_incremental_context_cache": {
-      "status": "PASS_EXTERNAL_CONTROLLED_SINGLE_PAIR",
-      "acceptance": "PARTIAL",
-      "evidence": ["reports/phase4-8/context-runtime-external-restart-token-proof.json"],
-      "open_items": ["Statistical replication across multiple scenarios after restart."]
-    },
-    "7_local_execution": {
-      "status": "PASS_LOCAL",
-      "acceptance": "PASS",
-      "evidence": ["reports/phase4-8/local-query-latency-20261116.json", "reports/phase4-8/validation.json"],
-      "open_items": []
-    },
-    "8_continuous_certification": {
-      "status": "PARTIAL_NOT_CERTIFIED",
-      "acceptance": "INCOMPLETE",
-      "evidence": ["reports/phase4-8/codex-blender-default-aggregate-20261117.json", "reports/phase4-8/codex-web-local-controlled-pair-20261117.json", "reports/phase4-8/codex-blender-default-r3-invalid-20261117.json", "reports/phase4-8/blender-live-default-cube-deepseek-replication-gate-20261117.json", "reports/phase4-8/web-summary-replication-gate-20261116.json"],
-      "open_items": ["One valid Blender repetition and two valid Web repetitions remain for the planned sample.", "Investigate the extra baseline get_scene_info call before consuming more quota.", "Do not generalize local DeepSeek/GLM results to official Codex certification."]
-    }
+    "4_consolidation": {"status": "PARTIAL_EXTERNAL_CONTROLLED", "acceptance": {"mcp_route": "PASS", "restart_persistence": "PASS_LOCAL", "blender_runtime_recovery": "PASS_UNIT_AND_LIVE_REUSE", "isolated_codex_home": "PASS", "no_regression": "PASS"}},
+    "5_multi_agent_memory": {"status": "PASS_EXTERNAL_CONTROLLED", "acceptance": "PASS"},
+    "6_incremental_context_cache": {"status": "PASS_EXTERNAL_CONTROLLED_SINGLE_PAIR", "acceptance": "PARTIAL"},
+    "7_local_execution": {"status": "PASS_LOCAL", "acceptance": "PASS"},
+    "8_continuous_certification": {"status": "PARTIAL_NOT_CERTIFIED", "acceptance": "INCOMPLETE", "evidence": ["reports/phase4-8/codex-phase8-resumed-20261117.json"], "open_items": ["Obtain one additional valid Blender pair without oracle failure", "Investigate recurring Blender baseline null-field responses", "Do not generalize local model results to Codex"]}
   },
   "official_codex_ab": {
-    "blender": {"valid_pairs": 2, "invalid_repetitions": [3], "aggregate_baseline_total_tokens": 239237, "aggregate_optimized_total_tokens": 132814, "aggregate_total_savings_percent": 44.48434, "aggregate_oracles": "4/4", "mean_optimized_latency_delta_percent": 9.164689},
-    "web": {"valid_pairs": 1, "baseline_total_tokens": 63601, "optimized_total_tokens": 92520, "total_savings_percent": -45.469411, "oracles": "2/2", "optimized_latency_delta_percent": 0.022574},
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "medium",
     "usage_source": "Codex turn.completed provider usage",
-    "cost": null,
-    "cost_reason": "No verified tariff for gpt-5.6-luna was supplied."
+    "blender": {"valid_pairs": 2, "invalid_attempts": ["codex-blender-default-cube-v2-r3", "codex-blender-default-cube-v2-r4"], "baseline_total_tokens": 118816, "optimized_total_tokens": 139092, "total_savings_percent": -17.065042, "uncached_input_savings_percent": 32.215284, "latency_delta_percent": 20.235607, "mcp_calls": {"baseline": 4, "optimized": 4}, "oracles": "4/4"},
+    "web": {"valid_pairs": 3, "fixture": "http://127.0.0.1:8766/index.html", "baseline_total_tokens": 330190, "optimized_total_tokens": 483754, "total_savings_percent": -46.507768, "uncached_input_savings_percent": -29.074645, "latency_delta_percent": 11.11437, "mcp_calls": {"baseline": 12, "optimized": 12}, "oracles": "6/6"},
+    "cost": {"status": "UNAVAILABLE", "total": null, "reason": "No verified tariff for gpt-5.6-luna"}
   },
-  "quality": {"blender_valid_oracles": "4/4", "web_valid_oracles": "2/2", "external_pages_modified": false, "blender_scene_modified": false, "credentials_or_transcripts_stored": false},
-  "tests": {"full_suite": "727 passed, 4 skipped, 126 subtests passed", "command": "PYTHONPATH=. uv run pytest -q --basetemp .pytest-tmp-full-web-fix", "focused_web_live_codex": "21 passed"},
-  "commits": ["11c6d80", "2195587", "a74748a", "16c9b1b", "103028f", "82d0a52"],
-  "limitations": ["The current Git worktree contains pre-existing untracked runtime and pytest artifacts; they were not added to commits.", "The official provider sample is incomplete and includes a fail-closed invalid attempt.", "No financial cost is inferred from token counts."]
+  "quality": {"blender_valid_oracles": "4/4", "web_valid_oracles": "6/6", "external_pages_modified": false, "blender_scene_modified": false, "credentials_or_transcripts_stored": false},
+  "tests": {"full_suite": "730 passed, 4 skipped, 126 subtests passed", "command": "PYTHONPATH=. uv run pytest -q --basetemp .pytest-tmp-final-resume-pyroot", "pie_reindex": "CURRENT; 280 files; 2285 symbols; 2650 imports; diagnostics=[]"},
+  "commits": ["d1b5710", "991f44f", "35f055a"],
+  "limitations": ["Blender evidence is incomplete and contains two oracle-rejected baseline attempts.", "Web aggregate usage is a measured regression, not an estimate.", "Cost remains null because no verified tariff was supplied.", "The persistent Codex config was not modified; temporary profiles and worktrees were used."]
 }

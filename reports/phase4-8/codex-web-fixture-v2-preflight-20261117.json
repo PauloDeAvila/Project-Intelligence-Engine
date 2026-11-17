@@ -1,0 +1,108 @@
+{
+  "schema": "pie-phase3-preflight-v1",
+  "state": "BLOCKED",
+  "model_started": false,
+  "quota_consumed": false,
+  "arms": [
+    {
+      "scenario_id": "web-local-fixture-codex-v2",
+      "condition": "baseline",
+      "state": "BLOCKED",
+      "checks": {
+        "scenario": "PASS",
+        "condition": "PASS",
+        "worktree": {
+          "state": "PASS",
+          "commit": "a44b1185ca990378e2dc2e49f1e758dd16aa594a"
+        },
+        "config": "PASS",
+        "profile": "PASS",
+        "codex_executable": "PASS",
+        "model": "PASS",
+        "mcp": {
+          "state": "PASS",
+          "required_server": "playwright-baseline"
+        },
+        "mcp_tools": {
+          "state": "FAIL",
+          "expected": [
+            "browser_navigate",
+            "browser_snapshot",
+            "browser_click",
+            "browser_snapshot"
+          ],
+          "configured": [
+            "browser_navigate",
+            "browser_snapshot",
+            "browser_click"
+          ]
+        },
+        "mcp_command": "PASS",
+        "gateway_workspace": "NOT_APPLICABLE",
+        "mcp_runtime": {
+          "state": "DEFERRED_TO_ISOLATED_CAPTURE",
+          "required_server": "playwright-baseline"
+        },
+        "authentication": {
+          "state": "AUTH_VALIDATED_LOCAL"
+        }
+      },
+      "errors": [
+        "PRECHECK_MCP_ISOLATION_FAILED"
+      ],
+      "model": "gpt-5.6-luna"
+    },
+    {
+      "scenario_id": "web-local-fixture-codex-v2",
+      "condition": "optimized",
+      "state": "BLOCKED",
+      "checks": {
+        "scenario": "PASS",
+        "condition": "PASS",
+        "worktree": {
+          "state": "PASS",
+          "commit": "a44b1185ca990378e2dc2e49f1e758dd16aa594a"
+        },
+        "config": "PASS",
+        "profile": "PASS",
+        "codex_executable": "PASS",
+        "model": "PASS",
+        "mcp": {
+          "state": "PASS",
+          "required_server": "pie-web-optimized"
+        },
+        "mcp_tools": {
+          "state": "FAIL",
+          "expected": [
+            "browser_navigate",
+            "browser_snapshot",
+            "browser_click",
+            "browser_snapshot"
+          ],
+          "configured": [
+            "browser_navigate",
+            "browser_snapshot",
+            "browser_click"
+          ]
+        },
+        "mcp_command": "PASS",
+        "pie_source": {
+          "state": "FAIL"
+        },
+        "gateway_workspace": "PASS",
+        "mcp_runtime": {
+          "state": "DEFERRED_TO_ISOLATED_CAPTURE",
+          "required_server": "pie-web-optimized"
+        },
+        "authentication": {
+          "state": "AUTH_VALIDATED_LOCAL"
+        }
+      },
+      "errors": [
+        "PRECHECK_MCP_ISOLATION_FAILED",
+        "PRECHECK_PIE_SOURCE_INVALID"
+      ],
+      "model": "gpt-5.6-luna"
+    }
+  ]
+}

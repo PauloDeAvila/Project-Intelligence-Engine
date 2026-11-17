@@ -1,0 +1,19 @@
+{
+  "schema": "pie-phase3-single-result-v1",
+  "state": "OPTIMIZED_WEB_VALID",
+  "run_id": "optimized-web-fixture-v2-r3",
+  "pair_id": "codex-web-fixture-v2-r3",
+  "ledger": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean\\reports\\phase4-8\\codex-web-fixture-v2-optimized-r3-20261117-budget-ledger.json",
+  "record": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean\\reports\\phase4-8\\codex-web-fixture-v2-optimized-r3-20261117-record.json",
+  "oracle": {
+    "passed": true,
+    "kind": "exact_text",
+    "missing": []
+  },
+  "route": {
+    "decision": "VALID",
+    "reason": "Provider, oracle and exact route evidence matched"
+  },
+  "quota_consumed": true,
+  "automatic_retry": false
+}

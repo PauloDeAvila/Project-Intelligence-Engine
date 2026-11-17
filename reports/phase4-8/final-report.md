@@ -1,82 +1,57 @@
-# PIE Context Runtime — relatório consolidado das Fases 4–8
+# PIE Context Runtime — Fases 4–8
 
 ## Veredito
 
 `PARTIAL_NOT_CERTIFIED` / `NOT_CERTIFIED`.
 
-As fases 4–7 têm evidências locais ou externas controladas para os estados
-indicados abaixo. A Fase 8 ainda não atende ao critério de amostra e
-consistência exigido para certificação geral.
+As rotas Codex → MCP → Blender/Web funcionaram e os oráculos válidos passaram. A economia geral não foi certificada: Web regrediu em tokens e Blender ainda não tem três pares válidos.
 
-| Fase | Estado | Evidência principal |
-|---|---|---|
-| 4 — Consolidação | `PARTIAL_EXTERNAL_CONTROLLED` | Executor Codex isolado, recuperação Blender, rotas Web/Blender e persistência local |
-| 5 — Memória multiagente | `PASS_EXTERNAL_CONTROLLED` | Handoff Codex → GLM, checkpoints e isolamento entre projetos |
-| 6 — Cache incremental | `PASS_EXTERNAL_CONTROLLED_SINGLE_PAIR` | Cache por hash e um par real após reinício |
-| 7 — Execução local | `PASS_LOCAL` | Allowlists, limites, replay, timeouts e p95 SQLite abaixo de 100 ms |
-| 8 — Certificação contínua | `PARTIAL_NOT_CERTIFIED` | Dois pares Blender válidos e um Web válido; amostra incompleta |
+| Domínio | Pares válidos | Baseline | Optimized | Economia total | Latência optimized |
+|---|---:|---:|---:|---:|---:|
+| Blender v2 | 2 | 118.816 | 139.092 | **−17,065%** | **+20,236%** |
+| Web v2 | 3 | 330.190 | 483.754 | **−46,508%** | **+11,114%** |
 
-## A/B oficial Codex
+Os números são tokens reportados em `turn.completed` pelo provedor Codex, não estimativas por caracteres. O custo financeiro permanece `null`: não há tarifa verificada para `gpt-5.6-luna`.
 
-Modelo: `gpt-5.6-luna`; esforço: `medium`; uso: tokens reportados em
-`turn.completed`; custo financeiro: `null`, sem tarifa verificada.
+## Blender
 
-### Blender
+Os dois pares válidos passaram o oráculo JSON e usaram exatamente duas chamadas MCP por braço:
 
-Dois pares válidos passaram os oráculos independentes:
+| Par | Baseline total | Optimized total | Economia | Input não cacheado | Latência |
+|---|---:|---:|---:|---:|---:|
+| R1 | 67.779 | 89.884 | −32,613% | 8.130 → 15.728 | +29,616% |
+| R2 | 51.037 | 49.208 | +3,584% | 25.500 → 7.068 | +10,023% |
 
-- Baseline: `239.237` tokens totais agregados.
-- PIE: `132.814` tokens totais agregados.
-- Economia agregada: **44,484%**.
-- Input não cacheado: `33.866` → `14.752` tokens.
-- Latência média: PIE `9,165%` maior.
-- Oráculos: `4/4`.
+R3 e R4 foram rejeitados pelo oráculo no baseline: o modelo retornou `null` para tipo, localização e materiais. O optimized não foi iniciado nesses pares; não houve retry automático. Os registros e tokens dos failures estão preservados em `reports/phase4-8/codex-blender-default-cube-v2-baseline-r3-20261117.json` e `...-baseline-r4-20261117-record.json`.
 
-A repetição R3 foi rejeitada porque o baseline fez três chamadas MCP:
-`get_addon_status`, `get_scene_info`, `get_scene_info`. O braço optimized não
-foi executado e não houve retry.
+## Web
 
-### Web
+Fixture usada: `http://127.0.0.1:8766/index.html`; nenhuma página externa foi acessada ou modificada. Cada braço fez quatro chamadas: navigate, snapshot, click, snapshot. Todos os seis oráculos passaram.
 
-O par controlado usou apenas a fixture local em `127.0.0.1:8766`:
+O resultado agregado é desfavorável: 483.754 tokens no PIE contra 330.190 no baseline. A entrada não cacheada também piorou: 39.574 → 51.080 tokens (**−29,075%** de economia). A redução de saída não compensou o contexto adicional.
 
-- Baseline: `63.601` tokens.
-- PIE: `92.520` tokens.
-- Economia: **−45,469%** — regressão real.
-- Latência: PIE `0,023%` maior.
-- Chamadas: quatro em cada braço.
-- Oráculos: `2/2`.
-- Páginas externas modificadas: não.
+## Implementação validada nesta retomada
 
-O resultado negativo permanece no relatório e impede afirmar economia Web
-genérica.
+- `d1b5710` — preflight aplica merge profundo dos perfis, preservando `command`/`args`.
+- `991f44f` — falhas de oráculo/rota persistem o registro de uso do provedor.
+- `35f055a` — allowlists normalizam ferramentas repetidas em sequências Web.
 
-## Implementação e validação
+Índice PIE local: `CURRENT`, `workspace_match=true`, 280 arquivos, 2.285 símbolos, 2.650 imports, sem diagnósticos.
 
-- `11c6d80`: permite sequências legítimas com snapshots Web repetidos.
-- `82d0a52`: expõe a suíte estrita de replicação pelas fachadas públicas do runtime, sem alterar a suíte golden existente.
-- `16c9b1b`: atualiza o relatório Markdown consolidado.
-- `103028f`: consolida este relatório final.
-- Índice PIE: `CURRENT`, `workspace_match=true`, 280 arquivos, 2.280 símbolos,
-  2.646 imports, sem diagnósticos.
-- Suíte: `727 passed, 4 skipped, 126 subtests passed`.
-
-Comando reproduzível:
+Suíte executada:
 
 ```powershell
 $env:PYTHONPATH = "."
-uv run pytest -q --basetemp .pytest-tmp-full-web-fix
-uv run python -m pie.interfaces.cli status --root .
+uv run pytest -q --basetemp .pytest-tmp-final-resume-pyroot
 ```
 
-## Pendências determinantes
+Resultado: **730 passed, 4 skipped, 126 subtests passed**.
 
-1. Investigar offline a chamada Blender duplicada antes de consumir nova quota.
-2. Completar uma repetição Blender e duas Web com IDs e condições equivalentes.
-3. Recalcular a certificação somente com pares válidos e oráculos aprovados.
-4. Manter `NOT_CERTIFIED` enquanto a amostra oficial permanecer incompleta.
+Evidência JSON detalhada: [codex-phase8-resumed-20261117.json](C:/Users/phsra/OneDrive/Documents/ChatGPT/Korum/PIE-Clean/reports/phase4-8/codex-phase8-resumed-20261117.json).
 
-Evidências detalhadas: `validation.json`, `completion-audit-20261117.json`,
-`codex-blender-default-aggregate-20261117.json`,
-`codex-blender-default-r3-invalid-20261117.json` e
-`codex-web-local-controlled-pair-20261117.json`.
+## Pendências
+
+1. Investigar por que o baseline Blender ocasionalmente gera campos `null` apesar de a ferramenta responder.
+2. Obter um terceiro par Blender válido sem repetir tentativas já pagas.
+3. Reduzir o contexto estrutural do gateway Web antes de alegar economia.
+4. Manter `NOT_CERTIFIED` até a evidência melhorar; os resultados negativos permanecem incluídos.

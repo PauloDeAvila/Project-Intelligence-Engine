@@ -1,0 +1,13 @@
+{
+  "schema": "pie-phase3-budget-ledger-v1",
+  "state": "preflight_failed",
+  "authorized_sessions": 1,
+  "consumed_sessions": 0,
+  "remaining_sessions": 1,
+  "run_id": "baseline-web-fixture-v2-r1",
+  "pair_id": "codex-web-fixture-v2-r1",
+  "automatic_retry": false,
+  "task_id": "web-local-fixture-codex-v2",
+  "certification_status": "BYPASS",
+  "error": "preflight_failed"
+}

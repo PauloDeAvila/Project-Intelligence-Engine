@@ -1,0 +1,13 @@
+{
+  "schema": "pie-phase3-terminal-record-v1",
+  "task_id": "web-local-fixture-codex-v2",
+  "run_id": "baseline-web-fixture-v2-r2",
+  "pair_id": "codex-web-fixture-v2-r2",
+  "condition": "baseline",
+  "status": "BYPASS",
+  "reason": "preflight_failed",
+  "timestamp": "2026-11-17T22:12:32+00:00",
+  "tokens": null,
+  "latency_ms": null,
+  "usage": null
+}

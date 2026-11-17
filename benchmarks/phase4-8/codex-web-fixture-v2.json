@@ -1,0 +1,21 @@
+{
+  "schema": "pie-phase4-8-scenario-v1",
+  "scenario_id": "web-local-fixture-codex-v2",
+  "application": "web",
+  "description": "Read-only local Playwright navigation and marker reveal.",
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "required_mcp_server": "web",
+  "expected_mcp_tools_by_condition": {
+    "baseline": ["browser_navigate", "browser_snapshot", "browser_click", "browser_snapshot"],
+    "optimized": ["browser_navigate", "browser_snapshot", "browser_click", "browser_snapshot"]
+  },
+  "prompt": "Use the local page at http://127.0.0.1:8766/index.html. Make exactly these MCP calls in order: navigate to that URL, take one snapshot, click the button that reveals the phase marker, then take one final snapshot. Do not access external pages, do not repeat a tool call, and do not modify anything outside this local page. Return exactly the marker text shown after the click, with no Markdown or explanation.",
+  "expected_exact": "PIE_WEB_FIXTURE_V1",
+  "oracle": {
+    "kind": "exact_text",
+    "fixture_id": "PIE_WEB_FIXTURE_V1",
+    "required_text": ["PIE_WEB_FIXTURE_V1"]
+  },
+  "fixture_spec": "Local HTTP fixture at http://127.0.0.1:8766/index.html; click-to-reveal marker; no external navigation"
+}
