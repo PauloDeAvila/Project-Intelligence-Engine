@@ -84,6 +84,17 @@
     "input_tokens": 55,
     "output_tokens": 6
   },
+  "glm_agent_handoff": {
+    "path": "reports/phase4-8/glm-agent-handoff-20261116.json",
+    "status": "PASS_EXTERNAL_CONTROLLED",
+    "model": "gambiarraapi/glm-5.3-flash",
+    "restart_between_checkpoint_and_restore": true,
+    "full_task_history_sent_to_target": false,
+    "oracle_pass": true,
+    "input_tokens": 69,
+    "output_tokens": 34,
+    "total_tokens": 103
+  },
   "deepseek_expanded_pilot": {
     "path": "reports/phase4-8/deepseek-real-pilot-expanded-20261116.json",
     "tasks": 6,
@@ -293,6 +304,7 @@
       "status": "PASS_EXTERNAL_CONTROLLED",
       "evidence": [
         "explicit codex-to-deepseek checkpoint handoff",
+        "explicit codex-to-glm checkpoint handoff after runtime restart",
         "durable context_version exposed from the checkpoint sequence",
         "source hash and provenance preserved",
         "receiver restores without task history",
