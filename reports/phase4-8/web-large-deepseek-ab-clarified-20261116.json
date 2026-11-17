@@ -1,0 +1,69 @@
+{
+  "schema": "pie-web-large-deepseek-ab-v1",
+  "status": "PILOT_INVALID_NOT_CERTIFIED",
+  "model": "gambiarraapi/deepseek-v3.2",
+  "endpoint": "http://127.0.0.1:8080",
+  "url": "http://127.0.0.1:8767/fixtures/phase4-8/web-large/index.html",
+  "oracle": {
+    "title": "PIE Large Web Fixture",
+    "status": "The deterministic large fixture is ready.",
+    "marker": "PIE_WEB_LARGE_FIXTURE_V1"
+  },
+  "max_output_tokens": 512,
+  "baseline": {
+    "tool_count": 25,
+    "context_chars": 39954,
+    "answer": {
+      "raw_excerpt": "<｜｜DSML｜｜ calls>\n<｜｜DSML｜｜ invoke name=\"browser_evaluate\">\n<｜｜DSML｜｜ parameter name=\"function\" string=\"true\">() => ({title: document.title, paragraphs: Array.from(document.querySelectorAll('p')).map(p => ({text: p.textContent, id: p.id, cls: p.className})), outputs: Array.from(document.querySelector"
+    },
+    "oracle_pass": false,
+    "usage": {
+      "completion_tokens": 507,
+      "completion_tokens_details": {
+        "reasoning_tokens": 368
+      },
+      "prompt_tokens": 10421,
+      "prompt_tokens_details": {
+        "cached_tokens": 598
+      },
+      "total_tokens": 10928
+    },
+    "finish_reason": "stop",
+    "latency_s": 5.0367,
+    "input_tokens": 10421,
+    "output_tokens": 507,
+    "total_tokens": 10928
+  },
+  "optimized": {
+    "tool_count": 26,
+    "context_chars": 27518,
+    "answer": {
+      "title": "PIE Large Web Fixture",
+      "status": "PIE_WEB_LARGE_FIXTURE_V1",
+      "marker": ""
+    },
+    "oracle_pass": false,
+    "usage": {
+      "completion_tokens": 32,
+      "completion_tokens_details": {
+        "text_tokens": 32
+      },
+      "prompt_tokens": 6901,
+      "prompt_tokens_details": {
+        "cached_tokens": 462,
+        "image_tokens": 0,
+        "text_tokens": 6901
+      },
+      "total_tokens": 6933
+    },
+    "finish_reason": "stop",
+    "latency_s": 6.2089,
+    "input_tokens": 6901,
+    "output_tokens": 32,
+    "total_tokens": 6933
+  },
+  "savings": {
+    "input_percent": 33.778,
+    "total_percent": 36.557
+  }
+}

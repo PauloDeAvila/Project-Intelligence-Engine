@@ -1,0 +1,68 @@
+{
+  "schema": "pie-web-large-deepseek-ab-v1",
+  "status": "PILOT_INVALID_NOT_CERTIFIED",
+  "model": "gambiarraapi/deepseek-v3.2",
+  "endpoint": "http://127.0.0.1:8080",
+  "url": "http://127.0.0.1:8767/fixtures/phase4-8/web-large/index.html",
+  "oracle": {
+    "title": "PIE Large Web Fixture",
+    "status": "The deterministic large fixture is ready.",
+    "marker": "PIE_WEB_LARGE_FIXTURE_V1"
+  },
+  "baseline": {
+    "tool_count": 25,
+    "context_chars": 39954,
+    "answer": {
+      "raw_excerpt": ""
+    },
+    "oracle_pass": false,
+    "usage": {
+      "completion_tokens": 128,
+      "completion_tokens_details": {
+        "reasoning_tokens": 128
+      },
+      "prompt_tokens": 10390,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "total_tokens": 10518
+    },
+    "finish_reason": "length",
+    "latency_s": 4.7,
+    "input_tokens": 10390,
+    "output_tokens": 128,
+    "total_tokens": 10518
+  },
+  "optimized": {
+    "tool_count": 26,
+    "context_chars": 27518,
+    "answer": {
+      "title": "PIE Large Web Fixture",
+      "status": "PIE_WEB_LARGE_FIXTURE_V1",
+      "marker": "PIE_WEB_LARGE_FIXTURE_V1"
+    },
+    "oracle_pass": false,
+    "usage": {
+      "completion_tokens": 44,
+      "completion_tokens_details": {
+        "text_tokens": 44
+      },
+      "prompt_tokens": 6868,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "image_tokens": 0,
+        "text_tokens": 6868
+      },
+      "total_tokens": 6912
+    },
+    "finish_reason": "stop",
+    "latency_s": 2.8298,
+    "input_tokens": 6868,
+    "output_tokens": 44,
+    "total_tokens": 6912
+  },
+  "savings": {
+    "input_percent": 33.898,
+    "total_percent": 34.284
+  }
+}

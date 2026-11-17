@@ -117,6 +117,14 @@
     "fixture_snapshot_chars": 415,
     "compaction_triggered": false
   },
+  "web_large_deepseek_analysis": {
+    "path": "reports/phase4-8/web-large-deepseek-analysis-20261116.json",
+    "status": "PILOT_INVALID_QUALITY",
+    "source_chars": 8632,
+    "optimized_chars": 2164,
+    "character_reduction_percent": 74.93,
+    "valid_oracle_attempts": 0
+  },
   "phases": {
     "4_consolidation": {
       "status": "PASS_EXTERNAL_CONTROLLED_READ_ONLY",
@@ -169,7 +177,8 @@
         "DeepSeek 3.2 paired-evidence pilot reported real usage",
         "DeepSeek failed-quality pilot was preserved as NOT_CERTIFIED",
         "DeepSeek valid three-pair pilot reported 93.801 percent total savings and 3/3 oracle correctness",
-        "Web gateway no longer announces pie_web_context by default"
+        "Web gateway no longer announces pie_web_context by default",
+        "large Web gateway compaction gate reduced 8632 to 2164 characters"
       ],
       "missing": [
         "Codex provider certification",

@@ -152,3 +152,10 @@ exposta. O probe real passou `initialize` e `tools/list`, com 26 ferramentas e
 A fixture atual retornou 415 caracteres, abaixo do orçamento de 2.400, portanto
 este gate não reivindica nova economia. Evidência:
 `web-transparent-compaction-gate-20261116.json`.
+
+## Fixture Web grande e qualidade do modelo
+
+Na fixture grande, o gateway reduziu o snapshot de 8.632 para 2.164 caracteres
+(74,93%) e manteve recuperação. As três tentativas DeepSeek subsequentes,
+porém, falharam no oráculo independente; suas diferenças nominais de tokens
+foram excluídas. Evidência: `web-large-deepseek-analysis-20261116.json`.
