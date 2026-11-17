@@ -33,6 +33,12 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
   foram confirmados. Uso reportado: 226.276 tokens de entrada, 205.440
   cacheados, 797 de saída e 413 de raciocínio. Evidência:
   `codex-pie-web-route-probe-20261117.json`.
+- Após o Blender voltar a estar ativo, uma sonda Codex real alcançou o Blender
+  5.3.0 pelo `pie-blender-optimized`: addon 2.0, protocolo 16/16 e cena com 3
+  objetos. As duas chamadas PIE passaram e nada foi alterado. O Codex também
+  acionou automaticamente `cua_repl` para o resumo final; por isso a integração
+  está comprovada, mas o isolamento estrito de servidores permanece parcial.
+  Evidência: `codex-pie-blender-live-route-probe-20261117.json`.
 - O preflight de roteamento no checkout atual passou para Web completo e o
   gateway Blender isolado passou initialize, `tools/list`, `get_addon_status` e
   `get_scene_info`; a falha anterior do processo não foi usada como evidência
@@ -42,7 +48,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 
 | Fase | Estado | Conclusão |
 |---|---|---|
-| 4 — Consolidação | PARTIAL_EXTERNAL_CONTROLLED | Roteamento Codex → PIE comprovado nos dois domínios; Web alcançou a fixture local, mas Blender não alcançou o addon porque o processo estava indisponível. |
+| 4 — Consolidação | PARTIAL_EXTERNAL_CONTROLLED | Roteamento Codex → PIE comprovado nos dois domínios e Blender ao vivo alcançado; isolamento estrito falhou porque `cua_repl` foi acionado automaticamente. |
 | 5 — Memória entre agentes | PASS_EXTERNAL_CONTROLLED | Codex oficial criou o checkpoint pelo PIE e o GLM recebeu somente o contexto compilado, sem histórico completo; isolamento entre workspaces passou. |
 | 6 — Contexto incremental/cache | PASS_EXTERNAL_CONTROLLED_SINGLE_PAIR | Hashes, compilador, cache persistente e invalidação após mudança cobertos; um par DeepSeek real após reinício passou no oráculo: 237 → 167 tokens. Ainda não é evidência estatística. |
 | 7 — Execução local | PASS_LOCAL | Allowlist, limites, replay, timeouts fail-closed e testes de segurança passaram; consulta SQLite local p95 de 3,6046 ms. |

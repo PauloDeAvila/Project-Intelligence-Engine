@@ -141,6 +141,26 @@
     "cached_input_tokens": 114048,
     "output_tokens": 1019
   },
+  "codex_pie_blender_live_route_probe": {
+    "path": "reports/phase4-8/codex-pie-blender-live-route-probe-20261117.json",
+    "status": "ROUTE_AND_TASK_PASS_WITH_UNREQUESTED_TOOL",
+    "model": "gpt-5.6-luna",
+    "server_observed": ["pie-blender-optimized", "cua_repl"],
+    "forbidden_servers_observed": ["cua_repl"],
+    "pie_mcp_calls": 2,
+    "successful_pie_mcp_calls": 2,
+    "oracle_pass": true,
+    "blender_version": "5.3.0",
+    "addon_version": [2, 0],
+    "protocol_version": 16,
+    "scene_objects": 3,
+    "input_tokens": 147147,
+    "cached_input_tokens": 123776,
+    "output_tokens": 622,
+    "reasoning_output_tokens": 262,
+    "scene_modified": false,
+    "strict_server_isolation": false
+  },
   "codex_pie_web_route_probe": {
     "path": "reports/phase4-8/codex-pie-web-route-probe-20261117.json",
     "status": "ROUTE_AND_TASK_PASS_LOCAL_FIXTURE",

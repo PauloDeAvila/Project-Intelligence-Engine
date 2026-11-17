@@ -26,10 +26,11 @@
         "local persistence and restart tests pass",
         "official Codex Web route reached the local fixture through pie-web-optimized",
         "Codex route selection observed pie-blender-optimized without forbidden servers",
+        "official Codex reached live Blender through pie-blender-optimized with addon and scene oracle passing",
         "gateway runtime tests and full regression suite pass"
       ],
       "missing": [
-        "official Codex route must reach a live Blender addon in the current environment",
+        "strict official Codex server isolation must prevent automatic cua_repl completion tooling",
         "one end-to-end runtime shared by Codex and OpenCode is not proven as a single production service"
       ],
       "evidence": [
