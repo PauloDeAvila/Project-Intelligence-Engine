@@ -35,7 +35,9 @@
     "skipped": 4,
     "subtests": 126,
     "failed": 0,
-    "duration_seconds": 30.46
+    "duration_seconds": 46.43,
+    "rerun_command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-completion-audit-20261117 -p no:cacheprovider",
+    "rerun_date": "2026-11-17"
   },
   "latest_runtime_verifier": {
     "command": "uv run python tools/verify_context_runtime.py",

@@ -10,7 +10,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 - Testes focados: 74 passed.
 - Suíte completa histórica: 710 passed, 4 skipped, 126 subtests passed.
 - Testes focados do gateway Web e do gate: 25 passed em 0,29 s.
-- Suíte de regressão executada neste head: `uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-suite-20261116-r8 -p no:cacheprovider` — 718 passed, 4 skipped, 126 subtests passed em 30,46 s.
+- Suíte de regressão executada neste head: `uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-completion-audit-20261117 -p no:cacheprovider` — 718 passed, 4 skipped, 126 subtests passed em 46,43 s.
 - `uv run python tools/verify_context_runtime.py` — `PASS_LOCAL`; o verificador registra `external_provider_usage=unavailable` e não promove evidência sintética a certificação.
 - Testes de execução local, exposição Web e persistência Delta: 35 passed, 0 failed.
 - Consulta local indexada: 100 amostras, p95 de 3,6046 ms (meta de 100 ms aprovada), sem chamadas de provider.
