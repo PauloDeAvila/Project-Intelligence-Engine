@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>PIE Phase 3 Fixture</title></head>
+<body>
+  <main>
+    <h1 data-testid="title">PIE local navigation fixture</h1>
+    <p data-testid="status">The deterministic fixture is ready.</p>
+    <button type="button" data-testid="action">Reveal phase marker</button>
+    <output data-testid="marker" hidden>PIE_WEB_FIXTURE_V1</output>
+  </main>
+  <script>
+    document.querySelector('[data-testid="action"]').addEventListener('click', () => {
+      document.querySelector('[data-testid="marker"]').hidden = false;
+    });
+  </script>
+</body>
+</html>

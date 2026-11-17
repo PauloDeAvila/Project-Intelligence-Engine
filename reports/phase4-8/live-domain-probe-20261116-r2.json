@@ -1,0 +1,23 @@
+{
+  "schema": "pie-live-domain-probe-v1",
+  "status": "PARTIAL_UPSTREAM_VALIDATION",
+  "fixture": {
+    "path": "fixtures/phase3/web/index.html",
+    "sha256": "af853a1c488e2a0d6d651446178066decabb9d801305982f2e226ca69d98de99"
+  },
+  "web": {
+    "url": "http://127.0.0.1:8766/",
+    "http_server": "PASS",
+    "pie_browser_navigate": "PASS",
+    "pie_browser_snapshot": "PASS",
+    "pie_browser_click": "PASS",
+    "pie_web_context": "FAIL",
+    "failure": "PIE_WEB_CONTEXT_FAILED: Internal response is not a valid browser snapshot",
+    "external_page_modified": false
+  },
+  "blender": {
+    "status": "BLOCKED_UPSTREAMS",
+    "failure": "WinError 10053 during addon handshake"
+  },
+  "certification": "NOT_CERTIFIED"
+}
