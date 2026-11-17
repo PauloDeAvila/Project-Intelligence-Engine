@@ -18,11 +18,10 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
   cada workspace restaurou somente seu próprio checkpoint.
 - O handoff codex → deepseek foi exercitado com checkpoint persistente,
   hash de origem e proveniência preservada.
-- Também foi executada uma sonda de compatibilidade checkpoint → GLM: o
-  checkpoint atribuído ao Codex foi restaurado após reinício e o GLM recebeu
-  apenas o contexto compilado, sem o histórico completo. O oráculo passou; uso
-  reportado: 69 tokens de entrada, 34 de saída e 103 totais. Não houve chamada
-  do provider oficial Codex. Evidência: `glm-agent-handoff-20261116.json`.
+- O handoff oficial Codex → GLM foi executado: o Codex criou uma tarefa e um
+  checkpoint via `pie_runtime`, o PIE restaurou o registro e o GLM recebeu
+  apenas o checkpoint compilado, sem histórico completo. O oráculo passou.
+  Evidência: `codex-glm-official-handoff-20261117.json`.
 - A primeira sonda real do Codex confirmou o roteamento para
   `pie-blender-optimized`, sem chamar servidores proibidos. As duas ferramentas
   de leitura falharam porque não havia processo Blender conectado; os tokens
@@ -44,7 +43,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 | Fase | Estado | Conclusão |
 |---|---|---|
 | 4 — Consolidação | PARTIAL_EXTERNAL_CONTROLLED | Roteamento Codex → PIE comprovado nos dois domínios; Web alcançou a fixture local, mas Blender não alcançou o addon porque o processo estava indisponível. |
-| 5 — Memória entre agentes | PARTIAL_EXTERNAL_CONTROLLED | Handoff real OpenCode/DeepSeek executado após reinício; isolamento entre workspaces passou; sonda separada confirmou compatibilidade checkpoint→GLM. A chamada oficial Codex→GLM permanece pendente. |
+| 5 — Memória entre agentes | PASS_EXTERNAL_CONTROLLED | Codex oficial criou o checkpoint pelo PIE e o GLM recebeu somente o contexto compilado, sem histórico completo; isolamento entre workspaces passou. |
 | 6 — Contexto incremental/cache | PASS_EXTERNAL_CONTROLLED_SINGLE_PAIR | Hashes, compilador, cache persistente e invalidação após mudança cobertos; um par DeepSeek real após reinício passou no oráculo: 237 → 167 tokens. Ainda não é evidência estatística. |
 | 7 — Execução local | PASS_LOCAL | Allowlist, limites, replay, timeouts fail-closed e testes de segurança passaram; consulta SQLite local p95 de 3,6046 ms. |
 | 8 — Certificação contínua | PARTIAL_NOT_CERTIFIED | GLM v5, DeepSeek 3.2, Blender e Web tiveram pilotos locais; os gates estritos Blender mediram 93,526% e 94,762% em duas tarefas, enquanto Web Summary mediu 12,926% e um piloto Web anterior teve −29,098%. Ainda faltam certificação Codex e generalização ampla. |

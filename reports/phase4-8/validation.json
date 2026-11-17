@@ -108,15 +108,19 @@
     "output_tokens": 6
   },
   "glm_agent_handoff": {
-    "path": "reports/phase4-8/glm-agent-handoff-20261116.json",
-    "status": "PASS_EXTERNAL_CONTROLLED_CHECKPOINT",
+    "path": "reports/phase4-8/codex-glm-official-handoff-20261117.json",
+    "status": "PASS_EXTERNAL_CONTROLLED",
     "model": "gambiarraapi/glm-5.3-flash",
-    "restart_between_checkpoint_and_restore": true,
+    "source_model": "gpt-5.6-luna",
+    "official_codex_call": true,
+    "task_id": "15bc25f9-59e0-4e95-a868-4fc6e2917d82",
+    "restart_between_checkpoint_and_restore": false,
     "full_task_history_sent_to_target": false,
     "oracle_pass": true,
-    "input_tokens": 69,
-    "output_tokens": 34,
-    "total_tokens": 103
+    "codex_input_tokens": 130514,
+    "codex_output_tokens": 592,
+    "glm_input_tokens": 6366,
+    "glm_output_tokens": 68
   },
   "codex_pie_blender_route_probe": {
     "path": "reports/phase4-8/codex-pie-blender-route-probe-20261117.json",
@@ -357,11 +361,12 @@
       "live_blender_probe": "reports/phase4-8/live-blender-gateway-probe-20261116.json"
     },
     "5_multi_agent_memory": {
-      "status": "PARTIAL_EXTERNAL_CONTROLLED",
+      "status": "PASS_EXTERNAL_CONTROLLED",
       "evidence": [
         "explicit codex-to-deepseek checkpoint handoff",
+        "official Codex created a PIE checkpoint and GLM received only the compiled checkpoint",
         "Codex route probe observed pie-blender-optimized without forbidden servers; Blender addon unavailable",
-        "checkpoint-compatible GLM restore after runtime restart; official Codex call not executed",
+        "checkpoint-compatible GLM restore after runtime restart",
         "durable context_version exposed from the checkpoint sequence",
         "source hash and provenance preserved",
         "receiver restores without task history",

@@ -33,18 +33,16 @@
       ]
     },
     "5_multi_agent_memory": {
-      "status": "PARTIAL_EXTERNAL_CONTROLLED",
+      "status": "PASS_EXTERNAL_CONTROLLED",
       "proven": [
         "versioned checkpoints, provenance and context_version are persisted",
         "OpenCode/DeepSeek handoff resumed after restart",
         "cross-workspace project isolation passed",
-        "checkpoint-to-GLM compatibility passed with 103 reported tokens"
+        "official Codex created a PIE checkpoint and GLM received only the compiled checkpoint"
       ],
-      "missing": [
-        "official Codex-to-GLM handoff was not executed"
-      ],
+      "missing": [],
       "evidence": [
-        "reports/phase4-8/glm-agent-handoff-20261116.json",
+        "reports/phase4-8/codex-glm-official-handoff-20261117.json",
         "reports/phase4-8/opencode-deepseek-connection-20261116.json",
         "reports/phase4-8/memory-project-isolation-20261116.json"
       ]

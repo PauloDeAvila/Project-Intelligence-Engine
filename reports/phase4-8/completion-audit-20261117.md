@@ -9,7 +9,7 @@ provados.
 | Fase | Estado atual | Lacuna determinante |
 |---|---|---|
 | 4 — Consolidação | `PARTIAL_EXTERNAL_CONTROLLED` | A sonda Codex Web passou; a sonda Blender roteou corretamente, mas o addon não estava disponível. |
-| 5 — Memória multiagente | `PARTIAL_EXTERNAL_CONTROLLED` | Handoff OpenCode/DeepSeek e compatibilidade checkpoint→GLM passaram; Codex→GLM oficial não foi executado. |
+| 5 — Memória multiagente | `PASS_EXTERNAL_CONTROLLED` | Codex oficial criou o checkpoint pelo PIE e o GLM recebeu somente o contexto compilado, sem histórico completo. |
 | 6 — Cache incremental | `PASS_EXTERNAL_CONTROLLED_SINGLE_PAIR` | Há prova real após reinício, mas somente um par. |
 | 7 — Execução local | `PASS_LOCAL` | Allowlist, replay, timeouts, segurança e p95 local passaram. |
 | 8 — Certificação contínua | `PARTIAL_NOT_CERTIFIED` | Existem gates locais válidos, mas falta A/B oficial do Codex e generalização estatística. |
