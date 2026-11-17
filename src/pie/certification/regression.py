@@ -81,7 +81,7 @@ class RunEvidence:
 
 def _identity_reasons(baseline: RunEvidence, optimized: RunEvidence) -> list[str]:
     reasons: list[str] = []
-    for name in ("pair_id", "scenario_id", "application", "model", "prompt_sha256", "configuration_sha256"):
+    for name in ("pair_id", "scenario_id", "application", "model", "prompt_sha256"):
         if getattr(baseline, name) != getattr(optimized, name):
             reasons.append(f"{name}_mismatch")
     if baseline.condition != "baseline":
@@ -233,6 +233,8 @@ def evaluate_replication_suite(
     reasons = list(base.get("reasons", []))
     identities: list[tuple[str, str, int]] = []
     for baseline, optimized in pairs:
+        if baseline.configuration_sha256 == optimized.configuration_sha256:
+            reasons.append(f"{baseline.pair_id}_configuration_not_distinct")
         fixture_values = (baseline.fixture_sha256, optimized.fixture_sha256)
         if not fixture_values[0] or fixture_values[0] != fixture_values[1]:
             reasons.append(f"{baseline.pair_id}_fixture_sha256_invalid")

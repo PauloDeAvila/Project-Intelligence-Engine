@@ -117,6 +117,7 @@ def strict_pair(pair_id="pair-1", scenario_id="scenario-1", fixture="f" * 64, re
                  cache_observed=True, replication_index=replication_index),
         make_run(pair_id=pair_id, scenario_id=scenario_id, condition="optimized",
                  fixture_sha256=fixture, actual_model="model-a",
+                 configuration_sha256="c" * 64,
                  mcp_methods=("initialize", "tools/list", "tools/call"), cache_observed=True,
                  replication_index=replication_index),
     )
@@ -140,3 +141,12 @@ def test_replication_suite_requires_cache_and_actual_provider_usage_identity():
     assert result["status"] == "NOT_CERTIFIED"
     assert "optimized_cache_unobserved" in result["reasons"]
     assert "pair-4_actual_model_mismatch" in result["reasons"]
+
+
+def test_replication_suite_requires_distinct_arm_configurations():
+    pair = strict_pair(pair_id="pair-5", scenario_id="scenario-5")
+    assert evaluate_replication_suite([pair])["status"] == "CERTIFIED"
+    same_config = (pair[0], replace(pair[1], configuration_sha256=pair[0].configuration_sha256))
+    result = evaluate_replication_suite([same_config])
+    assert result["status"] == "NOT_CERTIFIED"
+    assert "pair-5_configuration_not_distinct" in result["reasons"]
