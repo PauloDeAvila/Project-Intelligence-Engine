@@ -7,8 +7,8 @@
     "state": "CURRENT",
     "workspace_match": true,
     "files": 270,
-    "symbols": 2251,
-    "imports": 2610,
+    "symbols": 2261,
+    "imports": 2613,
     "diagnostics": []
   },
   "overall_status": "PARTIAL_NOT_CERTIFIED",
@@ -17,7 +17,7 @@
   ],
   "operational_risks": [
     "the default probe uses 127.0.0.1:9876; deployments with a custom Blender MCP endpoint must set BLENDER_MCP_HOST/BLENDER_MCP_PORT",
-    "the current host still has no Blender process, so live Blender dispatch remains unverified after the new gate"
+    "the current host has Blender live on 127.0.0.1:9876; future automatic recovery must still be validated when that process is absent"
   ],
   "phases": {
     "4_consolidation": {
@@ -38,7 +38,7 @@
         "reports/phase4-8/codex-pie-web-route-probe-20261117.json",
         "reports/phase4-8/codex-pie-blender-route-probe-20261117.json",
         "reports/phase4-8/validation.json",
-        "latest regression: 718 passed, 4 skipped, 126 subtests"
+        "latest regression: 722 passed, 4 skipped, 126 subtests"
       ]
     },
     "5_multi_agent_memory": {

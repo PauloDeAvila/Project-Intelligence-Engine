@@ -3,16 +3,29 @@
   "status": "PARTIAL_LOCAL_VALIDATION",
   "certification": "NOT_CERTIFIED",
   "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
-  "head_at_validation": "14b2442d1abcce848b2b2c52e3b80b7173d23403",
-  "implementation_commit": "14b2442d1abcce848b2b2c52e3b80b7173d23403",
+  "head_at_validation": "7f0738dc3b3b473782ab4ca1e8b6b3b2971c13a6",
+  "implementation_commit": "7f0738dc3b3b473782ab4ca1e8b6b3b2971c13a6",
   "index": {
     "source": "uv run python -m pie.interfaces.cli status --root .",
     "project": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean",
     "index_state": "CURRENT",
     "workspace_match": true,
     "files": 270,
-    "symbols": 2251,
-    "imports": 2610
+    "symbols": 2261,
+    "imports": 2613
+  },
+  "current_blender_probe": {
+    "checked_at": "2026-11-17",
+    "process_id": 18196,
+    "executable": "C:\\Program Files\\Blender Foundation\\Blender 5.3\\blender.exe",
+    "endpoint": "127.0.0.1:9876",
+    "native_get_addon_status": "PASS",
+    "pie_get_addon_status": "PASS",
+    "native_get_scene_info": "PASS",
+    "pie_get_scene_info": "PASS",
+    "blender_version": "5.3.0",
+    "addon_version": "2.0",
+    "protocol": "16/16"
   },
   "tests": {
     "focused": {
