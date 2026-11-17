@@ -125,6 +125,17 @@
     "character_reduction_percent": 74.93,
     "valid_oracle_attempts": 0
   },
+  "web_large_evidence_agent": {
+    "path": "reports/phase4-8/web-large-evidence-agent-20261116.json",
+    "status": "PILOT_VALID_NOT_CERTIFIED",
+    "scope": "planning_only",
+    "baseline_total_tokens": 10418,
+    "optimized_total_tokens": 6880,
+    "planning_savings_percent": 33.96,
+    "baseline_plan_correct": true,
+    "optimized_plan_correct": true,
+    "source_oracles_correct": true
+  },
   "phases": {
     "4_consolidation": {
       "status": "PASS_EXTERNAL_CONTROLLED_READ_ONLY",
@@ -178,7 +189,8 @@
         "DeepSeek failed-quality pilot was preserved as NOT_CERTIFIED",
         "DeepSeek valid three-pair pilot reported 93.801 percent total savings and 3/3 oracle correctness",
         "Web gateway no longer announces pie_web_context by default",
-        "large Web gateway compaction gate reduced 8632 to 2164 characters"
+        "large Web gateway compaction gate reduced 8632 to 2164 characters",
+        "Web Evidence Agent selected exact fields in both arms"
       ],
       "missing": [
         "Codex provider certification",

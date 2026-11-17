@@ -159,3 +159,9 @@ Na fixture grande, o gateway reduziu o snapshot de 8.632 para 2.164 caracteres
 (74,93%) e manteve recuperação. As três tentativas DeepSeek subsequentes,
 porém, falharam no oráculo independente; suas diferenças nominais de tokens
 foram excluídas. Evidência: `web-large-deepseek-analysis-20261116.json`.
+
+O Evidence Agent separado resolveu a transcrição: o DeepSeek escolheu os campos
+`title`, `status` e `marker`, e o código reconstruiu os valores canônicos. O
+planejamento caiu de 10.418 para 6.880 tokens (33,96%), com os dois oráculos
+aprovados. Esse resultado é `planning_only`; não substitui a certificação da
+tarefa completa. Evidência: `web-large-evidence-agent-20261116.json`.
