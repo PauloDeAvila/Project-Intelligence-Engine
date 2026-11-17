@@ -3,7 +3,7 @@
   "status": "PARTIAL_LOCAL_VALIDATION",
   "certification": "NOT_CERTIFIED",
   "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
-  "head_at_validation": "f3673bd",
+  "head_at_validation": "8e8b14d",
   "implementation_commit": "4aae2af",
   "index": {
     "source": "uv run python -m pie.interfaces.cli status --root .",
