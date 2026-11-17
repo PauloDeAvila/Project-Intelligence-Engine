@@ -55,8 +55,11 @@ def _server_table(source: Path, profile: str | None, server: str) -> dict:
 
 
 def _write_config(path: Path, model: str, server: str, selected: dict,
-                  runtime_env: dict[str, str], workspace: Path | None) -> None:
+                  runtime_env: dict[str, str], workspace: Path | None,
+                  reasoning_effort: str | None) -> None:
     lines = [f"model = {_toml_value(model)}", ""]
+    if reasoning_effort is not None:
+        lines.insert(1, f"model_reasoning_effort = {_toml_value(reasoning_effort)}")
     lines.append(f"[mcp_servers.{json.dumps(server)}]")
     for key, value in selected.items():
         if key in {"tools", "enabled"}:
@@ -89,6 +92,8 @@ def isolated_codex_home(source_home: Path, *, profile: str | None,
                         workspace: Path | None = None):
     """Yield a temporary authenticated CODEX_HOME and remove it on exit."""
     source_home = Path(source_home).expanduser().resolve(strict=True)
+    base_config = tomllib.loads((source_home / "config.toml").read_text(encoding="utf-8"))
+    reasoning_effort = base_config.get("model_reasoning_effort")
     selected = _server_table(source_home, profile, server)
     with tempfile.TemporaryDirectory(prefix=".pie-codex-isolated-",
                                       dir=str(source_home.parent)) as temporary:
@@ -96,5 +101,6 @@ def isolated_codex_home(source_home: Path, *, profile: str | None,
         auth = source_home / "auth.json"
         if auth.is_file():
             shutil.copy2(auth, target / "auth.json")
-        _write_config(target / "config.toml", model, server, selected, runtime_env, workspace)
+        _write_config(target / "config.toml", model, server, selected, runtime_env,
+                      workspace, reasoning_effort)
         yield target
