@@ -64,6 +64,19 @@
     "external_pilot_pairs": 3,
     "external_pilot_total_savings_percent": 93.801
   },
+  "glm_v5_pilot": {
+    "path": "reports/phase3/context-runtime-verifier-glm-v5.json",
+    "model": "gambiarraapi/glm-5.3-flash",
+    "pairs": 3,
+    "baseline_total_tokens": 17447,
+    "optimized_total_tokens": 1941,
+    "total_savings_percent": 88.875,
+    "input_savings_percent": 89.196,
+    "oracle_baseline": "3/3",
+    "oracle_optimized": "3/3",
+    "provider_usage": "available",
+    "status": "PILOT_VALID_NOT_CERTIFIED"
+  },
   "deepseek_opencode_connection": {
     "path": "reports/phase4-8/opencode-deepseek-connection-20261116.json",
     "status": "PASS",

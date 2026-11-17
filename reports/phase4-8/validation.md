@@ -33,6 +33,17 @@ O provider atual do OpenCode também foi verificado separadamente: `infinity`
 expôs `gambiarraapi/deepseek-v3.2`, que respondeu ao probe real com 55 tokens de
 entrada e 6 de saída. Evidência: `opencode-deepseek-connection-20261116.json`.
 
+## Piloto GLM v5
+
+O provider local `gambiarraapi/glm-5.3-flash` também produziu uso real em três
+pares da fixture de repositório Rich. Os oráculos passaram em 3/3 nos dois
+braços: 17.447 → 1.941 tokens, economia ponderada de 88,875%, com redução de
+entrada de 89,196%. O resultado permanece `PILOT_VALID_NOT_CERTIFIED`: é uma
+fixture controlada e não certifica o provider oficial Codex.
+
+Evidência: `reports/phase3/context-runtime-verifier-glm-v5.json` e
+`reports/phase3/glm-real-pilot-live-v5/summary.json`.
+
 ## Alteração desta rodada
 
 MultiAgentMemory.handoff() e ContextRuntime.handoff() transferem um checkpoint
