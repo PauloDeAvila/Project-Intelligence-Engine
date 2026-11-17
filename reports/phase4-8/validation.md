@@ -11,8 +11,10 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 - Suíte completa: 710 passed, 4 skipped, 126 subtests passed.
 - O handoff codex → deepseek foi exercitado com checkpoint persistente,
   hash de origem e proveniência preservada.
-- O preflight de roteamento no checkout atual passou para Web completo e
-  `tools/list` Blender; o upstream Blender ainda falha no handshake.
+- O preflight de roteamento no checkout atual passou para Web completo e o
+  gateway Blender isolado passou initialize, `tools/list`, `get_addon_status` e
+  `get_scene_info`; a falha anterior do processo não foi usada como evidência
+  final.
 
 ## Estado por fase
 
@@ -22,7 +24,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 | 5 — Memória entre agentes | PASS_EXTERNAL_CONTROLLED | Handoff real OpenCode/DeepSeek executado após reinício; `context_version` durável e histórico completo não enviado. |
 | 6 — Contexto incremental/cache | PASS_EXTERNAL_CONTROLLED_SINGLE_PAIR | Hashes, compilador, cache persistente e invalidação após mudança cobertos; um par DeepSeek real após reinício passou no oráculo: 237 → 167 tokens. Ainda não é evidência estatística. |
 | 7 — Execução local | PASS_LOCAL | Allowlist, limites, replay e timeouts fail-closed cobertos. |
-| 8 — Certificação contínua | PARTIAL_NOT_CERTIFIED | GLM v5, DeepSeek 3.2, Blender e Web tiveram pilotos locais; Blender mediu 82,934%, mas Web teve −29,098% de economia total apesar de 3/3 oráculos. Ainda faltam Codex e generalização ampla. |
+| 8 — Certificação contínua | PARTIAL_NOT_CERTIFIED | GLM v5, DeepSeek 3.2, Blender e Web tiveram pilotos locais; Blender mediu 82,934%, mas Web teve −29,098% de economia total apesar de 3/3 oráculos. Ainda faltam certificação Codex e generalização ampla. |
 
 ## Alteração desta rodada
 
@@ -47,8 +49,9 @@ retornaram `finish_reason=stop` e passaram o mesmo oráculo.
 
 O servidor MCP PIE disponível nesta sessão está configurado para outra raiz e
 foi deliberadamente excluído da evidência. Os pilotos GLM e DeepSeek reportam
-uso real, mas continuam limitados a três tarefas cada e não substituem a
-certificação oficial Codex nem a bateria Blender/Web.
+uso real, mas continuam limitados às fixtures e aos cenários registrados; não
+substituem a certificação oficial Codex nem uma generalização ampla para
+Blender/Web.
 
 O backup e o diff sanitizado da configuração Codex estão em
 `reports/phase4-8/routing-preflight-20261116.*`; o servidor original Blender e

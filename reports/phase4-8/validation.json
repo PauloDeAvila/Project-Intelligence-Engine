@@ -3,7 +3,7 @@
   "status": "PARTIAL_LOCAL_VALIDATION",
   "certification": "NOT_CERTIFIED",
   "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
-  "head_before_report_commit": "a4c64dc",
+  "head_at_validation": "f3673bd",
   "implementation_commit": "4aae2af",
   "index": {
     "source": "uv run python -m pie.interfaces.cli status --root .",
@@ -149,9 +149,9 @@
       ],
       "missing": [
         "Codex provider certification",
-        "paired Blender/Web external battery",
-        "statistical generalization beyond three local-provider pairs",
-        "live Blender handshake and local Web fixture are currently unavailable"
+        "broader multi-scenario Blender/Web coverage beyond the current fixtures",
+        "statistical certification beyond the two DeepSeek replications",
+        "Codex-provider usage certification"
       ]
     }
   },
