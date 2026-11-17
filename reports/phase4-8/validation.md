@@ -11,6 +11,8 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 - Suíte completa: 710 passed, 4 skipped, 126 subtests passed.
 - O handoff codex → deepseek foi exercitado com checkpoint persistente,
   hash de origem e proveniência preservada.
+- O preflight de roteamento no checkout atual passou para Web completo e
+  `tools/list` Blender; o upstream Blender ainda falha no handshake.
 
 ## Estado por fase
 
@@ -34,3 +36,7 @@ O servidor MCP PIE disponível nesta sessão está configurado para outra raiz e
 foi deliberadamente excluído da evidência. Os pilotos GLM e DeepSeek reportam
 uso real, mas continuam limitados a três tarefas cada e não substituem a
 certificação oficial Codex nem a bateria Blender/Web.
+
+O backup e o diff sanitizado da configuração Codex estão em
+`reports/phase4-8/routing-preflight-20261116.*`; o servidor original Blender e
+`node_repl` não foram modificados.
