@@ -48,7 +48,7 @@
     "equivalent": true
   },
   "limitations": [
-    "Different seed from the previous pilot; task-set disjointness was not asserted by the runner.",
+    "Different seed from the previous pilot; task-set disjointness was verified post-run from audit.json, not enforced by the runner.",
     "This is local-provider evidence, not official Codex certification.",
     "It does not establish Blender/Web generalization or full statistical certification."
   ],

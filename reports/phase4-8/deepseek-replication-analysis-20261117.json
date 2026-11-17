@@ -31,9 +31,17 @@
     "range_percentage_points": 0.056,
     "quality_equivalent_in_all_runs": true
   },
+  "task_set_audit": {
+    "intersection_count": 0,
+    "union_count": 12,
+    "verification_source": [
+      "reports/phase4-8/deepseek-real-pilot-paired-512-6/audit.json",
+      "reports/phase4-8/deepseek-real-pilot-independent-20261117/audit.json"
+    ]
+  },
   "status": "REPLICATED_DESCRIPTIVE_NOT_CERTIFIED",
   "limitations": [
-    "The runner did not assert task-set disjointness across seeds.",
+    "Task-set disjointness was verified post-run; the runner does not enforce it during selection.",
     "Both replications use one local provider and one repository corpus.",
     "This does not certify Codex or Blender/Web workloads."
   ]

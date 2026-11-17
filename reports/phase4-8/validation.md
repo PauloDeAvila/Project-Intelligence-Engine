@@ -79,15 +79,16 @@ Evidência: `deepseek-real-pilot-expanded-20261116.json`.
 Uma segunda bateria de seis tarefas foi executada com seed `20261117`, mantendo
 corpus, modelo, cap de saída, gateway e oráculo. As doze chamadas reportaram uso
 real e passaram: baseline 52.735 tokens, PIE 3.543 tokens, redução total de
-93,282%; a entrada não cacheada caiu 96,832%. A disjunção exata dos conjuntos de
-tarefas não foi uma propriedade exigida pelo runner, portanto o resultado é uma
-replicação com seed diferente, não uma amostra estatística formal.
+93,282%; a entrada não cacheada caiu 96,832%. A auditoria posterior dos dois
+`audit.json` encontrou interseção zero entre os 12 símbolos, embora a disjunção
+não seja uma propriedade imposta pelo runner.
 
 Evidência: `deepseek-real-pilot-independent-20261117.json`.
 
 As duas réplicas DeepSeek apresentaram 93,226% e 93,282% de economia total,
 com média de 93,254% e variação de 0,056 ponto percentual, sempre com correção
-6/6. Isso é consistência descritiva promissora, mas não certificação estatística:
-ambas usam o mesmo provider/corpus e a disjunção das tarefas não foi garantida.
+6/6. A auditoria confirmou 12 símbolos distintos. Isso é consistência
+descritiva promissora, mas não certificação estatística completa: ambas usam o
+mesmo provider e corpus.
 
 Evidência: `deepseek-replication-analysis-20261117.json`.
