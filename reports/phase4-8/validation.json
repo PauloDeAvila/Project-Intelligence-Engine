@@ -49,7 +49,8 @@
       "evidence": [
         "current index and workspace match",
         "full regression suite passed",
-        "MCP runtime tests passed"
+        "MCP runtime tests passed",
+        "current-root routing preflight passed Web end-to-end and Blender tools/list"
       ]
     },
     "5_multi_agent_memory": {
@@ -103,6 +104,6 @@
     "The configured PIE MCP server in this session reports another workspace root and was not used as evidence.",
     "Only one controlled live handoff was executed; general multi-agent quality is not certified.",
     "Character reduction and synthetic counters are not token certification.",
-    "Initial live-domain probe recorded Blender WinError 10053 and Web ERR_CONNECTION_REFUSED; the retry passed Web navigation/snapshot but pie_web_context failed snapshot validation."
+    "Initial live-domain probe recorded Blender WinError 10053 and Web ERR_CONNECTION_REFUSED; the corrected current-root preflight passed the full Web flow and Blender gateway tools/list, but Blender upstream remains WinError 10053."
   ]
 }

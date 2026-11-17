@@ -1,0 +1,39 @@
+{
+  "schema": "pie-routing-preflight-v1",
+  "status": "PARTIAL_ROUTING_VALIDATED",
+  "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
+  "configuration": {
+    "path": "C:/Users/phsra/.codex/config.toml",
+    "backup": "C:/Users/phsra/.codex/config.toml.phase4-8-backup-20261116",
+    "backup_sha256": "d50272c8ba63760efdca22bd7731fa28cba3e8b81771ad33bcac163034e786b",
+    "modified_servers": ["pie-blender-optimized", "pie-web-optimized"],
+    "workspace": "C:/Users/phsra/OneDrive/Documents/ChatGPT/Korum/PIE-Clean",
+    "original_blender_unchanged": true,
+    "node_repl_unchanged": true,
+    "other_pie_server_unchanged": true,
+    "web_upstream": "node.exe + npm/bin/npx-cli.js @playwright/mcp@0.0.85"
+  },
+  "web": {
+    "gateway_workspace": "PIE-Clean",
+    "initialize": "PASS",
+    "tools_list": "PASS",
+    "tools_count": 27,
+    "browser_navigate": "PASS",
+    "browser_snapshot": "PASS",
+    "browser_click": "PASS",
+    "pie_web_context": "PASS",
+    "fixture_marker_preserved": true,
+    "external_page_modified": false
+  },
+  "blender": {
+    "gateway_workspace": "PIE-Clean",
+    "initialize": "PASS",
+    "tools_list": "PASS",
+    "tools_count": 15,
+    "get_scene_info_exposed": true,
+    "pie_blender_query_scene_exposed": true,
+    "upstream_scene_handshake": "PENDING",
+    "last_upstream_error": "WinError 10053"
+  },
+  "certification": "NOT_CERTIFIED"
+}
