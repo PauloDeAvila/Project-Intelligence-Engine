@@ -9,6 +9,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 - Índice local: CURRENT, workspace_match=true, 280 arquivos, 2.280 símbolos e 2.646 imports, verificado no head de implementação `11c6d80`.
 - Testes focados: 74 passed.
 - Suíte completa histórica: 710 passed, 4 skipped, 126 subtests passed.
+- Revalidação focada das Fases 5–7: 95 passed, 0 failed; evidência em `acceptance-focus-rerun-20261117.json`.
 - Testes focados do gateway Web e do gate: 25 passed em 0,29 s.
 - Suíte de regressão mais recente: `uv run pytest -q --basetemp .pytest-tmp-full-web-fix` — 727 passed, 4 skipped, 126 subtests passed em 30,30 s.
 - `uv run python tools/verify_context_runtime.py` — `PASS_LOCAL`; o verificador registra `external_provider_usage=unavailable` e não promove evidência sintética a certificação.

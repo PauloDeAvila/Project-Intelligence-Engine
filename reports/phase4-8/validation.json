@@ -110,6 +110,13 @@
       "duration_seconds": 36.13
     }
   },
+  "acceptance_focus_rerun": {
+    "path": "reports/phase4-8/acceptance-focus-rerun-20261117.json",
+    "status": "PASS_LOCAL",
+    "passed": 95,
+    "failed": 0,
+    "provider_calls": 0
+  },
   "latest_regression_suite": {
     "command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-default-cube-20261117 -p no:cacheprovider",
     "passed": 727,
