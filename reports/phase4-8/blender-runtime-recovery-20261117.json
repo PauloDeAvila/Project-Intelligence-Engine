@@ -1,13 +1,14 @@
 {
   "schema": "pie-blender-runtime-recovery-v1",
   "status": "PASS_LOCAL_AND_LIVE_REUSE",
-  "implementation_commit": "12db165",
+  "implementation_commit": "4532b65",
   "behavior": {
     "existing_endpoint": "reused_without_start",
     "missing_endpoint": "starts_only_configured_or_known_executable",
     "startup_timeout": "fail_closed",
     "unknown_executable": "fail_closed"
   },
+  "codex_preflight": "WIRED_TO_RECOVERY",
   "focused_tests": {
     "command": "uv run python -m pytest -q tests/test_blender_runtime.py tests/test_phase8_blender_evidence_task.py",
     "passed": 5,
@@ -18,7 +19,7 @@
     "skipped": 4,
     "subtests": 126,
     "failed": 0,
-    "duration_seconds": 37.39
+    "duration_seconds": 30.63
   },
   "live_probe": {
     "state": "PASS",

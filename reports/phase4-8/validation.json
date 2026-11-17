@@ -3,8 +3,8 @@
   "status": "PARTIAL_LOCAL_VALIDATION",
   "certification": "NOT_CERTIFIED",
   "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
-  "head_at_validation": "12db165",
-  "implementation_commit": "12db165",
+  "head_at_validation": "4532b65",
+  "implementation_commit": "4532b65",
   "index": {
     "source": "uv run python -m pie.interfaces.cli status --root .",
     "project": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean",
@@ -12,7 +12,7 @@
     "workspace_match": true,
     "files": 272,
     "symbols": 2273,
-    "imports": 2622
+    "imports": 2623
   },
   "current_blender_probe": {
     "checked_at": "2026-11-17",
@@ -36,6 +36,7 @@
     "path": "reports/phase4-8/blender-runtime-recovery-20261117.json",
     "status": "PASS_LOCAL_AND_LIVE_REUSE",
     "focused_tests": 5,
+    "codex_preflight_wired": true,
     "live_started": false,
     "absent_process_path": "UNIT_TESTED_NOT_LIVE"
   },
@@ -60,8 +61,8 @@
     "skipped": 4,
     "subtests": 126,
     "failed": 0,
-    "duration_seconds": 37.39,
-    "rerun_command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-blender-runtime-full-20261117 -p no:cacheprovider",
+    "duration_seconds": 30.63,
+    "rerun_command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-blender-recovery-full-20261117 -p no:cacheprovider",
     "rerun_date": "2026-11-17"
   },
   "blender_upstream_preflight_gate": {
