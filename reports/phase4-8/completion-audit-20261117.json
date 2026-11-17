@@ -37,6 +37,7 @@
       "evidence": [
         "reports/phase4-8/codex-pie-web-route-probe-20261117.json",
         "reports/phase4-8/codex-pie-blender-route-probe-20261117.json",
+        "reports/phase4-8/blender-live-availability-20261117.json",
         "reports/phase4-8/validation.json",
         "latest regression: 722 passed, 4 skipped, 126 subtests"
       ]

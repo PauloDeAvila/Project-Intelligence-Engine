@@ -1,0 +1,32 @@
+{
+  "schema": "pie-blender-live-availability-v1",
+  "checked_at": "2026-11-17",
+  "status": "AVAILABLE",
+  "process": {
+    "pid": 18196,
+    "executable": "C:\\Program Files\\Blender Foundation\\Blender 5.3\\blender.exe",
+    "endpoint": "127.0.0.1:9876",
+    "listener_pid": 18196,
+    "restart_action": "NOT_STARTED_ALREADY_RUNNING"
+  },
+  "native": {
+    "get_addon_status": "PASS",
+    "get_scene_info": "PASS"
+  },
+  "pie_gateway": {
+    "get_addon_status": "PASS",
+    "get_scene_info": "PASS"
+  },
+  "oracle": {
+    "blender_version": "5.3.0",
+    "addon_version": "2.0",
+    "protocol": "16/16",
+    "scene": "Scene",
+    "objects": 3,
+    "scene_modified": false
+  },
+  "limitations": [
+    "The absent-process auto-start path was not exercised because Blender was already running.",
+    "The known executable path is host-specific and must be configured for another installation."
+  ]
+}
