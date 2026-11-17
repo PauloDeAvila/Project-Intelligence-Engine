@@ -54,6 +54,18 @@
     "pie_correct": 6,
     "status": "PILOT_VALID_NOT_CERTIFIED"
   },
+  "deepseek_independent_pilot": {
+    "path": "reports/phase4-8/deepseek-real-pilot-independent-20261117.json",
+    "tasks": 6,
+    "calls": 12,
+    "seed": 20261117,
+    "baseline_total_tokens": 52735,
+    "pie_total_tokens": 3543,
+    "total_savings_percent": 93.282,
+    "baseline_correct": 6,
+    "pie_correct": 6,
+    "status": "PILOT_VALID_NOT_CERTIFIED"
+  },
   "phases": {
     "4_consolidation": {
       "status": "PASS_LOCAL",

@@ -73,3 +73,14 @@ tarefas se sobrepõem ao piloto anterior, o resultado amplia a cobertura, mas
 não deve ser tratado como seis pares estatisticamente independentes.
 
 Evidência: `deepseek-real-pilot-expanded-20261116.json`.
+
+## Piloto DeepSeek com seed independente
+
+Uma segunda bateria de seis tarefas foi executada com seed `20261117`, mantendo
+corpus, modelo, cap de saída, gateway e oráculo. As doze chamadas reportaram uso
+real e passaram: baseline 52.735 tokens, PIE 3.543 tokens, redução total de
+93,282%; a entrada não cacheada caiu 96,832%. A disjunção exata dos conjuntos de
+tarefas não foi uma propriedade exigida pelo runner, portanto o resultado é uma
+replicação com seed diferente, não uma amostra estatística formal.
+
+Evidência: `deepseek-real-pilot-independent-20261117.json`.
