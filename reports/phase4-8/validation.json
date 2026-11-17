@@ -30,13 +30,13 @@
     }
   },
   "latest_regression_suite": {
-    "command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-preflight-gate-20261117 -p no:cacheprovider",
-    "passed": 721,
+    "command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-default-cube-20261117 -p no:cacheprovider",
+    "passed": 722,
     "skipped": 4,
     "subtests": 126,
     "failed": 0,
-    "duration_seconds": 47.18,
-    "rerun_command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-preflight-gate-20261117-r2 -p no:cacheprovider",
+    "duration_seconds": 65.71,
+    "rerun_command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-default-cube-20261117 -p no:cacheprovider",
     "rerun_date": "2026-11-17"
   },
   "blender_upstream_preflight_gate": {
@@ -169,6 +169,21 @@
     "oracle_pass": true,
     "scene_modified": false,
     "provider_tokens": null
+  },
+  "blender_live_default_cube_deepseek": {
+    "path": "reports/phase4-8/blender-live-default-cube-deepseek-20261117.json",
+    "status": "PILOT_VALID_NOT_CERTIFIED",
+    "model": "gambiarraapi/deepseek-v3.2",
+    "pairs": 1,
+    "baseline_total_tokens": 5201,
+    "optimized_total_tokens": 246,
+    "total_savings_percent": 95.27,
+    "input_savings_percent": 95.897,
+    "baseline_correct": 1,
+    "optimized_correct": 1,
+    "baseline_latency_seconds": 2.8839,
+    "optimized_latency_seconds": 2.9077,
+    "mcp_calls_per_arm": 3
   },
   "codex_pie_web_route_probe": {
     "path": "reports/phase4-8/codex-pie-web-route-probe-20261117.json",
@@ -451,7 +466,8 @@
         "strict local replication gate passed 3/3 Web Summary pairs with 12.926 percent weighted savings",
         "post-fix large Web replication passed 3/3 but regressed latency",
         "strict local replication gate passed 3/3 live Blender pairs with 93.526 percent weighted savings",
-        "second live Blender task PIE_Large_Cube_63 passed a strict three-pair local gate with 94.762 percent savings"
+        "second live Blender task PIE_Large_Cube_63 passed a strict three-pair local gate with 94.762 percent savings",
+        "one live default-scene Blender pair with DeepSeek 3.2 passed 1/1 in both arms with 95.27 percent weighted savings"
       ],
       "missing": [
         "Codex provider certification",

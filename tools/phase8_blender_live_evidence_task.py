@@ -21,8 +21,15 @@ ORACLE = {
     "location": [0.0, 0.0, 0.0],
     "material_names": ["PIE_Large_Material_00"],
 }
+DEFAULT_CUBE_ORACLE = {
+    "object_name": "Cube",
+    "object_type": "MESH",
+    "location": [0.0, 0.0, 0.0],
+    "material_names": ["Material"],
+}
 TASKS = {
     "object00": ORACLE,
+    "default_cube": DEFAULT_CUBE_ORACLE,
     "object63": {
         "object_name": "PIE_Large_Cube_63",
         "object_type": "MESH",

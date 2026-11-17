@@ -44,6 +44,11 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
   cena confirmou que nada foi alterado. Isso valida o contrato seletivo na cena
   padrão, mas não mede tokens nem substitui a fixture `PIE_Large`.
   Evidência: `blender-live-selective-query-20261117.json`.
+- Um par A/B real da cena padrão com DeepSeek 3.2 passou o oráculo em ambos os
+  braços: baseline 5.201 tokens, PIE 246 tokens, economia total de 95,27%.
+  A entrada caiu 95,897%; a latência foi 2,8839 s contra 2,9077 s. É uma
+  réplica única local e permanece `PILOT_VALID_NOT_CERTIFIED`.
+  Evidência: `blender-live-default-cube-deepseek-20261117.json`.
 - O preflight de roteamento no checkout atual passou para Web completo e o
   gateway Blender isolado passou initialize, `tools/list`, `get_addon_status` e
   `get_scene_info`; a falha anterior do processo não foi usada como evidência
