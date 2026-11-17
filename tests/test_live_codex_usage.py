@@ -429,6 +429,34 @@ def test_run_single_failure_artifacts_do_not_leak_exception_text(monkeypatch, tm
     assert ledger["error"] == "capture_failed"
 
 
+def test_run_single_oracle_failure_persists_provider_record(monkeypatch, tmp_path):
+    controller, workspace = _controller_env(monkeypatch, tmp_path)
+    monkeypatch.setattr(controller, "preflight_codex",
+                        lambda *a, **k: {"state": "READY_FOR_BENCHMARK",
+                                         "errors": []})
+    monkeypatch.setattr(controller, "_fixture_oracle",
+                        lambda *a, **k: {"passed": False, "reason": "bad answer"})
+    captured = {
+        "run_id": "run-oracle-1",
+        "pair_id": "pair-oracle-1",
+        "usage": {"input_tokens": 123, "cached_input_tokens": 100,
+                  "output_tokens": 7},
+        "mcp_tools": [{"server": "blender", "tool": "get_scene_info"}],
+    }
+    monkeypatch.setattr(controller, "capture_codex", lambda *a, **k: captured)
+    output = tmp_path / "out" / "result.json"
+    result = controller.run_single(
+        scenario=SCENARIO, application="blender", condition="baseline",
+        workspace=workspace, baseline_home=tmp_path / "h1",
+        optimized_home=tmp_path / "h2", baseline_profile="p",
+        optimized_profile="p", output=output,
+        run_id_override="run-oracle-1", pair_id_override="pair-oracle-1")
+    assert result["certification_status"] == "FAILED"
+    persisted = json.loads((tmp_path / "out" / "result-record.json").read_text())
+    assert persisted["usage"]["input_tokens"] == 123
+    assert persisted["mcp_tools"][0]["tool"] == "get_scene_info"
+
+
 def _pilot_scenarios(controller, scenario):
     """Augmented scenario copies matching the entries built by _pilot_manifest."""
     base = dict(scenario, required_mcp_server="blender-mcp-server",

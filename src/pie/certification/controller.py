@@ -630,6 +630,8 @@ def run_single(*, scenario: dict[str, Any], application: str, condition: str,
         raise ControllerError("Capture identity differs from generated single-run identity")
     oracle = _fixture_oracle(scenario, root)
     if not oracle["passed"]:
+        destination = output.parent / (output.stem + "-record.json")
+        _write_json(destination, record)
         _write_budget_ledger(ledger, state="failed", run_id=run_id, pair_id=pair_id,
                              consumed_sessions=1, authorized_sessions=authorized_sessions,
                              error="oracle_failed",
@@ -643,10 +645,13 @@ def run_single(*, scenario: dict[str, Any], application: str, condition: str,
         return {"schema": "pie-phase3-single-result-v1", "state": failed_state,
                 "run_id": run_id, "pair_id": pair_id, "ledger": str(ledger),
                 "quota_consumed": True, "automatic_retry": False, "oracle": oracle,
+                "record": str(destination),
                 "task_id": scenario.get("scenario_id"), "certification_status": "FAILED"}
     lifecycle = _load_lifecycle(root.parent / ("." + root.name + "-pie-live-store") / "mcp-lifecycle.jsonl")
     route = audit_record_route(record, lifecycle)
     if route["decision"] != "VALID":
+        destination = output.parent / (output.stem + "-record.json")
+        _write_json(destination, record)
         _write_budget_ledger(ledger, state="failed", run_id=run_id, pair_id=pair_id,
                              consumed_sessions=1, authorized_sessions=authorized_sessions,
                              error="route_evidence_failed",
@@ -660,7 +665,7 @@ def run_single(*, scenario: dict[str, Any], application: str, condition: str,
         return {"schema": "pie-phase3-single-result-v1", "state": failed_state,
                 "run_id": run_id, "pair_id": pair_id, "ledger": str(ledger),
                 "quota_consumed": True, "automatic_retry": False,
-                "record": record, "oracle": oracle, "route": route,
+                "record": str(destination), "oracle": oracle, "route": route,
                 "task_id": scenario.get("scenario_id"), "certification_status": "FAILED"}
     destination = output.parent / (output.stem + "-record.json")
     _write_json(destination, record)
