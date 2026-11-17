@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 import urllib.request
+import uuid
 from pathlib import Path
 
 from phase8_web_large_deepseek_pilot import ORACLE
@@ -100,6 +101,7 @@ def _provider_call(base_url: str, key: str, model: str, context: dict, max_outpu
         "temperature": 0,
         "max_tokens": max_output_tokens,
         "stream": False,
+        "response_format": {"type": "json_object"},
     }
     request = urllib.request.Request(
         base_url.rstrip("/") + "/v1/chat/completions",
@@ -200,17 +202,22 @@ def main() -> int:
     parser.add_argument("--base-url", default="http://127.0.0.1:8080")
     parser.add_argument("--max-chars", type=int, default=2400)
     parser.add_argument("--max-output-tokens", type=int, default=512)
+    parser.add_argument("--pair-id", default=None)
     args = parser.parse_args()
     if not 1 <= args.max_output_tokens <= 4096:
         raise SystemExit("--max-output-tokens must be between 1 and 4096")
+    pair_id = args.pair_id or f"web-large-evidence-task-{uuid.uuid4().hex}"
     root = Path(__file__).resolve().parents[1]
     key = args.key_file.read_text(encoding="utf-8").strip()
     upstream = [r"C:\Program Files\nodejs\npx.cmd", "--yes", "@playwright/mcp@0.0.85", "--headless", "--browser", "chrome"]
     optimized = [sys.executable, "-m", "pie.gateway.domain", "serve", "--domain", "web", "--workspace", str(root), "--max-chars", str(args.max_chars), "--", *upstream]
     baseline = _run_arm(upstream, root, args.url, args.base_url, key, args.model, args.max_output_tokens)
     optimized_arm = _run_arm(optimized, root, args.url, args.base_url, key, args.model, args.max_output_tokens)
+    baseline["run_id"] = f"{pair_id}-baseline"
+    optimized_arm["run_id"] = f"{pair_id}-optimized"
     report = {
         "schema": "pie-web-evidence-task-v1",
+        "pair_id": pair_id,
         "status": "PILOT_VALID_NOT_CERTIFIED" if baseline["task_oracle_pass"] and optimized_arm["task_oracle_pass"] else "PILOT_INVALID_QUALITY",
         "scope": "end_to_end_controlled_task; model selects action, code executes MCP and preserves values",
         "model": args.model,

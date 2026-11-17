@@ -1,0 +1,98 @@
+{
+  "schema": "pie-web-evidence-task-v1",
+  "pair_id": "web-large-evidence-task-jsonmode-r2-20261116",
+  "status": "PILOT_VALID_NOT_CERTIFIED",
+  "scope": "end_to_end_controlled_task; model selects action, code executes MCP and preserves values",
+  "model": "gambiarraapi/deepseek-v3.2",
+  "url": "http://127.0.0.1:8767/fixtures/phase4-8/web-large/index.html",
+  "oracle": {
+    "title": "PIE Large Web Fixture",
+    "status": "The deterministic large fixture is ready.",
+    "marker": "PIE_WEB_LARGE_FIXTURE_V1"
+  },
+  "max_output_tokens": 512,
+  "baseline": {
+    "tool_count": 25,
+    "context_chars": 30591,
+    "navigate_ok": true,
+    "click_ok": true,
+    "plan": {
+      "action": "reveal",
+      "target_ref": "e5",
+      "fields": [
+        "title",
+        "status",
+        "marker"
+      ]
+    },
+    "plan_oracle_pass": true,
+    "reconstructed_evidence": {
+      "title": "PIE Large Web Fixture",
+      "status": "The deterministic large fixture is ready.",
+      "marker": "PIE_WEB_LARGE_FIXTURE_V1"
+    },
+    "source_oracle_pass": true,
+    "task_oracle_pass": true,
+    "usage": {
+      "completion_tokens": 211,
+      "completion_tokens_details": {
+        "reasoning_tokens": 187
+      },
+      "prompt_tokens": 7730,
+      "prompt_tokens_details": {
+        "cached_tokens": 5255
+      },
+      "total_tokens": 7941
+    },
+    "finish_reason": "stop",
+    "latency_s": 3.7769,
+    "run_id": "web-large-evidence-task-jsonmode-r2-20261116-baseline",
+    "input_tokens": 7730,
+    "output_tokens": 211,
+    "total_tokens": 7941
+  },
+  "optimized": {
+    "tool_count": 26,
+    "context_chars": 24573,
+    "navigate_ok": true,
+    "click_ok": true,
+    "plan": {
+      "action": "reveal",
+      "target_ref": "e5",
+      "fields": [
+        "title",
+        "status",
+        "marker"
+      ]
+    },
+    "plan_oracle_pass": true,
+    "reconstructed_evidence": {
+      "title": "PIE Large Web Fixture",
+      "status": "The deterministic large fixture is ready.",
+      "marker": "PIE_WEB_LARGE_FIXTURE_V1"
+    },
+    "source_oracle_pass": true,
+    "task_oracle_pass": true,
+    "usage": {
+      "completion_tokens": 104,
+      "completion_tokens_details": {
+        "reasoning_tokens": 80
+      },
+      "prompt_tokens": 6082,
+      "prompt_tokens_details": {
+        "cached_tokens": 5240
+      },
+      "total_tokens": 6186
+    },
+    "finish_reason": "stop",
+    "latency_s": 3.1512,
+    "run_id": "web-large-evidence-task-jsonmode-r2-20261116-optimized",
+    "input_tokens": 6082,
+    "output_tokens": 104,
+    "total_tokens": 6186
+  },
+  "savings": {
+    "input_percent": 21.32,
+    "total_percent": 22.1
+  }
+}

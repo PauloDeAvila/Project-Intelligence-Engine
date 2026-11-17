@@ -1,0 +1,35 @@
+{
+  "schema": "pie-web-evidence-task-replication-v1",
+  "status": "PILOT_PARTIAL_NOT_CERTIFIED",
+  "model": "gambiarraapi/deepseek-v3.2",
+  "planned_pairs": 3,
+  "executed_pairs": 2,
+  "valid_pairs": 1,
+  "invalid_pairs": 1,
+  "stopped_at": "web-large-evidence-task-r2-20261116",
+  "retries": 0,
+  "pairs": [
+    {
+      "pair_id": "web-large-evidence-task-r1-20261116",
+      "report": "reports/phase4-8/web-large-evidence-task-r1-20261116.json",
+      "status": "PILOT_VALID_NOT_CERTIFIED",
+      "total_savings_percent": 21.624,
+      "baseline_task_oracle": true,
+      "optimized_task_oracle": true
+    },
+    {
+      "pair_id": "web-large-evidence-task-r2-20261116",
+      "report": "reports/phase4-8/web-large-evidence-task-r2-20261116.json",
+      "status": "PILOT_INVALID_QUALITY",
+      "baseline_total_tokens": 7612,
+      "optimized_total_tokens": 6343,
+      "reason": "optimized provider emitted an unauthorized DSML browser_click call instead of the required JSON plan"
+    },
+    {
+      "pair_id": "web-large-evidence-task-r3-20261116",
+      "status": "NOT_RUN",
+      "reason": "stopped at first invalid pair; no retry"
+    }
+  ],
+  "conclusion": "The task path is functional but not yet reproducible across pairs. The R1 savings remain valid evidence; R2 token differences are excluded from certification."
+}

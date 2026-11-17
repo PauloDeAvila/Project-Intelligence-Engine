@@ -147,6 +147,26 @@
     "optimized_task_oracle": true,
     "mcp_calls_per_arm": 4
   },
+  "web_large_evidence_task_replication": {
+    "path": "reports/phase4-8/web-large-evidence-task-replication-analysis-20261116.json",
+    "status": "PILOT_PARTIAL_NOT_CERTIFIED",
+    "planned_pairs": 3,
+    "executed_pairs": 2,
+    "valid_pairs": 1,
+    "invalid_pairs": 1,
+    "retries": 0,
+    "stopped_at_first_failure": true
+  },
+  "web_large_evidence_task_jsonmode_replication": {
+    "path": "reports/phase4-8/web-large-evidence-task-jsonmode-replication-analysis-20261116.json",
+    "status": "PILOT_VALID_NOT_CERTIFIED",
+    "response_format": "json_object",
+    "pairs": 3,
+    "valid_pairs": 3,
+    "weighted_savings_percent": 20.401,
+    "oracle_baseline": "3/3",
+    "oracle_optimized": "3/3"
+  },
   "phases": {
     "4_consolidation": {
       "status": "PASS_EXTERNAL_CONTROLLED_READ_ONLY",
@@ -202,7 +222,9 @@
         "Web gateway no longer announces pie_web_context by default",
         "large Web gateway compaction gate reduced 8632 to 2164 characters",
         "Web Evidence Agent selected exact fields in both arms",
-        "Web Evidence Task executed MCP after model action selection with 21.624 percent total savings"
+        "Web Evidence Task executed MCP after model action selection with 21.624 percent total savings",
+        "Web Evidence Task replication stopped at R2 after invalid DSML output"
+        ,"Web Evidence Task JSON-mode replication passed 3/3 with 20.401 percent weighted savings"
       ],
       "missing": [
         "Codex provider certification",

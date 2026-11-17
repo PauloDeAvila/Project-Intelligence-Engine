@@ -1,0 +1,35 @@
+{
+  "schema": "pie-web-evidence-task-jsonmode-replication-v1",
+  "status": "PILOT_VALID_NOT_CERTIFIED",
+  "model": "gambiarraapi/deepseek-v3.2",
+  "response_format": "json_object",
+  "pairs": 3,
+  "valid_pairs": 3,
+  "oracle": {
+    "baseline": "3/3",
+    "optimized": "3/3"
+  },
+  "reports": [
+    "reports/phase4-8/web-large-evidence-task-jsonmode-20261116.json",
+    "reports/phase4-8/web-large-evidence-task-jsonmode-r2-20261116.json",
+    "reports/phase4-8/web-large-evidence-task-jsonmode-r3-20261116.json"
+  ],
+  "tokens": {
+    "baseline_total": 23519,
+    "optimized_total": 18721,
+    "weighted_savings_percent": 20.401,
+    "mean_savings_percent": 20.382,
+    "median_savings_percent": 20.023,
+    "range_percentage_points": 3.077
+  },
+  "latency": {
+    "mean_baseline_s": 3.8297,
+    "mean_optimized_s": 3.5427,
+    "mean_delta_percent": 7.496
+  },
+  "limitations": [
+    "All three pairs use one deterministic Web fixture and one local provider.",
+    "The model chooses the action; deterministic code executes MCP and reconstructs values.",
+    "This is not official Codex certification or broad Web statistical certification."
+  ]
+}

@@ -174,3 +174,17 @@ de `navigate`, snapshot anterior e snapshot posterior. O consumo caiu de
 Tentativas inválidas por limite de saída e perda de título no snapshot
 compactado foram preservadas separadamente. Evidência:
 `web-large-evidence-task-analysis-20261116.json`.
+
+A tentativa de replicação planejou três pares, mas parou corretamente no R2:
+R1 foi válido; R2 emitiu DSML não permitido no braço PIE; R3 não foi iniciado.
+Não houve retry e os tokens do R2 foram excluídos. Isso confirma que o caminho
+funciona, mas ainda não é reprodutível o bastante para certificação. Evidência:
+`web-large-evidence-task-replication-analysis-20261116.json`.
+
+Após exigir resposta JSON estruturada no provider, uma nova bateria independente
+de três pares passou 3/3. O baseline somou 23.519 tokens e o PIE 18.721, uma
+economia ponderada de 20,401%; a faixa entre pares foi de 3,077 pontos
+percentuais e os oráculos passaram em todos os braços. Essa é a melhor evidência
+reprodutível deste fluxo, mas ainda está limitada a uma fixture e ao provider
+local `gambiarraapi/deepseek-v3.2`. Evidência:
+`web-large-evidence-task-jsonmode-replication-analysis-20261116.json`.
