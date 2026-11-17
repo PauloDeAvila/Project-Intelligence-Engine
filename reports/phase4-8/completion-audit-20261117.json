@@ -1,0 +1,105 @@
+{
+  "schema": "pie-context-runtime-completion-audit-v1",
+  "audited_at": "2026-11-17",
+  "workspace": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean",
+  "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
+  "index": {
+    "state": "CURRENT",
+    "workspace_match": true,
+    "files": 270,
+    "symbols": 2251,
+    "imports": 2610,
+    "diagnostics": []
+  },
+  "overall_status": "PARTIAL_NOT_CERTIFIED",
+  "phases": {
+    "4_consolidation": {
+      "status": "PARTIAL_EXTERNAL_CONTROLLED",
+      "proven": [
+        "local persistence and restart tests pass",
+        "official Codex Web route reached the local fixture through pie-web-optimized",
+        "Codex route selection observed pie-blender-optimized without forbidden servers",
+        "gateway runtime tests and full regression suite pass"
+      ],
+      "missing": [
+        "official Codex route must reach a live Blender addon in the current environment",
+        "one end-to-end runtime shared by Codex and OpenCode is not proven as a single production service"
+      ],
+      "evidence": [
+        "reports/phase4-8/codex-pie-web-route-probe-20261117.json",
+        "reports/phase4-8/codex-pie-blender-route-probe-20261117.json",
+        "reports/phase4-8/validation.json",
+        "latest regression: 718 passed, 4 skipped, 126 subtests"
+      ]
+    },
+    "5_multi_agent_memory": {
+      "status": "PARTIAL_EXTERNAL_CONTROLLED",
+      "proven": [
+        "versioned checkpoints, provenance and context_version are persisted",
+        "OpenCode/DeepSeek handoff resumed after restart",
+        "cross-workspace project isolation passed",
+        "checkpoint-to-GLM compatibility passed with 103 reported tokens"
+      ],
+      "missing": [
+        "official Codex-to-GLM handoff was not executed"
+      ],
+      "evidence": [
+        "reports/phase4-8/glm-agent-handoff-20261116.json",
+        "reports/phase4-8/opencode-deepseek-connection-20261116.json",
+        "reports/phase4-8/memory-project-isolation-20261116.json"
+      ]
+    },
+    "6_incremental_context_cache": {
+      "status": "PASS_EXTERNAL_CONTROLLED_SINGLE_PAIR",
+      "proven": [
+        "hash-backed cache and invalidation tests pass",
+        "checkpoint survives ContextRuntime restart",
+        "one real DeepSeek restart pair passed the independent oracle and reduced 237 to 167 total tokens"
+      ],
+      "missing": [
+        "multi-scenario statistical replication after restart"
+      ],
+      "evidence": [
+        "reports/phase4-8/context-runtime-external-restart-token-proof.json",
+        "reports/phase4-8/validation.json"
+      ]
+    },
+    "7_local_execution": {
+      "status": "PASS_LOCAL",
+      "proven": [
+        "allowlists, bounded JSON, idempotent replay and timeout behavior pass",
+        "35 security and persistence tests pass",
+        "100 indexed queries measured p95 3.6046 ms, below the 100 ms target"
+      ],
+      "missing": [],
+      "evidence": [
+        "reports/phase4-8/validation.json (local_execution_security_tests)",
+        "reports/phase4-8/local-query-latency-20261116.json"
+      ]
+    },
+    "8_continuous_certification": {
+      "status": "PARTIAL_NOT_CERTIFIED",
+      "proven": [
+        "local GLM, DeepSeek, Blender and Web pilots report provider usage",
+        "strict local Blender gates passed 3/3 in two tasks",
+        "strict local Web Summary gate passed 3/3",
+        "oracles passed for the cited local gates"
+      ],
+      "missing": [
+        "official Codex baseline versus PIE A/B pairs",
+        "broad statistical certification across domains and tasks",
+        "quality equivalence beyond the recorded fixtures"
+      ],
+      "evidence": [
+        "reports/phase4-8/blender-live-replication-gate-20261116.json",
+        "reports/phase4-8/blender-object63-replication-gate-20261116.json",
+        "reports/phase4-8/web-summary-replication-gate-20261116.json",
+        "reports/phase4-8/validation.json"
+      ]
+    }
+  },
+  "certification": {
+    "status": "NOT_CERTIFIED",
+    "reason": "Official Codex provider A/B certification and live Blender dispatch remain unproven."
+  }
+}

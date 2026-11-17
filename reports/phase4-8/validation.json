@@ -355,7 +355,7 @@
       "live_blender_probe": "reports/phase4-8/live-blender-gateway-probe-20261116.json"
     },
     "5_multi_agent_memory": {
-      "status": "PASS_EXTERNAL_CONTROLLED",
+      "status": "PARTIAL_EXTERNAL_CONTROLLED",
       "evidence": [
         "explicit codex-to-deepseek checkpoint handoff",
         "Codex route probe observed pie-blender-optimized without forbidden servers; Blender addon unavailable",

@@ -44,7 +44,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 | Fase | Estado | Conclusão |
 |---|---|---|
 | 4 — Consolidação | PARTIAL_EXTERNAL_CONTROLLED | Roteamento Codex → PIE comprovado nos dois domínios; Web alcançou a fixture local, mas Blender não alcançou o addon porque o processo estava indisponível. |
-| 5 — Memória entre agentes | PASS_EXTERNAL_CONTROLLED | Handoff real OpenCode/DeepSeek executado após reinício; isolamento entre workspaces passou; sonda separada confirmou compatibilidade checkpoint→GLM. A chamada oficial Codex→GLM permanece pendente. |
+| 5 — Memória entre agentes | PARTIAL_EXTERNAL_CONTROLLED | Handoff real OpenCode/DeepSeek executado após reinício; isolamento entre workspaces passou; sonda separada confirmou compatibilidade checkpoint→GLM. A chamada oficial Codex→GLM permanece pendente. |
 | 6 — Contexto incremental/cache | PASS_EXTERNAL_CONTROLLED_SINGLE_PAIR | Hashes, compilador, cache persistente e invalidação após mudança cobertos; um par DeepSeek real após reinício passou no oráculo: 237 → 167 tokens. Ainda não é evidência estatística. |
 | 7 — Execução local | PASS_LOCAL | Allowlist, limites, replay, timeouts fail-closed e testes de segurança passaram; consulta SQLite local p95 de 3,6046 ms. |
 | 8 — Certificação contínua | PARTIAL_NOT_CERTIFIED | GLM v5, DeepSeek 3.2, Blender e Web tiveram pilotos locais; os gates estritos Blender mediram 93,526% e 94,762% em duas tarefas, enquanto Web Summary mediu 12,926% e um piloto Web anterior teve −29,098%. Ainda faltam certificação Codex e generalização ampla. |
