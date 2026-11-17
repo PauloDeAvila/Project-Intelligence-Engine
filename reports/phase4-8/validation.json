@@ -3,7 +3,7 @@
   "status": "PARTIAL_LOCAL_VALIDATION",
   "certification": "NOT_CERTIFIED",
   "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
-  "head_at_validation": "f6eb28b",
+  "head_at_validation": "0fd5851",
   "implementation_commit": "4aae2af",
   "index": {
     "source": "uv run python -m pie.interfaces.cli status --root .",
@@ -30,12 +30,12 @@
     }
   },
   "latest_regression_suite": {
-    "command": "uv run python -m pytest -q --basetemp .pytest-tmp-current-run -p no:cacheprovider",
+    "command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-suite-20261116-r3 -p no:cacheprovider",
     "passed": 714,
     "skipped": 4,
     "subtests": 126,
     "failed": 0,
-    "duration_seconds": 41.47
+    "duration_seconds": 39.48
   },
   "verifier": {
     "path": "reports/phase4-8/context-runtime-verifier.json",

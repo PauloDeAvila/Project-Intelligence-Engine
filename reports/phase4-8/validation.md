@@ -9,7 +9,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 - Índice local: CURRENT, workspace_match=true, 267 arquivos, 2.238 símbolos e 2.586 imports, verificado no head `f6eb28b`.
 - Testes focados: 74 passed.
 - Suíte completa histórica: 710 passed, 4 skipped, 126 subtests passed.
-- Suíte de regressão executada neste head: `uv run python -m pytest -q --basetemp .pytest-tmp-current-run -p no:cacheprovider` — 714 passed, 4 skipped, 126 subtests passed em 41,47 s.
+- Suíte de regressão executada neste head: `uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-suite-20261116-r3 -p no:cacheprovider` — 714 passed, 4 skipped, 126 subtests passed em 39,48 s.
 - O handoff codex → deepseek foi exercitado com checkpoint persistente,
   hash de origem e proveniência preservada.
 - O preflight de roteamento no checkout atual passou para Web completo e o
@@ -180,6 +180,11 @@ R1 foi válido; R2 emitiu DSML não permitido no braço PIE; R3 não foi iniciad
 Não houve retry e os tokens do R2 foram excluídos. Isso confirma que o caminho
 funciona, mas ainda não é reprodutível o bastante para certificação. Evidência:
 `web-large-evidence-task-replication-analysis-20261116.json`.
+
+Uma execução intermediária reutilizou a mesma raiz temporária e falhou em dois
+testes Delta Store porque o armazenamento global reteve o fingerprint daquela
+raiz. Essa execução foi descartada como contaminação de ambiente; a repetição
+com raiz nova passou integralmente e é a evidência registrada acima.
 
 Após exigir resposta JSON estruturada no provider, uma nova bateria independente
 de três pares passou 3/3. O baseline somou 23.519 tokens e o PIE 18.721, uma
