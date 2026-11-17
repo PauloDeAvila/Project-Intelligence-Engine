@@ -28,11 +28,11 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 
 | Fase | Estado | Conclusão |
 |---|---|---|
-| 4 — Consolidação | PASS_EXTERNAL_CONTROLLED_READ_ONLY | Sem regressões locais; Web E2E e Blender 5.3 real passaram initialize, tools/list, get_addon_status e get_scene_info via PIE. A fixture Blender grande ainda não foi carregada. |
+| 4 — Consolidação | PASS_EXTERNAL_CONTROLLED_READ_ONLY | Sem regressões locais; Web E2E e Blender 5.3 real passaram initialize, tools/list, get_addon_status e get_scene_info via PIE. A fixture Blender real com 64 objetos e 16 materiais também foi carregada e validada em modo somente leitura. |
 | 5 — Memória entre agentes | PASS_EXTERNAL_CONTROLLED | Handoff real OpenCode/DeepSeek e sonda Codex→GLM executados após reinício; checkpoint hash-verificado e histórico completo não enviado. |
 | 6 — Contexto incremental/cache | PASS_EXTERNAL_CONTROLLED_SINGLE_PAIR | Hashes, compilador, cache persistente e invalidação após mudança cobertos; um par DeepSeek real após reinício passou no oráculo: 237 → 167 tokens. Ainda não é evidência estatística. |
 | 7 — Execução local | PASS_LOCAL | Allowlist, limites, replay e timeouts fail-closed cobertos. |
-| 8 — Certificação contínua | PARTIAL_NOT_CERTIFIED | GLM v5, DeepSeek 3.2, Blender e Web tiveram pilotos locais; Blender mediu 82,934%, mas Web teve −29,098% de economia total apesar de 3/3 oráculos. Ainda faltam certificação Codex e generalização ampla. |
+| 8 — Certificação contínua | PARTIAL_NOT_CERTIFIED | GLM v5, DeepSeek 3.2, Blender e Web tiveram pilotos locais; os gates estritos Blender mediram 93,526% e 94,762% em duas tarefas, enquanto Web Summary mediu 12,926% e um piloto Web anterior teve −29,098%. Ainda faltam certificação Codex e generalização ampla. |
 
 O provider atual do OpenCode também foi verificado separadamente: `infinity`
 expôs `gambiarraapi/deepseek-v3.2`, que respondeu ao probe real com 55 tokens de
