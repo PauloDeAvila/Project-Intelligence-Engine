@@ -90,8 +90,8 @@ def test_preflight_blocks_blender_before_provider_when_upstream_is_down(
     monkeypatch.setattr(live_codex, "_git_clean_commit", lambda root: "a" * 40)
     monkeypatch.setattr(live_codex, "_auth_state", lambda *args: "AUTH_PRESENT_ENV")
     monkeypatch.setattr(
-        live_codex, "_probe_blender_upstream",
-        lambda selected: {"state": "FAIL", "reason": "UPSTREAM_UNAVAILABLE"},
+        live_codex, "ensure_blender_mcp",
+        lambda **kwargs: {"state": "FAIL", "reason": "UPSTREAM_UNAVAILABLE"},
     )
     result = live_codex.preflight_codex(
         scenario,

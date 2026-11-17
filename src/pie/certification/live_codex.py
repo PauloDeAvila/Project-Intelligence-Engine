@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib,json,math,os,re,shutil,socket,subprocess,time,tomllib
 from pathlib import Path
 from datetime import datetime,timezone
+from pie.certification.blender_runtime import ensure_blender_mcp
 
 SCHEMA="pie-live-codex-usage-v1"
 CONDITIONS=frozenset(("baseline","optimized"))
@@ -429,7 +430,11 @@ def preflight_codex(scenario:dict,*,condition:str,workspace:Path,codex_home:Path
             if not command_ok:
                 errors.append("PRECHECK_MCP_COMMAND_UNAVAILABLE")
             if _scenario_app(scenario)=="blender":
-                checks["blender_upstream"]=_probe_blender_upstream(selected)
+                runtime_env=dict(os.environ)
+                selected_env=selected.get("env",{}) if isinstance(selected,dict) else {}
+                if isinstance(selected_env,dict):
+                    runtime_env.update({str(k):str(v) for k,v in selected_env.items()})
+                checks["blender_upstream"]=ensure_blender_mcp(environment=runtime_env)
                 if checks["blender_upstream"].get("state")!="PASS":
                     errors.append("PRECHECK_BLENDER_UPSTREAM_UNAVAILABLE")
             if command_ok and isinstance(selected,dict) and "pie.gateway.domain" in (selected.get("args") or []):
