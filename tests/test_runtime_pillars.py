@@ -57,6 +57,7 @@ def test_continuous_certification_remains_fail_closed():
 
     assert ContinuousCertification.pair(evidence("baseline"), evidence("optimized"))["status"] == "CERTIFIED_PAIR"
     assert ContinuousCertification.suite([])["status"] == "NOT_CERTIFIED"
+    assert ContinuousCertification.replication_suite([])["status"] == "NOT_CERTIFIED"
 
 
 def test_pillars_reexport_existing_symbols_without_wrappers():

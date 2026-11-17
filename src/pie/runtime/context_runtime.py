@@ -11,7 +11,12 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
-from pie.certification.regression import RunEvidence, evaluate_golden_suite, evaluate_pair
+from pie.certification.regression import (
+    RunEvidence,
+    evaluate_golden_suite,
+    evaluate_pair,
+    evaluate_replication_suite,
+)
 from pie.retrieval import task_memory
 from pie.retrieval.adaptive_runtime import MeasuredCandidate, choose_candidate
 from pie.retrieval.context_compiler import (
@@ -260,6 +265,12 @@ class ContextRuntime:
         pairs: list[tuple[RunEvidence, RunEvidence]],
     ) -> dict[str, object]:
         return evaluate_golden_suite(pairs)
+
+    @staticmethod
+    def evaluate_replication_suite(
+        pairs: list[tuple[RunEvidence, RunEvidence]],
+    ) -> dict[str, object]:
+        return evaluate_replication_suite(pairs)
 
     def close(self) -> None:
         if self._closed:

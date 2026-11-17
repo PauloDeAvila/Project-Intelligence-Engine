@@ -148,8 +148,10 @@ def test_runtime_delegates_pair_and_suite_evaluation(tmp_path: Path):
     runtime = ContextRuntime(tmp_path)
     pair = runtime.evaluate_pair(evidence("baseline"), evidence("optimized"))
     suite = runtime.evaluate_suite([(evidence("baseline"), evidence("optimized"))])
+    replication_suite = runtime.evaluate_replication_suite([])
     assert pair["status"] == "CERTIFIED_PAIR"
     assert suite["status"] == "CERTIFIED"
+    assert replication_suite["status"] == "NOT_CERTIFIED"
     runtime.close()
 
 
