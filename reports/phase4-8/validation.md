@@ -6,7 +6,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 
 ## Evidência executada
 
-- Índice local: CURRENT, workspace_match=true, 266 arquivos, 2.227 símbolos e 2.575 imports, verificado no head `fa8a26d`.
+- Índice local: CURRENT, workspace_match=true, 267 arquivos, 2.238 símbolos e 2.585 imports, verificado no head `310dd8e`.
 - Testes focados: 74 passed.
 - Suíte completa histórica: 710 passed, 4 skipped, 126 subtests passed.
 - Suíte de regressão executada neste head: `uv run python -m pytest -q --basetemp .pytest-tmp-current-run -p no:cacheprovider` — 714 passed, 4 skipped, 126 subtests passed em 41,47 s.
