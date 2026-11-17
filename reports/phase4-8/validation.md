@@ -8,7 +8,8 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 
 - Índice local: CURRENT, workspace_match=true, 263 arquivos, 2.212 símbolos e 2.550 imports.
 - Testes focados: 74 passed.
-- Suíte completa: 710 passed, 4 skipped, 126 subtests passed.
+- Suíte completa histórica: 710 passed, 4 skipped, 126 subtests passed.
+- Suíte de regressão mais recente: 714 passed, 4 skipped, 126 subtests passed.
 - O handoff codex → deepseek foi exercitado com checkpoint persistente,
   hash de origem e proveniência preservada.
 - O preflight de roteamento no checkout atual passou para Web completo e o

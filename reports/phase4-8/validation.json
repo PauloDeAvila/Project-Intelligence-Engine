@@ -29,6 +29,14 @@
       "duration_seconds": 36.13
     }
   },
+  "latest_regression_suite": {
+    "command": "uv run --with pytest python -m pytest -q --basetemp .pytest-tmp-web-context-final",
+    "passed": 714,
+    "skipped": 4,
+    "subtests": 126,
+    "failed": 0,
+    "duration_seconds": 41.98
+  },
   "verifier": {
     "path": "reports/phase4-8/context-runtime-verifier.json",
     "status": "PASS_LOCAL",

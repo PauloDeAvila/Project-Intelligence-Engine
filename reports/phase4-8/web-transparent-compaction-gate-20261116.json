@@ -19,8 +19,8 @@
     "reason": "snapshot is below the 2400-character gateway budget"
   },
   "tests_after_change": {
-    "focused_passed": 20,
-    "full_passed": 712,
+    "focused_passed": 22,
+    "full_passed": 714,
     "full_skipped": 4,
     "full_subtests": 126
   },
