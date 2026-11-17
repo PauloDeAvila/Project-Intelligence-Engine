@@ -94,13 +94,15 @@
       "missing": [
         "Codex provider certification",
         "paired Blender/Web external battery",
-        "statistical generalization beyond three local-provider pairs"
+        "statistical generalization beyond three local-provider pairs",
+        "live Blender handshake and local Web fixture are currently unavailable"
       ]
     }
   },
   "limitations": [
     "The configured PIE MCP server in this session reports another workspace root and was not used as evidence.",
     "Only one controlled live handoff was executed; general multi-agent quality is not certified.",
-    "Character reduction and synthetic counters are not token certification."
+    "Character reduction and synthetic counters are not token certification.",
+    "Current live-domain probe recorded Blender WinError 10053 and Web ERR_CONNECTION_REFUSED."
   ]
 }

@@ -1,0 +1,22 @@
+{
+  "schema": "pie-live-domain-probe-v1",
+  "status": "BLOCKED_UPSTREAMS",
+  "timestamp_utc": "2026-11-16",
+  "blender": {
+    "baseline_connector": "mcp__blender__get_addon_status",
+    "pie_connector": "mcp__pie_blender_optimized__get_addon_status",
+    "baseline_status": "ERROR",
+    "pie_status": "ERROR",
+    "error": "Addon handshake failed: Connection to Blender lost: [WinError 10053]",
+    "destructive_action_attempted": false
+  },
+  "web": {
+    "pie_connector": "mcp__pie_web_optimized__browser_navigate",
+    "url": "http://127.0.0.1:8766",
+    "status": "ERROR",
+    "error": "net::ERR_CONNECTION_REFUSED",
+    "external_page_modified": false
+  },
+  "certification": "NOT_CERTIFIED",
+  "interpretation": "PIE routing endpoints were callable, but both upstream fixtures were unavailable; no token benchmark was started."
+}
