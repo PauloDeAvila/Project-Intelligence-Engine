@@ -345,7 +345,7 @@
   },
   "phases": {
     "4_consolidation": {
-      "status": "PASS_EXTERNAL_CONTROLLED_READ_ONLY",
+      "status": "PARTIAL_EXTERNAL_CONTROLLED",
       "evidence": [
         "current index and workspace match",
         "full regression suite passed",
