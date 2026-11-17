@@ -10,6 +10,8 @@ import time
 import urllib.request
 from pathlib import Path
 
+from pie.certification.blender_runtime import ensure_blender_mcp
+
 try:
     from phase8_web_evidence_task import McpSession
 except ModuleNotFoundError:
@@ -140,9 +142,25 @@ def main() -> int:
     parser.add_argument("--max-output-tokens", type=int, default=256)
     parser.add_argument("--replication-index", type=int, default=1)
     parser.add_argument("--task", choices=tuple(TASKS), default="object00")
+    parser.add_argument("--blender-executable", type=Path)
     args = parser.parse_args()
     root = args.workspace.resolve()
     oracle = TASKS[args.task]
+    runtime = ensure_blender_mcp(executable=args.blender_executable)
+    if runtime["state"] != "PASS":
+        report = {
+            "schema": "pie-blender-live-evidence-task-v1",
+            "status": "BLENDER_UNAVAILABLE",
+            "task": args.task,
+            "model": args.model,
+            "runtime": runtime,
+            "quota_consumed": False,
+            "automatic_retry": False,
+        }
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps({"status": report["status"], "runtime": runtime}, ensure_ascii=False))
+        return 2
     key = args.key_file.read_text(encoding="utf-8").strip()
     upstream = ["uvx", "mcp-for-blender"]
     optimized = [sys.executable, "-m", "pie.gateway.domain", "serve", "--domain", "blender", "--workspace", str(root), "--max-chars", "2400", "--expose-tool", "pie_blender_get_object", "--", *upstream]
