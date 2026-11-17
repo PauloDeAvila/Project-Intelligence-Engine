@@ -1,0 +1,28 @@
+{
+  "schema": "pie-phase8-latency-analysis-v1",
+  "source": "reports/phase4-8/deepseek-real-pilot-paired-512/results.json",
+  "provider": "infinity",
+  "model": "gambiarraapi/deepseek-v3.2",
+  "sample_count_per_arm": 3,
+  "p95_method": "statistics.quantiles(n=20, method=inclusive), 95th percentile",
+  "arms": {
+    "baseline": {
+      "latency_seconds": [2.4396, 3.1989, 3.8276],
+      "median_seconds": 3.1989,
+      "p95_seconds": 3.76473,
+      "oracle_pass_count": 3
+    },
+    "pie": {
+      "latency_seconds": [2.2593, 2.7034, 2.7233],
+      "median_seconds": 2.7034,
+      "p95_seconds": 2.72131,
+      "oracle_pass_count": 3
+    }
+  },
+  "comparison": {
+    "p95_reduction_percent": 27.713,
+    "quality_equivalent": true,
+    "note": "This is provider end-to-end latency for a three-pair local pilot. It is not the local indexed-query p95 target of 100 ms."
+  },
+  "status": "DESCRIPTIVE_NOT_STATISTICAL"
+}

@@ -22,7 +22,7 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 | 5 — Memória entre agentes | PASS_EXTERNAL_CONTROLLED | Handoff real OpenCode/DeepSeek executado após reinício; `context_version` durável e histórico completo não enviado. |
 | 6 — Contexto incremental/cache | PASS_EXTERNAL_CONTROLLED_SINGLE_PAIR | Hashes, compilador, cache persistente e invalidação após mudança cobertos; um par DeepSeek real após reinício passou no oráculo: 237 → 167 tokens. Ainda não é evidência estatística. |
 | 7 — Execução local | PASS_LOCAL | Allowlist, limites, replay e timeouts fail-closed cobertos. |
-| 8 — Certificação contínua | PARTIAL_NOT_CERTIFIED | GLM v5 e DeepSeek 3.2 tiveram pilotos válidos de 3 pares; DeepSeek mediu 93,801% de redução total e 3/3 em ambos os braços. Ainda faltam Codex, Blender/Web e generalização estatística. |
+| 8 — Certificação contínua | PARTIAL_NOT_CERTIFIED | GLM v5 e DeepSeek 3.2 tiveram pilotos válidos de 3 pares; DeepSeek mediu 93,801% de redução total, p95 descritivo 3,765 s → 2,721 s e 3/3 em ambos os braços. Ainda faltam Codex, Blender/Web e generalização estatística. |
 
 ## Alteração desta rodada
 
@@ -53,3 +53,13 @@ certificação oficial Codex nem a bateria Blender/Web.
 O backup e o diff sanitizado da configuração Codex estão em
 `reports/phase4-8/routing-preflight-20261116.*`; o servidor original Blender e
 `node_repl` não foram modificados.
+
+## Latência p95
+
+O p95 foi calculado a partir das seis latências individuais preservadas no
+piloto DeepSeek, com interpolação inclusiva. O baseline teve p95 de 3,76473 s e
+o PIE de 2,72131 s, redução descritiva de 27,713%. Com apenas três pares, isso
+não é uma estimativa estatística. O valor também mede a chamada ao provedor,
+não o p95 de uma consulta local indexada de 100 ms.
+
+Evidência: `phase8-latency-analysis-20261116.json`.
