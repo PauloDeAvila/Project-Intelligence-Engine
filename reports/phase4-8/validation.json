@@ -3,16 +3,16 @@
   "status": "PARTIAL_LOCAL_VALIDATION",
   "certification": "NOT_CERTIFIED",
   "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
-  "head_at_validation": "3353f3f",
-  "implementation_commit": "3353f3f",
+  "head_at_validation": "9b86b06",
+  "implementation_commit": "9b86b06",
   "index": {
     "source": "uv run python -m pie.interfaces.cli status --root .",
     "project": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean",
     "index_state": "CURRENT",
     "workspace_match": true,
-    "files": 268,
-    "symbols": 2246,
-    "imports": 2597
+    "files": 270,
+    "symbols": 2251,
+    "imports": 2610
   },
   "tests": {
     "focused": {
@@ -31,11 +31,11 @@
   },
   "latest_regression_suite": {
     "command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-suite-20261116-r4 -p no:cacheprovider",
-    "passed": 717,
+    "passed": 718,
     "skipped": 4,
     "subtests": 126,
     "failed": 0,
-    "duration_seconds": 38.40
+    "duration_seconds": 35.67
   },
   "latest_web_gateway_focused": {
     "command": "uv run python -m pytest -q tests/test_regression_certification.py tests/test_gateway_web_results.py tests/test_gateway_web_context_exposure.py --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-gate-focused-20261116 -p no:cacheprovider",
@@ -104,6 +104,20 @@
     "baseline_correct": 3,
     "pie_correct": 3,
     "status": "PILOT_VALID_NOT_CERTIFIED"
+  },
+  "blender_live_replication_gate": {
+    "path": "reports/phase4-8/blender-live-replication-gate-20261116.json",
+    "status": "CERTIFIED_LOCAL_SUITE",
+    "pairs": 3,
+    "baseline_total_tokens": 16126,
+    "optimized_total_tokens": 1044,
+    "weighted_savings_percent": 93.526,
+    "uncached_input_savings_percent": 98.275,
+    "oracle_baseline": "3/3",
+    "oracle_optimized": "3/3",
+    "mcp_calls_per_arm": 3,
+    "retries": 0,
+    "latency_variability": "high"
   },
   "web_deepseek_pilot": {
     "path": "reports/phase4-8/web-deepseek-ab-pilot-20261116.json",
@@ -273,7 +287,8 @@
         "Web Evidence Task JSON-mode replication passed 3/3 with 20.401 percent weighted savings",
         "Web Summary Evidence Task replication passed 3/3 with 9.837 percent weighted savings",
         "strict local replication gate passed 3/3 Web Summary pairs with 12.926 percent weighted savings",
-        "post-fix large Web replication passed 3/3 but regressed latency"
+        "post-fix large Web replication passed 3/3 but regressed latency",
+        "strict local replication gate passed 3/3 live Blender pairs with 93.526 percent weighted savings"
       ],
       "missing": [
         "Codex provider certification",
@@ -287,6 +302,8 @@
     "The configured PIE MCP server in this session reports another workspace root and was not used as evidence.",
     "Only one controlled live handoff was executed; general multi-agent quality is not certified.",
     "Character reduction and synthetic counters are not token certification.",
+    "Live Blender strict gate uses a task-oracle fixture hash plus an independent live scene probe; it is not a full .blend snapshot hash.",
+    "Blender live gate latency is highly variable across the three local repetitions.",
     "Initial live-domain probe recorded Blender WinError 10053 and Web ERR_CONNECTION_REFUSED; the later isolated factory-startup probe passed the live Blender path on the configured default port 9876."
   ]
 }

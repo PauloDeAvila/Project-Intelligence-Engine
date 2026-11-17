@@ -6,11 +6,11 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 
 ## Evidência executada
 
-- Índice local: CURRENT, workspace_match=true, 268 arquivos, 2.246 símbolos e 2.597 imports, verificado no head `3353f3f`.
+- Índice local: CURRENT, workspace_match=true, 270 arquivos, 2.251 símbolos e 2.610 imports, verificado no head `9b86b06`.
 - Testes focados: 74 passed.
 - Suíte completa histórica: 710 passed, 4 skipped, 126 subtests passed.
 - Testes focados do gateway Web e do gate: 25 passed em 0,29 s.
-- Suíte de regressão executada neste head: `uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-suite-20261116-r5 -p no:cacheprovider` — 717 passed, 4 skipped, 126 subtests passed em 38,40 s.
+- Suíte de regressão executada neste head: `uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-suite-20261116-r6 -p no:cacheprovider` — 718 passed, 4 skipped, 126 subtests passed em 35,67 s.
 - O handoff codex → deepseek foi exercitado com checkpoint persistente,
   hash de origem e proveniência preservada.
 - O preflight de roteamento no checkout atual passou para Web completo e o
@@ -234,3 +234,24 @@ Também foram executados três pares pós-correção na fixture Web grande: 23.3
 3,3924 s → 10,2211 s. A regressão é mantida visível e impede promover esse
 caminho como melhoria de desempenho. Evidência:
 `web-large-evidence-task-postfix-replication-analysis-20261116.json`.
+
+## Gate estrito de replicação Blender
+
+O Blender 5.3.0 real foi consultado sem edição da cena. O baseline usou o MCP
+original; o PIE usou a allowlist `pie_blender_get_object`. O DeepSeek recebeu a
+observação de cada braço e o oráculo preservou nomes, coordenadas e materiais.
+
+- Gate local: `CERTIFIED` para a suíte.
+- Pares: 3/3 válidos.
+- Tokens: 16.126 → 1.044, economia ponderada de 93,526%.
+- Entrada não cacheada: 9.622 → 166, redução de 98,275%.
+- Oráculos: 3/3 em ambos os braços.
+- Chamadas MCP: 3 por braço.
+- Retries: 0; duplicações: 0.
+
+As duas primeiras tentativas inválidas foram mantidas: catálogo PIE sem
+allowlist causou limite de raciocínio; depois o oráculo foi corrigido para
+tratar `mesh`/`MESH` como o mesmo enum MCP, sem normalizar nomes ou valores.
+A latência teve alta variabilidade. O hash da fixture representa o oráculo e a
+identidade verificada da cena, não um snapshot `.blend` completo independente.
+Evidência: `blender-live-replication-gate-20261116.json`.
