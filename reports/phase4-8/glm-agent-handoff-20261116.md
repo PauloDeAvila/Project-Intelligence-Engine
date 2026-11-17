@@ -13,7 +13,8 @@ fechado e reaberto, e o checkpoint foi restaurado pelo agente `glm`.
 - Latência do provider: 7,1817 s.
 
 O relatório não armazena prompts nem respostas completas. Esta é uma prova
-controlada de persistência e restauração para o GLM; não certifica a qualidade
-geral de agentes nem o provider oficial do Codex.
+controlada de persistência e restauração para o GLM. O checkpoint foi
+atribuído ao agente Codex pelo runtime, mas não houve uma chamada do provider
+oficial Codex; portanto, isto não é certificação Codex→GLM.
 
 Evidência: `glm-agent-handoff-20261116.json`.

@@ -1,9 +1,10 @@
 {
   "schema": "pie-glm-handoff-probe-v1",
-  "status": "PASS_EXTERNAL_CONTROLLED",
+  "status": "PASS_EXTERNAL_CONTROLLED_CHECKPOINT",
   "model": "gambiarraapi/glm-5.3-flash",
   "task_id": "ccac5c3f-309a-48a0-864f-40beea66cbc6",
   "source_agent": "codex",
+  "source_agent_execution": "checkpoint authored by local runtime; official Codex model call not executed",
   "target_agent": "glm",
   "restart_between_checkpoint_and_restore": true,
   "full_task_history_sent_to_target": false,

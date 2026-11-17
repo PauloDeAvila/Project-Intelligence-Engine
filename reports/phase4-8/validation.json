@@ -86,7 +86,7 @@
   },
   "glm_agent_handoff": {
     "path": "reports/phase4-8/glm-agent-handoff-20261116.json",
-    "status": "PASS_EXTERNAL_CONTROLLED",
+    "status": "PASS_EXTERNAL_CONTROLLED_CHECKPOINT",
     "model": "gambiarraapi/glm-5.3-flash",
     "restart_between_checkpoint_and_restore": true,
     "full_task_history_sent_to_target": false,
@@ -304,7 +304,7 @@
       "status": "PASS_EXTERNAL_CONTROLLED",
       "evidence": [
         "explicit codex-to-deepseek checkpoint handoff",
-        "explicit codex-to-glm checkpoint handoff after runtime restart",
+        "checkpoint-compatible GLM restore after runtime restart; official Codex call not executed",
         "durable context_version exposed from the checkpoint sequence",
         "source hash and provenance preserved",
         "receiver restores without task history",
