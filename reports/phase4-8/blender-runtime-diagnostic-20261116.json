@@ -1,0 +1,24 @@
+{
+  "schema": "pie-blender-runtime-diagnostic-v1",
+  "timestamp_utc": "2026-11-16",
+  "workspace": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean",
+  "process": {
+    "blender_process_found": false,
+    "listener_9877_found": false
+  },
+  "installation": {
+    "blender_exe": "C:\\Program Files\\Blender Foundation\\Blender 5.3\\blender.exe",
+    "blender_exe_present": true,
+    "launcher_exe": "C:\\Program Files\\Blender Foundation\\Blender 5.3\\blender-launcher.exe",
+    "launcher_exe_present": true
+  },
+  "previous_gateway_error": "Addon handshake failed: Connection to Blender lost: [WinError 10053]",
+  "status": "BLOCKED",
+  "blocker": "Blender is installed but not running with the MCP addon listener available on port 9877.",
+  "safety": {
+    "scene_modified": false,
+    "external_pages_modified": false,
+    "installation_changed": false
+  },
+  "next_action": "Start Blender 5.3 with the PIE/mcp-for-blender addon enabled, verify port 9877, then rerun the gateway handshake and read-only scene probe."
+}
