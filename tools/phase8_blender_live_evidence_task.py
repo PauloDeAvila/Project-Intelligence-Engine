@@ -21,18 +21,27 @@ ORACLE = {
     "location": [0.0, 0.0, 0.0],
     "material_names": ["PIE_Large_Material_00"],
 }
+TASKS = {
+    "object00": ORACLE,
+    "object63": {
+        "object_name": "PIE_Large_Cube_63",
+        "object_type": "MESH",
+        "location": [7.0, 7.0, 0.0],
+        "material_names": ["PIE_Large_Material_15"],
+    },
+}
 
 
-def _provider_call(base_url: str, key: str, model: str, context: dict, max_output_tokens: int) -> dict:
+def _provider_call(base_url: str, key: str, model: str, context: dict, oracle: dict, max_output_tokens: int) -> dict:
     prompt = (
         "Inspect the Blender observation and return only JSON with exactly these keys: "
-        + json.dumps(ORACLE, separators=(",", ":"))
+        + json.dumps(oracle, separators=(",", ":"))
         + ". Preserve exact identifiers and numeric values from the observation."
         " Do not invent or reformat names.\nOBSERVATION:\n"
         + json.dumps(context, ensure_ascii=False, separators=(",", ":"))
     )
     task_prompt_sha256 = hashlib.sha256(
-        json.dumps({"task": "exact_blender_object_lookup", "fields": list(ORACLE)}, sort_keys=True).encode()
+        json.dumps({"task": "exact_blender_object_lookup", "fields": list(oracle)}, sort_keys=True).encode()
     ).hexdigest()
     request = urllib.request.Request(
         base_url.rstrip("/") + "/v1/chat/completions",
@@ -77,7 +86,7 @@ def _normalize_answer(answer: object) -> dict:
     return normalized
 
 
-def _run_arm(command: list[str], root: Path, arm: str, key: str, model: str, base_url: str, max_output_tokens: int) -> dict:
+def _run_arm(command: list[str], root: Path, arm: str, key: str, model: str, base_url: str, oracle: dict, max_output_tokens: int) -> dict:
     session = McpSession(command, root)
     route = "upstream_mcp" if arm == "baseline" else "pie_gateway"
     try:
@@ -87,14 +96,14 @@ def _run_arm(command: list[str], root: Path, arm: str, key: str, model: str, bas
         session.process.stdin.flush()
         tools = session.call("tools/list").get("result", {}).get("tools", [])
         if arm == "baseline":
-            observation = session.call("tools/call", {"name": "get_scene_info", "arguments": {"fields": ["location", "materials"], "query": ORACLE["object_name"], "limit": 1}})
+            observation = session.call("tools/call", {"name": "get_scene_info", "arguments": {"fields": ["location", "materials"], "query": oracle["object_name"], "limit": 1}})
         else:
-            observation = session.call("tools/call", {"name": "pie_blender_get_object", "arguments": {"name": ORACLE["object_name"]}})
+            observation = session.call("tools/call", {"name": "pie_blender_get_object", "arguments": {"name": oracle["object_name"]}})
         context = {"tools": tools, "observation": observation.get("result", {})}
-        inference = _provider_call(base_url, key, model, context, max_output_tokens)
+        inference = _provider_call(base_url, key, model, context, oracle, max_output_tokens)
         answer = inference["answer"]
         normalized_answer = _normalize_answer(answer)
-        oracle_pass = normalized_answer == ORACLE
+        oracle_pass = normalized_answer == oracle
         return {
             "arm": arm,
             "route": route,
@@ -123,28 +132,31 @@ def main() -> int:
     parser.add_argument("--workspace", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--max-output-tokens", type=int, default=256)
     parser.add_argument("--replication-index", type=int, default=1)
+    parser.add_argument("--task", choices=tuple(TASKS), default="object00")
     args = parser.parse_args()
     root = args.workspace.resolve()
+    oracle = TASKS[args.task]
     key = args.key_file.read_text(encoding="utf-8").strip()
     upstream = ["uvx", "mcp-for-blender"]
     optimized = [sys.executable, "-m", "pie.gateway.domain", "serve", "--domain", "blender", "--workspace", str(root), "--max-chars", "2400", "--expose-tool", "pie_blender_get_object", "--", *upstream]
-    baseline = _run_arm(upstream, root, "baseline", key, args.model, args.base_url, args.max_output_tokens)
-    optimized_arm = _run_arm(optimized, root, "optimized", key, args.model, args.base_url, args.max_output_tokens)
-    snapshot_hash = hashlib.sha256(json.dumps(ORACLE, sort_keys=True).encode()).hexdigest()
+    baseline = _run_arm(upstream, root, "baseline", key, args.model, args.base_url, oracle, args.max_output_tokens)
+    optimized_arm = _run_arm(optimized, root, "optimized", key, args.model, args.base_url, oracle, args.max_output_tokens)
+    snapshot_hash = hashlib.sha256(json.dumps(oracle, sort_keys=True).encode()).hexdigest()
     report = {
         "schema": "pie-blender-live-evidence-task-v1",
         "status": "PILOT_VALID_NOT_CERTIFIED" if baseline["task_oracle_pass"] and optimized_arm["task_oracle_pass"] else "PILOT_INVALID_QUALITY",
-        "pair_id": f"blender-live-evidence-{args.replication_index}",
+        "pair_id": f"blender-live-evidence-{args.task}-{args.replication_index}",
         "replication_index": args.replication_index,
-        "task_id": "blender-exact-object-v1",
+        "task_id": f"blender-exact-{args.task}-v1",
+        "task": args.task,
         "application": "blender",
         "model": args.model,
         "prompt_sha256": baseline["prompt_sha256"],
-        "configuration_sha256": hashlib.sha256(json.dumps({"model": args.model, "max_output_tokens": args.max_output_tokens, "task": "exact_blender_object_lookup"}, sort_keys=True).encode()).hexdigest(),
+        "configuration_sha256": hashlib.sha256(json.dumps({"model": args.model, "max_output_tokens": args.max_output_tokens, "task": args.task}, sort_keys=True).encode()).hexdigest(),
         "fixture_sha256": snapshot_hash,
         "fixture_source": "independent_task_oracle; live_scene_identity verified by Blender probe",
         "retry_count": 0,
-        "oracle": ORACLE,
+        "oracle": oracle,
         "baseline": baseline,
         "optimized": optimized_arm,
     }

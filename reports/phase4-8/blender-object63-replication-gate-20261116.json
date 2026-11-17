@@ -1,0 +1,52 @@
+{
+  "schema": "pie-certification-replication-v1",
+  "status": "CERTIFIED",
+  "pair_count": 1,
+  "reasons": [],
+  "per_pair": [
+    {
+      "schema": "pie-certification-regression-v1",
+      "status": "CERTIFIED_PAIR",
+      "pair_id": "blender-live-evidence-object63-1",
+      "reasons": [],
+      "savings": {
+        "baseline_input_tokens": 5218,
+        "baseline_cached_input_tokens": 449,
+        "baseline_uncached_input_tokens": 4769,
+        "baseline_output_tokens": 48,
+        "baseline_total_tokens": 5266,
+        "optimized_input_tokens": 231,
+        "optimized_cached_input_tokens": 127,
+        "optimized_uncached_input_tokens": 104,
+        "optimized_output_tokens": 48,
+        "optimized_total_tokens": 279,
+        "savings_input_percent": 97.819249,
+        "savings_total_percent": 94.701861,
+        "cached_input_delta": -322,
+        "output_token_delta": 0,
+        "latency_delta_ms": -1577.0,
+        "mcp_call_delta": 0
+      }
+    }
+  ],
+  "aggregate_savings": {
+    "baseline_total_tokens": 5266,
+    "optimized_total_tokens": 279,
+    "baseline_uncached_input_tokens": 4769,
+    "optimized_uncached_input_tokens": 104,
+    "savings_total_percent": 94.701861,
+    "savings_input_percent": 97.819249
+  },
+  "reports": [
+    "reports\\phase4-8\\blender-live-evidence-object63-20261116-r1.json"
+  ],
+  "model": [
+    "gambiarraapi/deepseek-v3.2"
+  ],
+  "application": [
+    "blender"
+  ],
+  "fixture_sha256": [
+    "832e5f503f95b8e19094cba080db887c2f55f0bb39df3da1add16da409816da8"
+  ]
+}
