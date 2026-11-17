@@ -3,16 +3,16 @@
   "status": "PARTIAL_LOCAL_VALIDATION",
   "certification": "NOT_CERTIFIED",
   "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
-  "head_at_validation": "2195587",
+  "head_at_validation": "db60fb2",
   "implementation_commit": "11c6d80",
   "index": {
     "source": "uv run python -m pie.interfaces.cli status --root .",
     "project": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean",
     "index_state": "CURRENT",
     "workspace_match": true,
-    "files": 278,
+    "files": 280,
     "symbols": 2280,
-    "imports": 2642
+    "imports": 2646
   },
   "current_blender_probe": {
     "checked_at": "2026-11-17",
