@@ -349,6 +349,7 @@
         "full regression suite passed",
         "MCP runtime tests passed",
         "current-root routing preflight passed Web end-to-end",
+        "official Codex route probe passed Web fixture through pie-web-optimized",
         "live Blender 5.3 gateway initialize, tools/list, get_addon_status and get_scene_info passed"
       ],
       "live_blender_probe": "reports/phase4-8/live-blender-gateway-probe-20261116.json"
