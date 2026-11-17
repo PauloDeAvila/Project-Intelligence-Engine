@@ -84,3 +84,10 @@ tarefas não foi uma propriedade exigida pelo runner, portanto o resultado é um
 replicação com seed diferente, não uma amostra estatística formal.
 
 Evidência: `deepseek-real-pilot-independent-20261117.json`.
+
+As duas réplicas DeepSeek apresentaram 93,226% e 93,282% de economia total,
+com média de 93,254% e variação de 0,056 ponto percentual, sempre com correção
+6/6. Isso é consistência descritiva promissora, mas não certificação estatística:
+ambas usam o mesmo provider/corpus e a disjunção das tarefas não foi garantida.
+
+Evidência: `deepseek-replication-analysis-20261117.json`.

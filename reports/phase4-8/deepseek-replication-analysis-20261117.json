@@ -1,0 +1,40 @@
+{
+  "schema": "pie-phase8-replication-analysis-v1",
+  "provider": "infinity",
+  "model": "gambiarraapi/deepseek-v3.2",
+  "replications": [
+    {
+      "seed": 20261116,
+      "tasks": 6,
+      "baseline_total_tokens": 52522,
+      "pie_total_tokens": 3558,
+      "total_savings_percent": 93.226,
+      "baseline_correct": 6,
+      "pie_correct": 6
+    },
+    {
+      "seed": 20261117,
+      "tasks": 6,
+      "baseline_total_tokens": 52735,
+      "pie_total_tokens": 3543,
+      "total_savings_percent": 93.282,
+      "baseline_correct": 6,
+      "pie_correct": 6
+    }
+  ],
+  "summary": {
+    "replication_count": 2,
+    "total_paired_tasks": 12,
+    "mean_savings_percent": 93.254,
+    "min_savings_percent": 93.226,
+    "max_savings_percent": 93.282,
+    "range_percentage_points": 0.056,
+    "quality_equivalent_in_all_runs": true
+  },
+  "status": "REPLICATED_DESCRIPTIVE_NOT_CERTIFIED",
+  "limitations": [
+    "The runner did not assert task-set disjointness across seeds.",
+    "Both replications use one local provider and one repository corpus.",
+    "This does not certify Codex or Blender/Web workloads."
+  ]
+}

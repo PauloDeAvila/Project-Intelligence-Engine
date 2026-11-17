@@ -66,6 +66,14 @@
     "pie_correct": 6,
     "status": "PILOT_VALID_NOT_CERTIFIED"
   },
+  "deepseek_replication_analysis": {
+    "path": "reports/phase4-8/deepseek-replication-analysis-20261117.json",
+    "replications": 2,
+    "paired_tasks": 12,
+    "mean_total_savings_percent": 93.254,
+    "range_percentage_points": 0.056,
+    "status": "REPLICATED_DESCRIPTIVE_NOT_CERTIFIED"
+  },
   "phases": {
     "4_consolidation": {
       "status": "PASS_LOCAL",
