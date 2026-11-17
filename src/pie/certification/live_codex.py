@@ -265,15 +265,14 @@ def validate_scenario(s:dict)->dict:
     tools=s.get("expected_mcp_tools")
     if tools is not None:
         if (not isinstance(tools,list) or not tools or
-            any(not isinstance(tool,str) or not tool.strip() for tool in tools) or
-            len(set(tools)) != len(tools)):
+            any(not isinstance(tool,str) or not tool.strip() for tool in tools)):
             raise ValueError("Invalid expected MCP tool allowlist")
     by_condition=s.get("expected_mcp_tools_by_condition")
     if by_condition is not None:
         if (not isinstance(by_condition,dict) or set(by_condition)!={"baseline","optimized"} or
                 any(not isinstance(value,list) or not value or
-                    any(not isinstance(tool,str) or not tool.strip() for tool in value) or
-                    len(set(value)) != len(value) for value in by_condition.values())):
+                    any(not isinstance(tool,str) or not tool.strip() for tool in value)
+                    for value in by_condition.values())):
             raise ValueError("Invalid condition-specific MCP tool allowlist")
     if "oracle" in s and (not isinstance(s["oracle"],dict) or not isinstance(s["oracle"].get("kind"),str)):
         raise ValueError("Invalid oracle specification")

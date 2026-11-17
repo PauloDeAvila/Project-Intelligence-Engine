@@ -3,7 +3,11 @@ import json
 import pytest
 
 import pie.certification.live_codex as live_codex
-from pie.certification.live_codex import CodexCaptureError, parse_codex_jsonl
+from pie.certification.live_codex import (
+    CodexCaptureError,
+    parse_codex_jsonl,
+    validate_scenario,
+)
 
 
 def _trace(usage_extra):
@@ -124,6 +128,15 @@ def test_missing_required_tokens_fails(missing):
 SCENARIO = {"schema": "pie-scenario-v1", "scenario_id": "test-scenario-0001",
             "prompt": "do the thing", "expected_exact": "the result",
             "model": "gpt-test", "description": "unit fixture"}
+
+
+def test_scenario_accepts_repeated_tool_calls_in_a_sequence():
+    scenario = dict(SCENARIO)
+    scenario["expected_mcp_tools_by_condition"] = {
+        "baseline": ["browser_navigate", "browser_snapshot", "browser_click", "browser_snapshot"],
+        "optimized": ["browser_navigate", "browser_snapshot", "browser_click", "browser_snapshot"],
+    }
+    assert validate_scenario(scenario) is scenario
 
 
 def _timeout_stdout():
