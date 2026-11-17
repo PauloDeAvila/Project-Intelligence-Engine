@@ -13,6 +13,23 @@ from pathlib import Path
 
 from phase8_web_large_deepseek_pilot import ORACLE
 
+TASK_PROFILES = {
+    "large": {
+        "oracle": ORACLE,
+        "action": "reveal",
+        "button_label": "Reveal large phase marker",
+    },
+    "summary": {
+        "oracle": {
+            "title": "PIE Summary Web Fixture",
+            "status": "The deterministic summary fixture is ready.",
+            "marker": "PIE_WEB_SUMMARY_FIXTURE_V1",
+        },
+        "action": "show_summary",
+        "button_label": "Show summary",
+    },
+}
+
 
 class McpSession:
     def __init__(self, command: list[str], root: Path) -> None:
@@ -78,16 +95,20 @@ def _visible_snapshot(result: dict) -> str:
     return text
 
 
-def _extract_source_evidence(result: dict) -> dict[str, str]:
+def _extract_source_evidence(result: dict, oracle: dict[str, str]) -> dict[str, str]:
     source = _result_text(result)
-    return {field: value for field, value in ORACLE.items() if value in source}
+    return {field: value for field, value in oracle.items() if value in source}
 
 
-def _provider_call(base_url: str, key: str, model: str, context: dict, max_output_tokens: int) -> dict:
+def _provider_call(base_url: str, key: str, model: str, context: dict,
+                   task: dict, max_output_tokens: int) -> dict:
+    fields = list(task["oracle"])
     prompt = (
         "Perform the local web task. Return only JSON with exactly these keys: "
-        '{"action":"reveal","target_ref":"...","fields":["title","status","marker"]}. '
-        "Choose target_ref from the visible button reference in the browser snapshot. "
+        + json.dumps({"action": task["action"], "target_ref": "...", "fields": fields})
+        + ". Choose target_ref for the button labeled "
+        + json.dumps(task["button_label"])
+        + " from the visible browser snapshot. "
         "Do not copy page values and do not invent references."
         "\n\nBROWSER_CONTEXT:\n"
         + json.dumps(context, ensure_ascii=False, separators=(",", ":"))
@@ -131,7 +152,8 @@ def _provider_call(base_url: str, key: str, model: str, context: dict, max_outpu
     }
 
 
-def _run_arm(command: list[str], root: Path, url: str, base_url: str, key: str, model: str, max_output_tokens: int) -> dict:
+def _run_arm(command: list[str], root: Path, url: str, base_url: str, key: str,
+             model: str, task: dict, max_output_tokens: int) -> dict:
     session = McpSession(command, root)
     try:
         session.call(
@@ -145,13 +167,17 @@ def _run_arm(command: list[str], root: Path, url: str, base_url: str, key: str, 
         navigate = session.call("tools/call", {"name": "browser_navigate", "arguments": {"url": url}})
         before = session.call("tools/call", {"name": "browser_snapshot", "arguments": {}})
         visible = _visible_snapshot(before.get("result", {}))
-        match = re.search(r"button .*\[ref=([a-z][0-9]+)\]", visible)
+        match = re.search(
+            rf"button .*{re.escape(task['button_label'])}.*\[ref=([a-z][0-9]+)\]",
+            visible,
+            re.IGNORECASE,
+        )
         if not match:
             raise RuntimeError("button reference absent from visible snapshot")
         target_ref = match.group(1)
         context = {"tools": tools, "navigate": navigate.get("result", {}), "snapshot_before": before.get("result", {})}
-        inference = _provider_call(base_url, key, model, context, max_output_tokens)
-        expected_plan = {"action": "reveal", "target_ref": target_ref, "fields": ["title", "status", "marker"]}
+        inference = _provider_call(base_url, key, model, context, task, max_output_tokens)
+        expected_plan = {"action": task["action"], "target_ref": target_ref, "fields": list(task["oracle"])}
         plan_oracle = inference["plan"] == expected_plan
         if not plan_oracle:
             return {
@@ -172,7 +198,7 @@ def _run_arm(command: list[str], root: Path, url: str, base_url: str, key: str, 
             "snapshot_before": before.get("result", {}),
             "snapshot_after": after.get("result", {}),
         }
-        reconstructed = _extract_source_evidence(source_results)
+        reconstructed = _extract_source_evidence(source_results, task["oracle"])
         navigate_ok = not navigate.get("result", {}).get("isError", False)
         click_ok = not click.get("result", {}).get("isError", False)
         return {
@@ -183,8 +209,8 @@ def _run_arm(command: list[str], root: Path, url: str, base_url: str, key: str, 
             "plan": inference["plan"],
             "plan_oracle_pass": True,
             "reconstructed_evidence": reconstructed,
-            "source_oracle_pass": reconstructed == ORACLE,
-            "task_oracle_pass": navigate_ok and click_ok and reconstructed == ORACLE,
+            "source_oracle_pass": reconstructed == task["oracle"],
+            "task_oracle_pass": navigate_ok and click_ok and reconstructed == task["oracle"],
             "usage": inference["usage"],
             "finish_reason": inference["finish_reason"],
             "latency_s": inference["latency_s"],
@@ -203,26 +229,29 @@ def main() -> int:
     parser.add_argument("--max-chars", type=int, default=2400)
     parser.add_argument("--max-output-tokens", type=int, default=512)
     parser.add_argument("--pair-id", default=None)
+    parser.add_argument("--profile", choices=tuple(TASK_PROFILES), default="large")
     args = parser.parse_args()
     if not 1 <= args.max_output_tokens <= 4096:
         raise SystemExit("--max-output-tokens must be between 1 and 4096")
+    task = TASK_PROFILES[args.profile]
     pair_id = args.pair_id or f"web-large-evidence-task-{uuid.uuid4().hex}"
     root = Path(__file__).resolve().parents[1]
     key = args.key_file.read_text(encoding="utf-8").strip()
     upstream = [r"C:\Program Files\nodejs\npx.cmd", "--yes", "@playwright/mcp@0.0.85", "--headless", "--browser", "chrome"]
     optimized = [sys.executable, "-m", "pie.gateway.domain", "serve", "--domain", "web", "--workspace", str(root), "--max-chars", str(args.max_chars), "--", *upstream]
-    baseline = _run_arm(upstream, root, args.url, args.base_url, key, args.model, args.max_output_tokens)
-    optimized_arm = _run_arm(optimized, root, args.url, args.base_url, key, args.model, args.max_output_tokens)
+    baseline = _run_arm(upstream, root, args.url, args.base_url, key, args.model, task, args.max_output_tokens)
+    optimized_arm = _run_arm(optimized, root, args.url, args.base_url, key, args.model, task, args.max_output_tokens)
     baseline["run_id"] = f"{pair_id}-baseline"
     optimized_arm["run_id"] = f"{pair_id}-optimized"
     report = {
         "schema": "pie-web-evidence-task-v1",
         "pair_id": pair_id,
+        "profile": args.profile,
         "status": "PILOT_VALID_NOT_CERTIFIED" if baseline["task_oracle_pass"] and optimized_arm["task_oracle_pass"] else "PILOT_INVALID_QUALITY",
         "scope": "end_to_end_controlled_task; model selects action, code executes MCP and preserves values",
         "model": args.model,
         "url": args.url,
-        "oracle": ORACLE,
+        "oracle": task["oracle"],
         "max_output_tokens": args.max_output_tokens,
         "baseline": baseline,
         "optimized": optimized_arm,

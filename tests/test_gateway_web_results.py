@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import pytest
 
-from pie.gateway.web_results import web_context_query, web_result_eligible
+from pie.gateway.web_results import (
+    web_context_query,
+    web_result_eligible,
+    web_snapshot_preview,
+)
 
 
 def _snapshot(*lines: str) -> str:
@@ -103,3 +107,20 @@ def test_non_snapshot_text_above_minimum_still_rejected():
         "### Snapshot\n" + "some promise result without refs or roles " * 4,
         "browser_snapshot",
     )
+
+
+def test_preview_budget_keeps_multiple_interactive_refs():
+    snapshot = (
+        _snapshot(
+            "- heading \"Summary\" [level=1]",
+            "- status \"Ready\"",
+            "- button \"Open details\" [ref=e5]",
+            "- button \"Show summary\" [ref=e6]",
+        )
+        + "\n"
+        + "- listitem \"deterministic row\"\n" * 80
+    )
+    result = web_snapshot_preview(snapshot, 1200)
+    assert result is not None
+    assert 'button "Open details" [ref=e5]' in result["preview"]
+    assert 'button "Show summary" [ref=e6]' in result["preview"]

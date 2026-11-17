@@ -295,7 +295,9 @@ class MCPStdioGateway:
         if eligible and self.profile=="web":
             eligible=web_result_eligible(source,tool)
             if eligible and len(source)>self.max_chars:
-                web_view=web_snapshot_preview(source,max(250,self.max_chars-480))
+                # Leave room for the envelope metadata; interactive refs must
+                # survive compaction or the safe result is the original source.
+                web_view=web_snapshot_preview(source,max(250,self.max_chars-1200))
                 eligible=web_view is not None
         if not eligible or len(source)<=self.max_chars:
             # Telemetry only. Never mutate unsupported/structured/error results.
@@ -332,6 +334,10 @@ class MCPStdioGateway:
                 envelope["web"]={k:v for k,v in web_view.items() if k!="preview"}
             encoded=_json(envelope)
             if len(encoded)>self.max_chars:
+                if self.profile == "web":
+                    # Metadata-only Web snapshots cannot drive a follow-up
+                    # action because they omit the original element refs.
+                    return response
                 # No invalid protocol; use metadata-only reference with hash-backed
                 # recovery, not an over-budget preview.
                 envelope["preview"]=None
