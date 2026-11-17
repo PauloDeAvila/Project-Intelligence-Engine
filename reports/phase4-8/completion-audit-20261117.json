@@ -89,6 +89,7 @@
       "proven": [
         "local GLM, DeepSeek, Blender and Web pilots report provider usage",
         "strict local Blender gates passed 3/3 in two tasks",
+        "live default-scene Blender replication passed 3/3 with DeepSeek 3.2 and 95.27014 percent weighted savings",
         "strict local Web Summary gate passed 3/3",
         "oracles passed for the cited local gates"
       ],
@@ -100,6 +101,7 @@
       "evidence": [
         "reports/phase4-8/blender-live-replication-gate-20261116.json",
         "reports/phase4-8/blender-object63-replication-gate-20261116.json",
+        "reports/phase4-8/blender-live-default-cube-deepseek-replication-gate-20261117.json",
         "reports/phase4-8/web-summary-replication-gate-20261116.json",
         "reports/phase4-8/validation.json"
       ]
@@ -107,6 +109,6 @@
   },
   "certification": {
     "status": "NOT_CERTIFIED",
-    "reason": "Official Codex provider A/B certification and live Blender dispatch remain unproven."
+    "reason": "Official Codex provider A/B certification, strict Codex server isolation, and broader cross-domain coverage remain pending."
   }
 }

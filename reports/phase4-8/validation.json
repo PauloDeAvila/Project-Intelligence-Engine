@@ -198,6 +198,25 @@
     "optimized_latency_seconds": 2.9077,
     "mcp_calls_per_arm": 3
   },
+  "blender_live_default_cube_deepseek_replication": {
+    "path": "reports/phase4-8/blender-live-default-cube-deepseek-replication-gate-20261117.json",
+    "markdown": "reports/phase4-8/blender-live-default-cube-deepseek-replication-20261117.md",
+    "status": "CERTIFIED_LOCAL_PROVIDER_REPLICATION",
+    "model": "gambiarraapi/deepseek-v3.2",
+    "pairs": 3,
+    "baseline_total_tokens": 15603,
+    "optimized_total_tokens": 738,
+    "total_savings_percent": 95.27014,
+    "baseline_uncached_input_tokens": 5191,
+    "optimized_uncached_input_tokens": 153,
+    "uncached_input_savings_percent": 97.052591,
+    "baseline_oracle_pass": 3,
+    "optimized_oracle_pass": 3,
+    "baseline_mean_latency_seconds": 4.2566,
+    "optimized_mean_latency_seconds": 2.391733,
+    "mcp_calls_per_arm": 3,
+    "cache_state_variation_recorded": true
+  },
   "codex_pie_web_route_probe": {
     "path": "reports/phase4-8/codex-pie-web-route-probe-20261117.json",
     "status": "ROUTE_AND_TASK_PASS_LOCAL_FIXTURE",

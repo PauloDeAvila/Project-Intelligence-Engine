@@ -1,0 +1,155 @@
+{
+  "schema": "pie-blender-live-evidence-task-v1",
+  "status": "PILOT_VALID_NOT_CERTIFIED",
+  "pair_id": "blender-live-evidence-default_cube-2",
+  "replication_index": 2,
+  "task_id": "blender-exact-default_cube-v1",
+  "task": "default_cube",
+  "application": "blender",
+  "model": "gambiarraapi/deepseek-v3.2",
+  "prompt_sha256": "9771f2fea33976f9ce1b722f93dd69220d8e27cf04a11b1d14f9d95184575e1c",
+  "configuration_sha256": "27c943a83d392e92b707f1fa8d4d77eba2f6519cb9d82b9bb944384996dbb340",
+  "fixture_sha256": "4c7db2e063de43e5d5e527c2fa7a46358a9f9b744614c3f7615bb1a7bca2e195",
+  "fixture_source": "independent_task_oracle; live_scene_identity verified by Blender probe",
+  "retry_count": 0,
+  "oracle": {
+    "object_name": "Cube",
+    "object_type": "MESH",
+    "location": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "material_names": [
+      "Material"
+    ]
+  },
+  "baseline": {
+    "arm": "baseline",
+    "route": "upstream_mcp",
+    "route_verified": true,
+    "tool_count": 10,
+    "mcp_calls": 3,
+    "mcp_methods": [
+      "initialize",
+      "tools/list",
+      "tools/call"
+    ],
+    "automatic_retry": false,
+    "context_chars": 19476,
+    "answer": {
+      "object_name": "Cube",
+      "object_type": "MESH",
+      "location": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "material_names": [
+        "Material"
+      ]
+    },
+    "normalized_answer": {
+      "object_name": "Cube",
+      "object_type": "MESH",
+      "location": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "material_names": [
+        "Material"
+      ]
+    },
+    "oracle_pass": true,
+    "task_oracle_pass": true,
+    "usage": {
+      "completion_tokens": 34,
+      "completion_tokens_details": {
+        "text_tokens": 34
+      },
+      "prompt_tokens": 5167,
+      "prompt_tokens_details": {
+        "cached_tokens": 5155,
+        "image_tokens": 0,
+        "text_tokens": 5167
+      },
+      "total_tokens": 5201
+    },
+    "provider_usage_status": "available",
+    "cache_observed": true,
+    "actual_model": "gambiarraapi/deepseek-v3.2",
+    "prompt_sha256": "9771f2fea33976f9ce1b722f93dd69220d8e27cf04a11b1d14f9d95184575e1c",
+    "finish_reason": "stop",
+    "latency_s": 5.8951,
+    "input_tokens": 5167,
+    "output_tokens": 34,
+    "total_tokens": 5201
+  },
+  "optimized": {
+    "arm": "optimized",
+    "route": "pie_gateway",
+    "route_verified": true,
+    "tool_count": 1,
+    "mcp_calls": 3,
+    "mcp_methods": [
+      "initialize",
+      "tools/list",
+      "tools/call"
+    ],
+    "automatic_retry": false,
+    "context_chars": 526,
+    "answer": {
+      "object_name": "Cube",
+      "object_type": "MESH",
+      "location": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "material_names": [
+        "Material"
+      ]
+    },
+    "normalized_answer": {
+      "object_name": "Cube",
+      "object_type": "MESH",
+      "location": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "material_names": [
+        "Material"
+      ]
+    },
+    "oracle_pass": true,
+    "task_oracle_pass": true,
+    "usage": {
+      "completion_tokens": 34,
+      "completion_tokens_details": {
+        "text_tokens": 34
+      },
+      "prompt_tokens": 212,
+      "prompt_tokens_details": {
+        "cached_tokens": 181,
+        "image_tokens": 0,
+        "text_tokens": 212
+      },
+      "total_tokens": 246
+    },
+    "provider_usage_status": "available",
+    "cache_observed": true,
+    "actual_model": "gambiarraapi/deepseek-v3.2",
+    "prompt_sha256": "9771f2fea33976f9ce1b722f93dd69220d8e27cf04a11b1d14f9d95184575e1c",
+    "finish_reason": "stop",
+    "latency_s": 2.4878,
+    "input_tokens": 212,
+    "output_tokens": 34,
+    "total_tokens": 246
+  },
+  "savings": {
+    "input_percent": 95.897,
+    "total_percent": 95.27
+  }
+}

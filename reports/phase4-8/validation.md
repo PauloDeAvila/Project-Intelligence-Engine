@@ -50,6 +50,12 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
   A entrada caiu 95,897%; a latência foi 2,8839 s contra 2,9077 s. É uma
   réplica única local e permanece `PILOT_VALID_NOT_CERTIFIED`.
   Evidência: `blender-live-default-cube-deepseek-20261117.json`.
+- Três pares A/B reais da cena padrão com DeepSeek 3.2 passaram o oráculo em
+  ambos os braços (3/3): baseline agregado 15.603 tokens, PIE 738 tokens,
+  economia total ponderada de 95,27014%; entrada não cacheada de 5.191 para
+  153 tokens (97,052591%). O primeiro par foi cold-cache e os pares 2–3
+  reportaram cache nos dois braços; a variação está registrada no gate.
+  Evidência: `blender-live-default-cube-deepseek-replication-gate-20261117.json`.
 - O preflight de roteamento no checkout atual passou para Web completo e o
   gateway Blender isolado passou initialize, `tools/list`, `get_addon_status` e
   `get_scene_info`; a falha anterior do processo não foi usada como evidência
