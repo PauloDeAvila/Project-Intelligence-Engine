@@ -32,6 +32,16 @@
     "status": "AVAILABLE",
     "restart_action": "NOT_STARTED_ALREADY_RUNNING"
   },
+  "codex_pie_blender_isolated_route_probe": {
+    "path": "reports/phase4-8/codex-pie-blender-isolated-route-probe-20261117.json",
+    "status": "ROUTE_AND_TASK_PASS_STRICT_ISOLATION",
+    "server_observed": ["pie-blender-optimized"],
+    "forbidden_servers_observed": [],
+    "mcp_calls": 2,
+    "oracle_pass": true,
+    "provider_usage_available": true,
+    "total_tokens": 72991
+  },
   "blender_runtime_recovery": {
     "path": "reports/phase4-8/blender-runtime-recovery-20261117.json",
     "status": "PASS_LOCAL_AND_LIVE_REUSE",

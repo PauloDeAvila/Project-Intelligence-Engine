@@ -41,6 +41,10 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
   acionou automaticamente `cua_repl` para o resumo final; por isso a integração
   está comprovada, mas o isolamento estrito de servidores permanece parcial.
   Evidência: `codex-pie-blender-live-route-probe-20261117.json`.
+- Uma sonda com `CODEX_HOME` temporário expôs somente `pie-blender-optimized`;
+  as duas ferramentas passaram sem `cua_repl` ou outro servidor. Uso reportado:
+  72.491 tokens de entrada, 54.144 cacheados, 500 de saída e 72.991 totais.
+  Evidência: `codex-pie-blender-isolated-route-probe-20261117.json`.
 - A consulta seletiva `pie_blender_get_object("Cube")` também passou ao vivo e
   retornou nome, tipo, localização e material corretos; a leitura posterior da
   cena confirmou que nada foi alterado. Isso valida o contrato seletivo na cena
