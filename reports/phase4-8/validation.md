@@ -6,11 +6,11 @@ PARTIAL_LOCAL_VALIDATION; certificação externa NOT_CERTIFIED.
 
 ## Evidência executada
 
-- Índice local: CURRENT, workspace_match=true, 267 arquivos, 2.239 símbolos e 2.587 imports, verificado no head `e2e4da9`.
+- Índice local: CURRENT, workspace_match=true, 268 arquivos, 2.246 símbolos e 2.597 imports, verificado no head `3353f3f`.
 - Testes focados: 74 passed.
 - Suíte completa histórica: 710 passed, 4 skipped, 126 subtests passed.
-- Testes focados do gateway Web: 17 passed em 0,28 s.
-- Suíte de regressão executada neste head: `uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-suite-20261116-r4 -p no:cacheprovider` — 715 passed, 4 skipped, 126 subtests passed em 32,07 s.
+- Testes focados do gateway Web e do gate: 25 passed em 0,29 s.
+- Suíte de regressão executada neste head: `uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-suite-20261116-r5 -p no:cacheprovider` — 717 passed, 4 skipped, 126 subtests passed em 38,40 s.
 - O handoff codex → deepseek foi exercitado com checkpoint persistente,
   hash de origem e proveniência preservada.
 - O preflight de roteamento no checkout atual passou para Web completo e o
@@ -210,3 +210,27 @@ O ganho total é modesto e a saída aumentou no braço PIE. A diferença de cach
 também foi preservada (15.240 → 5.570 tokens), portanto o resultado não deve
 ser interpretado como efeito isolado da compactação. Evidência:
 `web-summary-evidence-task-replication-analysis-20261116.json`.
+
+## Gate estrito de replicação
+
+O avaliador `pie-certification-replication-v1` foi aplicado a três novos pares
+Web Summary com identidade de fixture, índice de replicação, modelo efetivo,
+cache observado, rota e trace MCP registrados.
+
+- Gate: `CERTIFIED` para a suíte local.
+- Tokens: 20.502 → 17.852, economia ponderada de 12,926%.
+- Entrada não cacheada: 4.707 → 2.027, redução de 56,936%.
+- Chamadas MCP: 6 por braço.
+- Oráculos: 3/3 em ambos os braços.
+- Retries: 0; duplicações: 0.
+
+O gate rejeita uso ausente do provider, cache não observado, modelo divergente,
+trace MCP incompleto, retry e identidade de replicação repetida. Isso certifica
+o protocolo local desta suíte, não o Codex nem o PIE inteiro. Evidência:
+`web-summary-replication-gate-20261116.json`.
+
+Também foram executados três pares pós-correção na fixture Web grande: 23.389
+→ 18.209 tokens, economia de 22,147% e oráculo 3/3, mas latência média de
+3,3924 s → 10,2211 s. A regressão é mantida visível e impede promover esse
+caminho como melhoria de desempenho. Evidência:
+`web-large-evidence-task-postfix-replication-analysis-20261116.json`.

@@ -3,16 +3,16 @@
   "status": "PARTIAL_LOCAL_VALIDATION",
   "certification": "NOT_CERTIFIED",
   "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
-  "head_at_validation": "e2e4da9",
-  "implementation_commit": "e2e4da9",
+  "head_at_validation": "3353f3f",
+  "implementation_commit": "3353f3f",
   "index": {
     "source": "uv run python -m pie.interfaces.cli status --root .",
     "project": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean",
     "index_state": "CURRENT",
     "workspace_match": true,
-    "files": 267,
-    "symbols": 2239,
-    "imports": 2587
+    "files": 268,
+    "symbols": 2246,
+    "imports": 2597
   },
   "tests": {
     "focused": {
@@ -31,11 +31,11 @@
   },
   "latest_regression_suite": {
     "command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-suite-20261116-r4 -p no:cacheprovider",
-    "passed": 715,
+    "passed": 717,
     "skipped": 4,
     "subtests": 126,
     "failed": 0,
-    "duration_seconds": 32.07
+    "duration_seconds": 38.40
   },
   "latest_web_gateway_focused": {
     "command": "uv run python -m pytest -q tests/test_gateway_web_results.py tests/test_gateway_web_context_exposure.py --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-web-gateway-focused-20261116-r2 -p no:cacheprovider",
@@ -190,6 +190,29 @@
     "mean_latency_baseline_s": 4.1648,
     "mean_latency_optimized_s": 2.4789
   },
+  "web_summary_replication_gate": {
+    "path": "reports/phase4-8/web-summary-replication-gate-20261116.json",
+    "status": "CERTIFIED_LOCAL_SUITE",
+    "pairs": 3,
+    "baseline_total_tokens": 20502,
+    "optimized_total_tokens": 17852,
+    "weighted_savings_percent": 12.926,
+    "uncached_input_savings_percent": 56.936,
+    "oracle_baseline": "3/3",
+    "oracle_optimized": "3/3",
+    "mcp_calls_per_arm": 6,
+    "retries": 0
+  },
+  "web_large_evidence_task_postfix_replication": {
+    "path": "reports/phase4-8/web-large-evidence-task-postfix-replication-analysis-20261116.json",
+    "status": "PILOT_VALID_NOT_CERTIFIED",
+    "pairs": 3,
+    "baseline_total_tokens": 23389,
+    "optimized_total_tokens": 18209,
+    "weighted_savings_percent": 22.147,
+    "oracle": "3/3 in both arms",
+    "mean_latency_delta_percent": -201.29
+  },
   "phases": {
     "4_consolidation": {
       "status": "PASS_EXTERNAL_CONTROLLED_READ_ONLY",
@@ -248,12 +271,14 @@
         "Web Evidence Task executed MCP after model action selection with 21.624 percent total savings",
         "Web Evidence Task replication stopped at R2 after invalid DSML output",
         "Web Evidence Task JSON-mode replication passed 3/3 with 20.401 percent weighted savings",
-        "Web Summary Evidence Task replication passed 3/3 with 9.837 percent weighted savings"
+        "Web Summary Evidence Task replication passed 3/3 with 9.837 percent weighted savings",
+        "strict local replication gate passed 3/3 Web Summary pairs with 12.926 percent weighted savings",
+        "post-fix large Web replication passed 3/3 but regressed latency"
       ],
       "missing": [
         "Codex provider certification",
         "broader multi-scenario Blender/Web coverage beyond the current fixtures",
-        "statistical certification beyond the two DeepSeek replications",
+        "statistical certification beyond the current local fixtures and provider",
         "Codex-provider usage certification"
       ]
     }
