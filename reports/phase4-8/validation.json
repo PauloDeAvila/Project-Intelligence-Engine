@@ -3,7 +3,7 @@
   "status": "PARTIAL_LOCAL_VALIDATION",
   "certification": "NOT_CERTIFIED",
   "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
-  "head_at_validation": "ce64ec8",
+  "head_at_validation": "051570e",
   "implementation_commit": "051570e",
   "index": {
     "source": "uv run python -m pie.interfaces.cli status --root .",
@@ -30,12 +30,19 @@
     }
   },
   "latest_regression_suite": {
-    "command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-suite-20261116-r4 -p no:cacheprovider",
+    "command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-suite-20261116-r8 -p no:cacheprovider",
     "passed": 718,
     "skipped": 4,
     "subtests": 126,
     "failed": 0,
-    "duration_seconds": 31.37
+    "duration_seconds": 30.46
+  },
+  "latest_runtime_verifier": {
+    "command": "uv run python tools/verify_context_runtime.py",
+    "status": "PASS_LOCAL",
+    "certification": "NOT_CERTIFIED",
+    "external_provider_usage": "unavailable",
+    "synthetic_provider_evidence": true
   },
   "latest_web_gateway_focused": {
     "command": "uv run python -m pytest -q tests/test_regression_certification.py tests/test_gateway_web_results.py tests/test_gateway_web_context_exposure.py --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-gate-focused-20261116 -p no:cacheprovider",
