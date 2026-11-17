@@ -176,7 +176,10 @@
     "status": "PASS_READ_ONLY",
     "mesh_objects": 64,
     "canonical_sha256": "7de1f6826295728782204299b599ebbbca0ed2df697caca7ec4d0eaa98e6df1c",
-    "scene_modified": false
+    "scene_modified": false,
+    "blend_filepath": "",
+    "blend_file_sha256": null,
+    "blend_file_hash_status": "UNAVAILABLE_UNSAVED_SCENE"
   },
   "blender_object63_gate": {
     "path": "reports/phase4-8/blender-object63-replication-gate-20261116.json",

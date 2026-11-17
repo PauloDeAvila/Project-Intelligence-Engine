@@ -99,7 +99,9 @@ O gateway atual foi iniciado contra o checkout correto e encaminhou chamadas ao
 addon real do Blender 5.3.0. O addon reportou versão 2.0 e protocolo 16/16;
 `tools/list` retornou 15 ferramentas e `get_scene_info` respondeu sem erro.
 Usou-se `--factory-startup`, com a cena padrão Cube/Light/Camera, sem alterar a
-cena do usuário.
+cena do usuário. A sondagem adicional encontrou `bpy.data.filepath` vazio; a
+cena está sem arquivo `.blend` salvo, portanto o hash completo do arquivo
+permanece corretamente `null`.
 
 Evidência: `live-blender-gateway-probe-20261116.json`.
 
