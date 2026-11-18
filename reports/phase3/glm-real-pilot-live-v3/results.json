@@ -1,0 +1,84 @@
+{
+  "results": [
+    {
+      "model": "gambiarraapi/glm-5.3-flash",
+      "task": "T00",
+      "mode": "pie",
+      "correct": true,
+      "normalized_answer": {
+        "path": "rich/__init__.py",
+        "symbol": "print"
+      },
+      "evidence_hit": true,
+      "ok": true,
+      "answer": {
+        "path": "rich/__init__.py",
+        "symbol": "print"
+      },
+      "seconds": 3.4411,
+      "usage": {
+        "completion_tokens": 18,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 17,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens": 385,
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0
+        },
+        "total_tokens": 403
+      },
+      "finish_reason": "stop",
+      "actual_model": "gambiarraapi/glm-5.3-flash",
+      "provider_usage_status": "available",
+      "prompt_tokens": 385,
+      "completion_tokens": 18,
+      "total_tokens": 403,
+      "cached_input_tokens": 0,
+      "uncached_input_tokens": 385
+    },
+    {
+      "model": "gambiarraapi/glm-5.3-flash",
+      "task": "T00",
+      "mode": "baseline",
+      "correct": true,
+      "normalized_answer": {
+        "path": "rich/__init__.py",
+        "symbol": "print"
+      },
+      "evidence_hit": true,
+      "ok": true,
+      "answer": {
+        "path": "rich/__init__.py",
+        "symbol": "print"
+      },
+      "seconds": 3.7889,
+      "usage": {
+        "completion_tokens": 18,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens": 3128,
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0
+        },
+        "total_tokens": 3146
+      },
+      "finish_reason": "stop",
+      "actual_model": "gambiarraapi/glm-5.3-flash",
+      "provider_usage_status": "available",
+      "prompt_tokens": 3128,
+      "completion_tokens": 18,
+      "total_tokens": 3146,
+      "cached_input_tokens": 0,
+      "uncached_input_tokens": 3128
+    }
+  ]
+}

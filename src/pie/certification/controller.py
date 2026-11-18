@@ -11,6 +11,7 @@ import hashlib
 import json
 import re
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -210,6 +211,13 @@ def _fixture_oracle(scenario: dict[str, Any], workspace: Path) -> dict[str, Any]
     return {"passed": passed, "kind": oracle["kind"], "independent_live_probe_required": True}
 
 
+def _capture_failure_reason(evidence: Any) -> str:
+    """Map capture evidence to a fixed internal failure reason code."""
+    if _capture_certification_status(evidence) == "TIMEOUT":
+        return "timeout"
+    return "capture_failed"
+
+
 def run_pilot(*, manifest: dict[str, Any], scenarios: Iterable[dict[str, Any]],
               workspace: Path, baseline_home: Path, optimized_home: Path,
               baseline_profile: str, optimized_profile: str,
@@ -223,6 +231,11 @@ def run_pilot(*, manifest: dict[str, Any], scenarios: Iterable[dict[str, Any]],
     scenario_map={item["scenario_id"]: item for item in scenarios}
     pilot_entries=[item for item in manifest["scenarios"] if item["repetition"] == 1]
     if len(pilot_entries) != 4:
+        _write_budget_ledger(_budget_ledger_path(output), state="failed",
+                             run_id="pilot", pair_id="pilot",
+                             consumed_sessions=0, authorized_sessions=authorized_sessions,
+                             error="Manifest pilot does not contain four sessions",
+                             certification_status="BYPASS")
         raise ControllerError("Manifest pilot does not contain four sessions")
     root=workspace.expanduser().resolve(strict=True)
     manifest_root=Path(manifest.get("workspace_root", "")).expanduser().resolve()
@@ -236,49 +249,133 @@ def run_pilot(*, manifest: dict[str, Any], scenarios: Iterable[dict[str, Any]],
     for entry in pilot_entries:
         scenario=scenario_map.get(entry["scenario_id"])
         if scenario is None:
+            _write_budget_ledger(_budget_ledger_path(output), state="failed",
+                                 run_id=entry.get("run_id", "pilot"),
+                                 pair_id=entry.get("pair_id", "pilot"),
+                                 consumed_sessions=len(records), authorized_sessions=authorized_sessions,
+                                 error="Manifest scenario is not available",
+                                 task_id=entry.get("scenario_id"),
+                                 certification_status="BYPASS")
             raise ControllerError("Manifest scenario is not available")
         if (entry.get("model") != scenario["model"] or
             entry.get("prompt_sha256") != _sha(scenario["prompt"]) or
             entry.get("expected_sha256") != _sha(scenario["expected_exact"].strip()) or
             entry.get("expected_mcp_server") != _expected_server(scenario, entry["condition"])):
+            _write_budget_ledger(_budget_ledger_path(output), state="failed",
+                                 run_id=entry["run_id"], pair_id=entry["pair_id"],
+                                 consumed_sessions=len(records), authorized_sessions=authorized_sessions,
+                                 error="Manifest identity does not match the loaded scenario",
+                                 task_id=entry["scenario_id"],
+                                 certification_status="BYPASS")
             raise ControllerError("Manifest identity does not match the loaded scenario")
         if entry.get("expected_mcp_tools") != _expected_mcp_tools(scenario, entry["condition"]):
+            _write_budget_ledger(_budget_ledger_path(output), state="failed",
+                                 run_id=entry["run_id"], pair_id=entry["pair_id"],
+                                 consumed_sessions=len(records), authorized_sessions=authorized_sessions,
+                                 error="Manifest tool allowlist does not match the loaded scenario",
+                                 task_id=entry["scenario_id"],
+                                 certification_status="BYPASS")
             raise ControllerError("Manifest tool allowlist does not match the loaded scenario")
         home=baseline_home if entry["condition"]=="baseline" else optimized_home
         profile=baseline_profile if entry["condition"]=="baseline" else optimized_profile
         preflight=preflight_codex(scenario,condition=entry["condition"],workspace=root,
-                                  codex_home=home,codex_bin=codex_bin,profile=profile)
+                                  codex_home=home,codex_bin=codex_bin,profile=profile,
+                                  isolated_mcp=True)
         if preflight["state"]!="READY_FOR_BENCHMARK":
+            _write_budget_ledger(_budget_ledger_path(output), state="failed",
+                                 run_id=entry["run_id"], pair_id=entry["pair_id"],
+                                 consumed_sessions=len(records), authorized_sessions=authorized_sessions,
+                                 error="preflight_failed",
+                                 task_id=entry["scenario_id"],
+                                 certification_status="BYPASS")
+            _write_terminal_record(_terminal_record_path(output, entry["run_id"], entry["pair_id"]),
+                                   task_id=entry["scenario_id"],
+                                   run_id=entry["run_id"], pair_id=entry["pair_id"],
+                                   condition=entry["condition"], status="BYPASS",
+                                   reason="preflight_failed")
             raise ControllerError("Preflight failed: "+";".join(preflight["errors"]))
         try:
             record=capture_codex(scenario,condition=entry["condition"],repetition=1,
                                  workspace=root,codex_home=home,codex_bin=codex_bin,
                                  profile=profile,timeout=timeout,
-                                 run_id_override=entry["run_id"], pair_id_override=entry["pair_id"])
+                                 run_id_override=entry["run_id"], pair_id_override=entry["pair_id"],
+                                 isolated_mcp=True)
         except CodexCaptureError as exc:
+            capture_status=_capture_certification_status(exc.evidence)
+            capture_reason=_capture_failure_reason(exc.evidence)
+            _write_budget_ledger(_budget_ledger_path(output), state="failed",
+                                 run_id=entry["run_id"], pair_id=entry["pair_id"],
+                                 consumed_sessions=len(records)+1, authorized_sessions=authorized_sessions,
+                                 error=capture_reason,
+                                 task_id=entry["scenario_id"],
+                                 certification_status=capture_status)
+            _write_terminal_record(_terminal_record_path(output, entry["run_id"], entry["pair_id"]),
+                                   task_id=entry["scenario_id"],
+                                   run_id=entry["run_id"], pair_id=entry["pair_id"],
+                                   condition=entry["condition"],
+                                   status=capture_status,
+                                   reason=capture_reason)
             return {"schema":"pie-phase3-pilot-result-v1","state":"AB_PILOT_FAILED",
                     "authorization":{"maximum_sessions":authorized_sessions,
                                      "consumed_sessions":len(records)+1,
                                      "remaining_sessions_not_run":4-(len(records)+1),
                                      "complement_executed":False,"automatic_retry":False},
                     "manifest_state":manifest.get("state"),
+                    "certification_status":_capture_certification_status(exc.evidence),
+                    "task_id":entry["scenario_id"],
+                    "ledger":str(_budget_ledger_path(output)),
                     "failed_execution":{"application":entry["application"],
                                         "condition":entry["condition"],
                                         "repetition":entry["repetition"],
                                         "run_id":entry["run_id"],"pair_id":entry["pair_id"],
-                                        "failure":str(exc),
-                                        "provider_evidence":exc.evidence or "unavailable",
+                                        "task_id":entry["scenario_id"],
+                                        "certification_status":_capture_certification_status(exc.evidence),
+                                        "failure_code":_capture_failure_reason(exc.evidence),
+                                        "evidence_available":bool(exc.evidence),
                                         "oracle":"not_evaluated",
                                         "lifecycle_correlation":"not_evaluated"},
                     "records":records}
         if record["run_id"]!=entry["run_id"] or record["pair_id"]!=entry["pair_id"]:
+            _write_budget_ledger(_budget_ledger_path(output), state="failed",
+                                 run_id=entry["run_id"], pair_id=entry["pair_id"],
+                                 consumed_sessions=len(records)+1, authorized_sessions=authorized_sessions,
+                                 error="identity_mismatch",
+                                 task_id=entry["scenario_id"],
+                                 certification_status="FAILED")
+            _write_terminal_record(_terminal_record_path(output, entry["run_id"], entry["pair_id"]),
+                                   task_id=entry["scenario_id"],
+                                   run_id=entry["run_id"], pair_id=entry["pair_id"],
+                                   condition=entry["condition"], status="FAILED",
+                                   reason="identity_mismatch")
             raise ControllerError("Capture identity differs from frozen manifest")
         oracle=_fixture_oracle(scenario,root)
         if not oracle["passed"]:
+            _write_budget_ledger(_budget_ledger_path(output), state="failed",
+                                 run_id=entry["run_id"], pair_id=entry["pair_id"],
+                                 consumed_sessions=len(records)+1, authorized_sessions=authorized_sessions,
+                                 error="oracle_failed",
+                                 task_id=entry["scenario_id"],
+                                 certification_status="FAILED")
+            _write_terminal_record(_terminal_record_path(output, entry["run_id"], entry["pair_id"]),
+                                   task_id=entry["scenario_id"],
+                                   run_id=entry["run_id"], pair_id=entry["pair_id"],
+                                   condition=entry["condition"], status="FAILED",
+                                   reason="oracle_failed")
             raise ControllerError("Independent fixture oracle failed")
         lifecycle=_load_lifecycle(root.parent/("."+root.name+"-pie-live-store")/"mcp-lifecycle.jsonl")
         route=audit_record_route(record,lifecycle)
         if route["decision"]!="VALID":
+            _write_budget_ledger(_budget_ledger_path(output), state="failed",
+                                 run_id=entry["run_id"], pair_id=entry["pair_id"],
+                                 consumed_sessions=len(records)+1, authorized_sessions=authorized_sessions,
+                                 error="route_evidence_failed",
+                                 task_id=entry["scenario_id"],
+                                 certification_status="FAILED")
+            _write_terminal_record(_terminal_record_path(output, entry["run_id"], entry["pair_id"]),
+                                   task_id=entry["scenario_id"],
+                                   run_id=entry["run_id"], pair_id=entry["pair_id"],
+                                   condition=entry["condition"], status="FAILED",
+                                   reason="route_evidence_failed")
             raise ControllerError("Route evidence failed: "+route["reason"])
         destination=records_dir/(entry["condition"]+"-"+entry["application"]+"-r1.json")
         destination.write_text(json.dumps(record,indent=2,ensure_ascii=False)+"\n",encoding="utf-8")
@@ -366,13 +463,52 @@ def _write_json(path: Path, value: dict[str, Any]) -> None:
     path.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
+def _sanitize_id_component(value: str) -> str:
+    """Defensively sanitize an identifier for use in a filename."""
+    sanitized = re.sub(r"[^A-Za-z0-9._-]", "_", str(value))
+    return sanitized[:128] or "unknown"
+
+
+def _terminal_record_path(output: Path, run_id: str, pair_id: str) -> Path:
+    """Per-attempt terminal record path so each attempt keeps its own file."""
+    return output.parent / (output.stem + "-terminal-"
+                            + _sanitize_id_component(run_id) + "-"
+                            + _sanitize_id_component(pair_id) + ".json")
+
+
+def _write_terminal_record(path: Path, *, task_id: str | None, run_id: str,
+                           pair_id: str, condition: str, status: str,
+                           reason: str) -> None:
+    """Persist a sanitized terminal record for a failed session.
+
+    The record intentionally contains only identifiers and a bounded reason
+    string: no credentials, prompts, provider responses, or token usage.
+    Tokens, latency and usage remain null because failures carry no usage.
+    """
+    _write_json(path, {
+        "schema": "pie-phase3-terminal-record-v1",
+        "task_id": task_id,
+        "run_id": run_id,
+        "pair_id": pair_id,
+        "condition": condition,
+        "status": status,
+        "reason": str(reason)[:2000],
+        "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "tokens": None,
+        "latency_ms": None,
+        "usage": None,
+    })
+
+
 def _budget_ledger_path(output: Path) -> Path:
     return output.parent / (output.stem + "-budget-ledger.json")
 
 
 def _write_budget_ledger(path: Path, *, state: str, run_id: str, pair_id: str,
                          consumed_sessions: int, authorized_sessions: int,
-                         error: str | None = None) -> None:
+                         error: str | None = None,
+                         task_id: str | None = None,
+                         certification_status: str | None = None) -> None:
     value = {
         "schema": "pie-phase3-budget-ledger-v1",
         "state": state,
@@ -383,9 +519,23 @@ def _write_budget_ledger(path: Path, *, state: str, run_id: str, pair_id: str,
         "pair_id": pair_id,
         "automatic_retry": False,
     }
+    if task_id:
+        value["task_id"] = task_id
+    if certification_status:
+        value["certification_status"] = certification_status
     if error:
         value["error"] = str(error)[:2000]
     _write_json(path, value)
+
+
+def _capture_certification_status(evidence: Any) -> str:
+    """Map capture evidence to an explicit certification status."""
+    if isinstance(evidence, dict):
+        if evidence.get("certification_status") == "TIMEOUT":
+            return "TIMEOUT"
+        if evidence.get("certification_status") == "EXECUTOR_UNAVAILABLE":
+            return "BYPASS"
+    return "FAILED"
 
 
 def run_single(*, scenario: dict[str, Any], application: str, condition: str,
@@ -421,15 +571,24 @@ def run_single(*, scenario: dict[str, Any], application: str, condition: str,
     home = baseline_home if condition == "baseline" else optimized_home
     profile = baseline_profile if condition == "baseline" else optimized_profile
     preflight = preflight_codex(scenario, condition=condition, workspace=root,
-                                codex_home=home, codex_bin=codex_bin, profile=profile)
+                                codex_home=home, codex_bin=codex_bin, profile=profile,
+                                isolated_mcp=True)
     if preflight["state"] != "READY_FOR_BENCHMARK":
         _write_budget_ledger(ledger, state="preflight_failed", run_id=run_id, pair_id=pair_id,
                              consumed_sessions=0, authorized_sessions=authorized_sessions,
-                             error=";".join(preflight.get("errors", [])))
+                             error="preflight_failed",
+                             task_id=scenario.get("scenario_id"),
+                             certification_status="BYPASS")
+        _write_terminal_record(_terminal_record_path(output, run_id, pair_id),
+                               task_id=scenario.get("scenario_id"),
+                               run_id=run_id, pair_id=pair_id,
+                               condition=condition, status="BYPASS",
+                               reason="preflight_failed")
         return {"schema": "pie-phase3-single-result-v1", "state": failed_state,
                 "run_id": run_id, "pair_id": pair_id, "ledger": str(ledger),
                 "preflight": preflight, "quota_consumed": False,
-                "automatic_retry": False}
+                "automatic_retry": False, "task_id": scenario.get("scenario_id"),
+                "certification_status": "BYPASS"}
     # Reserve the one authorized session before the model process is spawned.
     _write_budget_ledger(ledger, state="started", run_id=run_id, pair_id=pair_id,
                          consumed_sessions=1, authorized_sessions=authorized_sessions)
@@ -437,39 +596,77 @@ def run_single(*, scenario: dict[str, Any], application: str, condition: str,
         record = capture_codex(
             scenario, condition=condition, repetition=repetition, workspace=root,
             codex_home=home, codex_bin=codex_bin, profile=profile, timeout=timeout,
-            run_id_override=run_id, pair_id_override=pair_id)
+            run_id_override=run_id, pair_id_override=pair_id, isolated_mcp=True)
     except RuntimeError as exc:
+        status = _capture_certification_status(getattr(exc, "evidence", None))
         _write_budget_ledger(ledger, state="failed", run_id=run_id, pair_id=pair_id,
                              consumed_sessions=1, authorized_sessions=authorized_sessions,
-                             error=str(exc))
+                             error=_capture_failure_reason(getattr(exc, "evidence", None)),
+                             task_id=scenario.get("scenario_id"),
+                             certification_status=status)
+        _write_terminal_record(_terminal_record_path(output, run_id, pair_id),
+                               task_id=scenario.get("scenario_id"),
+                               run_id=run_id, pair_id=pair_id,
+                               condition=condition, status=status,
+                               reason=_capture_failure_reason(getattr(exc, "evidence", None)))
         return {"schema": "pie-phase3-single-result-v1", "state": failed_state,
                 "run_id": run_id, "pair_id": pair_id, "ledger": str(ledger),
                 "quota_consumed": True, "automatic_retry": False,
-                "failure": str(exc),
-                "provider_evidence": getattr(exc, "evidence", None) or "unavailable"}
+                "failure_code": _capture_failure_reason(getattr(exc, "evidence", None)),
+                "evidence_available": bool(getattr(exc, "evidence", None)),
+                "task_id": scenario.get("scenario_id"),
+                "certification_status": status}
     if record["run_id"] != run_id or record["pair_id"] != pair_id:
         _write_budget_ledger(ledger, state="failed", run_id=run_id, pair_id=pair_id,
                              consumed_sessions=1, authorized_sessions=authorized_sessions,
-                             error="Capture identity differs from generated single-run identity")
+                             error="identity_mismatch",
+                             task_id=scenario.get("scenario_id"),
+                             certification_status="FAILED")
+        _write_terminal_record(_terminal_record_path(output, run_id, pair_id),
+                               task_id=scenario.get("scenario_id"),
+                               run_id=run_id, pair_id=pair_id,
+                               condition=condition, status="FAILED",
+                               reason="identity_mismatch")
         raise ControllerError("Capture identity differs from generated single-run identity")
     oracle = _fixture_oracle(scenario, root)
     if not oracle["passed"]:
+        destination = output.parent / (output.stem + "-record.json")
+        _write_json(destination, record)
         _write_budget_ledger(ledger, state="failed", run_id=run_id, pair_id=pair_id,
                              consumed_sessions=1, authorized_sessions=authorized_sessions,
-                             error="Independent fixture oracle failed")
+                             error="oracle_failed",
+                             task_id=scenario.get("scenario_id"),
+                             certification_status="FAILED")
+        _write_terminal_record(_terminal_record_path(output, run_id, pair_id),
+                               task_id=scenario.get("scenario_id"),
+                               run_id=run_id, pair_id=pair_id,
+                               condition=condition, status="FAILED",
+                               reason="oracle_failed")
         return {"schema": "pie-phase3-single-result-v1", "state": failed_state,
                 "run_id": run_id, "pair_id": pair_id, "ledger": str(ledger),
-                "quota_consumed": True, "automatic_retry": False, "oracle": oracle}
+                "quota_consumed": True, "automatic_retry": False, "oracle": oracle,
+                "record": str(destination),
+                "task_id": scenario.get("scenario_id"), "certification_status": "FAILED"}
     lifecycle = _load_lifecycle(root.parent / ("." + root.name + "-pie-live-store") / "mcp-lifecycle.jsonl")
     route = audit_record_route(record, lifecycle)
     if route["decision"] != "VALID":
+        destination = output.parent / (output.stem + "-record.json")
+        _write_json(destination, record)
         _write_budget_ledger(ledger, state="failed", run_id=run_id, pair_id=pair_id,
                              consumed_sessions=1, authorized_sessions=authorized_sessions,
-                             error=route["reason"])
+                             error="route_evidence_failed",
+                             task_id=scenario.get("scenario_id"),
+                             certification_status="FAILED")
+        _write_terminal_record(_terminal_record_path(output, run_id, pair_id),
+                               task_id=scenario.get("scenario_id"),
+                               run_id=run_id, pair_id=pair_id,
+                               condition=condition, status="FAILED",
+                               reason="route_evidence_failed")
         return {"schema": "pie-phase3-single-result-v1", "state": failed_state,
                 "run_id": run_id, "pair_id": pair_id, "ledger": str(ledger),
                 "quota_consumed": True, "automatic_retry": False,
-                "record": record, "oracle": oracle, "route": route}
+                "record": str(destination), "oracle": oracle, "route": route,
+                "task_id": scenario.get("scenario_id"), "certification_status": "FAILED"}
     destination = output.parent / (output.stem + "-record.json")
     _write_json(destination, record)
     import_provider_record(root, record, app=application, task_id=scenario["scenario_id"])
@@ -558,7 +755,8 @@ def main(argv: list[str] | None = None) -> int:
                 for condition, home, profile in (("baseline",args.baseline_home,args.baseline_profile),
                                                   ("optimized",args.optimized_home,args.optimized_profile)):
                     result=preflight_codex(scenario,condition=condition,workspace=args.workspace,
-                                           codex_home=home,codex_bin=args.codex_bin,profile=profile)
+                                           codex_home=home,codex_bin=args.codex_bin,profile=profile,
+                                           isolated_mcp=True)
                     rows.append({"scenario_id":scenario["scenario_id"],"condition":condition,**result})
             result={"schema":"pie-phase3-preflight-v1","state":"READY_FOR_BENCHMARK" if all(
                 row["state"]=="READY_FOR_BENCHMARK" for row in rows) else "BLOCKED",

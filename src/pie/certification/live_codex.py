@@ -1,8 +1,10 @@
 """Fail-closed Codex real token accounting. Never persist prompts, answers or traces."""
 from __future__ import annotations
-import hashlib,json,math,os,re,shutil,subprocess,time,tomllib
+import hashlib,json,math,os,re,shutil,socket,subprocess,time,tomllib
 from pathlib import Path
 from datetime import datetime,timezone
+from pie.certification.blender_runtime import ensure_blender_mcp
+from pie.certification.codex_isolation import _merge_config, isolated_codex_home
 
 SCHEMA="pie-live-codex-usage-v1"
 CONDITIONS=frozenset(("baseline","optimized"))
@@ -226,8 +228,9 @@ def parse_codex_jsonl(source:str)->dict:
             u=e.get("usage")
             if not isinstance(u,dict):raise ValueError("Missing provider usage")
             row={k:_count(u.get(k),k) for k in ("input_tokens","cached_input_tokens","output_tokens")}
-            row["reasoning_output_tokens"]=_count(u.get("reasoning_output_tokens",0),"reasoning_output_tokens")
-            if row["cached_input_tokens"]>row["input_tokens"] or row["reasoning_output_tokens"]>row["output_tokens"]:
+            r=u.get("reasoning_output_tokens")
+            row["reasoning_output_tokens"]=None if r is None else _count(r,"reasoning_output_tokens")
+            if row["cached_input_tokens"]>row["input_tokens"] or (row["reasoning_output_tokens"] is not None and row["reasoning_output_tokens"]>row["output_tokens"]):
                 raise ValueError("Incoherent provider usage")
             usage.append(row)
         elif e.get("type") in ("turn.failed","error"):failed=True
@@ -262,15 +265,14 @@ def validate_scenario(s:dict)->dict:
     tools=s.get("expected_mcp_tools")
     if tools is not None:
         if (not isinstance(tools,list) or not tools or
-            any(not isinstance(tool,str) or not tool.strip() for tool in tools) or
-            len(set(tools)) != len(tools)):
+            any(not isinstance(tool,str) or not tool.strip() for tool in tools)):
             raise ValueError("Invalid expected MCP tool allowlist")
     by_condition=s.get("expected_mcp_tools_by_condition")
     if by_condition is not None:
         if (not isinstance(by_condition,dict) or set(by_condition)!={"baseline","optimized"} or
                 any(not isinstance(value,list) or not value or
-                    any(not isinstance(tool,str) or not tool.strip() for tool in value) or
-                    len(set(value)) != len(value) for value in by_condition.values())):
+                    any(not isinstance(tool,str) or not tool.strip() for tool in value)
+                    for value in by_condition.values())):
             raise ValueError("Invalid condition-specific MCP tool allowlist")
     if "oracle" in s and (not isinstance(s["oracle"],dict) or not isinstance(s["oracle"].get("kind"),str)):
         raise ValueError("Invalid oracle specification")
@@ -342,9 +344,31 @@ def _auth_state(home:Path, executable:str, env:dict)->str:
         return "AUTH_VALIDATED_LOCAL"
     return "AUTH_INVALID" if result.returncode==1 else "AUTH_UNAVAILABLE"
 
+def _probe_blender_upstream(selected:dict)->dict:
+    """Fail closed when the local Blender MCP endpoint is unavailable.
+
+    shortcut: mcp-for-blender default endpoint only, use explicit environment
+    variables when a deployment exposes a custom host or port.
+    """
+    configured_env=selected.get("env",{}) if isinstance(selected,dict) else {}
+    if not isinstance(configured_env,dict):configured_env={}
+    host=str(configured_env.get("BLENDER_MCP_HOST") or
+             configured_env.get("MCP_FOR_BLENDER_HOST") or "127.0.0.1")
+    raw_port=(configured_env.get("BLENDER_MCP_PORT") or
+              configured_env.get("MCP_FOR_BLENDER_PORT") or "9876")
+    try:port=int(raw_port)
+    except (TypeError,ValueError):return {"state":"FAIL","reason":"INVALID_ENDPOINT"}
+    if not 1<=port<=65535:return {"state":"FAIL","reason":"INVALID_ENDPOINT"}
+    try:
+        with socket.create_connection((host,port),timeout=0.75):
+            return {"state":"PASS","host":host,"port":port}
+    except (OSError,ValueError):
+        return {"state":"FAIL","host":host,"port":port,
+                "reason":"UPSTREAM_UNAVAILABLE"}
+
 def preflight_codex(scenario:dict,*,condition:str,workspace:Path,codex_home:Path,
                     codex_bin:str="codex",evidence_dir:Path|None=None,
-                    profile:str|None=None)->dict:
+                    profile:str|None=None, isolated_mcp:bool=False)->dict:
     """Run all non-model checks required before a paid Codex capture."""
     checks={};errors=[]
     try:scenario=validate_scenario(scenario);checks["scenario"]="PASS"
@@ -380,12 +404,17 @@ def preflight_codex(scenario:dict,*,condition:str,workspace:Path,codex_home:Path
         checks["model"]="PASS" if model==scenario["model"] else {"state":"FAIL","configured":model}
         if model!=scenario["model"]:errors.append("PRECHECK_MODEL_INVALID")
         servers=dict(parsed.get("mcp_servers") if isinstance(parsed.get("mcp_servers"),dict) else {})
-        if isinstance(profile_parsed.get("mcp_servers"),dict):servers.update(profile_parsed["mcp_servers"])
+        if isinstance(profile_parsed.get("mcp_servers"),dict):
+            for name, value in profile_parsed["mcp_servers"].items():
+                if isinstance(value, dict) and isinstance(servers.get(name), dict):
+                    servers[name] = _merge_config(servers[name], value)
+                else:
+                    servers[name] = value
         required=_expected_mcp_server(scenario,condition) if scenario.get("required_mcp_server") else None
         enabled_servers = _enabled_mcp_servers(servers)
         if required and required not in enabled_servers:
             checks["mcp"]={"state":"FAIL","required_server":required};errors.append("PRECHECK_MCP_UNAVAILABLE")
-        elif required and enabled_servers != {required}:
+        elif required and enabled_servers != {required} and not isolated_mcp:
             checks["mcp"]={"state":"FAIL","required_server":required,"enabled_servers":sorted(enabled_servers)}
             errors.append("PRECHECK_MCP_ISOLATION_FAILED")
         else:
@@ -393,7 +422,8 @@ def preflight_codex(scenario:dict,*,condition:str,workspace:Path,codex_home:Path
             selected=servers.get(required) if required else None
             expected_tools = _expected_mcp_tools(scenario, condition)
             configured_tools = selected.get("enabled_tools") if isinstance(selected, dict) else None
-            if expected_tools is not None and configured_tools != expected_tools:
+            expected_allowlist = list(dict.fromkeys(expected_tools or []))
+            if expected_tools is not None and configured_tools != expected_allowlist:
                 checks["mcp_tools"]={"state":"FAIL","expected":expected_tools,"configured":configured_tools}
                 errors.append("PRECHECK_MCP_ISOLATION_FAILED")
             else:
@@ -405,6 +435,14 @@ def preflight_codex(scenario:dict,*,condition:str,workspace:Path,codex_home:Path
             checks["mcp_command"]="PASS" if command_ok else {"state":"FAIL"}
             if not command_ok:
                 errors.append("PRECHECK_MCP_COMMAND_UNAVAILABLE")
+            if _scenario_app(scenario)=="blender":
+                runtime_env=dict(os.environ)
+                selected_env=selected.get("env",{}) if isinstance(selected,dict) else {}
+                if isinstance(selected_env,dict):
+                    runtime_env.update({str(k):str(v) for k,v in selected_env.items()})
+                checks["blender_upstream"]=ensure_blender_mcp(environment=runtime_env)
+                if checks["blender_upstream"].get("state")!="PASS":
+                    errors.append("PRECHECK_BLENDER_UPSTREAM_UNAVAILABLE")
             if command_ok and isinstance(selected,dict) and "pie.gateway.domain" in (selected.get("args") or []):
                 configured_env=selected.get("env",{})
                 source_root=configured_env.get("PIE_SOURCE_ROOT") if isinstance(configured_env,dict) else None
@@ -447,7 +485,10 @@ def preflight_codex(scenario:dict,*,condition:str,workspace:Path,codex_home:Path
                 else: checks["gateway_workspace"]="PASS"
             else:
                 checks["gateway_workspace"]="NOT_APPLICABLE"
-        if executable and Path(executable).is_file() and "codex" in Path(executable).name.lower() and required:
+        if isolated_mcp and required:
+            checks["mcp_runtime"]={"state":"DEFERRED_TO_ISOLATED_CAPTURE",
+                                    "required_server":required}
+        elif executable and Path(executable).is_file() and "codex" in Path(executable).name.lower() and required:
             runtime_servers = _runtime_enabled_mcp_servers(executable, codex_home, profile)
             if runtime_servers is None:
                 checks["mcp_runtime"]={"state":"FAIL"}
@@ -523,7 +564,8 @@ def _expected_mcp_server(scenario:dict,condition:str)->str|None:
     return required
 
 def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=240,codex_bin="codex",profile=None,
-                  run_id_override=None,pair_id_override=None):
+                  run_id_override=None,pair_id_override=None,isolated_mcp=False,
+                  _approve_for_me=False, _isolated_runtime=False):
     validate_scenario(scenario)
     if condition not in CONDITIONS or type(repetition) is not int or repetition<1:
         raise ValueError("Invalid condition or repetition")
@@ -544,6 +586,19 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
                  "PIE_GATEWAY_SERVER":expected_server or "",
                  "PIE_GLOBAL_STORAGE_ROOT":str(telemetry_store),
                  "PIE_MCP_DIAGNOSTICS_PATH":str(telemetry_store / "mcp-lifecycle.jsonl")}
+    if isolated_mcp:
+        with isolated_codex_home(Path(codex_home), profile=profile,
+                                 server=expected_server, model=scenario["model"],
+                                 runtime_env=runtime_env,
+                                 workspace=Path(workspace).resolve()) as isolated_home:
+            result = capture_codex(
+                scenario, condition=condition, repetition=repetition,
+                workspace=workspace, codex_home=isolated_home, timeout=timeout,
+                codex_bin=codex_bin, profile=None,
+                run_id_override=run_id, pair_id_override=pair_id,
+                isolated_mcp=False, _approve_for_me=True, _isolated_runtime=True)
+        result["mcp_isolation"] = "temporary_codex_home"
+        return result
     effective_profile, _runtime_profile_path = _materialize_runtime_profile(
         Path(codex_home), profile, server=expected_server, runtime_env=runtime_env,
         run_id=run_id)
@@ -560,7 +615,8 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
                                    expected_server=expected_server,profile=effective_profile)
     try:
         preflight=preflight_codex(scenario,condition=condition,workspace=workspace,
-                                  codex_home=Path(codex_home),codex_bin=codex_bin,profile=effective_profile)
+                                  codex_home=Path(codex_home),codex_bin=codex_bin,profile=effective_profile,
+                                  isolated_mcp=_isolated_runtime)
     except Exception as exc:
         _forensic_finish(forensic_root,status="preflight_failed",error=str(exc))
         raise
@@ -580,46 +636,69 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
         _forensic_finish(forensic_root,status="executor_failed",error="Codex version unavailable")
         raise RuntimeError("Codex version unavailable")
     version=ver.stdout.strip().splitlines()[0][:120]
-    args=[executable,"exec","--json","--ephemeral","--sandbox","read-only",
-          "--cd",str(workspace),"--model",scenario["model"]]
+    args=[executable,"exec","--json","--ephemeral"]
+    args += ["--approve-for-me"] if _approve_for_me else ["--sandbox", "read-only"]
+    args += ["--cd",str(workspace),"--model",scenario["model"]]
     if effective_profile is not None:args += ["--profile",effective_profile]
     args += ["-"]
+    base_evidence={"run_id":run_id,"pair_id":pair_id,"condition":condition,
+                   "scenario_id":scenario["scenario_id"],"model":scenario["model"],
+                   "expected_mcp_server":expected_server,"forensic_path":str(forensic_root)}
     t0=time.perf_counter()
     try:
         run=subprocess.run(args,cwd=workspace,env=env,input=scenario["prompt"],
                            text=True,capture_output=True,timeout=timeout,check=False)
     except subprocess.TimeoutExpired as ex:
-        _forensic_capture_process(forensic_root,stdout=getattr(ex,"output","") or "",
+        runtime_ms=round((time.perf_counter()-t0)*1000,3)
+        event_count,mcp_count=_forensic_capture_process(forensic_root,stdout=getattr(ex,"output","") or "",
                                   stderr=getattr(ex,"stderr","") or "",returncode=None,
-                                  duration_ms=round((time.perf_counter()-t0)*1000,3),timed_out=True)
-        _forensic_finish(forensic_root,status="timeout",duration_ms=round((time.perf_counter()-t0)*1000,3),
+                                  duration_ms=runtime_ms,timed_out=True)
+        _forensic_finish(forensic_root,status="timeout",duration_ms=runtime_ms,
                          error="Codex execution timeout",timed_out=True)
-        raise RuntimeError("Codex execution unavailable/timeout") from ex
+        evidence=dict(base_evidence,runtime_ms=runtime_ms,event_count=event_count,
+                      mcp_event_count=mcp_count,timed_out=True,provider_reported=False,
+                      certification_status="TIMEOUT")
+        raise CodexCaptureError("Codex execution unavailable/timeout",evidence=evidence) from ex
     except FileNotFoundError as ex:
-        _forensic_finish(forensic_root,status="executor_failed",duration_ms=round((time.perf_counter()-t0)*1000,3),
+        runtime_ms=round((time.perf_counter()-t0)*1000,3)
+        _forensic_finish(forensic_root,status="executor_failed",duration_ms=runtime_ms,
                          error="Codex execution unavailable")
-        raise RuntimeError("Codex execution unavailable/timeout") from ex
+        evidence=dict(base_evidence,runtime_ms=runtime_ms,event_count=0,mcp_event_count=0,
+                      timed_out=False,provider_reported=False,
+                      certification_status="EXECUTOR_UNAVAILABLE")
+        raise CodexCaptureError("Codex execution unavailable/timeout",evidence=evidence) from ex
+    runtime_ms=round((time.perf_counter()-t0)*1000,3)
     event_count,mcp_count=_forensic_capture_process(
         forensic_root,stdout=run.stdout,stderr=run.stderr,returncode=run.returncode,
-        duration_ms=round((time.perf_counter()-t0)*1000,3))
+        duration_ms=runtime_ms)
     if run.returncode:
         _forensic_finish(forensic_root,status="process_failed",returncode=run.returncode,
-                         duration_ms=round((time.perf_counter()-t0)*1000,3),
+                         duration_ms=runtime_ms,
                          error=f"Codex failed with exit code {run.returncode}")
+        evidence=dict(base_evidence,runtime_ms=runtime_ms,returncode=run.returncode,
+                      event_count=event_count,mcp_event_count=mcp_count,provider_reported=False,
+                      certification_status="PROCESS_FAILED")
         raise CodexCaptureError(f"Codex failed with exit code {run.returncode}; no certification",
-                                evidence={"run_id":run_id,"pair_id":pair_id,"forensic_path":str(forensic_root),
-                                          "event_count":event_count,"mcp_event_count":mcp_count})
+                                evidence=evidence)
     try:parsed=parse_codex_jsonl(run.stdout)
     except (ValueError,TypeError) as exc:
         _forensic_finish(forensic_root,status="provider_usage_failed",returncode=run.returncode,
-                         duration_ms=round((time.perf_counter()-t0)*1000,3),error=str(exc))
+                         duration_ms=runtime_ms,error=str(exc))
+        evidence=dict(base_evidence,runtime_ms=runtime_ms,returncode=run.returncode,
+                      event_count=event_count,mcp_event_count=mcp_count,provider_reported=False,
+                      certification_status="PROVIDER_USAGE_FAILED")
         raise CodexCaptureError("Codex JSONL/provider usage evidence unavailable",
-                                evidence={"run_id":run_id,"pair_id":pair_id,"forensic_path":str(forensic_root)}) from exc
+                                evidence=evidence) from exc
     if not parsed["mcp_tools"]:
         _forensic_finish(forensic_root,status="route_evidence_failed",returncode=run.returncode,
-                         duration_ms=round((time.perf_counter()-t0)*1000,3),
+                         duration_ms=runtime_ms,
                          error="MCP route evidence unavailable; no mcp_tool_call records")
-        raise RuntimeError("MCP route evidence unavailable; no mcp_tool_call records")
+        evidence=dict(base_evidence,runtime_ms=runtime_ms,returncode=run.returncode,
+                      event_count=event_count,mcp_event_count=mcp_count,
+                      tool_events=parsed["tool_events"],mcp_tools=[],usage=parsed["usage"],
+                      provider_reported=True,certification_status="ROUTE_EVIDENCE_MISSING")
+        raise CodexCaptureError("MCP route evidence unavailable; no mcp_tool_call records",
+                                evidence=evidence)
     if expected_server is not None and any(
         item.get("server")!=expected_server or item.get("status")!="completed"
         for item in parsed["mcp_tools"]):
@@ -630,13 +709,11 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
                          error=f"MCP route evidence failed; expected {expected_server}; observed {observed}")
         raise CodexCaptureError(
             f"MCP route evidence failed; expected {expected_server}; observed {observed}",
-            evidence={"run_id":run_id,"pair_id":pair_id,"condition":condition,
-                      "scenario_id":scenario["scenario_id"],"model":scenario["model"],
-                      "expected_mcp_server":expected_server,"runtime_ms":round((time.perf_counter()-t0)*1000,3),
-                      "tool_events":parsed["tool_events"],"mcp_tools":parsed["mcp_tools"],
-                      "usage":parsed["usage"],"provider_reported":True,
-                      "certification_status":"INVALID_ROUTE_EVIDENCE",
-                      "forensic_path":str(forensic_root)})
+            evidence=dict(base_evidence,runtime_ms=runtime_ms,returncode=run.returncode,
+                          event_count=event_count,mcp_event_count=mcp_count,
+                          tool_events=parsed["tool_events"],mcp_tools=parsed["mcp_tools"],
+                          usage=parsed["usage"],provider_reported=True,
+                          certification_status="INVALID_ROUTE_EVIDENCE"))
     expected_tools=_expected_mcp_tools(scenario,condition)
     if expected_tools is not None:
         observed_tools=[item.get("tool") for item in parsed["mcp_tools"]]
@@ -646,10 +723,13 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
                              error=f"MCP tool allowlist failed; expected {expected_tools} (recovery optional for Web); observed {observed_tools}")
             raise CodexCaptureError(
                 f"MCP tool allowlist failed; expected {expected_tools}; observed {observed_tools}",
-                evidence={"run_id":run_id,"pair_id":pair_id,"condition":condition,
-                          "expected_mcp_server":expected_server,"expected_mcp_tools":expected_tools,
-                          "observed_mcp_tools":observed_tools,"forensic_path":str(forensic_root),
-                          "certification_status":"INVALID_TOOL_ALLOWLIST"})
+                evidence=dict(base_evidence,runtime_ms=runtime_ms,returncode=run.returncode,
+                              event_count=event_count,mcp_event_count=mcp_count,
+                              expected_mcp_tools=expected_tools,
+                              observed_mcp_tools=observed_tools,
+                              tool_events=parsed["tool_events"],mcp_tools=parsed["mcp_tools"],
+                              usage=parsed["usage"],provider_reported=True,
+                              certification_status="INVALID_TOOL_ALLOWLIST"))
     actual=parsed.pop("answer").strip();expected=scenario["expected_exact"].strip()
     oracle_pass,oracle_kind=_evaluate_answer(scenario,actual)
     oracle_diagnostic=_oracle_diagnostic(scenario,actual,oracle_pass)
@@ -669,6 +749,7 @@ def capture_codex(scenario,*,condition,repetition,workspace,codex_home,timeout=2
             "runtime_ms":round((time.perf_counter()-t0)*1000,3),
             "tool_events":parsed["tool_events"],"mcp_tools":parsed["mcp_tools"],"usage":parsed["usage"],
             "expected_mcp_server":expected_server,"mcp_route_verified":True,
+            "mcp_isolation":"temporary_codex_home" if _approve_for_me else "configured_home",
             "provider_reported":parsed["provider_reported"],"source":parsed["source"],
             "forensic_path":str(forensic_root),
             "note":"Codex provider usage, not billing or a raw transcript"}

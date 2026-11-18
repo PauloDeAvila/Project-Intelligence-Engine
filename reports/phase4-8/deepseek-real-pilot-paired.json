@@ -1,0 +1,54 @@
+{
+  "schema": "pie-phase8-provider-pilot-v1",
+  "status": "MEASURED_NOT_CERTIFIED",
+  "provider": "infinity",
+  "model": "gambiarraapi/deepseek-v3.2",
+  "endpoint": "http://127.0.0.1:8080",
+  "corpus": {
+    "repository": "Textualize/rich",
+    "commit": "3a109ccdffe5b2d0e30684a304fbd388e99ce57b",
+    "tasks": 3,
+    "paired_evidence": {"baseline": 3, "pie": 3}
+  },
+  "baseline": {
+    "calls": 3,
+    "correct": 2,
+    "input_tokens": 27172,
+    "cached_input_tokens": 1393,
+    "uncached_input_tokens": 25779,
+    "output_tokens": 389,
+    "total_tokens": 27561,
+    "median_latency_s": 3.2684
+  },
+  "pie": {
+    "calls": 3,
+    "correct": 3,
+    "input_tokens": 1547,
+    "cached_input_tokens": 822,
+    "uncached_input_tokens": 725,
+    "output_tokens": 150,
+    "total_tokens": 1697,
+    "median_latency_s": 1.7992
+  },
+  "candidate_savings": {
+    "input_percent": 94.307,
+    "total_percent": 93.843,
+    "latency_percent": 44.952
+  },
+  "quality": {
+    "baseline_pass_rate": 0.667,
+    "pie_pass_rate": 1.0,
+    "equivalent": false,
+    "failure_reason": "baseline_oracle_pass_rate_below_100_percent"
+  },
+  "certification": {
+    "valid_pair": false,
+    "status": "NOT_CERTIFIED",
+    "reason": "Real provider usage is available, but the paired quality oracle is not equivalent."
+  },
+  "reproduction": {
+    "command": "uv run python tools/pie_real_repo_lab.py --corpus C:\\Users\\phsra\\Downloads\\PIE-rich-corpus-20261116 --models gambiarraapi/deepseek-v3.2 --count 3 --seed 20261116 --output reports/phase4-8/deepseek-real-pilot-paired --pie-production",
+    "raw_results_retained_locally": true,
+    "full_prompts_or_responses_committed": false
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "schema": "pie-phase3-budget-ledger-v1",
+  "state": "completed",
+  "authorized_sessions": 1,
+  "consumed_sessions": 1,
+  "remaining_sessions": 0,
+  "run_id": "optimized-blender-default-cube-v2-r1",
+  "pair_id": "codex-blender-default-cube-v2-r1",
+  "automatic_retry": false
+}

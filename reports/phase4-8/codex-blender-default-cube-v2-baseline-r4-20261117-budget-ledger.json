@@ -1,0 +1,13 @@
+{
+  "schema": "pie-phase3-budget-ledger-v1",
+  "state": "failed",
+  "authorized_sessions": 1,
+  "consumed_sessions": 1,
+  "remaining_sessions": 0,
+  "run_id": "baseline-blender-default-cube-v2-r4",
+  "pair_id": "codex-blender-default-cube-v2-r4",
+  "automatic_retry": false,
+  "task_id": "blender-live-default-cube-codex-v2",
+  "certification_status": "FAILED",
+  "error": "route_evidence_failed"
+}

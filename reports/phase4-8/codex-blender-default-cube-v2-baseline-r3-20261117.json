@@ -1,0 +1,85 @@
+{
+  "schema": "pie-phase3-single-result-v1",
+  "state": "BASELINE_BLENDER_FAILED",
+  "run_id": "baseline-blender-default-cube-v2-r3",
+  "pair_id": "codex-blender-default-cube-v2-r3",
+  "ledger": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean\\reports\\phase4-8\\codex-blender-default-cube-v2-baseline-r3-20261117-budget-ledger.json",
+  "quota_consumed": true,
+  "automatic_retry": false,
+  "record": {
+    "schema": "pie-live-codex-usage-v1",
+    "condition": "baseline",
+    "scenario_id": "blender-live-default-cube-codex-v2",
+    "repetition": 1,
+    "run_id": "baseline-blender-default-cube-v2-r3",
+    "pair_id": "codex-blender-default-cube-v2-r3",
+    "model": "gpt-5.6-luna",
+    "codex_version": "codex-cli 0.169.0-alpha.11.1",
+    "prompt_sha256": "03acefdf19b2fecc1040f1cfce16752b88eb22f05964f503710880dca0d6956d",
+    "expected_sha256": "910dd17a2e058f63f25a8674928f87654c82f9ee5fe2875a53aecd653b5c0ca1",
+    "answer_sha256": "31c2da273e84b56b1c2a39e35b3c5db2b651aea9d0e5e4416ee97131e281cb63",
+    "oracle_kind": "blender_scene_json",
+    "oracle_pass": false,
+    "oracle_diagnostic": {
+      "passed": false,
+      "length": 79,
+      "sha256": "31c2da273e84b56b1c2a39e35b3c5db2b651aea9d0e5e4416ee97131e281cb63",
+      "format": "json",
+      "keys": [
+        "location",
+        "material_names",
+        "object_name",
+        "object_type"
+      ],
+      "missing_keys": [],
+      "extra_keys": [],
+      "field_types": {
+        "location": "NoneType",
+        "material_names": "NoneType",
+        "object_name": "str",
+        "object_type": "NoneType"
+      }
+    },
+    "workspace_commit": "498e5664b8200bd5573764296aa0516ae070a4f0",
+    "configuration_sha256": "357345404fb7a41b159bd6ff8334c705e72de5de7e45c003f2100cce69c96d80",
+    "profile": null,
+    "runtime_ms": 11895.551,
+    "tool_events": 2,
+    "mcp_tools": [
+      {
+        "server": "blender",
+        "tool": "get_addon_status",
+        "status": "completed"
+      },
+      {
+        "server": "blender",
+        "tool": "get_scene_info",
+        "status": "completed"
+      }
+    ],
+    "usage": {
+      "input_tokens": 49132,
+      "cached_input_tokens": 41472,
+      "output_tokens": 336,
+      "reasoning_output_tokens": 212
+    },
+    "expected_mcp_server": "blender",
+    "mcp_route_verified": true,
+    "mcp_isolation": "temporary_codex_home",
+    "provider_reported": true,
+    "source": "codex_exec_json_turn_completed",
+    "forensic_path": "C:\\Users\\phsra\\AppData\\Local\\Temp\\.pie-codex-phase8-v2-worktree-pie-live-store\\runs\\baseline-blender-default-cube-v2-r3",
+    "note": "Codex provider usage, not billing or a raw transcript"
+  },
+  "oracle": {
+    "passed": true,
+    "kind": "blender_scene_json",
+    "independent_live_probe_required": true
+  },
+  "route": {
+    "decision": "INVALID",
+    "reason": "Oracle failed"
+  },
+  "task_id": "blender-live-default-cube-codex-v2",
+  "certification_status": "FAILED"
+}

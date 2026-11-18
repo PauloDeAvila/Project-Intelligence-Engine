@@ -1,0 +1,65 @@
+{
+  "schema": "pie-live-codex-usage-v1",
+  "condition": "baseline",
+  "scenario_id": "blender-live-default-cube-codex-v2",
+  "repetition": 1,
+  "run_id": "baseline-blender-default-cube-v2-r4",
+  "pair_id": "codex-blender-default-cube-v2-r4",
+  "model": "gpt-5.6-luna",
+  "codex_version": "codex-cli 0.169.0-alpha.11.1",
+  "prompt_sha256": "03acefdf19b2fecc1040f1cfce16752b88eb22f05964f503710880dca0d6956d",
+  "expected_sha256": "910dd17a2e058f63f25a8674928f87654c82f9ee5fe2875a53aecd653b5c0ca1",
+  "answer_sha256": "31c2da273e84b56b1c2a39e35b3c5db2b651aea9d0e5e4416ee97131e281cb63",
+  "oracle_kind": "blender_scene_json",
+  "oracle_pass": false,
+  "oracle_diagnostic": {
+    "passed": false,
+    "length": 79,
+    "sha256": "31c2da273e84b56b1c2a39e35b3c5db2b651aea9d0e5e4416ee97131e281cb63",
+    "format": "json",
+    "keys": [
+      "location",
+      "material_names",
+      "object_name",
+      "object_type"
+    ],
+    "missing_keys": [],
+    "extra_keys": [],
+    "field_types": {
+      "location": "NoneType",
+      "material_names": "NoneType",
+      "object_name": "str",
+      "object_type": "NoneType"
+    }
+  },
+  "workspace_commit": "5f7081ed941d402a58c49b15280164241f23e42d",
+  "configuration_sha256": "3fe9d3db4f15e7f0f826ec68308e181735af5125e49099e657207469db4c3cec",
+  "profile": null,
+  "runtime_ms": 18924.814,
+  "tool_events": 2,
+  "mcp_tools": [
+    {
+      "server": "blender",
+      "tool": "get_addon_status",
+      "status": "completed"
+    },
+    {
+      "server": "blender",
+      "tool": "get_scene_info",
+      "status": "completed"
+    }
+  ],
+  "usage": {
+    "input_tokens": 68453,
+    "cached_input_tokens": 59776,
+    "output_tokens": 602,
+    "reasoning_output_tokens": 419
+  },
+  "expected_mcp_server": "blender",
+  "mcp_route_verified": true,
+  "mcp_isolation": "temporary_codex_home",
+  "provider_reported": true,
+  "source": "codex_exec_json_turn_completed",
+  "forensic_path": "C:\\Users\\phsra\\AppData\\Local\\Temp\\.pie-codex-phase8-v2-worktree-pie-live-store\\runs\\baseline-blender-default-cube-v2-r4",
+  "note": "Codex provider usage, not billing or a raw transcript"
+}

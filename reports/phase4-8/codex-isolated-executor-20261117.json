@@ -1,0 +1,37 @@
+{
+  "schema": "pie-codex-isolated-executor-v1",
+  "status": "IMPLEMENTED_TESTED",
+  "implementation_commit": "b44d079",
+  "behavior": {
+    "temporary_codex_home": true,
+    "selected_mcp_server_only": true,
+    "authentication_copy_scope": "auth.json during capture only",
+    "temporary_home_cleanup": true,
+    "approval_mode": "approve-for-me",
+    "original_config_modified": false
+  },
+  "focused_tests": {
+    "codex_isolation": 1,
+    "live_codex_and_controller": 21,
+    "failed": 0
+  },
+  "full_suite": {
+    "passed": 726,
+    "skipped": 4,
+    "subtests": 126,
+    "failed": 0,
+    "duration_seconds": 33.65
+  },
+  "pie_index": {
+    "state": "CURRENT",
+    "workspace_match": true,
+    "files": 274,
+    "symbols": 2278,
+    "imports": 2633
+  },
+  "live_route_reference": "reports/phase4-8/codex-pie-blender-isolated-route-probe-20261117.json",
+  "limitations": [
+    "The integrated executor has not yet consumed a new official A/B pair after this change.",
+    "Certification remains NOT_CERTIFIED until provider-backed baseline and optimized pairs are executed through this path."
+  ]
+}

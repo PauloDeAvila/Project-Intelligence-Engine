@@ -1,0 +1,46 @@
+{
+  "schema": "pie-phase4-8-codex-ab-v1",
+  "status": "VALID_SINGLE_PAIR_NOT_CERTIFIED",
+  "certification": "NOT_CERTIFIED",
+  "pair_id": "pair-codex-blender-default-20261117",
+  "scenario_id": "blender-live-default-cube-codex-v1",
+  "repetition": 2,
+  "workspace_commit": "09277f3af1d22ed78a9e14ba2d7be0629ceabd2d",
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "prompt_sha256": "910ad01a92d10b3b28bc9c3292e0d36825416507469177fc1da51aaa0477696a",
+  "oracle": {"kind": "blender_scene_json", "baseline_pass": true, "optimized_pass": true},
+  "arms": {
+    "baseline": {
+      "run_id": "codex-blender-default-baseline-r2",
+      "server": "blender",
+      "mcp_tools": ["get_addon_status", "get_scene_info"],
+      "mcp_calls": 2,
+      "oracle_pass": true,
+      "usage": {"input_tokens": 66392, "cached_input_tokens": 50176, "uncached_input_tokens": 16216, "output_tokens": 632, "reasoning_output_tokens": 448, "total_tokens": 67024},
+      "duration_ms": 17486.775,
+      "configuration_sha256": "ca73534c32f21399ea366ffe9afc0780453e1c43087f4b0e6b0c3c8afaa87eb1"
+    },
+    "optimized": {
+      "run_id": "codex-blender-default-optimized-r2",
+      "server": "pie-blender-optimized",
+      "mcp_tools": ["get_addon_status", "pie_blender_get_object"],
+      "mcp_calls": 2,
+      "oracle_pass": true,
+      "usage": {"input_tokens": 48441, "cached_input_tokens": 41728, "uncached_input_tokens": 6713, "output_tokens": 517, "reasoning_output_tokens": 356, "total_tokens": 48958},
+      "duration_ms": 20014.78,
+      "configuration_sha256": "9f5da1327ba2e4262d0bc5ad7c0d4f81e51d87e49aadd8f4e57a181ccd3b3c54"
+    }
+  },
+  "comparison": {
+    "input_savings_percent": 27.037896,
+    "uncached_input_savings_percent": 58.602615,
+    "cached_input_savings_percent": 16.836735,
+    "output_savings_percent": 18.196203,
+    "total_savings_percent": 26.954524,
+    "latency_delta_percent": 14.456668,
+    "latency_interpretation": "optimized slower",
+    "mcp_call_delta": 0
+  },
+  "limitations": ["This is the second of three planned Blender repetitions.", "Provider-reported reasoning tokens remain separate and are not added to total_tokens."]
+}

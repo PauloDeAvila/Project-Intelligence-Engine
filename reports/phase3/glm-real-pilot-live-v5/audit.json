@@ -1,0 +1,66 @@
+{
+  "tasks": [
+    {
+      "id": "T00",
+      "question": "Locate the Python function that performs this responsibility: Print object(s) supplied via positional arguments.",
+      "oracle": {
+        "path": "rich/__init__.py",
+        "symbol": "print"
+      }
+    },
+    {
+      "id": "T01",
+      "question": "I need to change the implementation described here: Move to the given column, optionally add offset to row.",
+      "oracle": {
+        "path": "rich/control.py",
+        "symbol": "Control.move_to_column"
+      }
+    },
+    {
+      "id": "T02",
+      "question": "Where is the source code for this behavior: Get the percentage of the character cell that is filled by the cursor",
+      "oracle": {
+        "path": "rich/_win32_console.py",
+        "symbol": "LegacyWindowsTerm._get_cursor_size"
+      }
+    }
+  ],
+  "audit": [
+    {
+      "id": "T00",
+      "oracle": {
+        "path": "rich/__init__.py",
+        "symbol": "print"
+      },
+      "baseline_hit": true,
+      "pie_hit": true,
+      "baseline_chars": 12581,
+      "pie_chars": 1690,
+      "retrieval_seconds": 0.010794
+    },
+    {
+      "id": "T01",
+      "oracle": {
+        "path": "rich/control.py",
+        "symbol": "Control.move_to_column"
+      },
+      "baseline_hit": true,
+      "pie_hit": true,
+      "baseline_chars": 32100,
+      "pie_chars": 1854,
+      "retrieval_seconds": 0.010761
+    },
+    {
+      "id": "T02",
+      "oracle": {
+        "path": "rich/_win32_console.py",
+        "symbol": "LegacyWindowsTerm._get_cursor_size"
+      },
+      "baseline_hit": true,
+      "pie_hit": true,
+      "baseline_chars": 30881,
+      "pie_chars": 3132,
+      "retrieval_seconds": 0.010788
+    }
+  ]
+}

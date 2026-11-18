@@ -1,0 +1,55 @@
+{
+  "schema": "pie-web-deepseek-ab-pilot-v2",
+  "status": "PILOT_VALID_NOT_CERTIFIED",
+  "provider": "infinity",
+  "model": "gambiarraapi/deepseek-v3.2",
+  "endpoint": "http://127.0.0.1:8080",
+  "fixture_url": "http://127.0.0.1:8766/index.html",
+  "pair_count": 3,
+  "gateway_tools_used": [
+    "browser_navigate",
+    "browser_snapshot",
+    "browser_click(target)",
+    "pie_web_context"
+  ],
+  "baseline": {
+    "calls": 3,
+    "input_tokens": 627,
+    "cached_input_tokens": 368,
+    "uncached_input_tokens": 259,
+    "output_tokens": 105,
+    "total_tokens": 732,
+    "oracle_pass": 3,
+    "median_latency_s": 1.8233
+  },
+  "optimized": {
+    "calls": 3,
+    "input_tokens": 563,
+    "cached_input_tokens": 400,
+    "uncached_input_tokens": 163,
+    "output_tokens": 382,
+    "total_tokens": 945,
+    "oracle_pass": 3,
+    "median_latency_s": 3.1625
+  },
+  "savings": {
+    "input_percent": 10.208,
+    "uncached_input_percent": 37.066,
+    "total_percent": -29.098,
+    "latency_percent": -73.477
+  },
+  "quality": {
+    "baseline_pass_rate": 1.0,
+    "optimized_pass_rate": 1.0,
+    "equivalent": true,
+    "marker_preserved_in_optimized_context": true
+  },
+  "method": {
+    "same_task": true,
+    "same_oracle": true,
+    "same_model": true,
+    "prompts_and_responses_persisted": false,
+    "invalid_prior_attempt_preserved": "reports/phase4-8/web-deepseek-ab-pilot-20261116-invalid-click.json"
+  },
+  "conclusion": "The PIE reduced input context modestly but increased provider output and end-to-end latency; this valid Web pilot is a negative total-token result."
+}

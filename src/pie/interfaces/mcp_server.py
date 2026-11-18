@@ -22,6 +22,7 @@ from pie.retrieval.evidence import build_evidence
 from pie.retrieval.context_pack import build_context_pack
 from pie.retrieval.evidence_atoms import build_proof_context
 from pie.retrieval.context_mesh import build_context_mesh
+from pie.interfaces.runtime_mcp import RUNTIME_OPERATIONS, query_runtime
 
 TOOLS = [
     {'name':'pie_tool_gateway','description':'Single allowlisted local read-only gateway: project_status, source_query, task_search, task_resume, context_pack, output_compact, output_get. Stores sanitized results and returns bounded payloads/recovery IDs. Not a transparent external-tool interceptor.', 'inputSchema':{'type':'object','properties':{'operation':{'type':'string','enum':list(OPERATIONS)},'arguments':{'type':'object'},'max_chars':{'type':'integer','minimum':512,'maximum':64000}},'required':['operation'],'additionalProperties':False}},
@@ -46,6 +47,7 @@ TOOLS = [
     {'name':'pie_find_definitions', 'description':'Locate every definition site of a variable, parameter, class or function, with scope and inferred type.', 'inputSchema':{'type':'object','properties':{'name':{'type':'string'},'limit':{'type':'integer','minimum':1,'maximum':500}},'required':['name'],'additionalProperties':False}},
     {'name':'pie_find_references', 'description':'Reverse lookup: who reads, writes or imports a symbol. Returns consumers with evidence.', 'inputSchema':{'type':'object','properties':{'name':{'type':'string'},'limit':{'type':'integer','minimum':1,'maximum':500}},'required':['name'],'additionalProperties':False}},
     {'name':'pie_analysis_summary', 'description':'Counts of definitions and references by kind, context and resolution verdict.', 'inputSchema':{'type':'object','properties':{},'additionalProperties':False}},
+    {'name':'pie_context_runtime', 'description':'Read-only Context Runtime metadata: task graph structure and hash-backed agent checkpoint references. Never executes operations, restores state, or creates the runtime graph.', 'inputSchema':{'type':'object','properties':{'operation':{'type':'string','enum':list(RUNTIME_OPERATIONS)},'task_id':{'type':'string','maxLength':64},'agent_id':{'type':'string','maxLength':64},'limit':{'type':'integer','minimum':1,'maximum':100}},'required':['operation','task_id'],'additionalProperties':False}},
 ]
 
 # Opt-in compact discovery reduces MCP tool-schema context. All existing
@@ -144,6 +146,7 @@ def dispatch(request: dict, root: Path, engine: MCPContextEngine | None = None,
                 'pie_find_definitions':lambda:find_definitions(root,args['name'],args.get('limit',100)),
                 'pie_find_references':lambda:find_references(root,args['name'],args.get('limit',100)),
                 'pie_analysis_summary':lambda:analysis_summary(root),
+                 'pie_context_runtime':lambda:query_runtime(root,args['operation'],args['task_id'],agent_id=args.get('agent_id'),limit=args.get('limit',100)),
             }
             result = {'content':[{'type':'text','text':json.dumps(functions[name](),ensure_ascii=False)}]}
         else:

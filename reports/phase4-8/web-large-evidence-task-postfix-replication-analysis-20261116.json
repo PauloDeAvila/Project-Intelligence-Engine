@@ -1,0 +1,34 @@
+{
+  "schema": "pie-web-large-evidence-task-postfix-replication-v1",
+  "status": "PILOT_VALID_NOT_CERTIFIED",
+  "model": "gambiarraapi/deepseek-v3.2",
+  "pairs": 3,
+  "valid_pairs": 3,
+  "reports": [
+    "reports/phase4-8/web-large-evidence-task-20261116-postfix-r1.json",
+    "reports/phase4-8/web-large-evidence-task-20261116-postfix-r2.json",
+    "reports/phase4-8/web-large-evidence-task-20261116-postfix-r3.json"
+  ],
+  "tokens": {
+    "baseline_total": 23389,
+    "optimized_total": 18209,
+    "weighted_savings_percent": 22.147,
+    "baseline_input": 23086,
+    "optimized_input": 18073,
+    "input_savings_percent": 21.714,
+    "baseline_output": 303,
+    "optimized_output": 136,
+    "output_savings_percent": 55.116
+  },
+  "latency": {
+    "mean_baseline_s": 3.3924,
+    "mean_optimized_s": 10.2211,
+    "mean_delta_percent": -201.29
+  },
+  "oracle": "3/3 in both arms",
+  "limitations": [
+    "This is a post-fix replication of the large Web task, before the strict forensic gate fields were added.",
+    "The third optimized call was much slower and dominates the mean latency.",
+    "This is local DeepSeek evidence, not official Codex certification."
+  ]
+}

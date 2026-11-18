@@ -9,15 +9,32 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import json
-from typing import Any, Sequence
+from pathlib import Path
+from typing import Any, Callable, Sequence
+
+from pie.retrieval import task_memory
 
 
 class ContextCompilationError(ValueError):
-    """The requested projection cannot be delivered without losing evidence."""
+    """The requested projection cannot be delivered without losing evidence.
+
+    ``state`` makes the failure explicit instead of a silent degradation:
+    ``INSUFFICIENT_CONTEXT`` when the requested evidence cannot be restored or
+    located, ``UNSATISFIED`` when the request itself is invalid or out of
+    budget. ``reason`` is a stable, verifiable machine-readable reason code.
+    """
+
+    def __init__(self, message: str, *,
+                 state: str = "UNSATISFIED",
+                 reason: str = "context_compilation_error") -> None:
+        super().__init__(message)
+        self.state = state
+        self.reason = reason
 
 
 PathPart = str | int
 Path = tuple[PathPart, ...]
+TokenCounter = Callable[[str], int]
 
 
 @dataclass(frozen=True)
@@ -50,21 +67,31 @@ def _canonical(value: Any) -> str:
         return json.dumps(value, ensure_ascii=False, sort_keys=True,
                           separators=(",", ":"), allow_nan=False)
     except (TypeError, ValueError) as exc:
-        raise ContextCompilationError("source is not finite JSON data") from exc
+        raise ContextCompilationError(
+            "source is not finite JSON data",
+            state="UNSATISFIED", reason="source_not_finite_json") from exc
 
 
 def _validate_paths(paths: Sequence[Sequence[PathPart]]) -> tuple[Path, ...]:
     if not isinstance(paths, (list, tuple)) or not paths or len(paths) > 128:
-        raise ContextCompilationError("at least one required source path is required")
+        raise ContextCompilationError(
+            "at least one required source path is required",
+            state="UNSATISFIED", reason="required_paths_invalid")
     normalized: list[Path] = []
     for path in paths:
         if not isinstance(path, (list, tuple)) or not path or len(path) > 32:
-            raise ContextCompilationError("invalid required source path")
+            raise ContextCompilationError(
+                "invalid required source path",
+                state="UNSATISFIED", reason="required_paths_invalid")
         if any(not isinstance(part, (str, int)) or isinstance(part, bool) for part in path):
-            raise ContextCompilationError("invalid source path component")
+            raise ContextCompilationError(
+                "invalid source path component",
+                state="UNSATISFIED", reason="required_paths_invalid")
         normalized.append(tuple(path))
     if len(set(normalized)) != len(normalized):
-        raise ContextCompilationError("duplicate required source path")
+        raise ContextCompilationError(
+            "duplicate required source path",
+            state="UNSATISFIED", reason="required_paths_invalid")
     return tuple(normalized)
 
 
@@ -76,7 +103,9 @@ def _read(value: Any, path: Path) -> Any:
         elif isinstance(current, list) and isinstance(part, int) and 0 <= part < len(current):
             current = current[part]
         else:
-            raise ContextCompilationError("required source path is unavailable")
+            raise ContextCompilationError(
+                "required source path is unavailable",
+                state="INSUFFICIENT_CONTEXT", reason="required_path_unavailable")
     return current
 
 
@@ -90,16 +119,22 @@ def _insert(target: Any, path: Path, value: Any) -> Any:
                 target.append(None)
             target[path[0]] = value
             return target
-        raise ContextCompilationError("incompatible source projection")
+        raise ContextCompilationError(
+            "incompatible source projection",
+            state="UNSATISFIED", reason="incompatible_projection")
     head, tail = path[0], path[1:]
     if isinstance(head, str):
         if not isinstance(target, dict):
-            raise ContextCompilationError("incompatible source projection")
+            raise ContextCompilationError(
+                "incompatible source projection",
+                state="UNSATISFIED", reason="incompatible_projection")
         child = target.setdefault(head, {} if isinstance(tail[0], str) else [])
         _insert(child, tail, value)
         return target
     if not isinstance(target, list) or head < 0:
-        raise ContextCompilationError("incompatible source projection")
+        raise ContextCompilationError(
+            "incompatible source projection",
+            state="UNSATISFIED", reason="incompatible_projection")
     while len(target) <= head:
         target.append(None)
     if target[head] is None:
@@ -108,26 +143,77 @@ def _insert(target: Any, path: Path, value: Any) -> Any:
     return target
 
 
+def _validate_token_counter(
+    token_counter: TokenCounter | None,
+    token_budget: int | None,
+) -> None:
+    if token_budget is None:
+        return
+    if not isinstance(token_budget, int) or isinstance(token_budget, bool) or token_budget < 1:
+        raise ContextCompilationError(
+            "token_budget is outside the safe bound",
+            state="UNSATISFIED", reason="token_budget_invalid")
+    if not callable(token_counter):
+        raise ContextCompilationError(
+            "token_budget requires a valid token_counter",
+            state="UNSATISFIED", reason="token_counter_unavailable")
+
+
+def _measure_tokens(payload: str, token_counter: TokenCounter) -> int:
+    try:
+        measured = token_counter(payload)
+    except Exception as exc:
+        raise ContextCompilationError(
+            "token_counter failed while measuring the candidate context",
+            state="UNSATISFIED", reason="token_counter_unavailable") from exc
+    if not isinstance(measured, int) or isinstance(measured, bool) or measured < 0:
+        raise ContextCompilationError(
+            "token_counter returned an invalid measurement",
+            state="UNSATISFIED", reason="token_counter_unavailable")
+    return measured
+
+
 def compile_context(
     source: Any,
     *,
     required_paths: Sequence[Sequence[PathPart]],
     max_chars: int = 4096,
     recovery_available: bool = True,
+    token_budget: int | None = None,
+    token_counter: TokenCounter | None = None,
 ) -> CompiledContext:
-    """Project explicit source fields without estimating or fabricating tokens."""
+    """Project explicit source fields without estimating or fabricating tokens.
+
+    When ``token_budget`` is provided, a callable ``token_counter`` must also be
+    provided and the candidate projection is measured with it (never estimated
+    from characters). Failure is fail-closed and no partial projection escapes.
+    """
     if not isinstance(max_chars, int) or isinstance(max_chars, bool) or not 1 <= max_chars <= 1_000_000:
-        raise ContextCompilationError("max_chars is outside the safe bound")
+        raise ContextCompilationError(
+            "max_chars is outside the safe bound",
+            state="UNSATISFIED", reason="max_chars_invalid")
+    _validate_token_counter(token_counter, token_budget)
     canonical = _canonical(source)
     if len(canonical) > 2_000_000:
-        raise ContextCompilationError("source exceeds the safe compilation bound")
+        raise ContextCompilationError(
+            "source exceeds the safe compilation bound",
+            state="UNSATISFIED", reason="source_too_large")
     paths = _validate_paths(required_paths)
+    resolved = [(path, _read(source, path)) for path in paths]
     projected: Any = {} if isinstance(paths[0][0], str) else []
-    for path in paths:
-        _insert(projected, path, _read(source, path))
+    for path, value in resolved:
+        _insert(projected, path, value)
     payload = json.dumps(projected, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     if len(payload) > max_chars:
-        raise ContextCompilationError("required evidence exceeds the context budget")
+        raise ContextCompilationError(
+            "required evidence exceeds the context budget",
+            state="UNSATISFIED", reason="evidence_exceeds_budget")
+    if token_budget is not None:
+        measured = _measure_tokens(payload, token_counter)
+        if measured > token_budget:
+            raise ContextCompilationError(
+                "required evidence exceeds the token budget",
+                state="UNSATISFIED", reason="evidence_exceeds_token_budget")
     return CompiledContext(
         "pie-context-compiler-v1",
         hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
@@ -138,4 +224,62 @@ def compile_context(
     )
 
 
-__all__ = ["CompiledContext", "ContextCompilationError", "compile_context"]
+def compile_task_checkpoint(
+    root: Path,
+    task_id: str,
+    required_paths: Sequence[Sequence[PathPart]],
+    max_chars: int = 4096,
+    token_budget: int | None = None,
+    token_counter: TokenCounter | None = None,
+) -> CompiledContext:
+    """Project only selected fields from a verified task checkpoint."""
+    try:
+        restored = task_memory.restore_state(root, task_id)
+    except ValueError as exc:
+        raise ContextCompilationError(
+            f"checkpoint restore failed: {exc}",
+            state="INSUFFICIENT_CONTEXT", reason="checkpoint_restore_failed") from exc
+    if restored.get("state") == "NOT_FOUND":
+        raise ContextCompilationError(
+            "no checkpoint found for the requested task",
+            state="INSUFFICIENT_CONTEXT", reason="checkpoint_not_found")
+    if (
+        restored.get("state") != "FOUND"
+        or "state_value" not in restored
+        or not isinstance(restored.get("state_hash"), str)
+        or not restored["state_hash"]
+    ):
+        raise ContextCompilationError(
+            "invalid checkpoint shape returned by restore_state",
+            state="INSUFFICIENT_CONTEXT", reason="checkpoint_invalid_shape")
+    try:
+        compiled = compile_context(
+            restored["state_value"],
+            required_paths=required_paths,
+            max_chars=max_chars,
+            recovery_available=True,
+            token_budget=token_budget,
+            token_counter=token_counter,
+        )
+    except ContextCompilationError:
+        raise
+    except ValueError as exc:
+        raise ContextCompilationError(
+            f"checkpoint compilation failed: {exc}",
+            state="UNSATISFIED", reason="checkpoint_compilation_failed") from exc
+    return CompiledContext(
+        "pie-task-context-compiler-v1",
+        restored["state_hash"],
+        compiled.data,
+        compiled.selected_paths,
+        compiled.omitted_paths,
+        compiled.recovery_available,
+    )
+
+
+__all__ = [
+    "CompiledContext",
+    "ContextCompilationError",
+    "compile_context",
+    "compile_task_checkpoint",
+]

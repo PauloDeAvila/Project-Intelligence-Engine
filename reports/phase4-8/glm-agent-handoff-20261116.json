@@ -1,0 +1,31 @@
+{
+  "schema": "pie-glm-handoff-probe-v1",
+  "status": "PASS_EXTERNAL_CONTROLLED_CHECKPOINT",
+  "model": "gambiarraapi/glm-5.3-flash",
+  "task_id": "ccac5c3f-309a-48a0-864f-40beea66cbc6",
+  "source_agent": "codex",
+  "source_agent_execution": "checkpoint authored by local runtime; official Codex model call not executed",
+  "target_agent": "glm",
+  "restart_between_checkpoint_and_restore": true,
+  "full_task_history_sent_to_target": false,
+  "source_checkpoint_hash": "d6a5a5de60600e3d8cc9a8952cb37a1d4d823122aa107dd6404b2e0492a5cfdf",
+  "handoff_state": "HANDOFF_CREATED",
+  "restored_state": "FOUND",
+  "restored_hash_matches_handoff": true,
+  "compiled_source_sha256": "d6a5a5de60600e3d8cc9a8952cb37a1d4d823122aa107dd6404b2e0492a5cfdf",
+  "oracle_pass": true,
+  "provider_usage_status": "available",
+  "target_usage": {
+    "actual_model": "gambiarraapi/glm-5.3-flash",
+    "input_tokens": 69,
+    "output_tokens": 34,
+    "total_tokens": 103,
+    "latency_s": 7.1817
+  },
+  "privacy": {
+    "prompts_persisted": false,
+    "complete_responses_persisted": false,
+    "credentials_persisted": false
+  },
+  "scope": "one controlled local handoff; not general multi-agent certification"
+}

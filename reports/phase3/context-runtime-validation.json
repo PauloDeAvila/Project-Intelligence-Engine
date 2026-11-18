@@ -1,0 +1,52 @@
+{
+  "schema": "pie-context-runtime-validation-v1",
+  "implementation": {
+    "state_engine": "delegated_to_existing_task_memory",
+    "context_compiler": "delegated_to_existing_context_compiler",
+    "local_execution": "implemented",
+    "adaptive_runtime": "delegated_to_existing_adaptive_runtime",
+    "multi_agent_memory": "implemented_over_verified_checkpoints",
+    "continuous_certification": "delegated_to_existing_regression_evaluator",
+    "task_graph": "implemented"
+  },
+  "validation": {
+    "focused_tests": {
+      "passed": 24,
+      "failed": 0
+    },
+    "full_suite": {
+      "passed": 496,
+      "skipped": 4,
+      "subtests_passed": 126,
+      "failed": 0
+    },
+    "compileall": "PASS",
+    "integration_smoke": {
+      "checkpoint_compiled": {"fact": {"value": 3}},
+      "adaptive_choice": "small",
+      "local_first": "SUCCESS",
+      "local_second": "REPLAYED",
+      "graph_order": ["a", "b"]
+    },
+    "wheel_build": "PASS",
+    "pie_index": {
+      "state": "CURRENT",
+      "workspace_match": true,
+      "files": 251,
+      "symbols": 1868,
+      "diagnostics": []
+    }
+  },
+  "provider": {
+    "model": "gambiarraapi/glm-5.3-flash",
+    "discovery": "PASS",
+    "health": "PASS",
+    "completion_usage": "UNAVAILABLE_TIMEOUT",
+    "upstream_probe": "HTTP_429_TOO_MANY_REQUESTS",
+    "real_token_benchmark": "NOT_RUN"
+  },
+  "certification": {
+    "status": "NOT_CERTIFIED",
+    "reason": "The local GLM completion route timed out; no provider usage was received."
+  }
+}

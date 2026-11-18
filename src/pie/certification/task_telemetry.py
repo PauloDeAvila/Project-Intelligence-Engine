@@ -94,7 +94,8 @@ def record_task(root: Path, *, surface: str, tool: str, state: str,
                 app: str | None = None, task_id: str | None = None,
                 run_id: str | None = None, pair_id: str | None = None,
                 condition: str | None = None,
-                status: str | None = None) -> None:
+                status: str | None = None,
+                source_event_id: str | None = None) -> None:
     app = app or os.environ.get("PIE_APP") or app_for(surface, tool)
     task_id = task_id or task_id_from_env()
     run_id = run_id or _run_id()
@@ -107,16 +108,22 @@ def record_task(root: Path, *, surface: str, tool: str, state: str,
         raise ValueError("Invalid character counts")
     if isinstance(elapsed_ms, bool) or not isinstance(elapsed_ms, (int, float)) or elapsed_ms < 0:
         raise ValueError("Invalid elapsed time")
+    if source_event_id is not None and not _ALLOWED.fullmatch(source_event_id):
+        raise ValueError("Invalid source event identifier")
     with closing(_connect(root)) as db:
         with db:
             db.executescript(SCHEMA)
-            db.execute(
-                """INSERT INTO pie_task_usage
+            cursor = db.execute(
+                """INSERT OR IGNORE INTO pie_task_usage
                 (created_utc,app,task_id,pair_id,run_id,surface,tool,tool_name,state,status,
-                 source_chars,returned_chars,elapsed_ms,condition) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                 source_chars,returned_chars,elapsed_ms,condition,source_event_id)
+                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (datetime.now(timezone.utc).isoformat(), app, task_id, pair_id, run_id,
                  surface, tool[:120], tool[:120], state[:60], status[:60],
-                 source_chars, returned_chars, float(elapsed_ms), condition[:60]))
+                 source_chars, returned_chars, float(elapsed_ms), condition[:60],
+                 source_event_id))
+            if cursor.rowcount == 0:
+                return
             db.execute("""DELETE FROM pie_task_usage WHERE id NOT IN
                 (SELECT id FROM pie_task_usage ORDER BY id DESC LIMIT 100000)""")
 

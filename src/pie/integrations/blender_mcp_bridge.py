@@ -260,7 +260,8 @@ class BlenderMcpBridge:
     """Forward MCP JSON-RPC frames; intercept only tool discovery and read results."""
 
     def __init__(self, upstream: list[str], max_chars: int = 2400,
-                 exposed_tools: frozenset[str] = frozenset()) -> None:
+                 exposed_tools: frozenset[str] = frozenset(),
+                 delta_store: str | None = None) -> None:
         if not upstream:
             raise ValueError("upstream command is required")
         if type(max_chars) is not int or not MIN_BUDGET <= max_chars <= MAX_BUDGET:
@@ -269,7 +270,7 @@ class BlenderMcpBridge:
         self.max_chars = max_chars
         self.exposed_tools = exposed_tools
         self.snapshots = SnapshotStore()
-        self.delta_cache = SceneDeltaCache()
+        self.delta_cache = SceneDeltaCache(root=delta_store)
         self.delta_options: dict[str, int] = {}
         self.query_clients: dict[str, Any] = {}
         self.pending: dict[str, str] = {}
@@ -503,6 +504,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-chars", type=int, default=2400)
     parser.add_argument("--expose-tool", action="append", default=[])
     parser.add_argument(
+        "--delta-store", default=None,
+        help="Workspace root passed to the Blender scene delta cache; "
+             "must be a directory with .pie/index.sqlite3. "
+             "Defaults to --workspace. This is NOT a standalone cache directory.")
+    parser.add_argument(
         "upstream", nargs=argparse.REMAINDER,
         help="Command after --; default: uvx mcp-for-blender",
     )
@@ -511,7 +517,8 @@ def main(argv: list[str] | None = None) -> int:
     if upstream and upstream[0] == "--":
         upstream = upstream[1:]
     return BlenderMcpBridge(upstream or ["uvx", "mcp-for-blender"], args.max_chars,
-                            frozenset(args.expose_tool)).run()
+                            frozenset(args.expose_tool),
+                            delta_store=args.delta_store).run()
 
 
 if __name__ == "__main__":

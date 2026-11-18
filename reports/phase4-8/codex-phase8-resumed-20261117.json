@@ -1,0 +1,136 @@
+{
+  "schema": "pie-phase4-8-codex-resumed-v1",
+  "status": "NOT_CERTIFIED",
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "implementation_head": "35f055ada1ebbbe8f05c2a39ae9797fbbe2e5141",
+  "benchmark_worktree_commit": "5f7081ed941d402a58c49b15280164241f23e42d",
+  "index": {
+    "state": "CURRENT",
+    "workspace_match": true,
+    "files": 280,
+    "symbols": 2285,
+    "imports": 2650,
+    "diagnostics": []
+  },
+  "preflight": {
+    "blender": "READY_FOR_BENCHMARK",
+    "web": "READY_FOR_BENCHMARK",
+    "model_started": false,
+    "quota_consumed": false,
+    "checks": [
+      "isolated temporary Codex home",
+      "gpt-5.6-luna and medium",
+      "exact MCP allowlists",
+      "Blender 5.3 upstream",
+      "Playwright @playwright/mcp@0.0.85 and Node 26.13.1",
+      "PIE source commit and workspace match"
+    ]
+  },
+  "blender": {
+    "scenario_id": "blender-live-default-cube-codex-v2",
+    "valid_pairs": 2,
+    "invalid_attempts": [
+      {
+        "pair_id": "codex-blender-default-cube-v2-r3",
+        "run_id": "baseline-blender-default-cube-v2-r3",
+        "reason": "oracle_failed",
+        "input_tokens": 49132,
+        "cached_input_tokens": 41472,
+        "output_tokens": 336,
+        "mcp_calls": 2,
+        "record": "reports/phase4-8/codex-blender-default-cube-v2-baseline-r3-20261117.json"
+      },
+      {
+        "pair_id": "codex-blender-default-cube-v2-r4",
+        "run_id": "baseline-blender-default-cube-v2-r4",
+        "reason": "oracle_failed",
+        "input_tokens": 68453,
+        "cached_input_tokens": 59776,
+        "output_tokens": 602,
+        "mcp_calls": 2,
+        "record": "reports/phase4-8/codex-blender-default-cube-v2-baseline-r4-20261117-record.json"
+      }
+    ],
+    "pairs": [
+      {
+        "pair_id": "codex-blender-default-cube-v2-r1",
+        "baseline": {"input_tokens": 67266, "cached_input_tokens": 59136, "uncached_input_tokens": 8130, "output_tokens": 513, "total_tokens": 67779, "latency_ms": 15936.863, "mcp_calls": 2},
+        "optimized": {"input_tokens": 89584, "cached_input_tokens": 73856, "uncached_input_tokens": 15728, "output_tokens": 300, "total_tokens": 89884, "latency_ms": 20656.764, "mcp_calls": 2},
+        "oracle": "2/2",
+        "savings_total_percent": -32.613346,
+        "savings_uncached_input_percent": -93.456335,
+        "latency_delta_percent": 29.616249
+      },
+      {
+        "pair_id": "codex-blender-default-cube-v2-r2",
+        "baseline": {"input_tokens": 50588, "cached_input_tokens": 25088, "uncached_input_tokens": 25500, "output_tokens": 449, "total_tokens": 51037, "latency_ms": 14638.913, "mcp_calls": 2},
+        "optimized": {"input_tokens": 48924, "cached_input_tokens": 41856, "uncached_input_tokens": 7068, "output_tokens": 284, "total_tokens": 49208, "latency_ms": 16106.206, "mcp_calls": 2},
+        "oracle": "2/2",
+        "savings_total_percent": 3.583675,
+        "savings_uncached_input_percent": 72.282353,
+        "latency_delta_percent": 10.023237
+      }
+    ],
+    "aggregate_valid_pairs": {
+      "baseline_total_tokens": 118816,
+      "optimized_total_tokens": 139092,
+      "savings_total_percent": -17.065042,
+      "baseline_uncached_input_tokens": 33630,
+      "optimized_uncached_input_tokens": 22796,
+      "savings_uncached_input_percent": 32.215284,
+      "mean_baseline_latency_ms": 15287.888,
+      "mean_optimized_latency_ms": 18381.485,
+      "latency_delta_percent": 20.235607,
+      "baseline_mcp_calls": 4,
+      "optimized_mcp_calls": 4
+    }
+  },
+  "web": {
+    "scenario_id": "web-local-fixture-codex-v2",
+    "fixture": "http://127.0.0.1:8766/index.html",
+    "valid_pairs": 3,
+    "pairs": [
+      {"pair_id": "codex-web-fixture-v2-r1", "baseline_total_tokens": 91470, "optimized_total_tokens": 170025, "savings_total_percent": -85.880617, "baseline_uncached_input_tokens": 15873, "optimized_uncached_input_tokens": 17108, "savings_uncached_input_percent": -7.780508, "baseline_cached_input_tokens": 75264, "optimized_cached_input_tokens": 152576, "baseline_output_tokens": 333, "optimized_output_tokens": 341, "baseline_latency_ms": 20606.327, "optimized_latency_ms": 23958.614, "latency_delta_percent": 16.268241, "mcp_calls_baseline": 4, "mcp_calls_optimized": 4, "oracle": "2/2"},
+      {"pair_id": "codex-web-fixture-v2-r2", "baseline_total_tokens": 142960, "optimized_total_tokens": 142780, "savings_total_percent": 0.125909, "baseline_uncached_input_tokens": 16562, "optimized_uncached_input_tokens": 16552, "savings_uncached_input_percent": 0.060379, "baseline_cached_input_tokens": 126080, "optimized_cached_input_tokens": 125952, "baseline_output_tokens": 318, "optimized_output_tokens": 276, "baseline_latency_ms": 19342.831, "optimized_latency_ms": 20789.467, "latency_delta_percent": 7.478926, "mcp_calls_baseline": 4, "mcp_calls_optimized": 4, "oracle": "2/2"},
+      {"pair_id": "codex-web-fixture-v2-r3", "baseline_total_tokens": 95760, "optimized_total_tokens": 170949, "savings_total_percent": -78.518170, "baseline_uncached_input_tokens": 7139, "optimized_uncached_input_tokens": 17420, "savings_uncached_input_percent": -144.011766, "baseline_cached_input_tokens": 88320, "optimized_cached_input_tokens": 153088, "baseline_output_tokens": 301, "optimized_output_tokens": 441, "baseline_latency_ms": 20287.160, "optimized_latency_ms": 22183.124, "latency_delta_percent": 9.345635, "mcp_calls_baseline": 4, "mcp_calls_optimized": 4, "oracle": "2/2"}
+    ],
+    "aggregate": {
+      "baseline_total_tokens": 330190,
+      "optimized_total_tokens": 483754,
+      "savings_total_percent": -46.507768,
+      "baseline_uncached_input_tokens": 39574,
+      "optimized_uncached_input_tokens": 51080,
+      "savings_uncached_input_percent": -29.074645,
+      "mean_baseline_latency_ms": 20078.773,
+      "mean_optimized_latency_ms": 22310.402,
+      "latency_delta_percent": 11.114370,
+      "baseline_mcp_calls": 12,
+      "optimized_mcp_calls": 12
+    }
+  },
+  "cost": {
+    "status": "UNAVAILABLE",
+    "total": null,
+    "reason": "No verified tariff for gpt-5.6-luna"
+  },
+  "quality": {
+    "valid_blender_oracles": "4/4",
+    "valid_web_oracles": "6/6",
+    "external_pages_modified": false,
+    "blender_scene_modified": false,
+    "credentials_or_transcripts_stored": false
+  },
+  "tests": {
+    "full_suite": "730 passed, 4 skipped, 126 subtests passed",
+    "command": "PYTHONPATH=. uv run pytest -q --basetemp .pytest-tmp-final-resume-pyroot",
+    "pie_reindex": "CURRENT; 280 files; 2285 symbols; 2650 imports; diagnostics=[]"
+  },
+  "commits": ["d1b5710", "991f44f", "35f055a"],
+  "limitations": [
+    "Blender has two valid pairs and two invalid baseline attempts; the optimized arm of R3/R4 was not started after fail-closed oracle rejection.",
+    "The Web optimized gateway increased total tokens in aggregate; no generic Web savings claim is supported.",
+    "The report measures Codex provider usage, not billing; cost remains null.",
+    "The benchmark worktree used temporary profiles and did not modify the persistent Codex config.toml."
+  ]
+}

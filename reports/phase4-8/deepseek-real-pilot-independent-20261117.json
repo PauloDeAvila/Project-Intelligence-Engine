@@ -1,0 +1,57 @@
+{
+  "schema": "pie-phase8-independent-provider-pilot-v1",
+  "status": "PILOT_VALID_NOT_CERTIFIED",
+  "provider": "infinity",
+  "model": "gambiarraapi/deepseek-v3.2",
+  "endpoint": "http://127.0.0.1:8080",
+  "corpus": {
+    "repository": "Textualize/rich",
+    "commit": "3a109ccdffe5b2d0e30684a304fbd388e99ce57b",
+    "tasks": 6,
+    "calls": 12,
+    "seed": 20261117,
+    "output_token_cap": 512,
+    "paired_evidence": {
+      "baseline": 6,
+      "pie": 6
+    }
+  },
+  "baseline": {
+    "input_tokens": 52466,
+    "cached_input_tokens": 3343,
+    "uncached_input_tokens": 49123,
+    "output_tokens": 269,
+    "total_tokens": 52735,
+    "correct": 6,
+    "median_latency_s": 2.3556,
+    "p95_latency_s": 3.22392
+  },
+  "pie": {
+    "input_tokens": 3106,
+    "cached_input_tokens": 1550,
+    "uncached_input_tokens": 1556,
+    "output_tokens": 437,
+    "total_tokens": 3543,
+    "correct": 6,
+    "median_latency_s": 2.7277,
+    "p95_latency_s": 3.01467
+  },
+  "savings": {
+    "input_percent": 94.08,
+    "uncached_input_percent": 96.832,
+    "total_percent": 93.282,
+    "p95_latency_percent": 6.797
+  },
+  "quality": {
+    "baseline_pass_rate": 1.0,
+    "pie_pass_rate": 1.0,
+    "equivalent": true
+  },
+  "limitations": [
+    "Different seed from the previous pilot; task-set disjointness was verified post-run from audit.json, not enforced by the runner.",
+    "This is local-provider evidence, not official Codex certification.",
+    "It does not establish Blender/Web generalization or full statistical certification."
+  ],
+  "source_summary": "reports/phase4-8/deepseek-real-pilot-independent-20261117/summary.json",
+  "source_results": "reports/phase4-8/deepseek-real-pilot-independent-20261117/results.json"
+}

@@ -1,0 +1,314 @@
+"""Controlled Web task: DeepSeek chooses an action, PIE preserves the result."""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import re
+import subprocess
+import sys
+import time
+import urllib.request
+import uuid
+from pathlib import Path
+from urllib.parse import urlparse
+
+try:
+    from phase8_web_large_deepseek_pilot import ORACLE
+except ModuleNotFoundError:
+    from tools.phase8_web_large_deepseek_pilot import ORACLE
+
+TASK_PROFILES = {
+    "large": {
+        "oracle": ORACLE,
+        "action": "reveal",
+        "button_label": "Reveal large phase marker",
+    },
+    "summary": {
+        "oracle": {
+            "title": "PIE Summary Web Fixture",
+            "status": "The deterministic summary fixture is ready.",
+            "marker": "PIE_WEB_SUMMARY_FIXTURE_V1",
+        },
+        "action": "show_summary",
+        "button_label": "Show summary",
+    },
+}
+
+
+class McpSession:
+    def __init__(self, command: list[str], root: Path) -> None:
+        self.process = subprocess.Popen(
+            command,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            encoding="utf-8",
+            bufsize=1,
+            cwd=root,
+        )
+        self.request_id = 0
+        self.calls: list[str] = []
+
+    def call(self, method: str, params: dict | None = None) -> dict:
+        self.request_id += 1
+        self.calls.append(method)
+        request = {"jsonrpc": "2.0", "id": self.request_id, "method": method, "params": params or {}}
+        assert self.process.stdin is not None and self.process.stdout is not None
+        self.process.stdin.write(json.dumps(request) + "\n")
+        self.process.stdin.flush()
+        deadline = time.monotonic() + 45
+        while time.monotonic() < deadline:
+            line = self.process.stdout.readline()
+            if not line:
+                raise RuntimeError("MCP process exited before response")
+            response = json.loads(line)
+            if response.get("id") == self.request_id:
+                return response
+        raise TimeoutError(method)
+
+    def close(self) -> None:
+        if self.process.poll() is None:
+            self.process.kill()
+        self.process.wait(timeout=20)
+
+
+def _result_text(value: object) -> str:
+    parts: list[str] = []
+
+    def walk(item: object) -> None:
+        if isinstance(item, dict):
+            if isinstance(item.get("text"), str):
+                parts.append(item["text"])
+            for child in item.values():
+                walk(child)
+        elif isinstance(item, list):
+            for child in item:
+                walk(child)
+
+    walk(value)
+    return "\n".join(parts)
+
+
+def _visible_snapshot(result: dict) -> str:
+    text = _result_text(result)
+    try:
+        payload = json.loads(text)
+    except (TypeError, ValueError):
+        return text
+    if isinstance(payload, dict):
+        return str(payload.get("preview") or text)
+    return text
+
+
+def _extract_source_evidence(result: dict, oracle: dict[str, str]) -> dict[str, str]:
+    source = _result_text(result)
+    return {field: value for field, value in oracle.items() if value in source}
+
+
+def _provider_call(base_url: str, key: str, model: str, context: dict,
+                   task: dict, max_output_tokens: int) -> dict:
+    fields = list(task["oracle"])
+    prompt = (
+        "Perform the local web task. Return only JSON with exactly these keys: "
+        + json.dumps({"action": task["action"], "target_ref": "...", "fields": fields})
+        + ". Choose target_ref for the button labeled "
+        + json.dumps(task["button_label"])
+        + " from the visible browser snapshot. "
+        "Do not copy page values and do not invent references."
+        "\n\nBROWSER_CONTEXT:\n"
+        + json.dumps(context, ensure_ascii=False, separators=(",", ":"))
+    )
+    prompt_sha256 = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": "Return only valid JSON."},
+            {"role": "user", "content": prompt},
+        ],
+        "temperature": 0,
+        "max_tokens": max_output_tokens,
+        "stream": False,
+        "response_format": {"type": "json_object"},
+    }
+    request = urllib.request.Request(
+        base_url.rstrip("/") + "/v1/chat/completions",
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"},
+    )
+    started = time.perf_counter()
+    with urllib.request.urlopen(request, timeout=60) as response:
+        result = json.load(response)
+    choice = result["choices"][0]
+    content = (choice.get("message") or {}).get("content") or ""
+    if isinstance(content, list):
+        content = "".join(part.get("text", "") for part in content if isinstance(part, dict))
+    content = content.strip()
+    if content.startswith("```"):
+        content = content.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+    try:
+        plan = json.loads(content)
+    except (TypeError, ValueError):
+        plan = {"raw_excerpt": content[:300]}
+    usage = result.get("usage") or {}
+    return {
+        "plan": plan,
+        "usage": usage,
+        "finish_reason": choice.get("finish_reason"),
+        "latency_s": round(time.perf_counter() - started, 4),
+        "prompt_sha256": prompt_sha256,
+        "actual_model": result.get("model"),
+    }
+
+
+def _run_arm(command: list[str], root: Path, url: str, base_url: str, key: str,
+             model: str, task: dict, max_output_tokens: int, arm: str) -> dict:
+    session = McpSession(command, root)
+    route = "upstream_mcp" if arm == "baseline" else "pie_gateway"
+    try:
+        session.call(
+            "initialize",
+            {"protocolVersion": "2025-03-26", "capabilities": {}, "clientInfo": {"name": "phase8-web-task", "version": "1"}},
+        )
+        assert session.process.stdin is not None
+        session.process.stdin.write(json.dumps({"jsonrpc": "2.0", "method": "notifications/initialized"}) + "\n")
+        session.process.stdin.flush()
+        tools = session.call("tools/list").get("result", {}).get("tools", [])
+        navigate = session.call("tools/call", {"name": "browser_navigate", "arguments": {"url": url}})
+        before = session.call("tools/call", {"name": "browser_snapshot", "arguments": {}})
+        visible = _visible_snapshot(before.get("result", {}))
+        match = re.search(
+            rf"button .*{re.escape(task['button_label'])}.*\[ref=([a-z][0-9]+)\]",
+            visible,
+            re.IGNORECASE,
+        )
+        if not match:
+            raise RuntimeError("button reference absent from visible snapshot")
+        target_ref = match.group(1)
+        context = {"tools": tools, "navigate": navigate.get("result", {}), "snapshot_before": before.get("result", {})}
+        inference = _provider_call(base_url, key, model, context, task, max_output_tokens)
+        expected_plan = {"action": task["action"], "target_ref": target_ref, "fields": list(task["oracle"])}
+        plan_oracle = inference["plan"] == expected_plan
+        if not plan_oracle:
+            return {
+                "tool_count": len(tools),
+                "arm": arm,
+                "route": route,
+                "route_verified": True,
+                "mcp_calls": len(session.calls),
+                "mcp_methods": session.calls,
+                "automatic_retry": False,
+                "context_chars": len(json.dumps(context, ensure_ascii=False, separators=(",", ":"))),
+                "plan": inference["plan"],
+                "plan_oracle_pass": False,
+                "source_oracle_pass": False,
+                "task_oracle_pass": False,
+                "usage": inference["usage"],
+                "provider_usage_status": "available" if all(isinstance(inference["usage"].get(key), int) for key in ("prompt_tokens", "completion_tokens", "total_tokens")) else "unavailable",
+                "cache_observed": isinstance((inference["usage"].get("prompt_tokens_details") or {}).get("cached_tokens"), int),
+                "prompt_sha256": inference["prompt_sha256"],
+                "actual_model": inference["actual_model"],
+                "finish_reason": inference["finish_reason"],
+                "latency_s": inference["latency_s"],
+            }
+        click = session.call("tools/call", {"name": "browser_click", "arguments": {"target": target_ref}})
+        after = session.call("tools/call", {"name": "browser_snapshot", "arguments": {}})
+        source_results = {
+            "navigate": navigate.get("result", {}),
+            "snapshot_before": before.get("result", {}),
+            "snapshot_after": after.get("result", {}),
+        }
+        reconstructed = _extract_source_evidence(source_results, task["oracle"])
+        navigate_ok = not navigate.get("result", {}).get("isError", False)
+        click_ok = not click.get("result", {}).get("isError", False)
+        return {
+            "tool_count": len(tools),
+            "arm": arm,
+            "route": route,
+            "route_verified": True,
+            "mcp_calls": len(session.calls),
+            "mcp_methods": session.calls,
+            "automatic_retry": False,
+            "context_chars": len(json.dumps(context, ensure_ascii=False, separators=(",", ":"))),
+            "navigate_ok": navigate_ok,
+            "click_ok": click_ok,
+            "plan": inference["plan"],
+            "plan_oracle_pass": True,
+            "reconstructed_evidence": reconstructed,
+            "source_oracle_pass": reconstructed == task["oracle"],
+            "task_oracle_pass": navigate_ok and click_ok and reconstructed == task["oracle"],
+            "usage": inference["usage"],
+            "provider_usage_status": "available" if all(isinstance(inference["usage"].get(key), int) for key in ("prompt_tokens", "completion_tokens", "total_tokens")) else "unavailable",
+            "cache_observed": isinstance((inference["usage"].get("prompt_tokens_details") or {}).get("cached_tokens"), int),
+            "prompt_sha256": inference["prompt_sha256"],
+            "actual_model": inference["actual_model"],
+            "finish_reason": inference["finish_reason"],
+            "latency_s": inference["latency_s"],
+        }
+    finally:
+        session.close()
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--url", required=True)
+    parser.add_argument("--key-file", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--model", default="gambiarraapi/deepseek-v3.2")
+    parser.add_argument("--base-url", default="http://127.0.0.1:8080")
+    parser.add_argument("--max-chars", type=int, default=2400)
+    parser.add_argument("--max-output-tokens", type=int, default=512)
+    parser.add_argument("--pair-id", default=None)
+    parser.add_argument("--replication-index", type=int, default=None)
+    parser.add_argument("--profile", choices=tuple(TASK_PROFILES), default="large")
+    args = parser.parse_args()
+    if not 1 <= args.max_output_tokens <= 4096:
+        raise SystemExit("--max-output-tokens must be between 1 and 4096")
+    task = TASK_PROFILES[args.profile]
+    pair_id = args.pair_id or f"web-large-evidence-task-{uuid.uuid4().hex}"
+    task_prompt_sha256 = hashlib.sha256(json.dumps(
+        {"action": task["action"], "button_label": task["button_label"], "fields": list(task["oracle"])},
+        sort_keys=True,
+    ).encode("utf-8")).hexdigest()
+    root = Path(__file__).resolve().parents[1]
+    key = args.key_file.read_text(encoding="utf-8").strip()
+    upstream = [r"C:\Program Files\nodejs\npx.cmd", "--yes", "@playwright/mcp@0.0.85", "--headless", "--browser", "chrome"]
+    optimized = [sys.executable, "-m", "pie.gateway.domain", "serve", "--domain", "web", "--workspace", str(root), "--max-chars", str(args.max_chars), "--", *upstream]
+    baseline = _run_arm(upstream, root, args.url, args.base_url, key, args.model, task, args.max_output_tokens, "baseline")
+    optimized_arm = _run_arm(optimized, root, args.url, args.base_url, key, args.model, task, args.max_output_tokens, "optimized")
+    baseline["run_id"] = f"{pair_id}-baseline"
+    optimized_arm["run_id"] = f"{pair_id}-optimized"
+    report = {
+        "schema": "pie-web-evidence-task-v1",
+        "pair_id": pair_id,
+        "replication_index": args.replication_index,
+        "profile": args.profile,
+        "task_id": f"web-{args.profile}-evidence-v1",
+        "prompt_sha256": task_prompt_sha256,
+        "status": "PILOT_VALID_NOT_CERTIFIED" if baseline["task_oracle_pass"] and optimized_arm["task_oracle_pass"] else "PILOT_INVALID_QUALITY",
+        "scope": "end_to_end_controlled_task; model selects action, code executes MCP and preserves values",
+        "model": args.model,
+        "url": args.url,
+        "oracle": task["oracle"],
+        "max_output_tokens": args.max_output_tokens,
+        "configuration_sha256": hashlib.sha256(json.dumps({"model": args.model, "url": args.url, "profile": args.profile, "max_chars": args.max_chars, "max_output_tokens": args.max_output_tokens}, sort_keys=True).encode("utf-8")).hexdigest(),
+        "fixture_sha256": hashlib.sha256((root / urlparse(args.url).path.lstrip("/")).read_bytes()).hexdigest() if (root / urlparse(args.url).path.lstrip("/")).is_file() else None,
+        "retry_count": 0,
+        "baseline": baseline,
+        "optimized": optimized_arm,
+    }
+    for arm_name in ("baseline", "optimized"):
+        usage = report[arm_name].get("usage") or {}
+        report[arm_name]["input_tokens"] = usage.get("prompt_tokens")
+        report[arm_name]["output_tokens"] = usage.get("completion_tokens")
+        report[arm_name]["total_tokens"] = usage.get("total_tokens")
+    if all(isinstance(report[name]["total_tokens"], int) for name in ("baseline", "optimized")):
+        report["savings"] = {"input_percent": round(100 * (1 - report["optimized"]["input_tokens"] / report["baseline"]["input_tokens"]), 3), "total_percent": round(100 * (1 - report["optimized"]["total_tokens"] / report["baseline"]["total_tokens"]), 3)}
+    args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps({k: report[k] for k in ("status", "baseline", "optimized", "savings") if k in report}, ensure_ascii=False))
+    return 0 if report["status"] == "PILOT_VALID_NOT_CERTIFIED" else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

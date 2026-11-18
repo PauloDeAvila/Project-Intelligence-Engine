@@ -1,0 +1,141 @@
+{
+  "schema": "pie-web-evidence-task-v1",
+  "pair_id": "web-summary-gated-indexed-20261116-r1",
+  "replication_index": 1,
+  "profile": "summary",
+  "task_id": "web-summary-evidence-v1",
+  "prompt_sha256": "21e5ba19852ca48959ff2f0284be2d27a74bffd344821d2888e13af8b0088964",
+  "status": "PILOT_VALID_NOT_CERTIFIED",
+  "scope": "end_to_end_controlled_task; model selects action, code executes MCP and preserves values",
+  "model": "gambiarraapi/deepseek-v3.2",
+  "url": "http://127.0.0.1:8767/fixtures/phase4-8/web-summary/index.html",
+  "oracle": {
+    "title": "PIE Summary Web Fixture",
+    "status": "The deterministic summary fixture is ready.",
+    "marker": "PIE_WEB_SUMMARY_FIXTURE_V1"
+  },
+  "max_output_tokens": 512,
+  "configuration_sha256": "9cd8191b55a149c60d4bb40b02a3c655ae64bdcc1c18e3228758f7525d97eaea",
+  "fixture_sha256": "4824c00fe2827f0b96d6813f24a4f074a77940f8c26d7a98c9fcedb07c563c84",
+  "retry_count": 0,
+  "baseline": {
+    "tool_count": 25,
+    "arm": "baseline",
+    "route": "upstream_mcp",
+    "route_verified": true,
+    "mcp_calls": 6,
+    "mcp_methods": [
+      "initialize",
+      "tools/list",
+      "tools/call",
+      "tools/call",
+      "tools/call",
+      "tools/call"
+    ],
+    "automatic_retry": false,
+    "context_chars": 26345,
+    "navigate_ok": true,
+    "click_ok": true,
+    "plan": {
+      "action": "show_summary",
+      "target_ref": "e6",
+      "fields": [
+        "title",
+        "status",
+        "marker"
+      ]
+    },
+    "plan_oracle_pass": true,
+    "reconstructed_evidence": {
+      "title": "PIE Summary Web Fixture",
+      "status": "The deterministic summary fixture is ready.",
+      "marker": "PIE_WEB_SUMMARY_FIXTURE_V1"
+    },
+    "source_oracle_pass": true,
+    "task_oracle_pass": true,
+    "usage": {
+      "completion_tokens": 64,
+      "completion_tokens_details": {
+        "reasoning_tokens": 39
+      },
+      "prompt_tokens": 6764,
+      "prompt_tokens_details": {
+        "cached_tokens": 5195
+      },
+      "total_tokens": 6828
+    },
+    "provider_usage_status": "available",
+    "cache_observed": true,
+    "prompt_sha256": "345a7034c0c925296a18d1a2da406e5c9dc55de8f86c1bf6807de51cdb2d36d4",
+    "actual_model": "gambiarraapi/deepseek-v3.2",
+    "finish_reason": "stop",
+    "latency_s": 2.8542,
+    "run_id": "web-summary-gated-indexed-20261116-r1-baseline",
+    "input_tokens": 6764,
+    "output_tokens": 64,
+    "total_tokens": 6828
+  },
+  "optimized": {
+    "tool_count": 26,
+    "arm": "optimized",
+    "route": "pie_gateway",
+    "route_verified": true,
+    "mcp_calls": 6,
+    "mcp_methods": [
+      "initialize",
+      "tools/list",
+      "tools/call",
+      "tools/call",
+      "tools/call",
+      "tools/call"
+    ],
+    "automatic_retry": false,
+    "context_chars": 23906,
+    "navigate_ok": true,
+    "click_ok": true,
+    "plan": {
+      "action": "show_summary",
+      "target_ref": "e6",
+      "fields": [
+        "title",
+        "status",
+        "marker"
+      ]
+    },
+    "plan_oracle_pass": true,
+    "reconstructed_evidence": {
+      "title": "PIE Summary Web Fixture",
+      "status": "The deterministic summary fixture is ready.",
+      "marker": "PIE_WEB_SUMMARY_FIXTURE_V1"
+    },
+    "source_oracle_pass": true,
+    "task_oracle_pass": true,
+    "usage": {
+      "completion_tokens": 31,
+      "completion_tokens_details": {
+        "text_tokens": 31
+      },
+      "prompt_tokens": 5849,
+      "prompt_tokens_details": {
+        "cached_tokens": 5229,
+        "image_tokens": 0,
+        "text_tokens": 5849
+      },
+      "total_tokens": 5880
+    },
+    "provider_usage_status": "available",
+    "cache_observed": true,
+    "prompt_sha256": "e39e4acfa60e18e4fc44e7a8643d8295dea6ab85401ef3cf66dfcbb1db1537e6",
+    "actual_model": "gambiarraapi/deepseek-v3.2",
+    "finish_reason": "stop",
+    "latency_s": 2.9242,
+    "run_id": "web-summary-gated-indexed-20261116-r1-optimized",
+    "input_tokens": 5849,
+    "output_tokens": 31,
+    "total_tokens": 5880
+  },
+  "savings": {
+    "input_percent": 13.527,
+    "total_percent": 13.884
+  }
+}

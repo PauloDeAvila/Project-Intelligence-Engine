@@ -1,0 +1,596 @@
+{
+  "schema": "pie-context-runtime-phases-4-8-v1",
+  "status": "PARTIAL_LOCAL_VALIDATION",
+  "certification": "NOT_CERTIFIED",
+  "branch": "feat/pie-context-runtime-glm-telemetry-20261116",
+  "head_at_validation": "82d0a52",
+  "implementation_commit": "82d0a52",
+  "index": {
+    "source": "uv run python -m pie.interfaces.cli status --root .",
+    "project": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean",
+    "index_state": "CURRENT",
+    "workspace_match": true,
+    "files": 280,
+    "symbols": 2280,
+    "imports": 2646
+  },
+  "current_blender_probe": {
+    "checked_at": "2026-11-17",
+    "process_id": 18196,
+    "executable": "C:\\Program Files\\Blender Foundation\\Blender 5.3\\blender.exe",
+    "endpoint": "127.0.0.1:9876",
+    "native_get_addon_status": "PASS",
+    "pie_get_addon_status": "PASS",
+    "native_get_scene_info": "PASS",
+    "pie_get_scene_info": "PASS",
+    "blender_version": "5.3.0",
+    "addon_version": "2.0",
+    "protocol": "16/16"
+  },
+  "blender_live_availability": {
+    "path": "reports/phase4-8/blender-live-availability-20261117.json",
+    "status": "AVAILABLE",
+    "restart_action": "NOT_STARTED_ALREADY_RUNNING"
+  },
+  "codex_pie_blender_isolated_route_probe": {
+    "path": "reports/phase4-8/codex-pie-blender-isolated-route-probe-20261117.json",
+    "status": "ROUTE_AND_TASK_PASS_STRICT_ISOLATION",
+    "server_observed": ["pie-blender-optimized"],
+    "forbidden_servers_observed": [],
+    "mcp_calls": 2,
+    "oracle_pass": true,
+    "provider_usage_available": true,
+    "total_tokens": 72991
+  },
+  "codex_isolated_executor": {
+    "path": "reports/phase4-8/codex-isolated-executor-20261117.json",
+    "status": "IMPLEMENTED_TESTED",
+    "implementation_commit": "09277f3",
+    "full_suite_passed": 727,
+    "temporary_home_cleanup": true,
+    "original_config_modified": false
+  },
+  "codex_blender_default_pair": {
+    "path": "reports/phase4-8/codex-blender-default-pair-20261117.json",
+    "status": "VALID_SINGLE_PAIR_NOT_CERTIFIED",
+    "provider_usage_available": true,
+    "baseline_total_tokens": 172213,
+    "optimized_total_tokens": 83856,
+    "total_savings_percent": 51.306812,
+    "baseline_oracle_pass": true,
+    "optimized_oracle_pass": true,
+    "baseline_mcp_server": "blender",
+    "optimized_mcp_server": "pie-blender-optimized",
+    "same_commit": "09277f3af1d22ed78a9e14ba2d7be0629ceabd2d"
+  },
+  "codex_web_controlled_pair": {
+    "path": "reports/phase4-8/codex-web-local-controlled-pair-20261117.json",
+    "status": "VALID_SINGLE_PAIR_NOT_CERTIFIED",
+    "provider_usage_available": true,
+    "baseline_total_tokens": 63601,
+    "optimized_total_tokens": 92520,
+    "total_savings_percent": -45.469411,
+    "baseline_oracle_pass": true,
+    "optimized_oracle_pass": true,
+    "baseline_mcp_server": "playwright-baseline",
+    "optimized_mcp_server": "pie-web-optimized",
+    "same_commit": "11c6d80c1db095820ec2a375c90d546a57b4e1cb",
+    "same_worktree_path": true
+  },
+  "codex_blender_aggregate": {
+    "path": "reports/phase4-8/codex-blender-default-aggregate-20261117.json",
+    "status": "PARTIAL_TWO_VALID_PAIRS_NOT_CERTIFIED",
+    "valid_pairs": 2,
+    "invalid_repetitions": [3],
+    "aggregate_total_savings_percent": 44.48434,
+    "aggregate_oracles_passed": "4/4",
+    "optimized_mean_latency_delta_percent": 9.164689,
+    "next_step": "Investigate extra baseline get_scene_info call before more quota."
+  },
+  "blender_runtime_recovery": {
+    "path": "reports/phase4-8/blender-runtime-recovery-20261117.json",
+    "status": "PASS_LOCAL_AND_LIVE_REUSE",
+    "focused_tests": 5,
+    "codex_preflight_wired": true,
+    "live_started": false,
+    "absent_process_path": "UNIT_TESTED_NOT_LIVE"
+  },
+  "tests": {
+    "focused": {
+      "command": "uv run --with pytest python -m pytest -q tests/test_task_memory_checkpoints.py tests/test_multi_agent_memory.py tests/test_context_compiler.py tests/test_evidence_atoms.py --basetemp .pytest-tmp-phase6-1",
+      "passed": 74,
+      "failed": 0
+    },
+    "full": {
+      "command": "uv run --with pytest python -m pytest -q --basetemp .pytest-tmp-phase4-final",
+      "passed": 710,
+      "skipped": 4,
+      "subtests": 126,
+      "failed": 0,
+      "duration_seconds": 36.13
+    }
+  },
+  "acceptance_focus_rerun": {
+    "path": "reports/phase4-8/acceptance-focus-rerun-20261117.json",
+    "status": "PASS_LOCAL",
+    "passed": 95,
+    "failed": 0,
+    "provider_calls": 0
+  },
+  "latest_regression_suite": {
+    "command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-default-cube-20261117 -p no:cacheprovider",
+    "passed": 727,
+    "skipped": 4,
+    "subtests": 126,
+    "failed": 0,
+    "duration_seconds": 30.30,
+    "rerun_command": "uv run python -m pytest -q --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-codex-isolation-integrated-full-20261117 -p no:cacheprovider",
+    "rerun_date": "2026-11-17"
+  },
+  "blender_upstream_preflight_gate": {
+    "path": "reports/phase4-8/blender-upstream-preflight-gate-20261117.json",
+    "status": "PASS_LOCAL_FAIL_CLOSED",
+    "focused_tests": 20,
+    "full_tests": 721,
+    "upstream_available_now": false
+  },
+  "latest_runtime_verifier": {
+    "command": "uv run python tools/verify_context_runtime.py",
+    "path": "reports/phase4-8/context-runtime-verifier-final-20261117.json",
+    "status": "PASS_LOCAL",
+    "certification": "NOT_CERTIFIED",
+    "external_provider_usage": "unavailable",
+    "synthetic_provider_evidence": true
+  },
+  "local_query_latency": {
+    "path": "reports/phase4-8/local-query-latency-20261116.json",
+    "samples": 100,
+    "p50_ms": 2.8788,
+    "p95_ms": 3.6046,
+    "p99_ms": 3.8769,
+    "target_p95_ms": 100,
+    "target_pass": true,
+    "provider_calls": 0
+  },
+  "local_execution_security_tests": {
+    "command": "uv run python -m pytest -q tests/test_local_execution.py tests/test_gateway_web_context_exposure.py tests/test_gateway_delta_store.py --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase7-adversarial-20261116 -p no:cacheprovider",
+    "passed": 35,
+    "failed": 0
+  },
+  "memory_project_isolation": {
+    "path": "reports/phase4-8/memory-project-isolation-20261116.json",
+    "status": "PASS_LOCAL",
+    "cross_root_isolated": true,
+    "file_change_invalidation": "covered by existing hash-invalidation tests"
+  },
+  "latest_web_gateway_focused": {
+    "command": "uv run python -m pytest -q tests/test_regression_certification.py tests/test_gateway_web_results.py tests/test_gateway_web_context_exposure.py --basetemp C:\\Users\\phsra\\AppData\\Local\\Temp\\pie-phase8-gate-focused-20261116 -p no:cacheprovider",
+    "passed": 25,
+    "failed": 0,
+    "duration_seconds": 0.28
+  },
+  "verifier": {
+    "path": "reports/phase4-8/context-runtime-verifier.json",
+    "status": "PASS_LOCAL",
+    "certification": "NOT_CERTIFIED",
+    "external_pilot_pairs": 3,
+    "external_pilot_total_savings_percent": 88.875
+  },
+  "deepseek_verifier": {
+    "path": "reports/phase4-8/context-runtime-verifier-deepseek.json",
+    "status": "PASS_LOCAL",
+    "certification": "NOT_CERTIFIED",
+    "external_pilot_pairs": 3,
+    "external_pilot_total_savings_percent": 93.801
+  },
+  "glm_v5_pilot": {
+    "path": "reports/phase3/context-runtime-verifier-glm-v5.json",
+    "model": "gambiarraapi/glm-5.3-flash",
+    "pairs": 3,
+    "baseline_total_tokens": 17447,
+    "optimized_total_tokens": 1941,
+    "total_savings_percent": 88.875,
+    "input_savings_percent": 89.196,
+    "oracle_baseline": "3/3",
+    "oracle_optimized": "3/3",
+    "provider_usage": "available",
+    "status": "PILOT_VALID_NOT_CERTIFIED"
+  },
+  "deepseek_opencode_connection": {
+    "path": "reports/phase4-8/opencode-deepseek-connection-20261116.json",
+    "status": "PASS",
+    "model": "gambiarraapi/deepseek-v3.2",
+    "input_tokens": 55,
+    "output_tokens": 6
+  },
+  "glm_agent_handoff": {
+    "path": "reports/phase4-8/codex-glm-official-handoff-20261117.json",
+    "status": "PASS_EXTERNAL_CONTROLLED",
+    "model": "gambiarraapi/glm-5.3-flash",
+    "source_model": "gpt-5.6-luna",
+    "official_codex_call": true,
+    "task_id": "15bc25f9-59e0-4e95-a868-4fc6e2917d82",
+    "restart_between_checkpoint_and_restore": false,
+    "full_task_history_sent_to_target": false,
+    "oracle_pass": true,
+    "codex_input_tokens": 130514,
+    "codex_output_tokens": 592,
+    "glm_input_tokens": 6366,
+    "glm_output_tokens": 68
+  },
+  "codex_pie_blender_route_probe": {
+    "path": "reports/phase4-8/codex-pie-blender-route-probe-20261117.json",
+    "status": "ROUTE_PASS_BLENDER_UNAVAILABLE",
+    "model": "gpt-5.6-luna",
+    "server_observed": "pie-blender-optimized",
+    "forbidden_servers_observed": [],
+    "mcp_calls": 2,
+    "successful_mcp_calls": 0,
+    "input_tokens": 137115,
+    "cached_input_tokens": 114048,
+    "output_tokens": 1019
+  },
+  "codex_pie_blender_live_route_probe": {
+    "path": "reports/phase4-8/codex-pie-blender-live-route-probe-20261117.json",
+    "status": "ROUTE_AND_TASK_PASS_WITH_UNREQUESTED_TOOL",
+    "model": "gpt-5.6-luna",
+    "server_observed": ["pie-blender-optimized", "cua_repl"],
+    "forbidden_servers_observed": ["cua_repl"],
+    "pie_mcp_calls": 2,
+    "successful_pie_mcp_calls": 2,
+    "oracle_pass": true,
+    "blender_version": "5.3.0",
+    "addon_version": [2, 0],
+    "protocol_version": 16,
+    "scene_objects": 3,
+    "input_tokens": 147147,
+    "cached_input_tokens": 123776,
+    "output_tokens": 622,
+    "reasoning_output_tokens": 262,
+    "scene_modified": false,
+    "strict_server_isolation": false
+  },
+  "blender_live_selective_query": {
+    "path": "reports/phase4-8/blender-live-selective-query-20261117.json",
+    "status": "PASS_READ_ONLY_CURRENT_SCENE",
+    "server": "pie-blender-optimized",
+    "tool": "pie_blender_get_object",
+    "oracle_pass": true,
+    "scene_modified": false,
+    "provider_tokens": null
+  },
+  "blender_live_default_cube_deepseek": {
+    "path": "reports/phase4-8/blender-live-default-cube-deepseek-20261117.json",
+    "status": "PILOT_VALID_NOT_CERTIFIED",
+    "model": "gambiarraapi/deepseek-v3.2",
+    "pairs": 1,
+    "baseline_total_tokens": 5201,
+    "optimized_total_tokens": 246,
+    "total_savings_percent": 95.27,
+    "input_savings_percent": 95.897,
+    "baseline_correct": 1,
+    "optimized_correct": 1,
+    "baseline_latency_seconds": 2.8839,
+    "optimized_latency_seconds": 2.9077,
+    "mcp_calls_per_arm": 3
+  },
+  "blender_live_default_cube_deepseek_replication": {
+    "path": "reports/phase4-8/blender-live-default-cube-deepseek-replication-gate-20261117.json",
+    "markdown": "reports/phase4-8/blender-live-default-cube-deepseek-replication-20261117.md",
+    "status": "CERTIFIED_LOCAL_PROVIDER_REPLICATION",
+    "model": "gambiarraapi/deepseek-v3.2",
+    "pairs": 3,
+    "baseline_total_tokens": 15603,
+    "optimized_total_tokens": 738,
+    "total_savings_percent": 95.27014,
+    "baseline_uncached_input_tokens": 5191,
+    "optimized_uncached_input_tokens": 153,
+    "uncached_input_savings_percent": 97.052591,
+    "baseline_oracle_pass": 3,
+    "optimized_oracle_pass": 3,
+    "baseline_mean_latency_seconds": 4.2566,
+    "optimized_mean_latency_seconds": 2.391733,
+    "mcp_calls_per_arm": 3,
+    "cache_state_variation_recorded": true
+  },
+  "codex_pie_web_route_probe": {
+    "path": "reports/phase4-8/codex-pie-web-route-probe-20261117.json",
+    "status": "ROUTE_AND_TASK_PASS_LOCAL_FIXTURE",
+    "model": "gpt-5.6-luna",
+    "server_observed": "pie-web-optimized",
+    "forbidden_servers_observed": [],
+    "mcp_calls": 4,
+    "successful_mcp_calls": 4,
+    "oracle_pass": true,
+    "page_title": "PIE Phase 3 Fixture",
+    "marker": "PIE_WEB_FIXTURE_V1",
+    "input_tokens": 226276,
+    "cached_input_tokens": 205440,
+    "output_tokens": 797,
+    "reasoning_output_tokens": 413,
+    "total_tokens": 227073
+  },
+  "deepseek_expanded_pilot": {
+    "path": "reports/phase4-8/deepseek-real-pilot-expanded-20261116.json",
+    "tasks": 6,
+    "calls": 12,
+    "baseline_total_tokens": 52522,
+    "pie_total_tokens": 3558,
+    "total_savings_percent": 93.226,
+    "baseline_correct": 6,
+    "pie_correct": 6,
+    "status": "PILOT_VALID_NOT_CERTIFIED"
+  },
+  "deepseek_independent_pilot": {
+    "path": "reports/phase4-8/deepseek-real-pilot-independent-20261117.json",
+    "tasks": 6,
+    "calls": 12,
+    "seed": 20261117,
+    "baseline_total_tokens": 52735,
+    "pie_total_tokens": 3543,
+    "total_savings_percent": 93.282,
+    "baseline_correct": 6,
+    "pie_correct": 6,
+    "status": "PILOT_VALID_NOT_CERTIFIED"
+  },
+  "deepseek_replication_analysis": {
+    "path": "reports/phase4-8/deepseek-replication-analysis-20261117.json",
+    "replications": 2,
+    "paired_tasks": 12,
+    "mean_total_savings_percent": 93.254,
+    "range_percentage_points": 0.056,
+    "status": "REPLICATED_DESCRIPTIVE_NOT_CERTIFIED"
+  },
+  "blender_deepseek_pilot": {
+    "path": "reports/phase4-8/blender-deepseek-ab-pilot-20261116.json",
+    "pairs": 3,
+    "baseline_total_tokens": 2918,
+    "pie_total_tokens": 498,
+    "total_savings_percent": 82.934,
+    "baseline_correct": 3,
+    "pie_correct": 3,
+    "status": "PILOT_VALID_NOT_CERTIFIED"
+  },
+  "blender_live_replication_gate": {
+    "path": "reports/phase4-8/blender-live-replication-gate-20261116.json",
+    "status": "CERTIFIED_LOCAL_SUITE",
+    "pairs": 3,
+    "baseline_total_tokens": 16126,
+    "optimized_total_tokens": 1044,
+    "weighted_savings_percent": 93.526,
+    "uncached_input_savings_percent": 98.275,
+    "oracle_baseline": "3/3",
+    "oracle_optimized": "3/3",
+    "mcp_calls_per_arm": 3,
+    "retries": 0,
+    "latency_variability": "high"
+  },
+  "blender_live_scene_snapshot": {
+    "path": "reports/phase4-8/blender-live-scene-snapshot-20261116.json",
+    "status": "PASS_READ_ONLY",
+    "mesh_objects": 64,
+    "canonical_sha256": "7de1f6826295728782204299b599ebbbca0ed2df697caca7ec4d0eaa98e6df1c",
+    "scene_modified": false,
+    "blend_filepath": "",
+    "blend_file_sha256": null,
+    "blend_file_hash_status": "UNAVAILABLE_UNSAVED_SCENE"
+  },
+  "blender_object63_gate": {
+    "path": "reports/phase4-8/blender-object63-replication-gate-20261116.json",
+    "status": "CERTIFIED_LOCAL_SUITE",
+    "task": "PIE_Large_Cube_63",
+    "pairs": 3,
+    "baseline_total_tokens": 15979,
+    "optimized_total_tokens": 837,
+    "savings_percent": 94.762,
+    "baseline_uncached_input_tokens": 10183,
+    "optimized_uncached_input_tokens": 184,
+    "uncached_input_savings_percent": 98.193,
+    "oracle": "3/3 in both arms",
+    "mcp_calls_per_arm": 3,
+    "retries": 0,
+    "mean_latency_seconds": {
+      "baseline": 3.4557,
+      "optimized": 1.8092
+    },
+    "latency_range_seconds": {
+      "baseline": [3.1273, 3.7629],
+      "optimized": [1.5965, 2.1859]
+    }
+  },
+  "web_deepseek_pilot": {
+    "path": "reports/phase4-8/web-deepseek-ab-pilot-20261116.json",
+    "pairs": 3,
+    "baseline_total_tokens": 732,
+    "pie_total_tokens": 945,
+    "total_savings_percent": -29.098,
+    "baseline_correct": 3,
+    "pie_correct": 3,
+    "status": "PILOT_VALID_NEGATIVE_RESULT"
+  },
+  "web_transparent_compaction_gate": {
+    "path": "reports/phase4-8/web-transparent-compaction-gate-20261116.json",
+    "status": "PASS_GATE_NOT_CERTIFIED",
+    "pie_web_context_announced_by_default": false,
+    "live_tools_list": 26,
+    "fixture_snapshot_chars": 415,
+    "compaction_triggered": false
+  },
+  "web_large_deepseek_analysis": {
+    "path": "reports/phase4-8/web-large-deepseek-analysis-20261116.json",
+    "status": "PILOT_INVALID_QUALITY",
+    "source_chars": 8632,
+    "optimized_chars": 2164,
+    "character_reduction_percent": 74.93,
+    "valid_oracle_attempts": 0
+  },
+  "web_large_evidence_agent": {
+    "path": "reports/phase4-8/web-large-evidence-agent-20261116.json",
+    "status": "PILOT_VALID_NOT_CERTIFIED",
+    "scope": "planning_only",
+    "baseline_total_tokens": 10418,
+    "optimized_total_tokens": 6880,
+    "planning_savings_percent": 33.96,
+    "baseline_plan_correct": true,
+    "optimized_plan_correct": true,
+    "source_oracles_correct": true
+  },
+  "web_large_evidence_task": {
+    "path": "reports/phase4-8/web-large-evidence-task-v2-20261116.json",
+    "status": "PILOT_VALID_NOT_CERTIFIED",
+    "scope": "end_to_end_controlled_task",
+    "baseline_total_tokens": 7612,
+    "optimized_total_tokens": 5966,
+    "savings_percent": 21.624,
+    "baseline_task_oracle": true,
+    "optimized_task_oracle": true,
+    "mcp_calls_per_arm": 4
+  },
+  "web_large_evidence_task_replication": {
+    "path": "reports/phase4-8/web-large-evidence-task-replication-analysis-20261116.json",
+    "status": "PILOT_PARTIAL_NOT_CERTIFIED",
+    "planned_pairs": 3,
+    "executed_pairs": 2,
+    "valid_pairs": 1,
+    "invalid_pairs": 1,
+    "retries": 0,
+    "stopped_at_first_failure": true
+  },
+  "web_large_evidence_task_jsonmode_replication": {
+    "path": "reports/phase4-8/web-large-evidence-task-jsonmode-replication-analysis-20261116.json",
+    "status": "PILOT_VALID_NOT_CERTIFIED",
+    "response_format": "json_object",
+    "pairs": 3,
+    "valid_pairs": 3,
+    "weighted_savings_percent": 20.401,
+    "oracle_baseline": "3/3",
+    "oracle_optimized": "3/3"
+  },
+  "web_summary_evidence_task_replication": {
+    "path": "reports/phase4-8/web-summary-evidence-task-replication-analysis-20261116.json",
+    "status": "PILOT_VALID_NOT_CERTIFIED",
+    "profile": "summary",
+    "response_format": "json_object",
+    "pairs": 3,
+    "valid_pairs": 3,
+    "baseline_total_tokens": 19965,
+    "optimized_total_tokens": 18001,
+    "weighted_savings_percent": 9.837,
+    "input_savings_percent": 10.326,
+    "output_savings_percent": -94.624,
+    "oracle_baseline": "3/3",
+    "oracle_optimized": "3/3",
+    "mean_latency_baseline_s": 4.1648,
+    "mean_latency_optimized_s": 2.4789
+  },
+  "web_summary_replication_gate": {
+    "path": "reports/phase4-8/web-summary-replication-gate-20261116.json",
+    "status": "CERTIFIED_LOCAL_SUITE",
+    "pairs": 3,
+    "baseline_total_tokens": 20502,
+    "optimized_total_tokens": 17852,
+    "weighted_savings_percent": 12.926,
+    "uncached_input_savings_percent": 56.936,
+    "oracle_baseline": "3/3",
+    "oracle_optimized": "3/3",
+    "mcp_calls_per_arm": 6,
+    "retries": 0
+  },
+  "web_large_evidence_task_postfix_replication": {
+    "path": "reports/phase4-8/web-large-evidence-task-postfix-replication-analysis-20261116.json",
+    "status": "PILOT_VALID_NOT_CERTIFIED",
+    "pairs": 3,
+    "baseline_total_tokens": 23389,
+    "optimized_total_tokens": 18209,
+    "weighted_savings_percent": 22.147,
+    "oracle": "3/3 in both arms",
+    "mean_latency_delta_percent": -201.29
+  },
+  "phases": {
+    "4_consolidation": {
+      "status": "PARTIAL_EXTERNAL_CONTROLLED",
+      "evidence": [
+        "current index and workspace match",
+        "full regression suite passed",
+        "MCP runtime tests passed",
+        "current-root routing preflight passed Web end-to-end",
+        "official Codex route probe passed Web fixture through pie-web-optimized",
+        "Blender upstream preflight gate fails closed before provider when endpoint is unavailable",
+        "live Blender 5.3 gateway initialize, tools/list, get_addon_status and get_scene_info passed"
+      ],
+      "live_blender_probe": "reports/phase4-8/live-blender-gateway-probe-20261116.json"
+    },
+    "5_multi_agent_memory": {
+      "status": "PASS_EXTERNAL_CONTROLLED",
+      "evidence": [
+        "explicit codex-to-deepseek checkpoint handoff",
+        "official Codex created a PIE checkpoint and GLM received only the compiled checkpoint",
+        "Codex route probe observed pie-blender-optimized without forbidden servers; Blender addon unavailable",
+        "checkpoint-compatible GLM restore after runtime restart",
+        "durable context_version exposed from the checkpoint sequence",
+        "source hash and provenance preserved",
+        "receiver restores without task history",
+        "OpenCode DeepSeek source and receiver returned HANDOFF_READY/HANDOFF_RESUMED"
+      ],
+      "external_live_agent": "PASS_CONTROLLED"
+    },
+    "6_incremental_context_cache": {
+      "status": "PASS_EXTERNAL_CONTROLLED_SINGLE_PAIR",
+      "evidence": [
+        "hash-backed compiler and checkpoint tests passed",
+        "persistent evidence cache reopens across calls and invalidates on source hash change",
+        "context checkpoint version survives ContextRuntime restart",
+        "real provider DeepSeek pair after runtime restart passed the independent oracle",
+        "baseline 237 tokens versus restored checkpoint 167 tokens"
+      ],
+      "external_restart_token_proof": "PASS_CONTROLLED_SINGLE_PAIR",
+      "external_restart_token_proof_path": "reports/phase4-8/context-runtime-external-restart-token-proof.json"
+    },
+    "7_local_execution": {
+      "status": "PASS_LOCAL",
+      "evidence": [
+        "allowlist and bounded JSON",
+        "idempotent replay",
+        "cooperative and hard timeout tests"
+      ]
+    },
+    "8_continuous_certification": {
+      "status": "PARTIAL_NOT_CERTIFIED",
+      "evidence": [
+        "three-pair GLM v5 local provider pilot exists",
+        "3/3 oracle correctness in both arms",
+        "88.875 percent total savings in that fixture",
+        "DeepSeek 3.2 paired-evidence pilot reported real usage",
+        "DeepSeek failed-quality pilot was preserved as NOT_CERTIFIED",
+        "DeepSeek valid three-pair pilot reported 93.801 percent total savings and 3/3 oracle correctness",
+        "Web gateway no longer announces pie_web_context by default",
+        "local indexed SQLite query p95 measured below 100 ms without provider calls",
+        "large Web gateway compaction gate reduced 8632 to 2164 characters",
+        "Web Evidence Agent selected exact fields in both arms",
+        "Web Evidence Task executed MCP after model action selection with 21.624 percent total savings",
+        "Web Evidence Task replication stopped at R2 after invalid DSML output",
+        "Web Evidence Task JSON-mode replication passed 3/3 with 20.401 percent weighted savings",
+        "Web Summary Evidence Task replication passed 3/3 with 9.837 percent weighted savings",
+        "strict local replication gate passed 3/3 Web Summary pairs with 12.926 percent weighted savings",
+        "post-fix large Web replication passed 3/3 but regressed latency",
+        "strict local replication gate passed 3/3 live Blender pairs with 93.526 percent weighted savings",
+        "second live Blender task PIE_Large_Cube_63 passed a strict three-pair local gate with 94.762 percent savings",
+        "one live default-scene Blender pair with DeepSeek 3.2 passed 1/1 in both arms with 95.27 percent weighted savings"
+      ],
+      "missing": [
+        "Codex provider certification",
+        "broader multi-scenario Blender/Web coverage beyond the current fixtures",
+        "statistical certification beyond the current local fixtures and provider",
+        "Codex-provider usage certification"
+      ]
+    }
+  },
+  "limitations": [
+    "The configured PIE MCP server in this session reports another workspace root and was not used as evidence.",
+    "Only one controlled live handoff was executed; general multi-agent quality is not certified.",
+    "Character reduction and synthetic counters are not token certification.",
+    "Live Blender strict gate uses a task-oracle fixture hash; a separate read-only canonical scene snapshot is recorded, but it is not a full .blend file hash.",
+    "Blender live gate latency is highly variable across the three local repetitions.",
+    "Initial live-domain probe recorded Blender WinError 10053 and Web ERR_CONNECTION_REFUSED; the later isolated factory-startup probe passed the live Blender path on the configured default port 9876."
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "schema": "pie-codex-pie-web-route-probe-v1",
+  "status": "ROUTE_AND_TASK_PASS_LOCAL_FIXTURE",
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "provider_usage_status": "available",
+  "codex_thread_id": "01a1e773-9801-79f1-9988-1d62671284a9",
+  "server_requested": "pie-web-optimized",
+  "server_observed": ["pie-web-optimized"],
+  "forbidden_servers_observed": [],
+  "fixture_url": "http://127.0.0.1:8766/index.html",
+  "mcp_calls": [
+    {"tool": "browser_navigate", "status": "PASS"},
+    {"tool": "browser_snapshot", "status": "PASS"},
+    {"tool": "browser_click", "status": "PASS"},
+    {"tool": "browser_snapshot", "status": "PASS"}
+  ],
+  "oracle": {
+    "page_title": "PIE Phase 3 Fixture",
+    "marker": "PIE_WEB_FIXTURE_V1",
+    "pass": true
+  },
+  "usage": {
+    "input_tokens": 226276,
+    "cached_input_tokens": 205440,
+    "uncached_input_tokens": 20836,
+    "output_tokens": 797,
+    "reasoning_output_tokens": 413,
+    "total_tokens": 227073
+  },
+  "fixture_server": {
+    "process": "python -m http.server 8766",
+    "pid": 28576,
+    "scope": "local_fixture_only"
+  },
+  "external_pages_modified": false,
+  "persistent_configuration_changed": false,
+  "console_errors": 1,
+  "console_error_investigation": "not_checked"
+}

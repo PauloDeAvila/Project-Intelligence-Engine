@@ -1,0 +1,61 @@
+{
+  "schema": "pie-live-codex-usage-v1",
+  "condition": "baseline",
+  "scenario_id": "web-local-fixture-codex-v2",
+  "repetition": 1,
+  "run_id": "baseline-web-fixture-v2-r1b",
+  "pair_id": "codex-web-fixture-v2-r1",
+  "model": "gpt-5.6-luna",
+  "codex_version": "codex-cli 0.169.0-alpha.11.1",
+  "prompt_sha256": "f8a02c763bcefd91ff82c1dd9b847c36fbe1d349e6cb34770b4e3f17b1a5d582",
+  "expected_sha256": "84022254d97786bf06f079ed6c17d3c4fd681b37732e308a55a8e73c9dd6451a",
+  "answer_sha256": "84022254d97786bf06f079ed6c17d3c4fd681b37732e308a55a8e73c9dd6451a",
+  "oracle_kind": "exact_text",
+  "oracle_pass": true,
+  "oracle_diagnostic": {
+    "passed": true,
+    "length": 18,
+    "sha256": "84022254d97786bf06f079ed6c17d3c4fd681b37732e308a55a8e73c9dd6451a",
+    "format": "text"
+  },
+  "workspace_commit": "5f7081ed941d402a58c49b15280164241f23e42d",
+  "configuration_sha256": "286597ca94260a7ba34358400a996f74dff3011f73d401fdee3958ce15c4f8db",
+  "profile": null,
+  "runtime_ms": 20606.327,
+  "tool_events": 4,
+  "mcp_tools": [
+    {
+      "server": "playwright-baseline",
+      "tool": "browser_navigate",
+      "status": "completed"
+    },
+    {
+      "server": "playwright-baseline",
+      "tool": "browser_snapshot",
+      "status": "completed"
+    },
+    {
+      "server": "playwright-baseline",
+      "tool": "browser_click",
+      "status": "completed"
+    },
+    {
+      "server": "playwright-baseline",
+      "tool": "browser_snapshot",
+      "status": "completed"
+    }
+  ],
+  "usage": {
+    "input_tokens": 91137,
+    "cached_input_tokens": 75264,
+    "output_tokens": 333,
+    "reasoning_output_tokens": 143
+  },
+  "expected_mcp_server": "playwright-baseline",
+  "mcp_route_verified": true,
+  "mcp_isolation": "temporary_codex_home",
+  "provider_reported": true,
+  "source": "codex_exec_json_turn_completed",
+  "forensic_path": "C:\\Users\\phsra\\AppData\\Local\\Temp\\.pie-codex-phase8-v2-worktree-pie-live-store\\runs\\baseline-web-fixture-v2-r1b",
+  "note": "Codex provider usage, not billing or a raw transcript"
+}

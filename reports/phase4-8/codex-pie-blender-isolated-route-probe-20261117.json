@@ -1,0 +1,45 @@
+{
+  "schema": "pie-codex-pie-blender-isolated-route-probe-v1",
+  "status": "ROUTE_AND_TASK_PASS_STRICT_ISOLATION",
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "provider_usage_status": "available",
+  "server_observed": ["pie-blender-optimized"],
+  "forbidden_servers_observed": [],
+  "mcp_calls": [
+    {"server": "pie-blender-optimized", "tool": "get_addon_status", "status": "PASS"},
+    {"server": "pie-blender-optimized", "tool": "get_scene_info", "status": "PASS"}
+  ],
+  "oracle": {
+    "blender_version": "5.3.0",
+    "addon_version": [2, 0],
+    "protocol_version": 16,
+    "scene_object_count": 3,
+    "mesh_count": 1,
+    "light_count": 1,
+    "camera_count": 1,
+    "pass": true
+  },
+  "usage": {
+    "input_tokens": 72491,
+    "cached_input_tokens": 54144,
+    "uncached_input_tokens": 18347,
+    "output_tokens": 500,
+    "reasoning_output_tokens": 237,
+    "total_tokens": 72991
+  },
+  "configuration": {
+    "mode": "temporary_CODEX_HOME",
+    "config_sha256": "DADC8351B850C17A94E93C866EC9D93634C42AB4FA21819A8F27846E05A55B72",
+    "mcp_servers": ["pie-blender-optimized"],
+    "original_config_changed": false,
+    "temporary_auth_removed": true
+  },
+  "scene_modified": false,
+  "strict_server_isolation": true,
+  "approval_mode": "approve-for-me",
+  "limitations": [
+    "This is a routing probe, not a paired token-savings benchmark.",
+    "The temporary CODEX_HOME was prepared for this probe; production executor reuse is still pending."
+  ]
+}

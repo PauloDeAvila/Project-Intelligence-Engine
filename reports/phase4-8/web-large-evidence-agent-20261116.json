@@ -1,0 +1,85 @@
+{
+  "schema": "pie-web-evidence-agent-v1",
+  "status": "PILOT_VALID_NOT_CERTIFIED",
+  "scope": "planning_only; values reconstructed by code from MCP evidence",
+  "model": "gambiarraapi/deepseek-v3.2",
+  "url": "http://127.0.0.1:8767/fixtures/phase4-8/web-large/index.html",
+  "oracle_fields": [
+    "title",
+    "status",
+    "marker"
+  ],
+  "baseline": {
+    "tool_count": 25,
+    "context_chars": 39954,
+    "source_oracle_pass": true,
+    "plan": {
+      "fields": [
+        "title",
+        "status",
+        "marker"
+      ]
+    },
+    "plan_oracle_pass": true,
+    "reconstructed_evidence": {
+      "title": "PIE Large Web Fixture",
+      "status": "The deterministic large fixture is ready.",
+      "marker": "PIE_WEB_LARGE_FIXTURE_V1"
+    },
+    "reconstruction_oracle_pass": true,
+    "usage": {
+      "completion_tokens": 30,
+      "completion_tokens_details": {
+        "reasoning_tokens": 17
+      },
+      "prompt_tokens": 10388,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "total_tokens": 10418
+    },
+    "input_tokens": 10388,
+    "output_tokens": 30,
+    "total_tokens": 10418,
+    "finish_reason": "stop",
+    "latency_s": 3.3937
+  },
+  "optimized": {
+    "tool_count": 26,
+    "context_chars": 27518,
+    "source_oracle_pass": true,
+    "plan": {
+      "fields": [
+        "title",
+        "status",
+        "marker"
+      ]
+    },
+    "plan_oracle_pass": true,
+    "reconstructed_evidence": {
+      "title": "PIE Large Web Fixture",
+      "status": "The deterministic large fixture is ready.",
+      "marker": "PIE_WEB_LARGE_FIXTURE_V1"
+    },
+    "reconstruction_oracle_pass": true,
+    "usage": {
+      "completion_tokens": 13,
+      "completion_tokens_details": {
+        "text_tokens": 13
+      },
+      "prompt_tokens": 6867,
+      "prompt_tokens_details": {
+        "cached_tokens": 462,
+        "image_tokens": 0,
+        "text_tokens": 6867
+      },
+      "total_tokens": 6880
+    },
+    "input_tokens": 6867,
+    "output_tokens": 13,
+    "total_tokens": 6880,
+    "finish_reason": "stop",
+    "latency_s": 4.2279
+  },
+  "planning_savings_percent": 33.96
+}

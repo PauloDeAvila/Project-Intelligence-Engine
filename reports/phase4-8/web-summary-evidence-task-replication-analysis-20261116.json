@@ -1,0 +1,45 @@
+{
+  "schema": "pie-web-summary-evidence-task-replication-v1",
+  "status": "PILOT_VALID_NOT_CERTIFIED",
+  "model": "gambiarraapi/deepseek-v3.2",
+  "profile": "summary",
+  "response_format": "json_object",
+  "pairs": 3,
+  "valid_pairs": 3,
+  "oracle": {
+    "baseline": "3/3",
+    "optimized": "3/3"
+  },
+  "reports": [
+    "reports/phase4-8/web-summary-evidence-task-20261116-v2.json",
+    "reports/phase4-8/web-summary-evidence-task-20261116-r2.json",
+    "reports/phase4-8/web-summary-evidence-task-20261116-r3.json"
+  ],
+  "tokens": {
+    "baseline_input": 19872,
+    "optimized_input": 17820,
+    "input_savings_percent": 10.326,
+    "baseline_output": 93,
+    "optimized_output": 181,
+    "output_savings_percent": -94.624,
+    "baseline_total": 19965,
+    "optimized_total": 18001,
+    "weighted_savings_percent": 9.837,
+    "mean_savings_percent": 9.837,
+    "range_percentage_points": 2.779,
+    "baseline_cached_input": 15240,
+    "optimized_cached_input": 5570
+  },
+  "latency": {
+    "mean_baseline_s": 4.1648,
+    "mean_optimized_s": 2.4789,
+    "mean_delta_percent": 40.479
+  },
+  "limitations": [
+    "All three pairs use one deterministic Web summary fixture and one local provider.",
+    "The model chooses the action; deterministic code executes MCP and reconstructs values.",
+    "Optimized output tokens increased in the aggregate, so total savings is not attributable to input reduction alone.",
+    "Cache state varied between arms and is reported rather than normalized; it limits causal interpretation.",
+    "This is not official Codex certification or broad Web statistical certification."
+  ]
+}

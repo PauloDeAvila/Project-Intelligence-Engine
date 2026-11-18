@@ -1,0 +1,14 @@
+{
+  "schema": "pie-phase4-8-report-integrity-v1",
+  "status": "PASS_LOCAL",
+  "checked_reports": [
+    "reports/phase4-8/final-report.json",
+    "reports/phase4-8/completion-audit-20261117.json"
+  ],
+  "evidence_paths_checked": 13,
+  "missing_paths": [],
+  "invalid_json": [],
+  "final_status": "PARTIAL_NOT_CERTIFIED",
+  "certification": "NOT_CERTIFIED",
+  "note": "All evidence paths referenced by the consolidated final report exist and JSON evidence parses successfully. This is documentation integrity, not provider-token certification."
+}

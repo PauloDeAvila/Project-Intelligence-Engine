@@ -1,0 +1,87 @@
+{
+  "schema": "pie-web-evidence-task-v1",
+  "pair_id": "web-large-evidence-task-r2-20261116",
+  "status": "PILOT_INVALID_QUALITY",
+  "scope": "end_to_end_controlled_task; model selects action, code executes MCP and preserves values",
+  "model": "gambiarraapi/deepseek-v3.2",
+  "url": "http://127.0.0.1:8767/fixtures/phase4-8/web-large/index.html",
+  "oracle": {
+    "title": "PIE Large Web Fixture",
+    "status": "The deterministic large fixture is ready.",
+    "marker": "PIE_WEB_LARGE_FIXTURE_V1"
+  },
+  "max_output_tokens": 512,
+  "baseline": {
+    "tool_count": 25,
+    "context_chars": 30591,
+    "navigate_ok": true,
+    "click_ok": true,
+    "plan": {
+      "action": "reveal",
+      "target_ref": "e5",
+      "fields": [
+        "title",
+        "status",
+        "marker"
+      ]
+    },
+    "plan_oracle_pass": true,
+    "reconstructed_evidence": {
+      "title": "PIE Large Web Fixture",
+      "status": "The deterministic large fixture is ready.",
+      "marker": "PIE_WEB_LARGE_FIXTURE_V1"
+    },
+    "source_oracle_pass": true,
+    "task_oracle_pass": true,
+    "usage": {
+      "completion_tokens": 24,
+      "completion_tokens_details": {
+        "text_tokens": 24
+      },
+      "prompt_tokens": 7588,
+      "prompt_tokens_details": {
+        "cached_tokens": 5139,
+        "image_tokens": 0,
+        "text_tokens": 7588
+      },
+      "total_tokens": 7612
+    },
+    "finish_reason": "stop",
+    "latency_s": 4.4723,
+    "run_id": "web-large-evidence-task-r2-20261116-baseline",
+    "input_tokens": 7588,
+    "output_tokens": 24,
+    "total_tokens": 7612
+  },
+  "optimized": {
+    "tool_count": 26,
+    "context_chars": 24573,
+    "plan": {
+      "raw_excerpt": "<｜｜DSML｜｜ calls>\n<｜｜DSML｜｜ invoke name=\"browser_click\">\n<｜｜DSML｜｜ parameter name=\"element\" string=\"true\">Reveal large phase marker button</｜｜DSML｜｜ parameter>\n<｜｜DSML｜｜ parameter name=\"target\" string=\"true\">e5</｜｜DSML｜｜ parameter>\n</｜｜DSML｜｜ invoke>\n</｜｜DSML｜｜ calls>"
+    },
+    "plan_oracle_pass": false,
+    "source_oracle_pass": false,
+    "task_oracle_pass": false,
+    "usage": {
+      "completion_tokens": 255,
+      "completion_tokens_details": {
+        "reasoning_tokens": 192
+      },
+      "prompt_tokens": 6088,
+      "prompt_tokens_details": {
+        "cached_tokens": 5240
+      },
+      "total_tokens": 6343
+    },
+    "finish_reason": "stop",
+    "latency_s": 3.65,
+    "run_id": "web-large-evidence-task-r2-20261116-optimized",
+    "input_tokens": 6088,
+    "output_tokens": 255,
+    "total_tokens": 6343
+  },
+  "savings": {
+    "input_percent": 19.768,
+    "total_percent": 16.671
+  }
+}

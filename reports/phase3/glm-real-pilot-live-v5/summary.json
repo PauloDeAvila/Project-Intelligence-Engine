@@ -1,0 +1,54 @@
+{
+  "results": [
+    {
+      "host": "127.0.0.1",
+      "scheme": "http",
+      "model": "gambiarraapi/glm-5.3-flash",
+      "mode": "baseline",
+      "calls": 3,
+      "successful": 3,
+      "exact_correct": 3,
+      "evidence_hit": 3,
+      "provider_usage_status": "ok",
+      "prompt_tokens": 17373,
+      "completion_tokens": 74,
+      "total_tokens": 17447,
+      "cached_input_tokens": 0,
+      "uncached_input_tokens": 17373,
+      "median_latency_s": 2.5571
+    },
+    {
+      "host": "127.0.0.1",
+      "scheme": "http",
+      "model": "gambiarraapi/glm-5.3-flash",
+      "mode": "pie",
+      "calls": 3,
+      "successful": 3,
+      "exact_correct": 3,
+      "evidence_hit": 3,
+      "provider_usage_status": "ok",
+      "prompt_tokens": 1877,
+      "completion_tokens": 64,
+      "total_tokens": 1941,
+      "cached_input_tokens": 0,
+      "uncached_input_tokens": 1877,
+      "median_latency_s": 2.8329
+    }
+  ],
+  "savings": {
+    "baseline_prompt_tokens": 17373,
+    "pie_prompt_tokens": 1877,
+    "baseline_total_tokens": 17447,
+    "pie_total_tokens": 1941,
+    "input_savings_percent": 89.196,
+    "total_savings_percent": 88.875,
+    "cached_input_tokens_baseline": 0,
+    "cached_input_tokens_pie": 0
+  },
+  "fix_commit": "8cc6706",
+  "previous_run_note": "v4 (reports/phase3/glm-real-pilot-live-v4) é uma falha preservada: 2/3 corretas no modo PIE por símbolo entre colchetes; corrigido em 8cc6706 (fix(benchmark): preserve exact symbol evidence).",
+  "certification": "NOT_CERTIFIED",
+  "certification_note": "Evidência local GLM real não é certificação oficial Codex.",
+  "index_seconds": 0.71861,
+  "qualification": "Real open-source Rich codebase, generated docstring queries. File-level vs function-level retrieval; no full repository baseline and no edit tasks."
+}

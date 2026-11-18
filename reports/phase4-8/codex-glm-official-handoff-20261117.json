@@ -1,0 +1,46 @@
+{
+  "schema": "pie-codex-glm-official-handoff-v1",
+  "status": "PASS_EXTERNAL_CONTROLLED",
+  "task_id": "15bc25f9-59e0-4e95-a868-4fc6e2917d82",
+  "codex": {
+    "model": "gpt-5.6-luna",
+    "thread_id": "01a1e77c-8a78-71f0-ab05-c84e8baf37b3",
+    "server_observed": ["pie_runtime"],
+    "forbidden_servers_observed": [],
+    "calls": ["pie_task_start", "pie_task_record"],
+    "input_tokens": 130514,
+    "cached_input_tokens": 113536,
+    "output_tokens": 592,
+    "reasoning_output_tokens": 255,
+    "persistent_configuration_changed": false
+  },
+  "pie_checkpoint": {
+    "kind": "checkpoint",
+    "status": "completed",
+    "event_id": 1,
+    "reference": "phase5-official-codex-handoff-20261117",
+    "history_sent_to_glm": false
+  },
+  "glm": {
+    "provider": "infinity",
+    "model": "gambiarraapi/glm-5.3-flash",
+    "handoff_state": "received",
+    "task_id_received": "15bc25f9-59e0-4e95-a868-4fc6e2917d82",
+    "objective_received": "phase5 official Codex to GLM handoff",
+    "verified_fact_received": "Codex created this checkpoint through PIE",
+    "history_received": false,
+    "input_tokens": 6366,
+    "cached_input_tokens": 229,
+    "output_tokens": 68,
+    "reasoning_output_tokens": 0,
+    "cost_reported": 0
+  },
+  "oracle": {
+    "codex_created_checkpoint": true,
+    "pie_restored_checkpoint": true,
+    "glm_received_checkpoint": true,
+    "no_full_history_sent": true,
+    "pass": true
+  },
+  "scope": "one controlled handoff; not broad multi-task generalization"
+}

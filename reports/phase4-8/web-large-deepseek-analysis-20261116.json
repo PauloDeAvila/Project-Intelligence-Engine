@@ -1,0 +1,43 @@
+{
+  "schema": "pie-web-large-deepseek-analysis-v1",
+  "status": "PILOT_INVALID_QUALITY",
+  "model": "gambiarraapi/deepseek-v3.2",
+  "fixture_url": "http://127.0.0.1:8767/fixtures/phase4-8/web-large/index.html",
+  "mcp_gate": {
+    "source_chars": 8632,
+    "optimized_chars": 2164,
+    "character_reduction_percent": 74.93,
+    "state": "PARTIAL",
+    "recovery_available": true
+  },
+  "attempts": [
+    {
+      "report": "reports/phase4-8/web-large-deepseek-ab-20261116.json",
+      "baseline_total_tokens": 10518,
+      "optimized_total_tokens": 6912,
+      "nominal_total_savings_percent": 34.284,
+      "baseline_oracle_pass": false,
+      "optimized_oracle_pass": false,
+      "reason": "baseline hit output limit; optimized answer was not exact"
+    },
+    {
+      "report": "reports/phase4-8/web-large-deepseek-ab-512-20261116.json",
+      "baseline_total_tokens": 10288,
+      "optimized_total_tokens": 6953,
+      "nominal_total_savings_percent": 32.416,
+      "baseline_oracle_pass": false,
+      "optimized_oracle_pass": false,
+      "reason": "both answers copied the marker into the status field"
+    },
+    {
+      "report": "reports/phase4-8/web-large-deepseek-ab-clarified-20261116.json",
+      "baseline_total_tokens": 10928,
+      "optimized_total_tokens": 6933,
+      "nominal_total_savings_percent": 36.557,
+      "baseline_oracle_pass": false,
+      "optimized_oracle_pass": false,
+      "reason": "baseline emitted an unauthorized browser_evaluate action; optimized omitted the marker"
+    }
+  ],
+  "conclusion": "The gateway demonstrably reduces the Web observation, but all model trials failed the independent oracle. Token differences are excluded from certification and must not be reported as savings."
+}

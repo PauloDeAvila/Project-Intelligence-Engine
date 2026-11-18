@@ -1,0 +1,67 @@
+{
+  "schema": "pie-live-codex-usage-v1",
+  "condition": "baseline",
+  "scenario_id": "blender-live-default-cube-codex-v2",
+  "repetition": 1,
+  "run_id": "baseline-blender-default-cube-v2-r2",
+  "pair_id": "codex-blender-default-cube-v2-r2",
+  "model": "gpt-5.6-luna",
+  "codex_version": "codex-cli 0.169.0-alpha.11.1",
+  "prompt_sha256": "03acefdf19b2fecc1040f1cfce16752b88eb22f05964f503710880dca0d6956d",
+  "expected_sha256": "910dd17a2e058f63f25a8674928f87654c82f9ee5fe2875a53aecd653b5c0ca1",
+  "answer_sha256": "a85a101b768e42bd2a813f865a231ed01a3f64a4e99817270e0c05230e53743d",
+  "oracle_kind": "blender_scene_json",
+  "oracle_pass": true,
+  "oracle_diagnostic": {
+    "passed": true,
+    "length": 98,
+    "sha256": "a85a101b768e42bd2a813f865a231ed01a3f64a4e99817270e0c05230e53743d",
+    "format": "json",
+    "keys": [
+      "location",
+      "material_names",
+      "object_name",
+      "object_type"
+    ],
+    "missing_keys": [],
+    "extra_keys": [],
+    "field_types": {
+      "location": "list",
+      "material_names": "list",
+      "object_name": "str",
+      "object_type": "str"
+    },
+    "location_length": 3,
+    "material_names_length": 1
+  },
+  "workspace_commit": "498e5664b8200bd5573764296aa0516ae070a4f0",
+  "configuration_sha256": "63ab2805f53d242986ee500f6cfc3009516f315dae5e93a268e2a93765cfa813",
+  "profile": null,
+  "runtime_ms": 14638.913,
+  "tool_events": 2,
+  "mcp_tools": [
+    {
+      "server": "blender",
+      "tool": "get_addon_status",
+      "status": "completed"
+    },
+    {
+      "server": "blender",
+      "tool": "get_scene_info",
+      "status": "completed"
+    }
+  ],
+  "usage": {
+    "input_tokens": 50588,
+    "cached_input_tokens": 25088,
+    "output_tokens": 449,
+    "reasoning_output_tokens": 275
+  },
+  "expected_mcp_server": "blender",
+  "mcp_route_verified": true,
+  "mcp_isolation": "temporary_codex_home",
+  "provider_reported": true,
+  "source": "codex_exec_json_turn_completed",
+  "forensic_path": "C:\\Users\\phsra\\AppData\\Local\\Temp\\.pie-codex-phase8-v2-worktree-pie-live-store\\runs\\baseline-blender-default-cube-v2-r2",
+  "note": "Codex provider usage, not billing or a raw transcript"
+}

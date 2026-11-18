@@ -1,0 +1,28 @@
+{
+  "schema": "pie-web-transparent-compaction-gate-v1",
+  "status": "PASS_GATE_NOT_CERTIFIED",
+  "workspace": "C:/Users/phsra/OneDrive/Documents/ChatGPT/Korum/PIE-Clean",
+  "upstream": "@playwright/mcp@0.0.85",
+  "gateway": {
+    "domain": "web",
+    "max_chars": 2400,
+    "initialize": "PASS",
+    "tools_list": "PASS",
+    "tool_count": 26,
+    "pie_web_context_announced": false,
+    "recovery_tool_announced": true
+  },
+  "fixture_probe": {
+    "url": "http://127.0.0.1:8766/index.html",
+    "browser_snapshot_chars": 415,
+    "compaction_triggered": false,
+    "reason": "snapshot is below the 2400-character gateway budget"
+  },
+  "tests_after_change": {
+    "focused_passed": 22,
+    "full_passed": 714,
+    "full_skipped": 4,
+    "full_subtests": 126
+  },
+  "interpretation": "The default Web route now avoids an extra model-visible query tool; transparent snapshot compaction remains available for oversized snapshots. No new token-savings claim is made by this gate."
+}

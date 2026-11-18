@@ -1,0 +1,29 @@
+{
+  "schema": "pie-phase4-8-codex-ab-v1",
+  "status": "INVALID_PAIR_TOOL_ALLOWLIST",
+  "certification": "NOT_CERTIFIED",
+  "pair_id": "pair-codex-blender-default-20261117",
+  "scenario_id": "blender-live-default-cube-codex-v1",
+  "repetition": 3,
+  "condition": "baseline",
+  "run_id": "codex-blender-default-baseline-r3",
+  "workspace_commit": "09277f3af1d22ed78a9e14ba2d7be0629ceabd2d",
+  "provider_reported": true,
+  "mcp_route": "blender",
+  "expected_mcp_tools": ["get_addon_status", "get_scene_info"],
+  "observed_mcp_tools": ["get_addon_status", "get_scene_info", "get_scene_info"],
+  "oracle": "NOT_EVALUATED",
+  "usage": {
+    "input_tokens": 82535,
+    "cached_input_tokens": 74752,
+    "uncached_input_tokens": 7783,
+    "output_tokens": 915,
+    "reasoning_output_tokens": 418,
+    "total_tokens": 83450
+  },
+  "duration_ms": 23176.286,
+  "failure_reason": "The baseline model made an additional get_scene_info call; the strict tool sequence gate rejected the run.",
+  "optimized_session_started": false,
+  "retry": false,
+  "forensic_path": "C:\\Users\\phsra\\AppData\\Local\\Temp\\.pie-codex-blender-09277f3-20261117-pie-live-store\\runs\\codex-blender-default-baseline-r3"
+}

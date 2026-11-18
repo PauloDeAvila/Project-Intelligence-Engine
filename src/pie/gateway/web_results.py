@@ -40,6 +40,10 @@ _REF = re.compile(r"(?<!\w)(?:\[\s*ref\s*=\s*(?:[a-z]\d+|f\d+e\d+)\s*\]|\bref\s*
 _HEAD = re.compile(r"(?i)^\s*[-*]?\s*(?:heading|title|alert|status|dialog|main|navigation|form|button|link|textbox|searchbox|combobox|checkbox|radio|tab|menuitem|option|listitem|row|cell)\b")
 _MARKER = re.compile(r"(?im)^###\s*(?:snapshot|page snapshot|page url|page title|aria snapshot)\b")
 _LONG_LINE = 560
+# Minimum structural envelope: marker line + a heading/ref line must still fit.
+# Replaces the former fixed 500-char floor, which rejected small but valid
+# local-page snapshots and broke pie_web_context.
+_MIN_STRUCTURAL_CHARS = 80
 
 WEB_CONTEXT_NAME = "pie_web_context"
 WEB_CONTEXT_TOOL = {
@@ -60,7 +64,7 @@ def web_result_eligible(text: str, tool: str) -> bool:
     """Fail closed on errors/secrets/unknown formats BEFORE persistent storage."""
     if tool not in SNAPSHOT_RESULT_TOOLS or not isinstance(text, str):
         return False
-    if len(text) < 500 or len(text) > 500_000 or _UNSAFE.search(text) or _SECRET.search(text):
+    if len(text) < _MIN_STRUCTURAL_CHARS or len(text) > 500_000 or _UNSAFE.search(text) or _SECRET.search(text):
         return False
     if not _MARKER.search(text):
         # Reject arbitrary text as a web snapshot: don't lose tool semantics.

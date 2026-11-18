@@ -1,0 +1,38 @@
+{
+  "schema": "pie-context-runtime-mcp-v1",
+  "status": "IMPLEMENTED_AND_VALIDATED",
+  "scope": "read_only_runtime_metadata",
+  "tool": "pie_context_runtime",
+  "operations": [
+    "graph_snapshot",
+    "graph_order",
+    "agent_references",
+    "agents"
+  ],
+  "safety": {
+    "execution_exposed": false,
+    "restore_exposed": false,
+    "compile_exposed": false,
+    "caller_filesystem_path": false,
+    "missing_graph_creates_database": false,
+    "graph_open_mode": "sqlite_read_only",
+    "compact_profile_exposes_tool": false,
+    "checkpoint_state_payload_returned": false
+  },
+  "validation": {
+    "targeted_tests": "hard timeout isolated with focused tests passed",
+    "full_suite": "705 passed, 4 skipped, 126 subtests passed",
+    "compileall": "PASS",
+    "wheel_build": "PASS",
+    "pie_index_state": "CURRENT",
+    "workspace_match": true,
+    "public_pillars_facade": "pie.runtime.pillars exposes all six pillars and is covered by test_runtime_pillars",
+    "graphify_nodes": 3431,
+    "graphify_edges": 9239
+  },
+  "limitations": [
+    "The MCP projection exposes runtime metadata only; compiler, adaptive selection, local execution and certification remain library APIs.",
+    "The graph projection reads the conventional .pie/context-runtime-graph.sqlite3 path only.",
+    "Provider token certification remains NOT_CERTIFIED because the external GLM probe returned HTTP 429 and no usage payload."
+  ]
+}

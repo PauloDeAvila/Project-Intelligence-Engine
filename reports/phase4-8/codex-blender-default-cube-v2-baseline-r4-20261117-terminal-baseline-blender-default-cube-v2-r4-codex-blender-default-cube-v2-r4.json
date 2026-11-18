@@ -1,0 +1,13 @@
+{
+  "schema": "pie-phase3-terminal-record-v1",
+  "task_id": "blender-live-default-cube-codex-v2",
+  "run_id": "baseline-blender-default-cube-v2-r4",
+  "pair_id": "codex-blender-default-cube-v2-r4",
+  "condition": "baseline",
+  "status": "FAILED",
+  "reason": "route_evidence_failed",
+  "timestamp": "2026-11-17T22:16:33+00:00",
+  "tokens": null,
+  "latency_ms": null,
+  "usage": null
+}

@@ -1,0 +1,13 @@
+{
+  "schema": "pie-memory-project-isolation-v1",
+  "status": "PASS_LOCAL",
+  "root_a_task": "400911ec-9aed-41f2-8282-5fb54498a7ed",
+  "root_b_task": "5bcbcbf4-dbd6-4dd7-b749-ee479b53de12",
+  "cross_root_restore_state": "NOT_FOUND",
+  "root_a_restore_state": "FOUND",
+  "root_b_restore_state": "FOUND",
+  "root_a_hash": "c4c3d134cd4a477c7a7f8aa10d52b86313180c9be35499e7dee10a8fa795971b",
+  "root_b_hash": "32b74f1dc4de990ad0abb1207a39b1deae66ad7a8c26e3f677a84d747344ed52",
+  "cross_root_isolated": true,
+  "file_change_invalidation": "covered by existing hash-invalidation tests; not exercised in this probe"
+}

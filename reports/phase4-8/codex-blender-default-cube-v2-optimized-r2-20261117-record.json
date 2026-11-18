@@ -1,0 +1,67 @@
+{
+  "schema": "pie-live-codex-usage-v1",
+  "condition": "optimized",
+  "scenario_id": "blender-live-default-cube-codex-v2",
+  "repetition": 1,
+  "run_id": "optimized-blender-default-cube-v2-r2",
+  "pair_id": "codex-blender-default-cube-v2-r2",
+  "model": "gpt-5.6-luna",
+  "codex_version": "codex-cli 0.169.0-alpha.11.1",
+  "prompt_sha256": "03acefdf19b2fecc1040f1cfce16752b88eb22f05964f503710880dca0d6956d",
+  "expected_sha256": "910dd17a2e058f63f25a8674928f87654c82f9ee5fe2875a53aecd653b5c0ca1",
+  "answer_sha256": "910dd17a2e058f63f25a8674928f87654c82f9ee5fe2875a53aecd653b5c0ca1",
+  "oracle_kind": "blender_scene_json",
+  "oracle_pass": true,
+  "oracle_diagnostic": {
+    "passed": true,
+    "length": 98,
+    "sha256": "910dd17a2e058f63f25a8674928f87654c82f9ee5fe2875a53aecd653b5c0ca1",
+    "format": "json",
+    "keys": [
+      "location",
+      "material_names",
+      "object_name",
+      "object_type"
+    ],
+    "missing_keys": [],
+    "extra_keys": [],
+    "field_types": {
+      "location": "list",
+      "material_names": "list",
+      "object_name": "str",
+      "object_type": "str"
+    },
+    "location_length": 3,
+    "material_names_length": 1
+  },
+  "workspace_commit": "498e5664b8200bd5573764296aa0516ae070a4f0",
+  "configuration_sha256": "c7e4d4add4d6e11fa23dd234f041a4da76fece5e9e24f39b6b01dce32dbd2c32",
+  "profile": null,
+  "runtime_ms": 16106.206,
+  "tool_events": 2,
+  "mcp_tools": [
+    {
+      "server": "pie-blender-optimized",
+      "tool": "get_addon_status",
+      "status": "completed"
+    },
+    {
+      "server": "pie-blender-optimized",
+      "tool": "pie_blender_get_object",
+      "status": "completed"
+    }
+  ],
+  "usage": {
+    "input_tokens": 48924,
+    "cached_input_tokens": 41856,
+    "output_tokens": 284,
+    "reasoning_output_tokens": 139
+  },
+  "expected_mcp_server": "pie-blender-optimized",
+  "mcp_route_verified": true,
+  "mcp_isolation": "temporary_codex_home",
+  "provider_reported": true,
+  "source": "codex_exec_json_turn_completed",
+  "forensic_path": "C:\\Users\\phsra\\AppData\\Local\\Temp\\.pie-codex-phase8-v2-worktree-pie-live-store\\runs\\optimized-blender-default-cube-v2-r2",
+  "note": "Codex provider usage, not billing or a raw transcript"
+}

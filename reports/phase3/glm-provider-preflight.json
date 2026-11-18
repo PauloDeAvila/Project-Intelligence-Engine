@@ -1,0 +1,40 @@
+{
+  "schema": "pie-provider-preflight-v1",
+  "observed_date": "2026-11-16",
+  "endpoint": "http://127.0.0.1:8080/v1",
+  "model_discovery": {
+    "status": 200,
+    "models": ["gambiarraapi/glm-5.3-flash"]
+  },
+  "health": {
+    "status": 200,
+    "routing": true,
+    "models": 1
+  },
+  "chat_completion": {
+    "status": "TIMEOUT",
+    "provider_usage_status": "unavailable",
+    "usage": null,
+    "reason": "A fresh local chat-completions probe with a 60-second timeout also expired without a response.",
+    "last_probe_elapsed_ms": 60043,
+    "last_probe_model": "gambiarraapi/glm-5.3-flash",
+    "latest_probe_elapsed_ms": 45075,
+    "latest_probe_after_cooldown": true,
+    "benchmark_started": false
+  },
+  "upstream_probe": {
+    "base": "https://api.bazaarlink.ai/v1",
+    "models_status": 200,
+    "model_catalog_count": 126,
+    "glm_model_present": true,
+    "minimal_completion_status": 429,
+    "provider_usage_status": "unavailable"
+  },
+  "certification": "NOT_CERTIFIED",
+  "notes": [
+    "Model discovery and health checks succeeded.",
+    "No model completion response or provider token usage was received.",
+    "No Blender or Web token benchmark was counted from this preflight.",
+    "Credentials, prompts, and response bodies are intentionally not stored."
+  ]
+}

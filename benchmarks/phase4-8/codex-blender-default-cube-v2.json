@@ -1,0 +1,25 @@
+{
+  "schema": "pie-phase4-8-scenario-v1",
+  "scenario_id": "blender-live-default-cube-codex-v2",
+  "application": "blender",
+  "description": "Read-only current Blender default Cube query for official Codex A/B continuation.",
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "required_mcp_server": "blender",
+  "expected_mcp_tools_by_condition": {
+    "baseline": ["get_addon_status", "get_scene_info"],
+    "optimized": ["get_addon_status", "pie_blender_get_object"]
+  },
+  "prompt": "Inspect the current Blender scene in read-only mode. Make exactly these MCP calls in order: call get_addon_status once, then call exactly one scene-reading tool that provides the Cube's type, location, and material names. Do not call any MCP tool twice. Do not modify the scene. Return exactly one JSON object with the keys object_name, object_type, location, material_names for object Cube. Use the exact values returned by the tool. Return JSON only, with no Markdown.",
+  "expected_exact": "{\"object_name\":\"Cube\",\"object_type\":\"MESH\",\"location\":[0.0,0.0,0.0],\"material_names\":[\"Material\"]}",
+  "oracle": {
+    "kind": "blender_scene_json",
+    "expected": {
+      "object_name": "Cube",
+      "object_type": "MESH",
+      "location": [0.0, 0.0, 0.0],
+      "material_names": ["Material"]
+    }
+  },
+  "fixture_spec": "Live Blender 5.3 default scene; read-only Cube query; no scene mutation"
+}

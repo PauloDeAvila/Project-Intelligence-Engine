@@ -1,0 +1,41 @@
+{
+  "schema": "pie-web-evidence-task-analysis-v1",
+  "status": "PILOT_VALID_NOT_CERTIFIED",
+  "model": "gambiarraapi/deepseek-v3.2",
+  "fixture": "fixtures/phase4-8/web-large/index.html",
+  "attempts": [
+    {
+      "report": "reports/phase4-8/web-large-evidence-task-20261116.json",
+      "status": "PILOT_INVALID_QUALITY",
+      "reason": "optimized arm reached finish_reason=length at the 128-token cap"
+    },
+    {
+      "report": "reports/phase4-8/web-large-evidence-task-512-20261116.json",
+      "status": "PILOT_INVALID_QUALITY",
+      "reason": "optimized result omitted the title from the post-click snapshot; the source value was available earlier in the same MCP flow"
+    },
+    {
+      "report": "reports/phase4-8/web-large-evidence-task-v2-20261116.json",
+      "status": "PILOT_VALID_NOT_CERTIFIED",
+      "reason": "source reconstruction combines navigate, pre-action snapshot, and post-action snapshot"
+    }
+  ],
+  "valid_result": {
+    "report": "reports/phase4-8/web-large-evidence-task-v2-20261116.json",
+    "scope": "end_to_end_controlled_task",
+    "baseline_total_tokens": 7612,
+    "optimized_total_tokens": 5966,
+    "total_savings_percent": 21.624,
+    "baseline_task_oracle": true,
+    "optimized_task_oracle": true,
+    "baseline_latency_s": 3.328,
+    "optimized_latency_s": 2.3249,
+    "mcp_calls_per_arm": 4
+  },
+  "limitations": [
+    "One valid pair only.",
+    "Local Infinity provider, not official Codex certification.",
+    "The model selects the action; deterministic code executes MCP and reconstructs values.",
+    "This does not establish broad Web generalization or statistical certification."
+  ]
+}

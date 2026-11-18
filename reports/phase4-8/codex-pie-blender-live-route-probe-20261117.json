@@ -1,0 +1,44 @@
+{
+  "schema": "pie-codex-pie-blender-live-route-probe-v1",
+  "status": "ROUTE_AND_TASK_PASS_WITH_UNREQUESTED_TOOL",
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "provider_usage_status": "available",
+  "codex_thread_id": "01a1e78a-ea40-7ee1-894e-47e21d864494",
+  "server_requested": "pie-blender-optimized",
+  "server_observed": ["pie-blender-optimized", "cua_repl"],
+  "forbidden_servers_observed": ["cua_repl"],
+  "mcp_calls": [
+    {"server": "pie-blender-optimized", "tool": "get_addon_status", "status": "PASS"},
+    {"server": "pie-blender-optimized", "tool": "get_scene_info", "status": "PASS"},
+    {"server": "cua_repl", "tool": "js", "status": "PASS", "classification": "automatic_completion_summary"}
+  ],
+  "oracle": {
+    "blender_version": "5.3.0",
+    "addon_version": [2, 0],
+    "protocol_version": 16,
+    "expected_protocol_version": 16,
+    "scene_object_count": 3,
+    "mesh_count": 1,
+    "light_count": 1,
+    "camera_count": 1,
+    "pass": true
+  },
+  "usage": {
+    "input_tokens": 147147,
+    "cached_input_tokens": 123776,
+    "uncached_input_tokens": 23371,
+    "output_tokens": 622,
+    "reasoning_output_tokens": 262,
+    "total_tokens": 147769
+  },
+  "blender_process": {
+    "pid": 18196,
+    "executable": "C:\\Program Files\\Blender Foundation\\Blender 5.3\\blender.exe",
+    "mcp_port": 9876
+  },
+  "scene_modified": false,
+  "persistent_configuration_changed": false,
+  "strict_server_isolation": false,
+  "isolation_note": "Codex automatically called cua_repl for a completion summary after the two requested PIE calls."
+}

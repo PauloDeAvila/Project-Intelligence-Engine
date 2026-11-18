@@ -1,0 +1,51 @@
+{
+  "schema": "pie-phase3-single-result-v1",
+  "state": "BASELINE_WEB_FAILED",
+  "run_id": "baseline-web-fixture-v2-r2",
+  "pair_id": "codex-web-fixture-v2-r2",
+  "ledger": "C:\\Users\\phsra\\OneDrive\\Documents\\ChatGPT\\Korum\\PIE-Clean\\reports\\phase4-8\\codex-web-fixture-v2-baseline-r2-20261117-budget-ledger.json",
+  "preflight": {
+    "state": "BLOCKED",
+    "checks": {
+      "scenario": "PASS",
+      "condition": "PASS",
+      "worktree": {
+        "state": "FAIL"
+      },
+      "config": "PASS",
+      "profile": "PASS",
+      "codex_executable": "PASS",
+      "model": "PASS",
+      "mcp": {
+        "state": "PASS",
+        "required_server": "playwright-baseline"
+      },
+      "mcp_tools": {
+        "state": "PASS",
+        "enabled_tools": [
+          "browser_navigate",
+          "browser_snapshot",
+          "browser_click"
+        ]
+      },
+      "mcp_command": "PASS",
+      "gateway_workspace": "NOT_APPLICABLE",
+      "mcp_runtime": {
+        "state": "DEFERRED_TO_ISOLATED_CAPTURE",
+        "required_server": "playwright-baseline"
+      },
+      "authentication": {
+        "state": "AUTH_VALIDATED_LOCAL"
+      }
+    },
+    "errors": [
+      "PRECHECK_WORKTREE_DIRTY"
+    ],
+    "model": "gpt-5.6-luna",
+    "condition": "baseline"
+  },
+  "quota_consumed": false,
+  "automatic_retry": false,
+  "task_id": "web-local-fixture-codex-v2",
+  "certification_status": "BYPASS"
+}

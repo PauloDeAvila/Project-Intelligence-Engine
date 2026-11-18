@@ -1,0 +1,21 @@
+{
+  "schema": "pie-opencode-provider-connection-v1",
+  "status": "PASS",
+  "provider": "infinity",
+  "endpoint": "http://127.0.0.1:8080/v1",
+  "model": "gambiarraapi/deepseek-v3.2",
+  "opencode_model": "infinity/deepseek-v3.2",
+  "config": "C:/Users/phsra/Downloads/Infinite/opencode.json",
+  "probe": {
+    "prompt": "Responda somente: DEEPSEEK_OK",
+    "response": "DEEPSEEK_OK",
+    "input_tokens": 55,
+    "output_tokens": 6,
+    "cached_input_tokens": 6394,
+    "reasoning_output_tokens": 0,
+    "cost": 0
+  },
+  "glm_status": "registered_as_fallback_only",
+  "credentials_persisted": false,
+  "secrets_recorded": false
+}

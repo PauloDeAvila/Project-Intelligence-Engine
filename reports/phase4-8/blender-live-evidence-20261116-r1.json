@@ -1,0 +1,117 @@
+{
+  "schema": "pie-blender-live-evidence-task-v1",
+  "status": "PILOT_INVALID_QUALITY",
+  "pair_id": "blender-live-evidence-1",
+  "replication_index": 1,
+  "task_id": "blender-exact-object-v1",
+  "application": "blender",
+  "model": "gambiarraapi/deepseek-v3.2",
+  "prompt_sha256": "9771f2fea33976f9ce1b722f93dd69220d8e27cf04a11b1d14f9d95184575e1c",
+  "configuration_sha256": "7ee5e1fd495e8754ceda7b4a0a312223078a3e645df8cfad75fe982a9c0fe97c",
+  "fixture_sha256": "5f9a6dd1f529032f0f43a4eb2176ca44e4633216bd94e80db4e5cf69a7a237f3",
+  "fixture_source": "independent_task_oracle; live_scene_identity verified by Blender probe",
+  "retry_count": 0,
+  "oracle": {
+    "object_name": "PIE_Large_Cube_00",
+    "object_type": "mesh",
+    "location": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "material_names": [
+      "PIE_Large_Material_00"
+    ]
+  },
+  "baseline": {
+    "arm": "baseline",
+    "route": "upstream_mcp",
+    "route_verified": true,
+    "tool_count": 10,
+    "mcp_calls": 3,
+    "mcp_methods": [
+      "initialize",
+      "tools/list",
+      "tools/call"
+    ],
+    "automatic_retry": false,
+    "context_chars": 19544,
+    "answer": {
+      "object_name": "PIE_Large_Cube_00",
+      "object_type": "mesh",
+      "location": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "material_names": [
+        "PIE_Large_Material_00"
+      ]
+    },
+    "oracle_pass": true,
+    "task_oracle_pass": true,
+    "usage": {
+      "completion_tokens": 47,
+      "completion_tokens_details": {
+        "text_tokens": 47
+      },
+      "prompt_tokens": 5217,
+      "prompt_tokens_details": {
+        "cached_tokens": 449,
+        "image_tokens": 0,
+        "text_tokens": 5217
+      },
+      "total_tokens": 5264
+    },
+    "provider_usage_status": "available",
+    "cache_observed": true,
+    "actual_model": "gambiarraapi/deepseek-v3.2",
+    "prompt_sha256": "9771f2fea33976f9ce1b722f93dd69220d8e27cf04a11b1d14f9d95184575e1c",
+    "finish_reason": "stop",
+    "latency_s": 4.1855,
+    "input_tokens": 5217,
+    "output_tokens": 47,
+    "total_tokens": 5264
+  },
+  "optimized": {
+    "arm": "optimized",
+    "route": "pie_gateway",
+    "route_verified": true,
+    "tool_count": 15,
+    "mcp_calls": 3,
+    "mcp_methods": [
+      "initialize",
+      "tools/list",
+      "tools/call"
+    ],
+    "automatic_retry": false,
+    "context_chars": 22110,
+    "answer": {},
+    "oracle_pass": false,
+    "task_oracle_pass": false,
+    "usage": {
+      "completion_tokens": 256,
+      "completion_tokens_details": {
+        "reasoning_tokens": 256
+      },
+      "prompt_tokens": 5949,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "total_tokens": 6205
+    },
+    "provider_usage_status": "available",
+    "cache_observed": true,
+    "actual_model": "gambiarraapi/deepseek-v3.2",
+    "prompt_sha256": "9771f2fea33976f9ce1b722f93dd69220d8e27cf04a11b1d14f9d95184575e1c",
+    "finish_reason": "length",
+    "latency_s": 3.3026,
+    "input_tokens": 5949,
+    "output_tokens": 256,
+    "total_tokens": 6205
+  },
+  "savings": {
+    "input_percent": -14.031,
+    "total_percent": -17.876
+  }
+}

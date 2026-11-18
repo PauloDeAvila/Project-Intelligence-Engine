@@ -538,7 +538,26 @@ def _delivery_status(
     }
 
 
-def _structured_facts(sources: list[dict], atoms: list[dict]) -> list[dict[str, object]]:
+def _source_hash_matches(root: Path | None, source: dict) -> bool:
+    """Return True only when the source file really hashes to its claimed sha256."""
+    relative = str(source.get("path", ""))
+    expected = str(source.get("sha256", ""))
+    if root is None or not relative or len(expected) != 64:
+        return False
+    candidate = root / relative
+    try:
+        resolved = candidate.resolve()
+        if not resolved.is_relative_to(root.resolve()) or candidate.is_symlink():
+            return False
+        return sha256(resolved.read_bytes()).hexdigest() == expected
+    except OSError:
+        return False
+
+
+def _structured_facts(
+    sources: list[dict], atoms: list[dict], root: Path | None = None
+) -> list[dict[str, object]]:
+    verified_sources = [_source_hash_matches(root, source) for source in sources]
     result = []
     for raw_atom in atoms:
         atom = (
@@ -548,6 +567,11 @@ def _structured_facts(sources: list[dict], atoms: list[dict]) -> list[dict[str, 
         )
         source_index = int(atom.get("s", 0))
         source = sources[source_index] if 0 <= source_index < len(sources) else {}
+        verified = (
+            verified_sources[source_index]
+            if 0 <= source_index < len(verified_sources)
+            else False
+        )
         identity = f"{source.get('path', '')}:{source.get('sha256', '')}:{atom.get('line')}:{atom.get('text', '')}"
         result.append({
             "id": sha256(identity.encode("utf-8")).hexdigest()[:16],
@@ -557,7 +581,7 @@ def _structured_facts(sources: list[dict], atoms: list[dict]) -> list[dict[str, 
             "line": atom.get("line"),
             "kind": atom.get("kind"),
             "text": atom.get("text"),
-            "verified": True,
+            "verified": verified,
         })
     return result
 
@@ -677,7 +701,7 @@ def build_proof_context(
             index_state=result["index_state"],
             context_state=result["relationship_state"],
         )
-        result["structured_facts"] = _structured_facts(sources, result["atoms"])
+        result["structured_facts"] = _structured_facts(sources, result["atoms"], root)
         if not result["coverage"]["complete"]:
             result["fallback"] = {
                 "available": bool(context.get("source_ranges")),
@@ -717,7 +741,7 @@ def build_proof_context(
         if "fallback" in result:
             compact["fallback"] = "source_ranges"
         compact["chars"] = len(json.dumps(compact, ensure_ascii=False, separators=(",", ":")))
-        compact["structured_facts"] = _structured_facts(sources, compact["facts"])
+        compact["structured_facts"] = _structured_facts(sources, compact["facts"], root)
         compact["chars"] = len(json.dumps(compact, ensure_ascii=False, separators=(",", ":")))
         if cache is not None:
             cache.put_proof(cache_key, generation, _manifest(sources), compact)

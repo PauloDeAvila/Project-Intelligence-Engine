@@ -8,7 +8,7 @@ from pathlib import Path
 from pie.indexing.indexer import index_project
 from pie.graph.relationships import build_relationships
 from pie.interfaces.mcp_server import dispatch
-from pie.retrieval.evidence_atoms import build_proof_context
+from pie.retrieval.evidence_atoms import _source_hash_matches, build_proof_context
 
 
 class EvidenceAtomTests(unittest.TestCase):
@@ -50,6 +50,44 @@ class EvidenceAtomTests(unittest.TestCase):
         self.assertTrue(result["fallback"]["available"])
         self.assertEqual(result["delivery"]["status"], "FALLBACK_REQUIRED")
         self.assertFalse(result["delivery"]["can_deliver_atoms"])
+
+    def test_unverified_source_hash_marks_facts_unverified(self):
+        result = build_proof_context(self.root, "greet", requirements=["return"])
+        self.assertTrue(result["structured_facts"])
+        self.assertTrue(all(fact["verified"] for fact in result["structured_facts"]))
+
+        # Tamper with the source bytes after indexing: the claimed sha256 no
+        # longer matches the file contents, so no atom may claim verification.
+        # The persistent cache replays the flags computed at build time, so the
+        # check must run against a fresh build (different detail => new key).
+        (self.root / "app.py").write_bytes(
+            (self.root / "app.py").read_bytes() + b"\n# appended\n"
+        )
+        tampered = build_proof_context(
+            self.root, "greet", requirements=["return"], detail="full"
+        )
+        # Tampering without reindexing makes the index stale, so the pipeline may
+        # legitimately select no sources at all. Either way, no fact may report
+        # verification: the bytes on disk no longer match the claimed hash.
+        self.assertFalse(any(fact["verified"] for fact in tampered["structured_facts"]))
+        self.assertFalse(
+            any(source["verified"] for source in tampered["sources"] if "verified" in source)
+        )
+
+    def test_source_hash_check_fails_closed(self):
+        # A source path escaping the root must never verify, and missing
+        # inputs (no root, empty path, short hash) must not be trusted.
+        self.assertFalse(
+            _source_hash_matches(
+                self.root, {"path": "../outside.py", "sha256": sha256(b"payload").hexdigest()}
+            )
+        )
+        self.assertFalse(_source_hash_matches(self.root, {"path": "", "sha256": "0" * 64}))
+        self.assertFalse(_source_hash_matches(self.root, {"path": "app.py", "sha256": "abc"}))
+        self.assertFalse(_source_hash_matches(None, {"path": "app.py", "sha256": "0" * 64}))
+        self.assertFalse(
+            _source_hash_matches(self.root, {"path": "missing.py", "sha256": "0" * 64})
+        )
 
     def test_persistent_cache_reuses_and_invalidates_verified_evidence(self):
         first = build_proof_context(self.root, "greet", requirements=["return"])

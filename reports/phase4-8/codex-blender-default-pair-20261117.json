@@ -1,0 +1,97 @@
+{
+  "schema": "pie-phase4-8-codex-ab-v1",
+  "status": "VALID_SINGLE_PAIR_NOT_CERTIFIED",
+  "certification": {
+    "status": "NOT_CERTIFIED",
+    "reason": "One valid Blender pair only; required repetitions and Web coverage are still pending."
+  },
+  "pair_id": "pair-codex-blender-default-20261117",
+  "scenario_id": "blender-live-default-cube-codex-v1",
+  "workspace_commit": "09277f3af1d22ed78a9e14ba2d7be0629ceabd2d",
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "fixture": "Live Blender 5.3 default scene; read-only Cube query",
+  "prompt_sha256": "910ad01a92d10b3b28bc9c3292e0d36825416507469177fc1da51aaa0477696a",
+  "oracle": {
+    "kind": "blender_scene_json",
+    "baseline_pass": true,
+    "optimized_pass": true,
+    "expected_sha256": "910dd17a2e058f63f25a8674928f87654c82f9ee5fe2875a53aecd653b5c0ca1",
+    "post_pair_scene_check": "PASS",
+    "post_pair_scene_observation": "Scene, Cube location [0.0, 0.0, 0.0], and Material remained unchanged."
+  },
+  "arms": {
+    "baseline": {
+      "run_id": "codex-blender-default-baseline-r1",
+      "server": "blender",
+      "mcp_tools": ["get_addon_status", "get_scene_info"],
+      "mcp_calls": 2,
+      "tool_events": 2,
+      "provider_reported": true,
+      "oracle_pass": true,
+      "usage": {
+        "input_tokens": 171378,
+        "cached_input_tokens": 153728,
+        "uncached_input_tokens": 17650,
+        "output_tokens": 835,
+        "reasoning_output_tokens": 513,
+        "total_tokens": 172213
+      },
+      "duration_ms": 24257.206,
+      "answer_sha256": "a85a101b768e42bd2a813f865a231ed01a3f64a4e99817270e0c05230e53743d",
+      "configuration_sha256": "3a0c1f1b3b77689e58435ef7d82beefa00fbd55176bba64da93efa644a71f169",
+      "forensic_path": "C:\\Users\\phsra\\AppData\\Local\\Temp\\.pie-codex-blender-09277f3-20261117-pie-live-store\\runs\\codex-blender-default-baseline-r1"
+    },
+    "optimized": {
+      "run_id": "codex-blender-default-optimized-r1",
+      "server": "pie-blender-optimized",
+      "mcp_tools": ["get_addon_status", "pie_blender_get_object"],
+      "mcp_calls": 2,
+      "tool_events": 2,
+      "provider_reported": true,
+      "oracle_pass": true,
+      "usage": {
+        "input_tokens": 83175,
+        "cached_input_tokens": 75136,
+        "uncached_input_tokens": 8039,
+        "output_tokens": 681,
+        "reasoning_output_tokens": 452,
+        "total_tokens": 83856
+      },
+      "duration_ms": 25554.907,
+      "answer_sha256": "910dd17a2e058f63f25a8674928f87654c82f9ee5fe2875a53aecd653b5c0ca1",
+      "configuration_sha256": "291f69dc06c039f5c97109a521261b09297dc13b18fc816e7af520aaec475c3c",
+      "forensic_path": "C:\\Users\\phsra\\AppData\\Local\\Temp\\.pie-codex-blender-09277f3-20261117-pie-live-store\\runs\\codex-blender-default-optimized-r1"
+    }
+  },
+  "comparison": {
+    "input_savings_percent": 51.466933,
+    "uncached_input_savings_percent": 54.453258,
+    "cached_input_savings_percent": 51.124063,
+    "output_savings_percent": 18.443114,
+    "total_savings_percent": 51.306812,
+    "latency_delta_percent": 5.349755,
+    "latency_interpretation": "optimized slower",
+    "mcp_call_delta": 0,
+    "reasoning_note": "reasoning_output_tokens are reported separately and are not added to total_tokens."
+  },
+  "telemetry": {
+    "optimized_gateway_store": "C:\\Users\\phsra\\AppData\\Local\\Temp\\.pie-codex-blender-09277f3-20261117-pie-live-store",
+    "optimized_lifecycle_events": 19,
+    "optimized_mcp_tool_call_events": 2,
+    "optimized_completed_tool_call_events": 2,
+    "baseline_gateway_events": "not applicable; baseline used the original MCP server",
+    "credentials_stored": false,
+    "transcripts_stored": false
+  },
+  "cost": {
+    "status": "UNAVAILABLE",
+    "total": null,
+    "reason": "No verified tariff was supplied for gpt-5.6-luna."
+  },
+  "limitations": [
+    "This is one real Codex pair, not the three-pair-per-domain certification sample.",
+    "The optimized latency was 5.35% higher in this pair despite lower token usage.",
+    "This proves a valid Blender pilot result, not general Codex certification or Web certification."
+  ]
+}

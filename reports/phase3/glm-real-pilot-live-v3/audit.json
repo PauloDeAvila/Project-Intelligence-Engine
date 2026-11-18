@@ -1,0 +1,26 @@
+{
+  "tasks": [
+    {
+      "id": "T00",
+      "question": "Locate the Python function that performs this responsibility: Print object(s) supplied via positional arguments.",
+      "oracle": {
+        "path": "rich/__init__.py",
+        "symbol": "print"
+      }
+    }
+  ],
+  "audit": [
+    {
+      "id": "T00",
+      "oracle": {
+        "path": "rich/__init__.py",
+        "symbol": "print"
+      },
+      "baseline_hit": true,
+      "pie_hit": true,
+      "baseline_chars": 12581,
+      "pie_chars": 1192,
+      "retrieval_seconds": 0.018942
+    }
+  ]
+}

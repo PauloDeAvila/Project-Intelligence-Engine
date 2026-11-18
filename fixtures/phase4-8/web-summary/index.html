@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>PIE Summary Web Fixture</title></head>
+<body>
+  <main>
+    <h1>PIE summary navigation fixture</h1>
+    <p id="status">The deterministic summary fixture is ready.</p>
+    <button id="details" type="button">Open details</button>
+    <button id="summary" type="button">Show summary</button>
+    <output id="marker" hidden>PIE_WEB_SUMMARY_FIXTURE_V1</output>
+    <table aria-label="Summary records">
+      <thead><tr><th>Category</th><th>Value</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </main>
+  <script>
+    const rows = document.querySelector('#rows');
+    for (let index = 0; index < 32; index += 1) {
+      const row = document.createElement('tr');
+      row.innerHTML = `<td>Category ${String(index).padStart(2, '0')}</td><td>deterministic summary value</td>`;
+      rows.appendChild(row);
+    }
+    document.querySelector('#summary').addEventListener('click', () => {
+      document.querySelector('#marker').hidden = false;
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>PIE Large Web Fixture</title></head>
+<body>
+  <main>
+    <h1>PIE large navigation fixture</h1>
+    <p id="status">The deterministic large fixture is ready.</p>
+    <button id="action" type="button">Reveal large phase marker</button>
+    <output id="marker" hidden>PIE_WEB_LARGE_FIXTURE_V1</output>
+    <section aria-label="Known records">
+      <h2>Known records</h2>
+      <ul id="records"></ul>
+    </section>
+  </main>
+  <script>
+    const records = document.querySelector('#records');
+    for (let index = 0; index < 96; index += 1) {
+      const item = document.createElement('li');
+      item.textContent = `Record ${String(index).padStart(2, '0')}: deterministic local evidence entry for PIE`; 
+      records.appendChild(item);
+    }
+    document.querySelector('#action').addEventListener('click', () => {
+      document.querySelector('#marker').hidden = false;
+    });
+  </script>
+</body>
+</html>
