@@ -11,20 +11,20 @@ jobs:
       PIE_API_BASE_URL: ${{ secrets.PIE_API_BASE_URL }}
       PIE_API_KEY: ${{ secrets.PIE_API_KEY }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
         with:
           repository: Textualize/rich
           ref: main
           path: benchmark-corpora/rich
           persist-credentials: false
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: pallets/click
           ref: main
           path: benchmark-corpora/click
           persist-credentials: false
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: encode/httpx
           ref: master
