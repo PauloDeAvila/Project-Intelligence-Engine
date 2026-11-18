@@ -14,7 +14,7 @@ jobs:
           python-version: '3.12'
       - name: Measure local source retrieval and warm index cost
         run: python tools/pie_local_latency.py --root . --output pie-local-latency.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: pie-local-latency
@@ -39,7 +39,7 @@ jobs:
           python-version: '3.12'
       - name: Compare production PIE with file-level navigation
         run: python -u tools/pie_real_repo_lab.py --pie-production --output production-rich-results --models "gh/gpt-4o-mini;nvidia/nemotron-3-ultra-550b-a55b"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: pie-production-rich

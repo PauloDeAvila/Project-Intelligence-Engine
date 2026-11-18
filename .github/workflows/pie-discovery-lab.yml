@@ -24,7 +24,7 @@ jobs:
           PYTHONPATH=src:tools python -u tools/pie_discovery_benchmark.py --models 'gh/gpt-4o-mini;nvidia/nvidia/nemotron-3-ultra-550b-a55b' --out discovery-results
       - name: Publish measured artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pie-discovery-two-models-${{ github.run_id }}
           path: discovery-results/

@@ -42,7 +42,7 @@ jobs:
           PYTHONPATH=src python tools/cloud_pie_benchmark.py --model "$MODEL" --repeats "$REPEATS" --out benchmark-results
       - name: Upload results and evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pie-cloud-results-${{ github.run_id }}
           path: benchmark-results/
