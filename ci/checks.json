@@ -62,11 +62,10 @@
       "command": [
         "python",
         "-m",
-        "unittest",
-        "discover",
-        "-s",
-        "tests",
-        "-v"
+        "pytest",
+        "-q",
+        "--basetemp",
+        ".pytest-tmp-current-run"
       ]
     },
     "build": {
